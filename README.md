@@ -1,4 +1,4 @@
-
+md
 # Nukune (Firebase Studio)
 
 これはFirebase Studioで作成されたNext.jsスタータープロジェクトです。
@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-ブラウザで [http://localhost:9002](http://localhost:9002) を開いてください。
+ブラウザで `http://localhost:9002` を開いてください。これがローカル開発環境でアプリを確認する方法です。
 
 ## Firebaseの設定
 
@@ -46,6 +46,7 @@ Firebaseプロジェクトをセットアップし、必要な設定情報をア
     ```
 
     **注意:** `.env` ファイルはGitリポジトリにコミットしないでください。`.gitignore` ファイルに `.env` が含まれていることを確認してください。
+    **重要:** `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`（例: `your-project-id.firebaseapp.com`）は、主にFirebase SDKが認証処理に内部的に使用するドメインです。通常、開発したアプリをブラウザで直接表示するためのURLではありません。
 
 5.  **開発サーバーの再起動:**
     *   `.env` ファイルを作成または編集した後は、Next.jsの開発サーバーを再起動してください（ターミナルで `Ctrl+C` を押して停止し、再度 `npm run dev` を実行）。これにより、新しい環境変数がアプリケーションに読み込まれます。
@@ -58,6 +59,21 @@ Firebaseプロジェクトをセットアップし、必要な設定情報をア
     *   Firebaseコンソールの「Firestore Database」セクションで、「データベースの作成」をクリックします。
     *   テストモードまたは本番モードを選択して開始します（開発初期はテストモードで問題ありませんが、本番リリース前には適切なセキュリティルールを設定してください）。
     *   ロケーションを選択します。
+
+## 開発とデプロイ
+
+### ローカル開発
+上記「はじめに」の通り `npm run dev` を実行し、 `http://localhost:9002` で開発中のアプリを確認できます。
+
+### デプロイ（アプリの公開）
+作成したアプリをインターネット上で公開するには、「デプロイ」作業が必要です。
+このプロジェクトは `apphosting.yaml` を含んでおり、Firebase App Hosting へのデプロイを想定しています。
+Firebase App Hosting を利用すると、Firebaseが提供する公開URL（例: `[あなたのプロジェクトID].web.app` や `[あなたのアプリ名].apphosting.dev`）でアプリがアクセス可能になります。
+
+デプロイ手順については、Firebaseの公式ドキュメントをご確認ください。
+*   Firebase App Hosting: [https://firebase.google.com/docs/hosting/app-hosting](https://firebase.google.com/docs/hosting/app-hosting)
+
+`nukune-11e6f.firebaseapp.com` で "Site Not Found" と表示されるのは、そのアドレス（Firebase Hostingのデフォルトアドレス）にはまだ何もウェブサイトがデプロイされていないためです。Firebase App Hosting でデプロイした場合、通常これとは異なるURLが割り当てられます。
 
 ## 主なページ
 
