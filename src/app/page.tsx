@@ -11,21 +11,21 @@ const features = [
     title: 'AIによる最適なマッチング',
     description: 'AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。',
     icon: <TrendingUp className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=AIマッチング",
+    image: "/img/feature-ai-matching.jpg",
     dataAiHint: "AI 男女",
   },
   {
     title: '「会いたい」を投稿',
     description: 'あなたの希望や理想のデートを投稿して、特別な人との出会いのチャンスを広げましょう。',
     icon: <MessageCircle className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=デート投稿",
+    image: "/img/feature-post-date.jpg",
     dataAiHint: "男女 デート",
   },
   {
     title: '高度な検索機能',
     description: '詳細な条件や好みでプロフィールを絞り込み、理想の相手を見つけて直接つながりましょう。',
     icon: <Search className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=プロフィール検索",
+    image: "/img/feature-advanced-search.jpg",
     dataAiHint: "検索 男女",
   },
 ];
@@ -113,18 +113,20 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">充実の機能で理想のパートナー探し</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 md:auto-rows-fr">
           {features.map((feature) => (
-            <Card key={feature.title} className="shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col">
+            <Card key={feature.title} className="shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full">
               <CardHeader className="items-center text-center">
                 {feature.icon}
-                <CardTitle className="text-2xl">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow text-center">
-                <div className="relative w-full h-40 rounded-md overflow-hidden mb-4">
-                    <Image src={feature.image} alt={feature.title} layout="fill" objectFit="cover" data-ai-hint={feature.dataAiHint} />
+                <div className="min-h-[4rem] flex items-center justify-center"> {/* Ensure title area has enough height for 2 lines and centers content */}
+                  <CardTitle className="text-2xl">{feature.title}</CardTitle>
                 </div>
-                <p className="text-muted-foreground">{feature.description}</p>
+              </CardHeader>
+              <div className="relative w-full h-40 rounded-md overflow-hidden mb-4 shrink-0"> {/* Image container: fixed height, prevent shrinking */}
+                  <Image src={feature.image} alt={feature.title} layout="fill" objectFit="cover" data-ai-hint={feature.dataAiHint} />
+              </div>
+              <CardContent className="flex-grow flex flex-col items-center justify-center text-center p-6 pt-0"> {/* Description: takes remaining space, centers content */}
+                  <p className="text-muted-foreground">{feature.description}</p>
               </CardContent>
             </Card>
           ))}
