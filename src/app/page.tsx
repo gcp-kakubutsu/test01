@@ -74,12 +74,12 @@ export default function LandingPage() {
       <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden bg-gradient-to-br from-primary to-accent">
         <div className="absolute inset-0">
           <Image
-            src="https://placehold.co/1200x600.png?text=Nukune背景"
-            alt="Nukune 背景"
+            src="/img/hero-banner-couple.jpg"
+            alt="森の中で手を取り合う男女"
             layout="fill"
             objectFit="cover"
             className="opacity-30"
-            data-ai-hint="男女 繋がり"
+            priority
           />
         </div>
         <div className="relative container mx-auto px-4">
