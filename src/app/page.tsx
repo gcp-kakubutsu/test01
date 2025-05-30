@@ -82,7 +82,7 @@ export default function LandingPage() {
             className="opacity-70" 
             data-ai-hint="カップル 手を繋ぐ"
           />
-           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
         </div>
         <div className="relative container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
@@ -264,3 +264,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
