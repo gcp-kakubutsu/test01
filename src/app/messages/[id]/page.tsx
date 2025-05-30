@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, Paperclip, SmilePlus } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, SmilePlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,7 @@ interface Message {
 }
 
 // チャットのモックデータ
-const mockChatName = "さくら"; // 以前は "Seraphina"
+const mockChatName = "さくら"; 
 const mockChatAvatar = "https://placehold.co/100x100/F0306A/FFF.png?text=S";
 const mockMessages: Message[] = [
   { id: '1', text: 'こんにちは！プロフィール素敵ですね😊', sender: 'them', timestamp: '10:00 AM' },
@@ -32,18 +32,18 @@ const mockMessages: Message[] = [
 ];
 
 export default function ChatPage({ params }: { params: { id: string } }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [newMessage, setNewMessage] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
     // 実際のアプリでは、params.id のチャット詳細とメッセージをフェッチします
-  }, [isAuthenticated, router, params.id]);
+  }, [isAuthenticated, isLoading, router, params.id]);
 
   useEffect(() => {
     // 新しいメッセージが追加されたときに一番下にスクロール
@@ -65,8 +65,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     setNewMessage('');
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
+  }
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
+    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
   }
 
   // これは実際のアプリでは動的になります

@@ -4,7 +4,7 @@
 import { UserProfileCard, type UserProfile } from '@/components/home/UserProfileCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Ban, ChevronLeft, ChevronRight, Heart, RotateCcw } from 'lucide-react';
+import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -16,17 +16,17 @@ const mockUsers: UserProfile[] = [
 ];
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [users, setUsers] = useState<UserProfile[]>(mockUsers); // 実際のアプリではこれをフェッチします
   const [feedback, setFeedback] = useState<'liked' | 'passed' | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
 
   const handleAction = (action: 'like' | 'pass') => {
     setFeedback(action);
@@ -47,8 +47,14 @@ export default function HomePage() {
     setUsers([...mockUsers].sort(() => Math.random() - 0.5)); // デモ用の簡単なシャッフル
   }
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
+  }
+
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
+    // This case should ideally be handled by the redirect in useEffect,
+    // but as a fallback or during transition:
+    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
   }
 
   if (users.length === 0) {

@@ -2,17 +2,17 @@
 "use client";
 
 import Link from 'next/link';
-import { HeartHandshake, LogIn, LogOut, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
+import { HeartHandshake, LogIn, LogOut, MessageSquare, Settings, User, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 
@@ -24,7 +24,9 @@ export function Header() {
           Nukune
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : isAuthenticated ? (
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/home" className="flex items-center gap-1">

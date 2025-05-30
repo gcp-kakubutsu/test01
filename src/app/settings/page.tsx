@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -23,17 +23,17 @@ export default function SettingsPage() {
   const [messageNotifications, setMessageNotifications] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState<string[]>(['ブロックユーザー123', '別のユーザー']); // モックデータ
   const [blockUserInput, setBlockUserInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+     if (!authIsLoading && !isAuthenticated) {
       router.push('/login');
     }
     // 実際のアプリでは、ここでユーザー設定をフェッチします
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, authIsLoading, router]);
 
   const handleSaveChanges = async () => {
-    setIsLoading(true);
+    setIsSaving(true);
     // API呼び出しをシミュレート
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log({
@@ -41,7 +41,7 @@ export default function SettingsPage() {
       matchNotifications,
       messageNotifications,
     });
-    setIsLoading(false);
+    setIsSaving(false);
     toast({
       title: '設定保存完了',
       description: '設定が更新されました。',
@@ -60,9 +60,13 @@ export default function SettingsPage() {
     toast({ title: 'ユーザーのブロックを解除しました', description: `${userToUnblock} をブロックリストから削除しました。` });
   };
 
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
+  if (authIsLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
+  if (!isAuthenticated) {
+     return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+  }
+
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
@@ -163,8 +167,8 @@ export default function SettingsPage() {
       </Card>
 
       <div className="flex justify-end mt-8">
-        <Button onClick={handleSaveChanges} disabled={isLoading} size="lg" className="text-base px-6 py-3">
-          {isLoading ? (
+        <Button onClick={handleSaveChanges} disabled={isSaving} size="lg" className="text-base px-6 py-3">
+          {isSaving ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               保存中...

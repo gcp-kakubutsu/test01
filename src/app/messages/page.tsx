@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquareText, Search } from 'lucide-react';
+import { MessageSquareText, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -20,19 +20,23 @@ const mockChats = [
 ];
 
 export default function MessagesPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
 
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
+  if (!isAuthenticated) {
+    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+  }
+
 
   const filteredChats = mockChats.filter(chat =>
     chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

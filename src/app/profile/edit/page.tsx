@@ -12,45 +12,73 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserCircle, Image as ImageIcon, Tag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// 現在のユーザーデータのモック構造
+
 interface UserProfileData {
   displayName: string;
   bio: string;
-  kinks: string; // この例ではカンマ区切りの文字列で簡略化
+  kinks: string; // カンマ区切りの文字列として保存
   profilePhotoUrl?: string;
 }
 
 export default function EditProfilePage() {
-  const { isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [kinks, setKinks] = useState(''); // カンマ区切りの文字列として保存
+  const [kinks, setKinks] = useState('');
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingData, setIsFetchingData] = useState(true);
 
-  // 既存のユーザーデータを取得するシミュレーション
+
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!authIsLoading && !isAuthenticated) {
       router.push('/login');
-      return;
     }
-    // 実際のアプリではここでユーザーデータを取得します
-    const mockUserData: UserProfileData = {
-      displayName: 'あおい', // 日本語名に変更
-      bio: '人生、冒険、そして新しい繋がりを探求するのが大好きです。オープンマインドで、同じような魂を探しています。', // 日本語に翻訳
-      kinks: '旅行,写真,グルメ,深い会話', // 日本語に翻訳
-      profilePhotoUrl: 'https://placehold.co/200x200.png?text=あ', // プレースホルダーテキスト変更
+  }, [isAuthenticated, authIsLoading, router]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser) {
+        setIsFetchingData(true);
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data() as UserProfileData;
+            setDisplayName(userData.displayName || currentUser.displayName || '');
+            setBio(userData.bio || '');
+            setKinks(Array.isArray(userData.kinks) ? userData.kinks.join(', ') : (userData.kinks || ''));
+            setProfilePhotoPreview(userData.profilePhotoUrl || currentUser.photoURL || null);
+          } else {
+            // If no doc, use auth display name or empty
+             setDisplayName(currentUser.displayName || '');
+             setProfilePhotoPreview(currentUser.photoURL || null);
+             toast({ title: "プロフィール情報が見つかりません", description: "新しいプロフィールを作成してください。", variant: "default" });
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast({ title: "データ取得エラー", description: "プロフィール情報の取得に失敗しました。", variant: "destructive" });
+        } finally {
+          setIsFetchingData(false);
+        }
+      } else if (!authIsLoading) {
+        // If no current user and not loading auth state, means user is not logged in or data is not yet available
+        setIsFetchingData(false);
+      }
     };
-    setDisplayName(mockUserData.displayName);
-    setBio(mockUserData.bio);
-    setKinks(mockUserData.kinks);
-    setProfilePhotoPreview(mockUserData.profilePhotoUrl || null);
-  }, [isAuthenticated, router]);
+
+    if (!authIsLoading && isAuthenticated) {
+      fetchUserData();
+    }
+  }, [currentUser, authIsLoading, isAuthenticated, toast]);
 
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,32 +95,54 @@ export default function EditProfilePage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!currentUser) {
+      toast({ title: "エラー", description: "ユーザー情報がありません。", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
 
-    // API呼び出しをシミュレート
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      let photoUrl = profilePhotoPreview || '';
+      if (profilePhotoFile) {
+        const storage = getStorage();
+        const photoRef = ref(storage, `profilePhotos/${currentUser.uid}/${profilePhotoFile.name}`);
+        const snapshot = await uploadBytes(photoRef, profilePhotoFile);
+        photoUrl = await getDownloadURL(snapshot.ref);
+      }
 
-    // フォームデータ送信の処理（例：バックエンドへの送信）
-    // profilePhotoFileについては、通常ストレージサービスにアップロードし、
-    // URLを保存します。
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userDocRef, {
+        displayName,
+        bio,
+        kinks: kinks.split(',').map(k => k.trim()).filter(k => k),
+        profilePhotoUrl: photoUrl,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }); // Use merge to avoid overwriting fields like createdAt
 
-    console.log({
-      displayName,
-      bio,
-      kinks: kinks.split(',').map(k => k.trim()).filter(k => k), // 配列に変換
-      profilePhotoFile: profilePhotoFile?.name, // デモ用にファイル名のみログ出力
-    });
-
-    setIsLoading(false);
-    toast({
-      title: 'プロフィール更新完了',
-      description: 'プロフィール情報が正常に保存されました。',
-    });
+      setIsLoading(false);
+      toast({
+        title: 'プロフィール更新完了',
+        description: 'プロフィール情報が正常に保存されました。',
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      setIsLoading(false);
+      toast({
+        title: '更新エラー',
+        description: error.message || 'プロフィールの更新に失敗しました。',
+        variant: 'destructive',
+      });
+    }
   };
 
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
+  if (authIsLoading || isFetchingData) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
+
+  if (!isAuthenticated) {
+     return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+  }
+
 
   return (
     <div className="max-w-2xl mx-auto py-8">

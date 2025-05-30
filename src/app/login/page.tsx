@@ -8,25 +8,58 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
-import { LogInIcon, Mail, KeyRound } from 'lucide-react';
+import { FormEvent, useState, useEffect } from 'react';
+import { LogInIcon, Mail, KeyRound, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+export interface AuthFormData {
+  email: string;
+  password: string;
+}
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    // ここで基本的なバリデーションやAPI呼び出しを行います
-    if (email && password) {
-      login(); // モックログイン
+  useEffect(() => {
+    if (isAuthenticated) {
       router.push('/home');
-    } else {
-      alert("メールアドレスとパスワードを入力してください。");
+    }
+  }, [isAuthenticated, router]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "入力エラー",
+        description: "メールアドレスとパスワードを入力してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await login({ email, password });
+      // Redirect is handled by useEffect
+    } catch (error: any) {
+      // Toast is handled by AuthContext
+      console.error("Login page submit error:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (authIsLoading && !isAuthenticated) { // Show loading only if not yet authenticated
+    return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">読み込み中...</p></div>;
+  }
+
+  if (isAuthenticated) { // Prevent flash of login page if already authenticated
+     return <div className="flex justify-center items-center h-full"><p>ホームへリダイレクト中...</p></div>;
+  }
 
   return (
     <div className="flex items-center justify-center py-12">
@@ -59,8 +92,14 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full text-lg py-3">
-              ログイン
+            <Button type="submit" className="w-full text-lg py-3" disabled={isSubmitting || authIsLoading}>
+              {isSubmitting || authIsLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 送信中...
+                </>
+              ) : (
+                'ログイン'
+              )}
             </Button>
             <p className="text-sm text-muted-foreground">
               アカウントをお持ちでないですか？{' '}
