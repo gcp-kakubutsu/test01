@@ -57,3 +57,6 @@ pnpm-debug.log*
 # Firebase
 firebase-debug.log
 firebase-crashlytics-build.json
+
+.specstory/
+.cursorindexingignore
