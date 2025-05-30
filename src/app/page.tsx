@@ -253,12 +253,13 @@ export default function LandingPage() {
           </Button>
           <div className="mt-8">
             <Image
-                src="https://placehold.co/800x300.png?text=Nukuneで繋がる"
-                alt="幸せなカップル"
+                src="/img/final-cta-banner.jpg"
+                alt="Nukuneで繋がる幸せなカップルのイメージ（更新）"
                 width={800}
                 height={300}
                 className="rounded-lg shadow-2xl mx-auto"
                 data-ai-hint="カップル シルエット"
+                unoptimized
             />
           </div>
         </div>
