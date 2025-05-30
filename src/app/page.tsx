@@ -81,8 +81,8 @@ export default function LandingPage() {
             priority
             data-ai-hint="カップル 手を繋ぐ"
           />
+           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
         </div>
-        {/* Removed overlay div and any background classes from section */}
         <div className="relative container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
             心で繋がる。豊かに生きる。
@@ -91,10 +91,10 @@ export default function LandingPage() {
             Nukuneは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
           </p>
           <div className="space-x-4">
-            <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90">
+            <Button size="lg" asChild className="bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/signup">Nukuneに参加</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+            <Button size="lg" variant="outline" asChild className="border-primary-foreground/80 text-primary-foreground hover:bg-primary-foreground/20 hover:border-primary-foreground shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/login">ログイン</Link>
             </Button>
           </div>
@@ -245,7 +245,7 @@ export default function LandingPage() {
           <p className="text-xl text-primary-foreground mb-10 max-w-xl mx-auto">
             今すぐNukuneに参加して、より充実した関係を築くための一歩を踏み出しましょう。
           </p>
-          <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 transform hover:scale-105 transition-transform duration-300 px-10 py-6 text-lg">
+          <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 transform hover:scale-105 transition-transform duration-300 px-10 py-6 text-lg rounded-lg shadow-lg">
             <Link href="/signup">今すぐ登録</Link>
           </Button>
           <div className="mt-8">
@@ -263,3 +263,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
