@@ -20,27 +20,49 @@ let dbInstance: Firestore | undefined = undefined;
 let firebaseInitError: string | null = null;
 
 console.log('Firebase Client Config Loading Attempt...');
+
+const placeholderKeywords = [
+  "YOUR_API_KEY_HERE",
+  "YOUR_AUTH_DOMAIN_HERE",
+  "YOUR_PROJECT_ID_HERE",
+  "YOUR_STORAGE_BUCKET_HERE",
+  "YOUR_MESSAGING_SENDER_ID_HERE",
+  "YOUR_APP_ID_HERE",
+  "YOUR_MEASUREMENT_ID_HERE"
+];
+
+let usesPlaceholders = false;
+if (firebaseConfig.apiKey && placeholderKeywords.some(p => firebaseConfig.apiKey?.includes(p))) usesPlaceholders = true;
+if (firebaseConfig.authDomain && placeholderKeywords.some(p => firebaseConfig.authDomain?.includes(p))) usesPlaceholders = true;
+if (firebaseConfig.projectId && placeholderKeywords.some(p => firebaseConfig.projectId?.includes(p))) usesPlaceholders = true;
+if (firebaseConfig.appId && placeholderKeywords.some(p => firebaseConfig.appId?.includes(p))) usesPlaceholders = true;
+
+
 // apiKey, authDomain, projectId, appId はFirebaseの基本的な機能に必須です。
-// storageBucket, messagingSenderId, measurementId は使用する機能に応じて必須度が変わります。
 if (
   !firebaseConfig.apiKey ||
   !firebaseConfig.authDomain ||
   !firebaseConfig.projectId ||
-  !firebaseConfig.appId
+  !firebaseConfig.appId ||
+  usesPlaceholders
 ) {
+  const reason = usesPlaceholders 
+    ? "必須のFirebase設定値がプレースホルダーのままです。"
+    : "必須のFirebase設定値 (apiKey, authDomain, projectId, appId) のいずれかが.envファイルに未定義または空です。";
+  
   console.error(
-    'Firebase 設定エラー: 必須のFirebase設定値 (apiKey, authDomain, projectId, appId) のいずれかが.envファイルに未定義または空です。ファイルを確認し、Next.js開発サーバーを再起動してください。'
+    `Firebase 設定エラー: ${reason} ファイルを確認し、Next.js開発サーバーを再起動してください。`
   );
   console.error('現在の読み込み値:', {
-    apiKey: firebaseConfig.apiKey ? '********' : 'MISSING_OR_EMPTY',
-    authDomain: firebaseConfig.authDomain || 'MISSING_OR_EMPTY',
-    projectId: firebaseConfig.projectId || 'MISSING_OR_EMPTY',
-    appId: firebaseConfig.appId || 'MISSING_OR_EMPTY',
+    apiKey: firebaseConfig.apiKey ? (placeholderKeywords.some(p => firebaseConfig.apiKey?.includes(p)) ? 'PLACEHOLDER_DETECTED' : '********') : 'MISSING_OR_EMPTY',
+    authDomain: firebaseConfig.authDomain ? (placeholderKeywords.some(p => firebaseConfig.authDomain?.includes(p)) ? 'PLACEHOLDER_DETECTED' : firebaseConfig.authDomain) : 'MISSING_OR_EMPTY',
+    projectId: firebaseConfig.projectId ? (placeholderKeywords.some(p => firebaseConfig.projectId?.includes(p)) ? 'PLACEHOLDER_DETECTED' : firebaseConfig.projectId) : 'MISSING_OR_EMPTY',
+    appId: firebaseConfig.appId ? (placeholderKeywords.some(p => firebaseConfig.appId?.includes(p)) ? 'PLACEHOLDER_DETECTED' : firebaseConfig.appId) : 'MISSING_OR_EMPTY',
     storageBucket: firebaseConfig.storageBucket || 'NOT_SET (Optional)',
     messagingSenderId: firebaseConfig.messagingSenderId || 'NOT_SET (Optional)',
     measurementId: firebaseConfig.measurementId || 'NOT_SET (Optional)',
   });
-  firebaseInitError = '必須のFirebase設定値が不足しています。';
+  firebaseInitError = reason;
 } else {
   if (!getApps().length) {
     try {
@@ -79,12 +101,8 @@ if (
 }
 
 if (firebaseInitError && typeof window !== 'undefined') {
-  // クライアントサイドでのみエラーを再スローして、Next.jsのエラーオーバーレイに表示させる
-  // あるいは、よりユーザーフレンドリーなエラー表示方法を検討
-  // throw new Error(firebaseInitError);
   console.error("Firebase Initialization Error (client-side log):", firebaseInitError);
 }
-
 
 const finalApp = app;
 const finalAuth = authInstance;
