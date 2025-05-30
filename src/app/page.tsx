@@ -71,17 +71,18 @@ export default function LandingPage() {
   return (
     <div className="space-y-16 md:space-y-24">
       {/* Hero Section */}
-      <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden bg-gradient-to-br from-primary to-accent">
+      <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src="/img/hero-banner-couple.jpg"
             alt="森の中で手を取り合う男女"
             layout="fill"
             objectFit="cover"
-            className="opacity-30"
             priority
+            data-ai-hint="カップル 手を繋ぐ"
           />
         </div>
+        {/* Removed overlay div and any background classes from section */}
         <div className="relative container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
             心で繋がる。豊かに生きる。
