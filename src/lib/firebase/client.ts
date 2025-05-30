@@ -18,70 +18,42 @@ let app: FirebaseApp | undefined = undefined;
 let authInstance: Auth | undefined = undefined;
 let dbInstance: Firestore | undefined = undefined;
 let firebaseInitError: string | null = null;
-let configIssues = false;
 
-console.log('Firebase Client Config Loading...');
-console.log('Attempting to use Firebase config:', {
-  apiKey: firebaseConfig.apiKey ? '********' : 'MISSING_OR_EMPTY', // APIキーはマスク
-  authDomain: firebaseConfig.authDomain || 'MISSING_OR_EMPTY',
-  projectId: firebaseConfig.projectId || 'MISSING_OR_EMPTY',
-  storageBucket: firebaseConfig.storageBucket || 'NOT_SET (Optional)',
-  messagingSenderId: firebaseConfig.messagingSenderId || 'NOT_SET (Optional)',
-  appId: firebaseConfig.appId || 'NOT_SET (Optional)',
-  measurementId: firebaseConfig.measurementId || 'NOT_SET (Optional)',
-});
-
-
-// 必須設定項目のチェック
-if (!firebaseConfig.apiKey) {
+console.log('Firebase Client Config Loading Attempt...');
+// apiKey, authDomain, projectId, appId はFirebaseの基本的な機能に必須です。
+// storageBucket, messagingSenderId, measurementId は使用する機能に応じて必須度が変わります。
+if (
+  !firebaseConfig.apiKey ||
+  !firebaseConfig.authDomain ||
+  !firebaseConfig.projectId ||
+  !firebaseConfig.appId
+) {
   console.error(
-    'Firebase 設定エラー: NEXT_PUBLIC_FIREBASE_API_KEY が未定義または空です。.env ファイルを確認してください。'
+    'Firebase 設定エラー: 必須のFirebase設定値 (apiKey, authDomain, projectId, appId) のいずれかが.envファイルに未定義または空です。ファイルを確認し、Next.js開発サーバーを再起動してください。'
   );
-  configIssues = true;
-}
-if (!firebaseConfig.authDomain) {
-  console.error(
-    'Firebase 設定エラー: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN が未定義または空です。.env ファイルを確認してください。'
-  );
-  configIssues = true;
-}
-if (!firebaseConfig.projectId) {
-  console.error(
-    'Firebase 設定エラー: NEXT_PUBLIC_FIREBASE_PROJECT_ID が未定義または空です。.env ファイルを確認してください。'
-  );
-  configIssues = true;
-}
-// appIdも多くのケースで重要なのでチェックを追加
-if (!firebaseConfig.appId) {
-  console.error(
-    'Firebase 設定エラー: NEXT_PUBLIC_FIREBASE_APP_ID が未定義または空です。.env ファイルを確認してください。'
-  );
-  configIssues = true;
-}
-
-
-if (!configIssues) {
+  console.error('現在の読み込み値:', {
+    apiKey: firebaseConfig.apiKey ? '********' : 'MISSING_OR_EMPTY',
+    authDomain: firebaseConfig.authDomain || 'MISSING_OR_EMPTY',
+    projectId: firebaseConfig.projectId || 'MISSING_OR_EMPTY',
+    appId: firebaseConfig.appId || 'MISSING_OR_EMPTY',
+    storageBucket: firebaseConfig.storageBucket || 'NOT_SET (Optional)',
+    messagingSenderId: firebaseConfig.messagingSenderId || 'NOT_SET (Optional)',
+    measurementId: firebaseConfig.measurementId || 'NOT_SET (Optional)',
+  });
+  firebaseInitError = '必須のFirebase設定値が不足しています。';
+} else {
   if (!getApps().length) {
     try {
       console.log("Firebase アプリケーションの初期化を試みます。");
       app = initializeApp(firebaseConfig);
-      console.log("Firebase アプリケーションが正常に初期化されました。", app.name);
-
-      if (app) {
-        authInstance = getAuth(app);
-        console.log("Firebase Auth が正常に初期化されました。");
-        dbInstance = getFirestore(app);
-        console.log("Firestore が正常に初期化されました。");
-      } else {
-        // 通常、initializeAppが失敗するとエラーがスローされるため、この分岐には到達しにくい
-        console.error("Firebase initializeApp は成功しましたが、app インスタンスが falsy です。");
-        firebaseInitError = "initializeApp returned falsy value";
-        configIssues = true; // 追加の問題としてマーク
-      }
+      console.log("Firebase アプリケーションが正常に初期化されました。");
+      authInstance = getAuth(app);
+      console.log("Firebase Auth が正常に初期化されました。");
+      dbInstance = getFirestore(app);
+      console.log("Firestore が正常に初期化されました。");
     } catch (error: any) {
       console.error('重大なエラー: Firebase アプリケーションの初期化に失敗しました:', error.message, error.code);
-      firebaseInitError = error.message + (error.code ? ` (${error.code})` : '');
-      configIssues = true;
+      firebaseInitError = `Firebase app could not be initialized. Original error: ${error.message}${error.code ? ` (${error.code})` : ''}. Check console for details and verify your .env file.`;
       app = undefined;
       authInstance = undefined;
       dbInstance = undefined;
@@ -95,27 +67,22 @@ if (!configIssues) {
       } catch (e: any) {
         console.error("既存の Firebase App で Auth の取得に失敗しました:", e.message, e.code);
         firebaseInitError = `Failed to get Auth: ${e.message}`;
-        configIssues = true;
       }
       try {
         dbInstance = getFirestore(app);
       } catch (e: any) {
         console.error("既存の Firebase App で Firestore の取得に失敗しました:", e.message, e.code);
         if (!firebaseInitError) firebaseInitError = `Failed to get Firestore: ${e.message}`;
-        configIssues = true;
       }
     }
   }
 }
 
-if (configIssues) {
-  console.warn(
-    `Firebase の初期化に問題がありました。${firebaseInitError ? `エラー: ${firebaseInitError}` : ''} .env ファイルとFirebaseコンソールの設定を確認してください。Firebase関連機能は動作しない可能性があります。`
-  );
-  // configIssuesがtrueの場合、app, authInstance, dbInstanceは未定義のままか、エラー発生後に未定義に設定される
-  app = undefined;
-  authInstance = undefined;
-  dbInstance = undefined;
+if (firebaseInitError && typeof window !== 'undefined') {
+  // クライアントサイドでのみエラーを再スローして、Next.jsのエラーオーバーレイに表示させる
+  // あるいは、よりユーザーフレンドリーなエラー表示方法を検討
+  // throw new Error(firebaseInitError);
+  console.error("Firebase Initialization Error (client-side log):", firebaseInitError);
 }
 
 
@@ -123,4 +90,4 @@ const finalApp = app;
 const finalAuth = authInstance;
 const finalDb = dbInstance;
 
-export { finalApp as app, finalAuth as auth, finalDb as db };
+export { finalApp as app, finalAuth as auth, finalDb as db, firebaseInitError };
