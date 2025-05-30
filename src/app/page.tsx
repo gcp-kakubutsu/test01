@@ -79,9 +79,10 @@ export default function LandingPage() {
             layout="fill"
             objectFit="cover"
             priority
+            className="opacity-70" 
             data-ai-hint="カップル 手を繋ぐ"
           />
-           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
         </div>
         <div className="relative container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
@@ -94,7 +95,7 @@ export default function LandingPage() {
             <Button size="lg" asChild className="bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/signup">Nukuneに参加</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-primary-foreground/80 text-primary-foreground hover:bg-primary-foreground/20 hover:border-primary-foreground shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
+            <Button size="lg" asChild className="bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/login">ログイン</Link>
             </Button>
           </div>
@@ -263,5 +264,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
