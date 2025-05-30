@@ -1,59 +1,67 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function TermsPage() {
+  const [lastUpdated, setLastUpdated] = useState('');
+
+  useEffect(() => {
+    // クライアントサイドでのみ実行
+    setLastUpdated(new Date().toLocaleDateString('ja-JP'));
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-12">
       <Card className="shadow-xl">
         <CardHeader className="text-center">
           <FileText className="mx-auto h-16 w-16 text-primary mb-4" />
-          <CardTitle className="text-4xl font-bold text-primary">Terms of Service</CardTitle>
+          <CardTitle className="text-4xl font-bold text-primary">利用規約</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 text-muted-foreground leading-relaxed">
-          <p className="text-sm">Last Updated: {new Date().toLocaleDateString()}</p>
-          
+          {lastUpdated && <p className="text-sm">最終更新日: {lastUpdated}</p>}
+
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">1. Acceptance of Terms</h2>
-            <p>By accessing or using NukuConnect (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, do not use the Service. We may modify these Terms at any time, and such modification shall be effective upon posting on the Service.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">1. 規約への同意</h2>
+            <p>NukuConnect（以下「本サービス」）にアクセスまたは利用することにより、お客様は本利用規約（以下「本規約」）に拘束されることに同意したものとみなされます。本規約のすべてに同意しない場合は、本サービスを利用しないでください。当社はいつでも本規約を変更することができ、かかる変更は本サービスへの掲載をもって効力を生じるものとします。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">2. Eligibility</h2>
-            <p>You must be at least 18 years old to use the Service. By using the Service, you represent and warrant that you meet this age requirement.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">2. 利用資格</h2>
+            <p>本サービスを利用するには、18歳以上である必要があります。本サービスを利用することにより、お客様はこの年齢要件を満たしていることを表明し、保証するものとします。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">3. User Conduct</h2>
-            <p>You are solely responsible for your conduct and any data, text, information, usernames, graphics, images, photos, profiles, audio and video clips, links ("Content") that you submit, post, and display on the Service. You agree not to misuse the Service or help anyone else to do so.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">3. ユーザーの行動</h2>
+            <p>お客様は、自身の行動、および本サービスに送信、投稿、表示するデータ、テキスト、情報、ユーザー名、グラフィック、画像、写真、プロフィール、音声・動画クリップ、リンク（以下「コンテンツ」）について単独で責任を負うものとします。お客様は、本サービスを不正利用したり、他者による不正利用を助けたりしないことに同意するものとします。</p>
             <ul className="list-disc list-inside pl-4 mt-2 space-y-1">
-              <li>You will not post Nudity or sexually explicit content.</li>
-              <li>You will not harass, abuse, or intimidate other users.</li>
-              <li>You will not use the Service for any illegal or unauthorized purpose.</li>
+              <li>ヌードや性的に露骨なコンテンツを投稿しないこと。</li>
+              <li>他のユーザーに対する嫌がらせ、虐待、脅迫を行わないこと。</li>
+              <li>本サービスを違法または不正な目的で使用しないこと。</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">4. AI Verification</h2>
-            <p>Our AI Profile Verification tool is designed to enhance safety but is not foolproof. NukuConnect is not liable for the accuracy of AI-driven assessments. Users should always exercise caution.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">4. AI認証</h2>
+            <p>当社のAIプロフィール認証ツールは安全性を高めるために設計されていますが、完全ではありません。NukuConnectはAIによる評価の正確性について責任を負いません。ユーザーは常に注意を払う必要があります。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">5. Termination</h2>
-            <p>We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever and without limitation, including but not limited to a breach of the Terms.</p>
-          </section>
-          
-          <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">6. Disclaimer of Warranties</h2>
-            <p>The Service is provided on an "AS IS" and "AS AVAILABLE" basis. NukuConnect makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">5. 契約解除</h2>
+            <p>当社は、当社の単独の裁量により、理由の如何を問わず、また本規約の違反を含むがこれに限定されないいかなる理由であれ、事前の通知または責任を負うことなく、直ちにお客様のアカウントを終了または一時停止し、本サービスへのアクセスを禁止することができるものとします。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">7. Governing Law</h2>
-            <p>These Terms shall be governed and construed in accordance with the laws of [Your Jurisdiction], without regard to its conflict of law provisions.</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">6. 保証の否認</h2>
+            <p>本サービスは「現状有姿」かつ「提供可能な範囲」で提供されます。NukuConnectは、明示または黙示を問わず、いかなる保証も行わず、これによりその他すべての保証を否認し、否定します。</p>
           </section>
 
-          <p className="mt-8 text-center font-semibold">Please read these terms carefully. Your use of NukuConnect constitutes your agreement to these Terms of Service.</p>
+          <section>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">7. 準拠法</h2>
+            <p>本規約は、[あなたの管轄区域]の法律に従って規律され、解釈されるものとします。ただし、抵触法の規定は考慮されません。</p>
+          </section>
+
+          <p className="mt-8 text-center font-semibold">これらの規約をよくお読みください。NukuConnectのご利用は、これらの利用規約への同意を意味します。</p>
         </CardContent>
       </Card>
     </div>

@@ -21,14 +21,14 @@ interface Message {
   timestamp: string;
 }
 
-// Mock data for a chat
-const mockChatName = "Seraphina";
+// チャットのモックデータ
+const mockChatName = "さくら"; // 以前は "Seraphina"
 const mockChatAvatar = "https://placehold.co/100x100/F0306A/FFF.png?text=S";
 const mockMessages: Message[] = [
-  { id: '1', text: 'Hey there! Loved your profile. 😊', sender: 'them', timestamp: '10:00 AM' },
-  { id: '2', text: 'Hi Seraphina! Thanks, yours is great too!', sender: 'me', timestamp: '10:01 AM' },
-  { id: '3', text: 'What kind of things are you into?', sender: 'them', timestamp: '10:02 AM' },
-  { id: '4', text: 'I love exploring new cafes and hiking. You?', sender: 'me', timestamp: '10:03 AM' },
+  { id: '1', text: 'こんにちは！プロフィール素敵ですね😊', sender: 'them', timestamp: '10:00 AM' },
+  { id: '2', text: 'さくらさん、ありがとう！あなたのも素晴らしいです！', sender: 'me', timestamp: '10:01 AM' },
+  { id: '3', text: 'どんなことに興味がありますか？', sender: 'them', timestamp: '10:02 AM' },
+  { id: '4', text: '新しいカフェ巡りやハイキングが好きです。あなたは？', sender: 'me', timestamp: '10:03 AM' },
 ];
 
 export default function ChatPage({ params }: { params: { id: string } }) {
@@ -42,16 +42,16 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     if (!isAuthenticated) {
       router.push('/login');
     }
-    // In a real app, fetch chat details and messages for params.id
+    // 実際のアプリでは、params.id のチャット詳細とメッセージをフェッチします
   }, [isAuthenticated, router, params.id]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages are added
+    // 新しいメッセージが追加されたときに一番下にスクロール
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
-  
+
   const handleSendMessage = (e: FormEvent) => {
     e.preventDefault();
     if (newMessage.trim() === '') return;
@@ -66,11 +66,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   };
 
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>Redirecting to login...</p></div>;
+    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
   }
-  
-  // This will be dynamic in a real app
-  const chatPartnerName = mockChatName; 
+
+  // これは実際のアプリでは動的になります
+  const chatPartnerName = mockChatName;
   const chatPartnerAvatar = mockChatAvatar;
 
   return (
@@ -79,12 +79,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         <CardHeader className="bg-card border-b p-4">
           <div className="flex items-center space-x-3">
             <Link href="/messages">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="メッセージ一覧に戻る">
                 <ArrowLeft className="h-6 w-6" />
               </Button>
             </Link>
             <Avatar>
-              <AvatarImage src={chatPartnerAvatar} alt={chatPartnerName} data-ai-hint="person portrait"/>
+              <AvatarImage src={chatPartnerAvatar} alt={chatPartnerName} data-ai-hint="女性 ポートレート"/>
               <AvatarFallback>{chatPartnerName.substring(0,1).toUpperCase()}</AvatarFallback>
             </Avatar>
             <CardTitle className="text-lg font-semibold">{chatPartnerName}</CardTitle>
@@ -97,8 +97,8 @@ export default function ChatPage({ params }: { params: { id: string } }) {
               {messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow ${
-                    msg.sender === 'me' 
-                      ? 'bg-primary text-primary-foreground rounded-br-none' 
+                    msg.sender === 'me'
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
                       : 'bg-secondary text-secondary-foreground rounded-bl-none'
                   }`}>
                     <p className="text-sm">{msg.text}</p>
@@ -114,21 +114,21 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
         <CardFooter className="p-4 border-t bg-card">
           <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">
-            <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary">
+            <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary" aria-label="ファイルを添付">
               <Paperclip className="h-5 w-5" />
             </Button>
-             <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary">
+             <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary" aria-label="絵文字を選択">
               <SmilePlus className="h-5 w-5" />
             </Button>
             <Input
               type="text"
-              placeholder="Type a message..."
+              placeholder="メッセージを入力..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               className="flex-1 text-base"
               autoComplete="off"
             />
-            <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90">
+            <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90" aria-label="送信">
               <Send className="h-5 w-5" />
             </Button>
           </form>

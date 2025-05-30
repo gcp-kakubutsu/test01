@@ -4,65 +4,65 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, ShieldCheck, Users, MessageCircle, Search, Award, PhoneOff, UserCheck, Eye, TrendingUp, Smile } from 'lucide-react';
+import { CheckCircle, ShieldCheck, Users, MessageCircle, Search, Award, PhoneOff, UserCheck, Eye, TrendingUp, Smile, Info as InfoIcon, HelpCircle as HelpCircleIcon } from 'lucide-react'; // Renamed to avoid conflict
 
 const features = [
   {
-    title: 'AI-Powered Recommendations',
-    description: 'Our AI analyzes compatibility and preferences to suggest ideal partners, making your search for connection effortless.',
+    title: 'AIによる最適なマッチング',
+    description: 'AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。',
     icon: <TrendingUp className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=AI+Match",
-    dataAiHint: "AI algorithm",
+    image: "https://placehold.co/300x200.png?text=AIマッチング",
+    dataAiHint: "AI 男女",
   },
   {
-    title: 'Post Your Desires',
-    description: 'Create posts about what you\'re looking for or dates you want to go on. Increase your chances of meeting someone special.',
+    title: '「会いたい」を投稿',
+    description: 'あなたの希望や理想のデートを投稿して、特別な人との出会いのチャンスを広げましょう。',
     icon: <MessageCircle className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=Post+Desire",
-    dataAiHint: "couple date",
+    image: "https://placehold.co/300x200.png?text=デート投稿",
+    dataAiHint: "男女 デート",
   },
   {
-    title: 'Advanced Search',
-    description: 'Filter profiles by specific criteria and preferences to find exactly who you\'re looking for and make direct connections.',
+    title: '高度な検索機能',
+    description: '詳細な条件や好みでプロフィールを絞り込み、理想の相手を見つけて直接つながりましょう。',
     icon: <Search className="h-10 w-10 text-primary mb-4" />,
-    image: "https://placehold.co/300x200.png?text=Search+Profiles",
-    dataAiHint: "magnifying glass",
+    image: "https://placehold.co/300x200.png?text=プロフィール検索",
+    dataAiHint: "検索 男女",
   },
 ];
 
 const whyNukuConnect = [
-  { title: 'Affordable Pricing', description: 'Competitive rates for premium features. Women use most features for free!', icon: <Smile className="h-6 w-6 text-accent" /> },
-  { title: 'Complete Anonymity', description: 'Your privacy is paramount. Connect without revealing your real identity until you\'re ready.', icon: <Eye className="h-6 w-6 text-accent" /> },
-  { title: 'In-App Communication', description: 'No need for external apps like LINE or Twitter. All interactions happen within NukuConnect.', icon: <MessageCircle className="h-6 w-6 text-accent" /> },
-  { title: 'User Ratings', description: 'Check community feedback before you meet, ensuring safer interactions.', icon: <UserCheck className="h-6 w-6 text-accent" /> },
-  { title: 'Privacy Controls', description: 'Block contacts by phone number to avoid unwanted encounters with acquaintances.', icon: <PhoneOff className="h-6 w-6 text-accent" /> },
+  { title: '手頃な価格設定', description: 'プレミアム機能も安心価格で。女性はほとんどの機能を無料で利用できます！', icon: <Smile className="h-6 w-6 text-accent" /> },
+  { title: '完全匿名制', description: 'プライバシーは最優先。準備ができるまで本当の自分を明かさずに繋がれます。', icon: <Eye className="h-6 w-6 text-accent" /> },
+  { title: 'アプリ内コミュニケーション', description: 'LINEやTwitterなど外部アプリは不要。NukuConnect内で全てのやり取りが完結します。', icon: <MessageCircle className="h-6 w-6 text-accent" /> },
+  { title: 'ユーザー評価', description: '会う前にコミュニティの評価を確認できるので、より安全な出会いが可能です。', icon: <UserCheck className="h-6 w-6 text-accent" /> },
+  { title: 'プライバシー管理', description: '電話番号で連絡先をブロックし、知り合いとの不要な出会いを避けられます。', icon: <PhoneOff className="h-6 w-6 text-accent" /> },
 ];
 
 const safetyFeatures = [
-  { title: 'Identity Verification', description: 'Mandatory ID checks to ensure genuine profiles and user safety.', icon: <UserCheck className="h-8 w-8 text-primary" /> },
-  { title: '24/7 Monitoring', description: 'Our team and AI systems monitor for suspicious activity and policy violations.', icon: <ShieldCheck className="h-8 w-8 text-primary" /> },
-  { title: 'Strict User Conduct', description: 'Zero tolerance for harassment. Violators face warnings or permanent bans.', icon: <Users className="h-8 w-8 text-primary" /> },
-  { title: 'Report & Block', description: 'Easily report and block users exhibiting inappropriate behavior.', icon: <CheckCircle className="h-8 w-8 text-primary" /> },
-  { title: 'Nickname Registration', description: 'Use a nickname to keep your real name private. Your personal info is never shared.', icon: <Eye className="h-8 w-8 text-primary" /> },
-  { title: 'Official Registration', description: 'Registered with relevant authorities to ensure legal compliance and user protection.', icon: <Award className="h-8 w-8 text-primary" /> },
+  { title: '本人確認', description: 'プロフィールの信頼性とユーザーの安全のため、本人確認書類の提出を必須としています。', icon: <UserCheck className="h-8 w-8 text-primary" /> },
+  { title: '24時間監視体制', description: '不審なアクティビティやポリシー違反を、運営チームとAIシステムが常時監視しています。', icon: <ShieldCheck className="h-8 w-8 text-primary" /> },
+  { title: '厳格なユーザー行動規範', description: 'ハラスメント行為は一切容認しません。違反者には警告または永久追放処分を行います。', icon: <Users className="h-8 w-8 text-primary" /> },
+  { title: '通報・ブロック機能', description: '不適切な行動をとるユーザーを簡単に通報・ブロックできます。', icon: <CheckCircle className="h-8 w-8 text-primary" /> },
+  { title: 'ニックネーム登録', description: 'ニックネームで利用できるため、本名は非公開。個人情報が共有されることはありません。', icon: <Eye className="h-8 w-8 text-primary" /> },
+  { title: '公的機関への届出済み', description: '法令遵守とユーザー保護のため、関連当局に届出済みです。', icon: <Award className="h-8 w-8 text-primary" /> },
 ];
 
 const faqItems = [
   {
-    question: 'Is NukuConnect free to use?',
-    answer: 'Basic features are free for everyone. Women enjoy extended free access to most features. Men can upgrade to a premium plan for full access, starting at competitive rates.',
+    question: 'NukuConnectは無料で使えますか？',
+    answer: '基本機能はどなたでも無料でご利用いただけます。女性はほとんどの機能を無料で楽しめます。男性はプレミアムプランにアップグレードすることで、全ての機能にアクセス可能になります。料金プランも手頃な価格からご用意しています。',
   },
   {
-    question: 'Will my identity be revealed?',
-    answer: 'NukuConnect is designed for anonymity. You can use a nickname, and your real identity is not shared. We also offer features like phone number blocking to prevent matching with people you know.',
+    question: '身元はバレますか？',
+    answer: 'NukuConnectは匿名性を重視して設計されています。ニックネームで利用でき、本名は公開されません。また、知人とのマッチングを防ぐための電話番号ブロック機能なども提供しています。',
   },
   {
-    question: 'How does NukuConnect ensure safety?',
-    answer: 'We employ multiple safety measures, including ID verification, 24/7 monitoring, a strict code of conduct, and easy reporting/blocking tools. Your safety is our top priority.',
+    question: 'NukuConnectはどのように安全性を確保していますか？',
+    answer: '本人確認、24時間監視体制、厳格な行動規範、簡単な通報・ブロック機能など、複数の安全対策を講じています。お客様の安全が私たちの最優先事項です。',
   },
   {
-    question: 'Who can use NukuConnect?',
-    answer: 'NukuConnect is for adults aged 18 and over.',
+    question: '誰がNukuConnectを利用できますか？',
+    answer: 'NukuConnectは18歳以上の方を対象としています。',
   },
 ];
 
@@ -73,28 +73,28 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden bg-gradient-to-br from-primary to-accent">
         <div className="absolute inset-0">
-          <Image 
-            src="https://placehold.co/1200x600.png?text=NukuConnect+Background"
-            alt="NukuConnect Background"
+          <Image
+            src="https://placehold.co/1200x600.png?text=NukuConnect背景"
+            alt="NukuConnect 背景"
             layout="fill"
             objectFit="cover"
             className="opacity-30"
-            data-ai-hint="abstract romance"
+            data-ai-hint="男女 繋がり"
           />
         </div>
         <div className="relative container mx-auto px-4">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
-            Connect Deeply. Live Fully.
+            心で繋がる。豊かに生きる。
           </h1>
           <p className="text-lg md:text-xl text-primary-foreground mb-8 max-w-2xl mx-auto">
-            NukuConnect helps you find meaningful connections based on true compatibility and shared desires. Embrace a richer life.
+            NukuConnectは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
           </p>
           <div className="space-x-4">
             <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90">
-              <Link href="/signup">Join NukuConnect</Link>
+              <Link href="/signup">NukuConnectに参加</Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
-              <Link href="/login">Login</Link>
+              <Link href="/login">ログイン</Link>
             </Button>
           </div>
         </div>
@@ -102,15 +102,15 @@ export default function LandingPage() {
 
       {/* Intro Section */}
       <section className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">What is NukuConnect?</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">NukuConnectとは？</h2>
         <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-          NukuConnect is a revolutionary platform designed for adults seeking genuine connections. We believe that a fulfilling intimate life contributes significantly to overall happiness. Our service provides a safe, easy, and respectful environment to find partners who truly understand and share your desires.
+          NukuConnectは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。
         </p>
       </section>
 
       {/* Features Section */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">Discover Your Ideal Partner with Our Features</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">充実の機能で理想のパートナー探し</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {features.map((feature) => (
             <Card key={feature.title} className="shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col">
@@ -132,7 +132,7 @@ export default function LandingPage() {
       {/* Why NukuConnect Section */}
        <section className="bg-secondary py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-12">Why Choose NukuConnect?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-12">NukuConnectが選ばれる理由</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {whyNukuConnect.map((reason) => (
               <Card key={reason.title} className="bg-card shadow-lg">
@@ -154,20 +154,20 @@ export default function LandingPage() {
 
       {/* How to Register Section */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">Getting Started is Easy</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">簡単スタートガイド</h2>
         <div className="grid md:grid-cols-2 gap-12">
           <div>
-            <h3 className="text-2xl font-semibold text-center text-pink-600 mb-6 p-3 bg-pink-100 rounded-lg">For Women</h3>
+            <h3 className="text-2xl font-semibold text-center text-pink-600 mb-6 p-3 bg-pink-100 rounded-lg">女性の方</h3>
             <ol className="space-y-6">
-              {['Profile Setup', 'Identity Verification', 'Find Your Match Securely'].map((step, index) => (
+              {['プロフィール設定', '本人確認', '安全に相手探し'].map((step, index) => (
                 <li key={step} className="flex items-start">
                   <div className="flex-shrink-0 h-10 w-10 bg-pink-500 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">{index + 1}</div>
                   <div>
                     <h4 className="font-semibold text-lg text-pink-700">{step}</h4>
                     <p className="text-muted-foreground text-sm">
-                      {index === 0 && "Quickly set up your profile with your preferences."}
-                      {index === 1 && "Complete a simple verification process for safety."}
-                      {index === 2 && "Start browsing profiles. Yours is hidden until you reach out!"}
+                      {index === 0 && "あなたの好みや希望を簡単にプロフィールに設定。"}
+                      {index === 1 && "安全のため、簡単な認証プロセスを完了してください。"}
+                      {index === 2 && "プロフィールの閲覧開始。あなたが連絡するまでプロフィールは非公開です！"}
                     </p>
                   </div>
                 </li>
@@ -175,18 +175,18 @@ export default function LandingPage() {
             </ol>
           </div>
           <div>
-            <h3 className="text-2xl font-semibold text-center text-blue-600 mb-6 p-3 bg-blue-100 rounded-lg">For Men</h3>
+            <h3 className="text-2xl font-semibold text-center text-blue-600 mb-6 p-3 bg-blue-100 rounded-lg">男性の方</h3>
             <ol className="space-y-6">
-              {['Profile Setup', 'Identity Verification', 'Choose a Plan', 'Engage Actively'].map((step, index) => (
+              {['プロフィール設定', '本人確認', 'プラン選択', '積極的なアプローチ'].map((step, index) => (
                 <li key={step} className="flex items-start">
                   <div className="flex-shrink-0 h-10 w-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">{index + 1}</div>
                   <div>
                     <h4 className="font-semibold text-lg text-blue-700">{step}</h4>
                     <p className="text-muted-foreground text-sm">
-                      {index === 0 && "Detail your profile to attract the right matches."}
-                      {index === 1 && "Verify your identity for a trusted community."}
-                      {index === 2 && "Subscribe to a premium plan to unlock all features."}
-                      {index === 3 && "Don't just wait for matches. Actively search and post!"}
+                      {index === 0 && "理想のマッチングのため、プロフィールを詳細に記入しましょう。"}
+                      {index === 1 && "信頼できるコミュニティのため、本人確認にご協力ください。"}
+                      {index === 2 && "プレミアムプランに登録して、全ての機能を利用しましょう。"}
+                      {index === 3 && "マッチを待つだけでなく、積極的に検索したり投稿したりしましょう！"}
                     </p>
                   </div>
                 </li>
@@ -199,7 +199,7 @@ export default function LandingPage() {
       {/* Safety Section */}
       <section className="bg-primary-foreground py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">Your Safety is Our Priority</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">安全への取り組み</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
             {safetyFeatures.map((feature) => (
               <div key={feature.title} className="flex items-start gap-4 p-4 bg-background rounded-lg shadow-md">
@@ -216,19 +216,19 @@ export default function LandingPage() {
 
       {/* FAQ Section */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">Frequently Asked Questions</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">よくあるご質問</h2>
         <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
           {faqItems.map((item, index) => (
             <AccordionItem value={`item-${index + 1}`} key={index}>
-              <AccordionTrigger className="text-lg hover:no-underline">
+              <AccordionTrigger className="text-lg hover:no-underline text-left">
                 <div className="flex items-center">
-                  <HelpCircle className="h-5 w-5 mr-3 text-primary"/>
+                  <HelpCircleIcon className="h-5 w-5 mr-3 text-primary"/>
                   {item.question}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="text-base">
                 <div className="flex items-start p-2">
-                  <Info className="h-5 w-5 mr-3 text-accent flex-shrink-0 mt-1"/>
+                  <InfoIcon className="h-5 w-5 mr-3 text-accent flex-shrink-0 mt-1"/>
                   {item.answer}
                 </div>
               </AccordionContent>
@@ -240,21 +240,21 @@ export default function LandingPage() {
       {/* Final Call to Action Section */}
       <section className="py-16 bg-gradient-to-tr from-accent to-primary">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-8">Ready to Find Your Connection?</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-8">素敵な出会いを見つけませんか？</h2>
           <p className="text-xl text-primary-foreground mb-10 max-w-xl mx-auto">
-            Join NukuConnect today and start your journey towards more fulfilling relationships.
+            今すぐNukuConnectに参加して、より充実した関係を築くための一歩を踏み出しましょう。
           </p>
           <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 transform hover:scale-105 transition-transform duration-300 px-10 py-6 text-lg">
-            <Link href="/signup">Sign Up Now</Link>
+            <Link href="/signup">今すぐ登録</Link>
           </Button>
           <div className="mt-8">
-            <Image 
-                src="https://placehold.co/800x300.png?text=Connect+with+NukuConnect"
-                alt="Happy couple"
+            <Image
+                src="https://placehold.co/800x300.png?text=NukuConnectで繋がる"
+                alt="幸せなカップル"
                 width={800}
                 height={300}
                 className="rounded-lg shadow-2xl mx-auto"
-                data-ai-hint="happy couple silhouette"
+                data-ai-hint="カップル シルエット"
             />
           </div>
         </div>
@@ -262,12 +262,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Placeholder icons for FAQ if needed
-const HelpCircle = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-);
-const Info = ({ className }: { className?: string }) => (
- <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-);
-

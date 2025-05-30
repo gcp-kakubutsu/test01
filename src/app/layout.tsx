@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'NukuConnect - Find Your Match',
-  description: 'NukuConnect is a modern dating app to find like-minded individuals.',
+  title: 'NukuConnect - あなたの出会いをサポート',
+  description: 'NukuConnectは、価値観の合う人との出会いをサポートする最新のマッチングアプリです。',
 };
 
 export default function RootLayout({
@@ -27,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
         <AuthProvider>
           <Header />

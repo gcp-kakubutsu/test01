@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [profileVisible, setProfileVisible] = useState(true);
   const [matchNotifications, setMatchNotifications] = useState(true);
   const [messageNotifications, setMessageNotifications] = useState(true);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>(['BlockedUser123', 'AnotherUser']); // Mock data
+  const [blockedUsers, setBlockedUsers] = useState<string[]>(['ブロックユーザー123', '別のユーザー']); // モックデータ
   const [blockUserInput, setBlockUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,12 +29,12 @@ export default function SettingsPage() {
     if (!isAuthenticated) {
       router.push('/login');
     }
-    // In a real app, fetch user settings here
+    // 実際のアプリでは、ここでユーザー設定をフェッチします
   }, [isAuthenticated, router]);
 
   const handleSaveChanges = async () => {
     setIsLoading(true);
-    // Simulate API call
+    // API呼び出しをシミュレート
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log({
       profileVisible,
@@ -43,8 +43,8 @@ export default function SettingsPage() {
     });
     setIsLoading(false);
     toast({
-      title: 'Settings Saved',
-      description: 'Your preferences have been updated.',
+      title: '設定保存完了',
+      description: '設定が更新されました。',
     });
   };
 
@@ -52,16 +52,16 @@ export default function SettingsPage() {
     if (blockUserInput.trim() === '') return;
     setBlockedUsers(prev => [...prev, blockUserInput.trim()]);
     setBlockUserInput('');
-    toast({ title: 'User Blocked', description: `${blockUserInput.trim()} has been added to your block list.` });
+    toast({ title: 'ユーザーをブロックしました', description: `${blockUserInput.trim()} をブロックリストに追加しました。` });
   };
 
   const handleUnblockUser = (userToUnblock: string) => {
     setBlockedUsers(prev => prev.filter(user => user !== userToUnblock));
-    toast({ title: 'User Unblocked', description: `${userToUnblock} has been removed from your block list.` });
+    toast({ title: 'ユーザーのブロックを解除しました', description: `${userToUnblock} をブロックリストから削除しました。` });
   };
-  
+
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>Redirecting to login...</p></div>;
+    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
   }
 
   return (
@@ -69,21 +69,21 @@ export default function SettingsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <EyeOff className="mr-3 h-7 w-7" /> Privacy Settings
+            <EyeOff className="mr-3 h-7 w-7" /> プライバシー設定
           </CardTitle>
-          <CardDescription>Manage your profile visibility and privacy controls.</CardDescription>
+          <CardDescription>プロフィールの公開設定やプライバシー管理を行います。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
             <Label htmlFor="profileVisibility" className="text-base font-medium">
-              Profile Visibility
-              <p className="text-sm text-muted-foreground">Control who can see your profile.</p>
+              プロフィールの公開
+              <p className="text-sm text-muted-foreground">あなたのプロフィールを誰に見せるか制御します。</p>
             </Label>
             <Switch
               id="profileVisibility"
               checked={profileVisible}
               onCheckedChange={setProfileVisible}
-              aria-label="Toggle profile visibility"
+              aria-label="プロフィールの公開/非公開を切り替える"
             />
           </div>
         </CardContent>
@@ -92,21 +92,21 @@ export default function SettingsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <Bell className="mr-3 h-7 w-7" /> Notification Preferences
+            <Bell className="mr-3 h-7 w-7" /> 通知設定
           </CardTitle>
-          <CardDescription>Choose what alerts you want to receive.</CardDescription>
+          <CardDescription>受け取りたい通知を選択します。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-3 p-3 rounded-md hover:bg-secondary/30 transition-colors">
             <Checkbox id="matchNotifications" checked={matchNotifications} onCheckedChange={(checked) => setMatchNotifications(Boolean(checked))} />
             <Label htmlFor="matchNotifications" className="text-base font-normal cursor-pointer">
-              New Match Notifications
+              新しいマッチ通知
             </Label>
           </div>
           <div className="flex items-center space-x-3 p-3 rounded-md hover:bg-secondary/30 transition-colors">
             <Checkbox id="messageNotifications" checked={messageNotifications} onCheckedChange={(checked) => setMessageNotifications(Boolean(checked))} />
             <Label htmlFor="messageNotifications" className="text-base font-normal cursor-pointer">
-              New Message Notifications
+              新しいメッセージ通知
             </Label>
           </div>
         </CardContent>
@@ -115,50 +115,50 @@ export default function SettingsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <UserX className="mr-3 h-7 w-7" /> Blocked Users
+            <UserX className="mr-3 h-7 w-7" /> ブロック中のユーザー
           </CardTitle>
-          <CardDescription>Manage users you've blocked.</CardDescription>
+          <CardDescription>ブロックしたユーザーを管理します。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Input 
-              type="text" 
-              placeholder="Enter username to block" 
+            <Input
+              type="text"
+              placeholder="ブロックするユーザー名を入力"
               value={blockUserInput}
               onChange={(e) => setBlockUserInput(e.target.value)}
               className="flex-grow"
             />
-            <Button onClick={handleBlockUser} variant="outline">Block</Button>
+            <Button onClick={handleBlockUser} variant="outline">ブロック</Button>
           </div>
           {blockedUsers.length > 0 ? (
             <ul className="space-y-2 max-h-48 overflow-y-auto p-2 border rounded-md">
               {blockedUsers.map(user => (
                 <li key={user} className="flex justify-between items-center p-2 bg-muted/50 rounded">
                   <span className="text-sm">{user}</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleUnblockUser(user)} aria-label={`Unblock ${user}`}>
+                  <Button variant="ghost" size="sm" onClick={() => handleUnblockUser(user)} aria-label={`${user} のブロックを解除`}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-2">Your block list is empty.</p>
+            <p className="text-sm text-muted-foreground text-center py-2">ブロックリストは空です。</p>
           )}
         </CardContent>
       </Card>
-      
+
       <Card className="shadow-lg">
          <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <ShieldAlert className="mr-3 h-7 w-7" /> Account Actions
+            <ShieldAlert className="mr-3 h-7 w-7" /> アカウント操作
           </CardTitle>
-          <CardDescription>Manage your account status.</CardDescription>
+          <CardDescription>アカウントの状態を管理します。</CardDescription>
         </CardHeader>
         <CardContent>
             <Button variant="destructive" className="w-full sm:w-auto">
-                Deactivate Account
+                アカウントを一時停止
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">Deactivating your account will temporarily hide your profile. You can reactivate it by logging in.</p>
+            <p className="text-xs text-muted-foreground mt-2">アカウントを一時停止すると、あなたのプロフィールは一時的に非表示になります。ログインすることで再開できます。</p>
         </CardContent>
       </Card>
 
@@ -167,12 +167,12 @@ export default function SettingsPage() {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Saving...
+              保存中...
             </>
           ) : (
             <>
               <Save className="mr-2 h-5 w-5" />
-              Save All Changes
+              すべての変更を保存
             </>
           )}
         </Button>

@@ -28,38 +28,38 @@ export function Header() {
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/home" className="flex items-center gap-1">
-                  <HeartHandshake className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Matches</span>
+                  <HeartHandshake className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">マッチ</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/messages" className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Messages</span>
+                  <MessageSquare className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">メッセージ</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/profile/edit" className="flex items-center gap-1">
-                  <User className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Profile</span>
+                  <User className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">プロフィール</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/settings" className="flex items-center gap-1">
-                  <Settings className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Settings</span>
+                  <Settings className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">設定</span>
                 </Link>
               </Button>
               <Button variant="destructive" size="sm" onClick={handleLogout} className="flex items-center gap-1">
-                <LogOut className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Logout</span>
+                <LogOut className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">ログアウト</span>
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" asChild>
                 <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4" /> Login
+                  <LogIn className="mr-2 h-4 w-4" /> ログイン
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/signup">
-                  <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+                  <UserPlus className="mr-2 h-4 w-4" /> 新規登録
                 </Link>
               </Button>
             </>

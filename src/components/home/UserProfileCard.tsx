@@ -35,7 +35,7 @@ export function UserProfileCard({ user, feedback }: UserProfileCardProps) {
           alt={user.name}
           layout="fill"
           objectFit="cover"
-          data-ai-hint={user.dataAiHint || "person portrait"}
+          data-ai-hint={user.dataAiHint || "人物 ポートレート"}
           priority
         />
         {feedback && (
@@ -52,7 +52,7 @@ export function UserProfileCard({ user, feedback }: UserProfileCardProps) {
         <p className="text-muted-foreground text-sm leading-relaxed h-20 overflow-y-auto">{user.bio}</p>
         {user.kinks && user.kinks.length > 0 && (
           <div>
-            <h4 className="font-semibold text-sm mb-2 text-primary">Interests:</h4>
+            <h4 className="font-semibold text-sm mb-2 text-primary">興味・関心:</h4>
             <div className="flex flex-wrap gap-2">
               {user.kinks.map((kink) => (
                 <Badge key={kink} variant="secondary" className="text-xs">{kink}</Badge>

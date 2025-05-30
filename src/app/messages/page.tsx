@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,16 +12,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 
-// Mock data for chat list
+// チャットリストのモックデータ
 const mockChats = [
-  { id: '1', name: 'Seraphina', lastMessage: 'Hey, how are you doing?', unreadCount: 2, avatarUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=S', dataAiHint: 'woman smiling' },
-  { id: '2', name: 'Orion', lastMessage: 'Loved your profile! Let\'s chat.', unreadCount: 0, avatarUrl: 'https://placehold.co/100x100/FF7F50/FFF.png?text=O', dataAiHint: 'man thinking' },
-  { id: '3', name: 'Luna', lastMessage: 'What are you up to this weekend?', unreadCount: 5, avatarUrl: 'https://placehold.co/100x100/F9E4EB/333.png?text=L', dataAiHint: 'woman laughing' },
+  { id: '1', name: 'さくら', lastMessage: '元気？最近どうしてる？', unreadCount: 2, avatarUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=S', dataAiHint: '女性 笑顔' },
+  { id: '2', name: 'かける', lastMessage: 'プロフィール見ました！お話しませんか？', unreadCount: 0, avatarUrl: 'https://placehold.co/100x100/FF7F50/FFF.png?text=K', dataAiHint: '男性 考える' },
+  { id: '3', name: 'ひなた', lastMessage: '週末は何してるの？', unreadCount: 5, avatarUrl: 'https://placehold.co/100x100/F9E4EB/333.png?text=H', dataAiHint: '女性 笑う' },
 ];
 
 export default function MessagesPage() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -30,25 +31,35 @@ export default function MessagesPage() {
   }, [isAuthenticated, router]);
 
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-full"><p>Redirecting to login...</p></div>;
+    return <div className="flex justify-center items-center h-full"><p>ログインページへリダイレクト中...</p></div>;
   }
+
+  const filteredChats = mockChats.filter(chat =>
+    chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    chat.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="max-w-3xl mx-auto py-8">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <MessageSquareText className="mr-3 h-7 w-7" /> Your Conversations
+            <MessageSquareText className="mr-3 h-7 w-7" /> あなたの会話
           </CardTitle>
           <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="Search messages..." className="pl-10" />
+            <Input
+              placeholder="メッセージを検索..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent>
-          {mockChats.length > 0 ? (
+          {filteredChats.length > 0 ? (
             <ul className="space-y-4">
-              {mockChats.map(chat => (
+              {filteredChats.map(chat => (
                 <li key={chat.id}>
                   <Link href={`/messages/${chat.id}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
                     <div className="flex items-center space-x-4">
@@ -71,8 +82,8 @@ export default function MessagesPage() {
           ) : (
             <div className="text-center py-10">
               <MessageSquareText className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No messages yet.</p>
-              <p className="text-sm text-muted-foreground">Start matching to initiate conversations!</p>
+              <p className="text-muted-foreground">まだメッセージはありません。</p>
+              <p className="text-sm text-muted-foreground">マッチングを開始して会話を始めましょう！</p>
             </div>
           )}
         </CardContent>
