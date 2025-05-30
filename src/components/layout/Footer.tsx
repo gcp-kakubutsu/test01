@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -20,10 +21,10 @@ export function Footer() {
           <Link href="/contact" className="text-sm hover:text-primary">お問い合わせ</Link>
         </div>
         <p className="text-sm text-muted-foreground">
-          &copy; {currentYear} NukuConnect. All rights reserved.
+          &copy; {currentYear} Nukune. All rights reserved.
         </p>
         <p className="text-xs text-muted-foreground mt-2">
-          NukuConnectは成人（18歳以上）のみを対象としています。責任を持ってお楽しみください。
+          Nukuneは成人（18歳以上）のみを対象としています。責任を持ってお楽しみください。
         </p>
       </div>
     </footer>

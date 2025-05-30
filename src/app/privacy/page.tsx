@@ -1,4 +1,5 @@
 
+"use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -24,7 +25,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">1. はじめに</h2>
-            <p>NukuConnect（以下「当社」）は、お客様のプライバシー保護に努めています。本プライバシーポリシーは、お客様が当社のモバイルアプリケーションおよびウェブサイト（総称して「本サービス」）を利用する際に、当社がお客様の情報をどのように収集、使用、開示、保護するかを説明するものです。</p>
+            <p>Nukune（以下「当社」）は、お客様のプライバシー保護に努めています。本プライバシーポリシーは、お客様が当社のモバイルアプリケーションおよびウェブサイト（総称して「本サービス」）を利用する際に、当社がお客様の情報をどのように収集、使用、開示、保護するかを説明するものです。</p>
           </section>
 
           <section>
@@ -71,7 +72,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">7. お問い合わせ</h2>
-            <p>本プライバシーポリシーに関するご質問やご意見がございましたら、privacy@nukuconnect.example.com までご連絡ください。</p>
+            <p>本プライバシーポリシーに関するご質問やご意見がございましたら、privacy@nukune.example.com までご連絡ください。</p>
           </section>
         </CardContent>
       </Card>

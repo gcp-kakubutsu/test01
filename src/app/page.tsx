@@ -30,10 +30,10 @@ const features = [
   },
 ];
 
-const whyNukuConnect = [
+const whyNukune = [
   { title: '手頃な価格設定', description: 'プレミアム機能も安心価格で。女性はほとんどの機能を無料で利用できます！', icon: <Smile className="h-6 w-6 text-accent" /> },
   { title: '完全匿名制', description: 'プライバシーは最優先。準備ができるまで本当の自分を明かさずに繋がれます。', icon: <Eye className="h-6 w-6 text-accent" /> },
-  { title: 'アプリ内コミュニケーション', description: 'LINEやTwitterなど外部アプリは不要。NukuConnect内で全てのやり取りが完結します。', icon: <MessageCircle className="h-6 w-6 text-accent" /> },
+  { title: 'アプリ内コミュニケーション', description: 'LINEやTwitterなど外部アプリは不要。Nukune内で全てのやり取りが完結します。', icon: <MessageCircle className="h-6 w-6 text-accent" /> },
   { title: 'ユーザー評価', description: '会う前にコミュニティの評価を確認できるので、より安全な出会いが可能です。', icon: <UserCheck className="h-6 w-6 text-accent" /> },
   { title: 'プライバシー管理', description: '電話番号で連絡先をブロックし、知り合いとの不要な出会いを避けられます。', icon: <PhoneOff className="h-6 w-6 text-accent" /> },
 ];
@@ -49,20 +49,20 @@ const safetyFeatures = [
 
 const faqItems = [
   {
-    question: 'NukuConnectは無料で使えますか？',
+    question: 'Nukuneは無料で使えますか？',
     answer: '基本機能はどなたでも無料でご利用いただけます。女性はほとんどの機能を無料で楽しめます。男性はプレミアムプランにアップグレードすることで、全ての機能にアクセス可能になります。料金プランも手頃な価格からご用意しています。',
   },
   {
     question: '身元はバレますか？',
-    answer: 'NukuConnectは匿名性を重視して設計されています。ニックネームで利用でき、本名は公開されません。また、知人とのマッチングを防ぐための電話番号ブロック機能なども提供しています。',
+    answer: 'Nukuneは匿名性を重視して設計されています。ニックネームで利用でき、本名は公開されません。また、知人とのマッチングを防ぐための電話番号ブロック機能なども提供しています。',
   },
   {
-    question: 'NukuConnectはどのように安全性を確保していますか？',
+    question: 'Nukuneはどのように安全性を確保していますか？',
     answer: '本人確認、24時間監視体制、厳格な行動規範、簡単な通報・ブロック機能など、複数の安全対策を講じています。お客様の安全が私たちの最優先事項です。',
   },
   {
-    question: '誰がNukuConnectを利用できますか？',
-    answer: 'NukuConnectは18歳以上の方を対象としています。',
+    question: '誰がNukuneを利用できますか？',
+    answer: 'Nukuneは18歳以上の方を対象としています。',
   },
 ];
 
@@ -74,8 +74,8 @@ export default function LandingPage() {
       <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden bg-gradient-to-br from-primary to-accent">
         <div className="absolute inset-0">
           <Image
-            src="https://placehold.co/1200x600.png?text=NukuConnect背景"
-            alt="NukuConnect 背景"
+            src="https://placehold.co/1200x600.png?text=Nukune背景"
+            alt="Nukune 背景"
             layout="fill"
             objectFit="cover"
             className="opacity-30"
@@ -87,11 +87,11 @@ export default function LandingPage() {
             心で繋がる。豊かに生きる。
           </h1>
           <p className="text-lg md:text-xl text-primary-foreground mb-8 max-w-2xl mx-auto">
-            NukuConnectは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
+            Nukuneは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
           </p>
           <div className="space-x-4">
             <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90">
-              <Link href="/signup">NukuConnectに参加</Link>
+              <Link href="/signup">Nukuneに参加</Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
               <Link href="/login">ログイン</Link>
@@ -102,9 +102,9 @@ export default function LandingPage() {
 
       {/* Intro Section */}
       <section className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">NukuConnectとは？</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">Nukuneとは？</h2>
         <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-          NukuConnectは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。
+          Nukuneは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。
         </p>
       </section>
 
@@ -129,12 +129,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Why NukuConnect Section */}
+      {/* Why Nukune Section */}
        <section className="bg-secondary py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-12">NukuConnectが選ばれる理由</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-12">Nukuneが選ばれる理由</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {whyNukuConnect.map((reason) => (
+            {whyNukune.map((reason) => (
               <Card key={reason.title} className="bg-card shadow-lg">
                 <CardHeader>
                   <div className="flex items-center gap-3">
@@ -242,14 +242,14 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-8">素敵な出会いを見つけませんか？</h2>
           <p className="text-xl text-primary-foreground mb-10 max-w-xl mx-auto">
-            今すぐNukuConnectに参加して、より充実した関係を築くための一歩を踏み出しましょう。
+            今すぐNukuneに参加して、より充実した関係を築くための一歩を踏み出しましょう。
           </p>
           <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 transform hover:scale-105 transition-transform duration-300 px-10 py-6 text-lg">
             <Link href="/signup">今すぐ登録</Link>
           </Button>
           <div className="mt-8">
             <Image
-                src="https://placehold.co/800x300.png?text=NukuConnectで繋がる"
+                src="https://placehold.co/800x300.png?text=Nukuneで繋がる"
                 alt="幸せなカップル"
                 width={800}
                 height={300}

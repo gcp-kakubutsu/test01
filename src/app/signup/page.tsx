@@ -42,7 +42,7 @@ export default function SignupPage() {
             <UserPlus className="h-10 w-10 text-primary-foreground" />
           </div>
           <CardTitle className="text-3xl font-bold text-primary">アカウント作成</CardTitle>
-          <CardDescription>NukuConnectに参加して、今日から繋がりを探しましょう。</CardDescription>
+          <CardDescription>Nukuneに参加して、今日から繋がりを探しましょう。</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">

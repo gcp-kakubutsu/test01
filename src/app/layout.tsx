@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'NukuConnect - あなたの出会いをサポート',
-  description: 'NukuConnectは、価値観の合う人との出会いをサポートする最新のマッチングアプリです。',
+  title: 'Nukune - あなたの出会いをサポート',
+  description: 'Nukuneは、価値観の合う人との出会いをサポートする最新のマッチングアプリです。',
 };
 
 export default function RootLayout({

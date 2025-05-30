@@ -36,7 +36,7 @@ export default function LoginPage() {
             <LogInIcon className="h-10 w-10 text-primary-foreground" />
           </div>
           <CardTitle className="text-3xl font-bold text-primary">おかえりなさい！</CardTitle>
-          <CardDescription>ログインしてNukuConnectの旅を続けましょう。</CardDescription>
+          <CardDescription>ログインしてNukuneの旅を続けましょう。</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">

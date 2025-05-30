@@ -21,7 +21,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
           <HeartHandshake className="h-8 w-8" />
-          NukuConnect
+          Nukune
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
           {isAuthenticated ? (

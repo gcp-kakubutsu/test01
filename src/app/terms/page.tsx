@@ -1,4 +1,5 @@
 
+"use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -23,7 +24,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">1. 規約への同意</h2>
-            <p>NukuConnect（以下「本サービス」）にアクセスまたは利用することにより、お客様は本利用規約（以下「本規約」）に拘束されることに同意したものとみなされます。本規約のすべてに同意しない場合は、本サービスを利用しないでください。当社はいつでも本規約を変更することができ、かかる変更は本サービスへの掲載をもって効力を生じるものとします。</p>
+            <p>Nukune（以下「本サービス」）にアクセスまたは利用することにより、お客様は本利用規約（以下「本規約」）に拘束されることに同意したものとみなされます。本規約のすべてに同意しない場合は、本サービスを利用しないでください。当社はいつでも本規約を変更することができ、かかる変更は本サービスへの掲載をもって効力を生じるものとします。</p>
           </section>
 
           <section>
@@ -43,7 +44,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">4. AI認証</h2>
-            <p>当社のAIプロフィール認証ツールは安全性を高めるために設計されていますが、完全ではありません。NukuConnectはAIによる評価の正確性について責任を負いません。ユーザーは常に注意を払う必要があります。</p>
+            <p>当社のAIプロフィール認証ツールは安全性を高めるために設計されていますが、完全ではありません。NukuneはAIによる評価の正確性について責任を負いません。ユーザーは常に注意を払う必要があります。</p>
           </section>
 
           <section>
@@ -53,7 +54,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">6. 保証の否認</h2>
-            <p>本サービスは「現状有姿」かつ「提供可能な範囲」で提供されます。NukuConnectは、明示または黙示を問わず、いかなる保証も行わず、これによりその他すべての保証を否認し、否定します。</p>
+            <p>本サービスは「現状有姿」かつ「提供可能な範囲」で提供されます。Nukuneは、明示または黙示を問わず、いかなる保証も行わず、これによりその他すべての保証を否認し、否定します。</p>
           </section>
 
           <section>
@@ -61,7 +62,7 @@ export default function TermsPage() {
             <p>本規約は、[あなたの管轄区域]の法律に従って規律され、解釈されるものとします。ただし、抵触法の規定は考慮されません。</p>
           </section>
 
-          <p className="mt-8 text-center font-semibold">これらの規約をよくお読みください。NukuConnectのご利用は、これらの利用規約への同意を意味します。</p>
+          <p className="mt-8 text-center font-semibold">これらの規約をよくお読みください。Nukuneのご利用は、これらの利用規約への同意を意味します。</p>
         </CardContent>
       </Card>
     </div>

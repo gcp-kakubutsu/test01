@@ -39,7 +39,7 @@ const prompt = ai.definePrompt({
   name: 'aiProfileVerificationPrompt',
   input: {schema: AIProfileVerificationInputSchema},
   output: {schema: AIProfileVerificationOutputSchema},
-  prompt: `あなたはデーティングアプリのユーザープロフィール認証を専門とするAIエージェントです。
+  prompt: `あなたはデーティングアプリ「Nukune」のユーザープロフィール認証を専門とするAIエージェントです。
 
   提供されたユーザーのプロフィール写真と説明文から、プロフィールが本物であり、適切であるかを判断してください。
 
