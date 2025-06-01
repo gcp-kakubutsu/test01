@@ -60,3 +60,5 @@ firebase-crashlytics-build.json
 
 .specstory/
 .cursorindexingignore
+
+*.json
