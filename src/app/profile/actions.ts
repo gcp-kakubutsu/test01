@@ -1,7 +1,6 @@
 'use server';
 
-import { getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function updateUserProfile(userId: string, data: {
@@ -13,12 +12,7 @@ export async function updateUserProfile(userId: string, data: {
   profilePhotoUrl?: string;
 }) {
   try {
-    const adminApp = getApps().find(app => app.name === 'admin');
-    if (!adminApp) {
-      throw new Error('Firebase Admin SDK is not initialized');
-    }
-    
-    const db = getFirestore(adminApp);
+    const db = getAdminFirestore();
     const userRef = db.collection('users').doc(userId);
     
     await userRef.update({

@@ -1,19 +1,11 @@
 'use server';
 
-import { getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { FieldValue } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
+import { getAdminFirestore, getAdminAuth } from '@/lib/firebase/admin';
 
 export async function deleteAccount(userId: string) {
   try {
-    const adminApp = getApps().find(app => app.name === 'admin');
-    if (!adminApp) {
-      throw new Error('Firebase Admin SDK is not initialized');
-    }
-    
     // Delete from Firestore first
-    const db = getFirestore(adminApp);
+    const db = getAdminFirestore();
     const userRef = db.collection('users').doc(userId);
     
     // Delete user document
@@ -21,7 +13,7 @@ export async function deleteAccount(userId: string) {
     console.log('User deleted from Firestore: ', userId);
     
     // Delete from Firebase Auth
-    const auth = getAuth(adminApp);
+    const auth = getAdminAuth();
     await auth.deleteUser(userId);
     console.log('User deleted from Firebase Auth: ', userId);
     

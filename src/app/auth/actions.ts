@@ -1,38 +1,13 @@
 
 'use server';
 
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin SDK if not already initialized
-// This should only run on the server
-if (!getApps().some(app => app.name === 'admin')) {
-  // Note: You'll need to set up Google Application Credentials for this to work in deployed environments.
-  // For local development, you can use a service account JSON file.
-  // Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set or initialize with cert()
-  // Example:
-  // const serviceAccount = require('/path/to/your/serviceAccountKey.json');
-  // initializeApp({ credential: cert(serviceAccount) }, 'admin');
-  // For Firebase Studio environment, it might be auto-configured or require specific env vars.
-  // For now, we assume it's configured if deployed to a Firebase environment.
-  // If running locally without GOOGLE_APPLICATION_CREDENTIALS, this might fail.
-  try {
-     initializeApp(undefined, 'admin');
-  } catch (e) {
-    console.warn("Firebase Admin SDK not initialized. Ensure GOOGLE_APPLICATION_CREDENTIALS is set for server actions or provide a service account key for local development.", e);
-  }
-}
 
 
 export async function addUserToFirestore(userId: string, username: string, email: string, birthDate?: string, gender?: string) {
   try {
-    const adminApp = getApps().find(app => app.name === 'admin');
-    if (!adminApp) {
-      throw new Error('Firebase Admin SDK is not initialized');
-    }
-    
-    const db = getFirestore(adminApp);
+    const db = getAdminFirestore();
     const userRef = db.collection('users').doc(userId);
     
     await userRef.set({
