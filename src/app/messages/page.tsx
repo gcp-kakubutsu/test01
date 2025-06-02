@@ -11,34 +11,114 @@ import { MessageSquareText, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { useMatches, fetchUserProfiles } from '@/lib/firebase/hooks';
+import { formatDistanceToNow } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
-// チャットリストのモックデータ
-const mockChats = [
-  { id: '1', name: 'さくら', lastMessage: '元気？最近どうしてる？', unreadCount: 2, avatarUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=S', dataAiHint: '女性 笑顔' },
-  { id: '2', name: 'かける', lastMessage: 'プロフィール見ました！お話しませんか？', unreadCount: 0, avatarUrl: 'https://placehold.co/100x100/FF7F50/FFF.png?text=K', dataAiHint: '男性 考える' },
-  { id: '3', name: 'ひなた', lastMessage: '週末は何してるの？', unreadCount: 5, avatarUrl: 'https://placehold.co/100x100/F9E4EB/333.png?text=H', dataAiHint: '女性 笑う' },
-];
+interface ChatDisplay {
+  id: string;
+  name: string;
+  lastMessage: string;
+  unreadCount: number;
+  avatarUrl: string;
+  lastMessageTime?: string;
+}
 
 export default function MessagesPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
+  const { matches, loading: matchesLoading } = useMatches();
   const [searchTerm, setSearchTerm] = useState('');
+  const [chats, setChats] = useState<ChatDisplay[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, authLoading, router]);
 
-  if (isLoading) {
+  // Convert matches to chat display format
+  useEffect(() => {
+    const loadChats = async () => {
+      if (!currentUser || matchesLoading) return;
+      
+      setIsLoadingChats(true);
+      
+      // If no matches, show dummy data
+      if (matches.length === 0) {
+        const dummyChats: ChatDisplay[] = [
+          { 
+            id: 'dummy-1', 
+            name: 'さくら', 
+            lastMessage: '元気？最近どうしてる？', 
+            unreadCount: 2, 
+            avatarUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=S',
+            lastMessageTime: '2時間前'
+          },
+          { 
+            id: 'dummy-2', 
+            name: 'かける', 
+            lastMessage: 'プロフィール見ました！お話しませんか？', 
+            unreadCount: 0, 
+            avatarUrl: 'https://placehold.co/100x100/FF7F50/FFF.png?text=K',
+            lastMessageTime: '5時間前'
+          },
+          { 
+            id: 'dummy-3', 
+            name: 'ひなた', 
+            lastMessage: '週末は何してるの？', 
+            unreadCount: 5, 
+            avatarUrl: 'https://placehold.co/100x100/F9E4EB/333.png?text=H',
+            lastMessageTime: '1日前'
+          },
+        ];
+        setChats(dummyChats);
+        setIsLoadingChats(false);
+        return;
+      }
+      
+      // Get all other user IDs from matches
+      const otherUserIds = matches.map(match => 
+        match.users.find(uid => uid !== currentUser.uid)
+      ).filter(Boolean) as string[];
+      
+      // Fetch user profiles
+      const userProfiles = await fetchUserProfiles(otherUserIds);
+      
+      // Convert to chat display format
+      const chatList: ChatDisplay[] = matches.map(match => {
+        const otherUserId = match.users.find(uid => uid !== currentUser.uid);
+        const otherUser = otherUserId ? userProfiles.get(otherUserId) : null;
+        
+        return {
+          id: match.id,
+          name: otherUser?.username || 'ユーザー',
+          lastMessage: match.lastMessage || 'メッセージを送ってみましょう',
+          unreadCount: match.unreadCount?.[currentUser.uid] || 0,
+          avatarUrl: otherUser?.profilePhotoUrl || 'https://placehold.co/100x100/F0306A/FFF.png?text=U',
+          lastMessageTime: match.lastMessageAt ? 
+            formatDistanceToNow(match.lastMessageAt.toDate(), { addSuffix: true, locale: ja }) : 
+            null
+        };
+      });
+      
+      setChats(chatList);
+      setIsLoadingChats(false);
+    };
+    
+    loadChats();
+  }, [matches, matchesLoading, currentUser]);
+
+  if (authLoading || isLoadingChats) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
+  
   if (!isAuthenticated) {
     return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
   }
 
-
-  const filteredChats = mockChats.filter(chat =>
+  const filteredChats = chats.filter(chat =>
     chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     chat.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -68,11 +148,16 @@ export default function MessagesPage() {
                   <Link href={`/messages/${chat.id}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
                     <div className="flex items-center space-x-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={chat.avatarUrl} alt={chat.name} data-ai-hint={chat.dataAiHint}/>
+                        <AvatarImage src={chat.avatarUrl} alt={chat.name} />
                         <AvatarFallback>{chat.name.substring(0, 1).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold truncate">{chat.name}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-base font-semibold truncate">{chat.name}</p>
+                          {chat.lastMessageTime && (
+                            <span className="text-xs text-muted-foreground">{chat.lastMessageTime}</span>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
                       </div>
                       {chat.unreadCount > 0 && (

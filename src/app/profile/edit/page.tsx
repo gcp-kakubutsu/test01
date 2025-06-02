@@ -15,23 +15,30 @@ import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useUserProfile } from '@/lib/firebase/hooks';
+import { updateUserProfile } from '../actions';
 
 
 interface UserProfileData {
-  displayName: string;
+  username: string;
   bio: string;
-  kinks: string; // カンマ区切りの文字列として保存
+  interests: string[]; 
   profilePhotoUrl?: string;
+  location?: string;
+  occupation?: string;
 }
 
 export default function EditProfilePage() {
   const { currentUser, isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { profile } = useUserProfile();
 
-  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
-  const [kinks, setKinks] = useState('');
+  const [interests, setInterests] = useState('');
+  const [location, setLocation] = useState('');
+  const [occupation, setOccupation] = useState('');
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,40 +52,24 @@ export default function EditProfilePage() {
   }, [isAuthenticated, authIsLoading, router]);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (currentUser) {
-        setIsFetchingData(true);
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data() as UserProfileData;
-            setDisplayName(userData.displayName || currentUser.displayName || '');
-            setBio(userData.bio || '');
-            setKinks(Array.isArray(userData.kinks) ? userData.kinks.join(', ') : (userData.kinks || ''));
-            setProfilePhotoPreview(userData.profilePhotoUrl || currentUser.photoURL || null);
-          } else {
-            // If no doc, use auth display name or empty
-             setDisplayName(currentUser.displayName || '');
-             setProfilePhotoPreview(currentUser.photoURL || null);
-             toast({ title: "プロフィール情報が見つかりません", description: "新しいプロフィールを作成してください。", variant: "default" });
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          toast({ title: "データ取得エラー", description: "プロフィール情報の取得に失敗しました。", variant: "destructive" });
-        } finally {
-          setIsFetchingData(false);
-        }
-      } else if (!authIsLoading) {
-        // If no current user and not loading auth state, means user is not logged in or data is not yet available
-        setIsFetchingData(false);
-      }
-    };
-
-    if (!authIsLoading && isAuthenticated) {
-      fetchUserData();
+    if (profile) {
+      setUsername(profile.username || '');
+      setBio(profile.bio || '');
+      setInterests(profile.interests?.join(', ') || '');
+      setLocation(profile.location || '');
+      setOccupation(profile.occupation || '');
+      setProfilePhotoPreview(profile.profilePhotoUrl || null);
+      setIsFetchingData(false);
     }
-  }, [currentUser, authIsLoading, isAuthenticated, toast]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (!authIsLoading && !profile && currentUser) {
+      setIsFetchingData(false);
+    } else if (!authIsLoading && !currentUser) {
+      setIsFetchingData(false);
+    }
+  }, [currentUser, authIsLoading, profile]);
 
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,20 +101,27 @@ export default function EditProfilePage() {
         photoUrl = await getDownloadURL(snapshot.ref);
       }
 
-      const userDocRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userDocRef, {
-        displayName,
+      const updateData = {
+        username,
         bio,
-        kinks: kinks.split(',').map(k => k.trim()).filter(k => k),
+        interests: interests.split(',').map(k => k.trim()).filter(k => k),
+        location,
+        occupation,
         profilePhotoUrl: photoUrl,
-        updatedAt: serverTimestamp(),
-      }, { merge: true }); // Use merge to avoid overwriting fields like createdAt
+      };
 
-      setIsLoading(false);
-      toast({
-        title: 'プロフィール更新完了',
-        description: 'プロフィール情報が正常に保存されました。',
-      });
+      const result = await updateUserProfile(currentUser.uid, updateData);
+      
+      if (result.success) {
+        setIsLoading(false);
+        toast({
+          title: 'プロフィール更新完了',
+          description: 'プロフィール情報が正常に保存されました。',
+        });
+        router.push('/profile');
+      } else {
+        throw new Error(result.error || '更新に失敗しました');
+      }
     } catch (error: any) {
       console.error("Error updating profile:", error);
       setIsLoading(false);
@@ -171,8 +169,18 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="displayName" className="text-base">表示名</Label>
-              <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="公開されるユーザー名" required className="text-base" />
+              <Label htmlFor="username" className="text-base">ユーザー名</Label>
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="公開される名前" required className="text-base" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-base">居住地</Label>
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="例: 東京都" className="text-base" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="occupation" className="text-base">職業</Label>
+              <Input id="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="例: デザイナー" className="text-base" />
             </div>
 
             <div className="space-y-2">
@@ -188,14 +196,14 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="kinks" className="text-base flex items-center">
+              <Label htmlFor="interests" className="text-base flex items-center">
                 <Tag className="mr-2 h-5 w-5 text-muted-foreground" /> あなたの趣味・興味
               </Label>
               <Input
-                id="kinks"
-                value={kinks}
-                onChange={(e) => setKinks(e.target.value)}
-                placeholder="例：旅行, アート, BDSM, ロールプレイ (カンマ区切り)"
+                id="interests"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                placeholder="例：カフェ, 映画, 旅行, アート (カンマ区切り)"
                 className="text-base"
               />
               <p className="text-xs text-muted-foreground">項目はカンマで区切ってください。</p>

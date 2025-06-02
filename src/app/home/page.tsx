@@ -29,7 +29,7 @@ export default function HomePage() {
   }, [isAuthenticated, isLoading, router]);
 
   const handleAction = (action: 'like' | 'pass') => {
-    setFeedback(action);
+    setFeedback(action === 'like' ? 'liked' : 'passed');
     setTimeout(() => {
       setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length);
       setFeedback(null);
