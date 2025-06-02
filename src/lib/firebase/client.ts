@@ -2,6 +2,7 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 // .envファイルから設定を読み込む
 const firebaseConfig = {
@@ -17,6 +18,7 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined = undefined;
 let authInstance: Auth | undefined = undefined;
 let dbInstance: Firestore | undefined = undefined;
+let storageInstance: FirebaseStorage | undefined = undefined;
 let firebaseInitError: string | null = null;
 
 console.log('Firebase Client Config Loading Attempt...');
@@ -73,12 +75,15 @@ if (
       console.log("Firebase Auth が正常に初期化されました。");
       dbInstance = getFirestore(app);
       console.log("Firestore が正常に初期化されました。");
+      storageInstance = getStorage(app);
+      console.log("Firebase Storage が正常に初期化されました。");
     } catch (error: any) {
       console.error('重大なエラー: Firebase アプリケーションの初期化に失敗しました:', error.message, error.code);
       firebaseInitError = `Firebase app could not be initialized. Original error: ${error.message}${error.code ? ` (${error.code})` : ''}. Check console for details and verify your .env file.`;
       app = undefined;
       authInstance = undefined;
       dbInstance = undefined;
+      storageInstance = undefined;
     }
   } else {
     console.log("Firebase アプリケーションは既に初期化されています。既存のインスタンスを使用します。");
@@ -96,6 +101,12 @@ if (
         console.error("既存の Firebase App で Firestore の取得に失敗しました:", e.message, e.code);
         if (!firebaseInitError) firebaseInitError = `Failed to get Firestore: ${e.message}`;
       }
+      try {
+        storageInstance = getStorage(app);
+      } catch (e: any) {
+        console.error("既存の Firebase App で Storage の取得に失敗しました:", e.message, e.code);
+        if (!firebaseInitError) firebaseInitError = `Failed to get Storage: ${e.message}`;
+      }
     }
   }
 }
@@ -107,5 +118,6 @@ if (firebaseInitError && typeof window !== 'undefined') {
 const finalApp = app;
 const finalAuth = authInstance;
 const finalDb = dbInstance;
+const finalStorage = storageInstance;
 
-export { finalApp as app, finalAuth as auth, finalDb as db, firebaseInitError };
+export { finalApp as app, finalAuth as auth, finalDb as db, finalStorage as storage, firebaseInitError };

@@ -71,16 +71,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
-      toast({ title: 'ログインしました', description: 'Nukuneへようこそ！' });
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      if (userCredential.user) {
+        toast({ title: 'ログインしました', description: 'Nukuneへようこそ！' });
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       let description = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。';
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password'){
+      
+      // Firebase v9以降では、多くのエラーがauth/invalid-credentialに統一されています
+      if (error.code === 'auth/invalid-credential') {
         description = 'メールアドレスまたはパスワードが正しくありません。';
+      } else if (error.code === 'auth/user-not-found') {
+        description = 'このメールアドレスは登録されていません。';
+      } else if (error.code === 'auth/wrong-password') {
+        description = 'パスワードが正しくありません。';
+      } else if (error.code === 'auth/invalid-email') {
+        description = 'メールアドレスの形式が正しくありません。';
+      } else if (error.code === 'auth/user-disabled') {
+        description = 'このアカウントは無効になっています。';
+      } else if (error.code === 'auth/too-many-requests') {
+        description = 'ログイン試行回数が多すぎます。しばらくしてから再度お試しください。';
       } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/configuration-not-found') {
         description = 'Firebaseの設定が正しくありません。環境設定（.envファイル）を確認してください。';
       }
+      
       toast({ title: 'ログインエラー', description, variant: 'destructive' });
       setIsLoading(false);
       throw error;

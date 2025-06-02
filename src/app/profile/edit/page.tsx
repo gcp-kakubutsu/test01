@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadProfileImage, deleteProfileImage } from '@/lib/firebase/storage';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import { updateUserProfile } from '../actions';
 
@@ -93,12 +93,21 @@ export default function EditProfilePage() {
     setIsLoading(true);
 
     try {
-      let photoUrl = profilePhotoPreview || '';
+      let photoUrl = profile?.profilePhotoUrl || '';
+      
+      // 新しい画像がアップロードされた場合
       if (profilePhotoFile) {
-        const storage = getStorage();
-        const photoRef = ref(storage, `profilePhotos/${currentUser.uid}/${profilePhotoFile.name}`);
-        const snapshot = await uploadBytes(photoRef, profilePhotoFile);
-        photoUrl = await getDownloadURL(snapshot.ref);
+        // 既存の画像がある場合は削除
+        if (profile?.profilePhotoUrl) {
+          try {
+            await deleteProfileImage(profile.profilePhotoUrl);
+          } catch (error) {
+            console.error('既存画像の削除エラー:', error);
+          }
+        }
+        
+        // 新しい画像をアップロード
+        photoUrl = await uploadProfileImage(currentUser.uid, profilePhotoFile, 'main');
       }
 
       const updateData = {
