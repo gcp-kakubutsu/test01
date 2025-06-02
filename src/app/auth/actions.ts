@@ -1,9 +1,9 @@
 
 'use server';
 
-import { doc, setDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin SDK if not already initialized
 // This should only run on the server
@@ -25,22 +25,31 @@ if (!getApps().some(app => app.name === 'admin')) {
 }
 
 
-export async function addUserToFirestore(userId: string, username: string, email: string) {
+export async function addUserToFirestore(userId: string, username: string, email: string, birthDate?: string, gender?: string) {
   try {
-    const adminDb = getAdminFirestore(getApps().find(app => app.name === 'admin'));
-    const userRef = doc(adminDb, 'users', userId);
-    await setDoc(userRef, {
+    const adminApp = getApps().find(app => app.name === 'admin');
+    if (!adminApp) {
+      throw new Error('Firebase Admin SDK is not initialized');
+    }
+    
+    const db = getFirestore(adminApp);
+    const userRef = db.collection('users').doc(userId);
+    
+    await userRef.set({
       uid: userId,
       username: username,
       email: email,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      birthDate: birthDate || null,
+      gender: gender || null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
       // Add any other default fields here
       bio: '',
       kinks: [],
       profilePhotoUrl: '',
       age: null,
     });
+    
     console.log('User added to Firestore with ID: ', userId);
     return { success: true, userId };
   } catch (error) {

@@ -14,7 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (data: AuthFormData) => Promise<void>;
-  signup: (data: AuthFormData & { username: string }) => Promise<void>;
+  signup: (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: AuthFormData & { username: string }) => {
+  const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => {
     if (firebaseInitError) {
       toast({ title: '登録エラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。設定を確認してください。`, variant: 'destructive' });
       throw new Error(`Firebase initialization error during signup: ${firebaseInitError}`);
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
-        const firestoreResult = await addUserToFirestore(userCredential.user.uid, data.username, data.email);
+        const firestoreResult = await addUserToFirestore(userCredential.user.uid, data.username, data.email, data.birthDate, data.gender);
         if (!firestoreResult.success) {
             console.error("Firestoreへのユーザー追加に失敗:", firestoreResult.error);
             toast({ title: '登録処理エラー', description: `アカウントは作成されましたが、プロフィール情報の保存に失敗しました: ${firestoreResult.error}`, variant: 'destructive' });
