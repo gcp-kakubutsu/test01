@@ -159,25 +159,7 @@ export default function LandingPage() {
       {/* How to Register Section */}
       <section className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">簡単スタートガイド</h2>
-        <div className="grid md:grid-cols-2 gap-12">
-          <div>
-            <h3 className="text-2xl font-semibold text-center text-pink-600 mb-6 p-3 bg-pink-100 rounded-lg">女性の方</h3>
-            <ol className="space-y-6">
-              {['プロフィール設定', '本人確認', '安全に相手探し'].map((step, index) => (
-                <li key={step} className="flex items-start">
-                  <div className="flex-shrink-0 h-10 w-10 bg-pink-500 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">{index + 1}</div>
-                  <div>
-                    <h4 className="font-semibold text-lg text-pink-700">{step}</h4>
-                    <p className="text-muted-foreground text-sm">
-                      {index === 0 && "あなたの好みや希望を簡単にプロフィールに設定。"}
-                      {index === 1 && "安全のため、簡単な認証プロセスを完了してください。"}
-                      {index === 2 && "プロフィールの閲覧開始。あなたが連絡するまでプロフィールは非公開です！"}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+        <div className="max-w-2xl mx-auto">
           <div>
             <h3 className="text-2xl font-semibold text-center text-blue-600 mb-6 p-3 bg-blue-100 rounded-lg">男性の方</h3>
             <ol className="space-y-6">
