@@ -73,7 +73,10 @@ export default function SignupPage() {
     }
   };
 
-  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+  const currentYear = new Date().getFullYear();
+  const minYear = currentYear - 18; // 18歳以上
+  const maxYear = currentYear - 100; // 100歳まで
+  const years = Array.from({ length: minYear - maxYear + 1 }, (_, i) => minYear - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   
@@ -206,14 +209,6 @@ export default function SignupPage() {
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="male" id="male" />
                   <Label htmlFor="male" className="flex-1 cursor-pointer font-normal">男性</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="female" id="female" />
-                  <Label htmlFor="female" className="flex-1 cursor-pointer font-normal">女性</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="transgender" id="transgender" />
-                  <Label htmlFor="transgender" className="flex-1 cursor-pointer font-normal">トランスジェンダー</Label>
                 </div>
               </RadioGroup>
             </div>
