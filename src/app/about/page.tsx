@@ -18,7 +18,7 @@ export default function AboutPage() {
             </p>
             <div className="my-8">
               <Image
-                src="https://placehold.co/800x400.png?text=私たちのコミュニティ"
+                src="/img/nukune-about.jpg"
                 alt="Nukuneコミュニティ"
                 width={800}
                 height={400}
@@ -39,7 +39,7 @@ export default function AboutPage() {
             </div>
             <div className="relative h-64 md:h-80 rounded-lg overflow-hidden shadow-md">
                 <Image
-                    src="https://placehold.co/600x400.png?text=共有する目標"
+                    src="/img/nukune-simei.jpg"
                     alt="共有する目標"
                     layout="fill"
                     objectFit="cover"
