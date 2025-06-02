@@ -9,12 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, EyeOff, ShieldAlert, Trash2, UserX, Loader2, Save } from 'lucide-react';
+import { Bell, EyeOff, ShieldAlert, Trash2, UserX, Loader2, Save, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { deleteAccount } from './actions';
 
 export default function SettingsPage() {
-  const { isAuthenticated, isLoading: authIsLoading } = useAuth();
+  const { isAuthenticated, isLoading: authIsLoading, currentUser, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const [blockedUsers, setBlockedUsers] = useState<string[]>(['ブロックユーザー123', '別のユーザー']); // モックデータ
   const [blockUserInput, setBlockUserInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
      if (!authIsLoading && !isAuthenticated) {
@@ -159,10 +161,62 @@ export default function SettingsPage() {
           <CardDescription>アカウントの状態を管理します。</CardDescription>
         </CardHeader>
         <CardContent>
-            <Button variant="destructive" className="w-full sm:w-auto">
-                アカウントを一時停止
+            <Button 
+              variant="destructive" 
+              className="w-full sm:w-auto"
+              disabled={isDeleting}
+              onClick={async () => {
+                if (!currentUser) return;
+                
+                // Double confirmation for account deletion
+                const firstConfirm = confirm('本当にアカウントを削除しますか？\n\nこの操作は取り消すことができません。すべてのデータ、マッチ、メッセージが永久に削除されます。');
+                if (!firstConfirm) return;
+                
+                const secondConfirm = confirm('本当によろしいですか？\n\nアカウントを削除すると、二度と復元できません。');
+                if (!secondConfirm) return;
+                
+                setIsDeleting(true);
+                try {
+                  const result = await deleteAccount(currentUser.uid);
+                  if (result.success) {
+                    toast({
+                      title: 'アカウントを削除しました',
+                      description: 'ご利用ありがとうございました。',
+                    });
+                    // Sign out and redirect to home
+                    await logout();
+                    router.push('/');
+                  } else {
+                    toast({
+                      title: 'エラー',
+                      description: 'アカウントの削除に失敗しました。',
+                      variant: 'destructive',
+                    });
+                  }
+                } catch (error) {
+                  toast({
+                    title: 'エラー',
+                    description: 'アカウントの削除に失敗しました。',
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  削除中...
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  アカウントを削除
+                </>
+              )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">アカウントを一時停止すると、あなたのプロフィールは一時的に非表示になります。ログインすることで再開できます。</p>
+            <p className="text-xs text-muted-foreground mt-2">アカウントを削除すると、すべてのデータが永久に削除され、復元できません。</p>
         </CardContent>
       </Card>
 
