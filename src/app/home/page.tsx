@@ -8,14 +8,18 @@ import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucid
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchAdminGirls, shuffleUsers, type UserProfile } from '@/lib/firebase/user-utils';
+import { sendLike } from '@/lib/firebase/actions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [feedback, setFeedback] = useState<'liked' | 'passed' | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [isProcessingLike, setIsProcessingLike] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -55,7 +59,52 @@ export default function HomePage() {
     }, 500); // フィードバックアニメーションの時間
   };
 
-  const handleLike = () => handleAction('like');
+  const handleLike = async () => {
+    if (isProcessingLike || !currentUser) return;
+    
+    const targetUser = users[currentUserIndex];
+    if (!targetUser) return;
+    
+    setIsProcessingLike(true);
+    setFeedback('liked');
+    
+    try {
+      const result = await sendLike(currentUser.uid, targetUser.id);
+      
+      if (result.isMatch) {
+        toast({
+          title: "マッチしました！🎉",
+          description: `${targetUser.name}さんとマッチしました！メッセージを送ってみましょう。`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/messages/${result.matchId}`)}
+            >
+              メッセージを送る
+            </Button>
+          ),
+        });
+      }
+      
+      // Move to next profile after animation
+      setTimeout(() => {
+        setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length);
+        setFeedback(null);
+        setIsProcessingLike(false);
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error sending like:', error);
+      toast({
+        title: "エラー",
+        description: "いいねの送信に失敗しました。",
+        variant: "destructive",
+      });
+      setFeedback(null);
+      setIsProcessingLike(false);
+    }
+  };
   const handlePass = () => handleAction('pass');
   const handlePrevious = () => {
      setCurrentUserIndex((prevIndex) => (prevIndex - 1 + users.length) % users.length);
@@ -119,7 +168,14 @@ export default function HomePage() {
           <Button variant="destructive" size="lg" className="rounded-full p-4 h-20 w-20 shadow-xl hover:bg-destructive/90" onClick={handlePass} aria-label="スキップ">
             <Ban className="h-10 w-10" />
           </Button>
-          <Button variant="default" size="lg" className="rounded-full p-4 h-20 w-20 bg-green-500 hover:bg-green-600 shadow-xl" onClick={handleLike} aria-label="いいね">
+          <Button 
+            variant="default" 
+            size="lg" 
+            className="rounded-full p-4 h-20 w-20 bg-green-500 hover:bg-green-600 shadow-xl" 
+            onClick={handleLike} 
+            aria-label="いいね"
+            disabled={isProcessingLike}
+          >
             <Heart className="h-10 w-10" />
           </Button>
           <Button variant="outline" size="lg" className="rounded-full p-4 h-16 w-16 shadow-lg hover:bg-secondary" onClick={() => setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length)} aria-label="次へ">

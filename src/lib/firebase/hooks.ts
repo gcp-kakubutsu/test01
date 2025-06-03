@@ -60,55 +60,16 @@ export function useUserProfile(userId?: string) {
   return { profile, loading, error };
 }
 
+// Match interface - moved here from later in the file
 export interface Match {
   id: string;
   users: string[];
   matchedAt: any;
   lastMessage?: string;
   lastMessageAt?: any;
+  status?: string;
+  initiator?: string;
   unreadCount?: { [userId: string]: number };
-}
-
-export function useMatches() {
-  const { currentUser } = useAuth();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!currentUser || !db) {
-      setLoading(false);
-      return;
-    }
-
-    const matchesRef = collection(db, 'matches');
-    const q = query(
-      matchesRef,
-      where('users', 'array-contains', currentUser.uid),
-      orderBy('matchedAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const matchesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Match));
-        setMatches(matchesData);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error fetching matches:', err);
-        setError('マッチの取得に失敗しました');
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [currentUser]);
-
-  return { matches, loading, error };
 }
 
 export interface Community {
@@ -230,4 +191,53 @@ export async function fetchUserProfiles(userIds: string[]): Promise<Map<string, 
   }
   
   return profiles;
+}
+
+// Hook to get matches for current user
+export function useMatches() {
+  const { currentUser } = useAuth();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser || !db) {
+      setLoading(false);
+      return;
+    }
+
+    // Query matches where current user is in the users array (no orderBy to avoid index requirement)
+    const matchesRef = collection(db, 'matches');
+    const q = query(
+      matchesRef,
+      where('users', 'array-contains', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const matchesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Match));
+        // Sort by matchedAt client-side
+        matchesData.sort((a, b) => {
+          const aTime = a.matchedAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.matchedAt?.toDate?.()?.getTime() || 0;
+          return bTime - aTime;
+        });
+        setMatches(matchesData);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching matches:', err);
+        setError('マッチの取得に失敗しました');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  return { matches, loading, error };
 }

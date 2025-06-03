@@ -61,6 +61,22 @@ export async function sendMessage(
 ) {
   if (!db) throw new Error('Firestore is not initialized');
   
+  // First, get the match to find the receiver
+  const matchRef = doc(db, 'matches', matchId);
+  const { getDoc } = await import('firebase/firestore');
+  const matchDoc = await getDoc(matchRef);
+  
+  if (!matchDoc.exists()) {
+    throw new Error('Match not found');
+  }
+  
+  const matchData = matchDoc.data();
+  const receiverId = matchData.users.find((uid: string) => uid !== senderId);
+  
+  if (!receiverId) {
+    throw new Error('Receiver not found in match');
+  }
+  
   const messagesRef = collection(db, 'matches', matchId, 'messages');
   const newMessage = await addDoc(messagesRef, {
     senderId,
@@ -69,12 +85,12 @@ export async function sendMessage(
     createdAt: serverTimestamp()
   });
   
-  // Update match with last message info
-  const matchRef = doc(db, 'matches', matchId);
+  // Update match with last message info and increment receiver's unread count
   await updateDoc(matchRef, {
     lastMessage: text,
     lastMessageAt: serverTimestamp(),
     [`unreadCount.${senderId}`]: 0, // Reset sender's unread count
+    [`unreadCount.${receiverId}`]: increment(1), // Increment receiver's unread count
   });
   
   return newMessage.id;
@@ -103,18 +119,39 @@ export async function markMessageAsRead(
 export async function createMatch(userId1: string, userId2: string) {
   if (!db) throw new Error('Firestore is not initialized');
   
+  const { getDocs, query, where } = await import('firebase/firestore');
   const matchesRef = collection(db, 'matches');
+  
+  // Check if match already exists
+  const existingMatchQuery = query(
+    matchesRef,
+    where('users', 'array-contains', userId1)
+  );
+  const existingMatchSnapshot = await getDocs(existingMatchQuery);
+  
+  // Check if any of these matches include both users
+  for (const doc of existingMatchSnapshot.docs) {
+    const matchData = doc.data();
+    if (matchData.users.includes(userId2)) {
+      console.log('Match already exists:', doc.id);
+      return doc.id;
+    }
+  }
+  
+  // Create new match
   const newMatch = await addDoc(matchesRef, {
     users: [userId1, userId2],
     matchedAt: serverTimestamp(),
     lastMessage: null,
     lastMessageAt: null,
+    status: 'matched',
     unreadCount: {
       [userId1]: 0,
       [userId2]: 0
     }
   });
   
+  console.log('New match created:', newMatch.id);
   return newMatch.id;
 }
 
@@ -122,14 +159,50 @@ export async function createMatch(userId1: string, userId2: string) {
 export async function sendLike(fromUserId: string, toUserId: string) {
   if (!db) throw new Error('Firestore is not initialized');
   
+  console.log('Sending like from:', fromUserId, 'to:', toUserId);
+  
+  const { getDocs, query, where } = await import('firebase/firestore');
   const likesRef = collection(db, 'likes');
-  await addDoc(likesRef, {
+  
+  // Check if like already exists
+  const existingLikeQuery = query(
+    likesRef,
+    where('from', '==', fromUserId),
+    where('to', '==', toUserId)
+  );
+  const existingLikeSnapshot = await getDocs(existingLikeQuery);
+  
+  if (!existingLikeSnapshot.empty) {
+    console.log('Like already exists');
+    return { likeId: existingLikeSnapshot.docs[0].id, matchId: null, isMatch: false, alreadyLiked: true };
+  }
+  
+  const newLike = await addDoc(likesRef, {
     from: fromUserId,
     to: toUserId,
     createdAt: serverTimestamp(),
     seen: false
   });
   
+  console.log('Like created with ID:', newLike.id);
+  
   // Check if there's a mutual like (they liked us back)
-  // This would be done server-side in production
+  const mutualLikeQuery = query(
+    likesRef,
+    where('from', '==', toUserId),
+    where('to', '==', fromUserId)
+  );
+  
+  const mutualLikeSnapshot = await getDocs(mutualLikeQuery);
+  console.log('Checking mutual like from:', toUserId, 'to:', fromUserId);
+  console.log('Mutual like found:', !mutualLikeSnapshot.empty);
+  
+  if (!mutualLikeSnapshot.empty) {
+    // Mutual like exists, create a match
+    console.log('Creating match between:', fromUserId, 'and', toUserId);
+    const matchId = await createMatch(fromUserId, toUserId);
+    return { likeId: newLike.id, matchId, isMatch: true, alreadyLiked: false };
+  }
+  
+  return { likeId: newLike.id, matchId: null, isMatch: false, alreadyLiked: false };
 }

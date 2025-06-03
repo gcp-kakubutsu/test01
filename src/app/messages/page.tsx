@@ -135,7 +135,9 @@ export default function MessagesPage() {
                         <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
                       </div>
                       {chat.unreadCount > 0 && (
-                        <Badge variant="default" className="bg-primary text-primary-foreground">{chat.unreadCount}</Badge>
+                        <Badge variant="default" className="bg-red-500 text-white min-w-[24px] h-6 px-2 rounded-full flex items-center justify-center">
+                          {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                        </Badge>
                       )}
                     </div>
                   </Link>

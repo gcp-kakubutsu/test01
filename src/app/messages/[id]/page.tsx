@@ -16,7 +16,7 @@ import { useMessages, useUserProfile, fetchUserProfiles } from '@/lib/firebase/h
 import { sendMessage, markMessageAsRead } from '@/lib/firebase/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
 
@@ -26,10 +26,11 @@ interface MatchUser {
   profilePhotoUrl: string;
 }
 
-export default function ChatPage({ params }: { params: { id: string } }) {
+export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
-  const { messages, loading: messagesLoading } = useMessages(params.id);
+  const [paramsId, setParamsId] = useState<string | null>(null);
+  const { messages, loading: messagesLoading } = useMessages(paramsId || '');
   const { profile: currentUserProfile } = useUserProfile();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -37,6 +38,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const [matchData, setMatchData] = useState<any>(null);
   const [isLoadingMatch, setIsLoadingMatch] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Unwrap params
+  useEffect(() => {
+    params.then(p => setParamsId(p.id));
+  }, [params]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -47,14 +53,14 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   // Fetch match data and other user's profile
   useEffect(() => {
     const fetchMatchData = async () => {
-      if (!currentUser || !db) {
+      if (!currentUser || !db || !paramsId) {
         setIsLoadingMatch(false);
         return;
       }
       
       setIsLoadingMatch(true);
       try {
-        const matchRef = doc(db, 'matches', params.id);
+        const matchRef = doc(db, 'matches', paramsId);
         const matchDoc = await getDoc(matchRef);
         
         if (matchDoc.exists()) {
@@ -98,7 +104,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     };
     
     fetchMatchData();
-  }, [params.id, currentUser]);
+  }, [paramsId, currentUser]);
 
   // Mark messages as read
   useEffect(() => {
@@ -110,12 +116,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       );
       
       for (const msg of unreadMessages) {
-        await markMessageAsRead(params.id, msg.id, currentUser.uid);
+        await markMessageAsRead(paramsId || '', msg.id, currentUser.uid);
       }
     };
     
     markAsRead();
-  }, [messages, currentUser, params.id]);
+  }, [messages, currentUser, paramsId]);
 
   useEffect(() => {
     // 新しいメッセージが追加されたときに一番下にスクロール
@@ -130,7 +136,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     
     setIsSending(true);
     try {
-      await sendMessage(params.id, currentUser.uid, newMessage.trim());
+      await sendMessage(paramsId || '', currentUser.uid, newMessage.trim());
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -139,7 +145,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     }
   };
 
-  if (authLoading || isLoadingMatch) {
+  if (authLoading || isLoadingMatch || !paramsId) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
   
@@ -163,7 +169,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-150px)] max-w-2xl mx-auto">
-       <Card className="flex flex-col flex-grow shadow-lg overflow-hidden">
+       <Card className="flex flex-col flex-grow shadow-lg overflow-hidden bg-[#7494C0]/5">
         <CardHeader className="bg-card border-b p-4">
           <div className="flex items-center space-x-3">
             <Link href="/messages">
@@ -180,7 +186,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         </CardHeader>
 
         <CardContent className="flex-grow p-0">
-          <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
+          <ScrollArea className="h-full px-4 py-2" ref={scrollAreaRef}>
             <div className="space-y-4">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
@@ -188,23 +194,70 @@ export default function ChatPage({ params }: { params: { id: string } }) {
                   <p className="text-sm mt-2">最初のメッセージを送ってみましょう！</p>
                 </div>
               ) : (
-                messages.map(msg => {
+                messages.map((msg, index) => {
                   const isMe = msg.senderId === currentUser.uid;
-                  const timestamp = msg.createdAt?.toDate ? 
-                    formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true, locale: ja }) : 
-                    '';
+                  const msgDate = msg.createdAt?.toDate ? msg.createdAt.toDate() : new Date();
+                  const prevMsgDate = index > 0 && messages[index - 1].createdAt?.toDate ? 
+                    messages[index - 1].createdAt.toDate() : null;
+                  const showDateDivider = index === 0 || (prevMsgDate && !isSameDay(msgDate, prevMsgDate));
+                  
+                  let dateLabel = '';
+                  if (showDateDivider) {
+                    if (isToday(msgDate)) {
+                      dateLabel = '今日';
+                    } else if (isYesterday(msgDate)) {
+                      dateLabel = '昨日';
+                    } else {
+                      dateLabel = format(msgDate, 'M月d日(E)', { locale: ja });
+                    }
+                  }
+                  
+                  const timeString = format(msgDate, 'HH:mm');
                   
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow ${
-                        isMe
-                          ? 'bg-primary text-primary-foreground rounded-br-none'
-                          : 'bg-secondary text-secondary-foreground rounded-bl-none'
-                      }`}>
-                        <p className="text-sm">{msg.text}</p>
-                        <p className={`text-xs mt-1 ${isMe ? 'text-primary-foreground/70 text-right' : 'text-secondary-foreground/70 text-left'}`}>
-                          {timestamp}
-                        </p>
+                    <div key={msg.id}>
+                      {showDateDivider && (
+                        <div className="flex justify-center my-4">
+                          <span className="bg-muted px-3 py-1 rounded-full text-xs text-muted-foreground">
+                            {dateLabel}
+                          </span>
+                        </div>
+                      )}
+                      <div className={`flex items-start gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        {!isMe && (
+                          <div className="flex flex-col items-center">
+                            <Avatar className="w-12 h-12">
+                              <AvatarImage src={matchUser.profilePhotoUrl} alt={matchUser.name} />
+                              <AvatarFallback className="text-sm bg-secondary">{matchUser.name.substring(0,1).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs font-medium text-muted-foreground mt-1 max-w-[60px] truncate">
+                              {matchUser.name}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[65%]`}>
+                          <div className={`px-4 py-2 rounded-2xl ${
+                            isMe
+                              ? 'bg-primary text-primary-foreground rounded-br-sm'
+                              : 'bg-secondary text-secondary-foreground rounded-bl-sm'
+                          }`}>
+                            <p className="text-sm break-words whitespace-pre-wrap">{msg.text}</p>
+                          </div>
+                          <p className={`text-xs mt-0.5 px-1 text-muted-foreground`}>
+                            {timeString}
+                          </p>
+                        </div>
+                        {isMe && currentUserProfile && (
+                          <div className="flex flex-col items-center">
+                            <Avatar className="w-12 h-12">
+                              <AvatarImage src={currentUserProfile.profilePhotoUrl || 'https://placehold.co/100x100/F0306A/FFF.png?text=U'} alt={currentUserProfile.username || 'あなた'} />
+                              <AvatarFallback className="text-sm bg-primary text-primary-foreground">{(currentUserProfile.username || 'あなた').substring(0,1).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs font-medium text-muted-foreground mt-1 max-w-[60px] truncate">
+                              {currentUserProfile.username || 'あなた'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -214,33 +267,41 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           </ScrollArea>
         </CardContent>
 
-        <CardFooter className="p-4 border-t bg-card">
-          <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">
-            <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary" aria-label="ファイルを添付">
-              <Paperclip className="h-5 w-5" />
-            </Button>
-             <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary" aria-label="絵文字を選択">
-              <SmilePlus className="h-5 w-5" />
-            </Button>
+        <CardFooter className="p-3 border-t bg-background">
+          <form onSubmit={handleSendMessage} className="flex items-center w-full gap-2">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary h-8 w-8" aria-label="ファイルを添付">
+                <Paperclip className="h-4 w-4" />
+              </Button>
+               <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-primary h-8 w-8" aria-label="絵文字を選択">
+                <SmilePlus className="h-4 w-4" />
+              </Button>
+            </div>
             <Input
               type="text"
-              placeholder="メッセージを入力..."
+              placeholder="メッセージを入力"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-1 text-base"
+              className="flex-1 h-9 text-sm bg-muted border-0 focus-visible:ring-1"
               autoComplete="off"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e as any);
+                }
+              }}
             />
             <Button 
               type="submit" 
               size="icon" 
-              className="bg-primary hover:bg-primary/90" 
+              className="bg-primary hover:bg-primary/90 h-8 w-8" 
               aria-label="送信"
               disabled={isSending || !newMessage.trim()}
             >
               {isSending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4" />
               )}
             </Button>
           </form>

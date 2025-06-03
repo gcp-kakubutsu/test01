@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { fetchAdminGirls } from '@/lib/firebase/user-utils';
+import { sendLike } from '@/lib/firebase/actions';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
   id: string;
@@ -25,11 +27,13 @@ interface UserProfile {
 export default function SearchPage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [isProcessingLike, setIsProcessingLike] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -86,9 +90,50 @@ export default function SearchPage() {
     setCurrentIndex(0);
   };
 
-  const handleLike = () => {
-    console.log('Liked:', filteredUsers[currentIndex]);
-    nextProfile();
+  const handleLike = async () => {
+    if (isProcessingLike || !currentUser) return;
+    
+    const targetUser = filteredUsers[currentIndex];
+    if (!targetUser) return;
+    
+    setIsProcessingLike(true);
+    
+    try {
+      const result = await sendLike(currentUser.uid, targetUser.id);
+      
+      if (result.isMatch) {
+        toast({
+          title: "マッチしました！🎉",
+          description: `${targetUser.name}さんとマッチしました！メッセージを送ってみましょう。`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/messages/${result.matchId}`)}
+            >
+              メッセージを送る
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          title: "いいねを送りました！",
+          description: `${targetUser.name}さんにいいねを送りました。`,
+        });
+      }
+      
+      nextProfile();
+      setIsProcessingLike(false);
+      
+    } catch (error) {
+      console.error('Error sending like:', error);
+      toast({
+        title: "エラー",
+        description: "いいねの送信に失敗しました。",
+        variant: "destructive",
+      });
+      setIsProcessingLike(false);
+    }
   };
 
   const handlePass = () => {
@@ -187,6 +232,7 @@ export default function SearchPage() {
                 size="lg"
                 className="rounded-full h-16 w-16 p-0 bg-[#F0306A] hover:bg-[#E02860]"
                 onClick={handleLike}
+                disabled={isProcessingLike}
               >
                 <Heart className="h-8 w-8 text-white" fill="white" />
               </Button>

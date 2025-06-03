@@ -101,7 +101,7 @@ export default function ProfilePage() {
           
           <div className="flex items-center gap-4 mb-4">
             <div className="relative">
-              <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-gray-100">
+              <div className="w-[100px] h-[100px] rounded-lg overflow-hidden bg-gray-100">
                 <Image
                   src={profilePhoto}
                   alt="Profile"

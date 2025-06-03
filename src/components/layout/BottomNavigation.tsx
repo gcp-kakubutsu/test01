@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, Heart, Users, MessageCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMatches } from '@/lib/firebase/hooks';
+import { Badge } from '@/components/ui/badge';
 
 interface NavItem {
   href: string;
@@ -24,6 +27,13 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { currentUser } = useAuth();
+  const { matches } = useMatches();
+
+  // Calculate total unread messages
+  const totalUnreadCount = currentUser && matches 
+    ? matches.reduce((total, match) => total + (match.unreadCount?.[currentUser.uid] || 0), 0)
+    : 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,16 +78,25 @@ export default function BottomNavigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center space-y-1 transition-colors",
+                "relative flex flex-col items-center justify-center space-y-1 transition-colors",
                 isActive 
                   ? "text-[#F0306A]" 
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
-              <Icon 
-                className="h-5 w-5" 
-                strokeWidth={isActive ? 2.5 : 2}
-              />
+              <div className="relative">
+                <Icon 
+                  className="h-5 w-5" 
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                {item.href === '/messages' && totalUnreadCount > 0 && (
+                  <Badge 
+                    className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+                  >
+                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                  </Badge>
+                )}
+              </div>
               <span className="text-xs font-medium">
                 {item.label}
               </span>

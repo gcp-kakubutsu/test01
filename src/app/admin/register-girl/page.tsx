@@ -295,13 +295,13 @@ export default function RegisterGirlPage() {
                         <FormControl>
                           <div className="relative">
                             {profilePhotoPreview ? (
-                              <div className="relative group mx-auto w-64 h-64 sm:w-80 sm:h-80 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="relative group mx-auto w-64 h-64 sm:w-80 sm:h-80 bg-gray-100 rounded-lg overflow-hidden">
                                 <img
                                   src={profilePhotoPreview}
                                   alt="プロフィール写真プレビュー"
                                   className="w-full h-full object-contain shadow-lg"
                                 />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <Button
                                     type="button"
                                     onClick={removePhoto}
@@ -659,7 +659,7 @@ export default function RegisterGirlPage() {
           imageUrl={tempImageUrl}
           onSave={handleImageSave}
           onCancel={handleImageCancel}
-          circular={true}
+          circular={false}
         />
       )}
     </div>

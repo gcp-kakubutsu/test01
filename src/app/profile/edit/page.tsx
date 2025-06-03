@@ -395,7 +395,7 @@ export default function EditProfilePage() {
           imageUrl={tempImageUrl}
           onSave={handleImageSave}
           onCancel={handleImageCancel}
-          circular={currentPhotoIndex === null} // Only circular for profile photo
+          circular={false} // 全ての写真を四角形で表示
         />
       )}
     </div>
