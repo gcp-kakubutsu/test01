@@ -93,6 +93,84 @@ npm run genkit:dev
 npm run genkit:watch
 ```
 
+## Firebase Security Rules のデプロイ方法
+
+### Firebase Studioユーザー向け：Firebaseコンソールを使用した方法（推奨）
+
+1. **Firebaseコンソールにアクセス**
+   - [Firebase Console](https://console.firebase.google.com)にアクセス
+   - 対象のプロジェクトを選択
+
+2. **Firestore セキュリティルールを編集**
+   - 左側のメニューから「Firestore Database」を選択
+   - 上部のタブから「ルール」をクリック
+   - オンラインエディタでルールを直接編集
+
+3. **ルールを公開**
+   - ルールの編集が完了したら、「公開」ボタンをクリック
+   - 変更は即座に反映されます（新しいクエリには最大1分、既存のリスナーには最大10分かかる場合があります）
+
+### Storage セキュリティルールも同様に設定
+
+1. **Storage ルールの編集**
+   - Firebaseコンソールの「Storage」セクションを選択
+   - 「ルール」タブをクリック
+   - ルールを編集して「公開」
+
+### 現在のプロジェクトのセキュリティルール
+
+**Firestore ルール (firestore.rules):**
+```javascript
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection rules
+    match /users/{userId} {
+      // 認証されたユーザーは全てのユーザープロフィールを読める（マッチング用）
+      allow read: if request.auth != null;
+      
+      // ユーザーは自分のデータのみ書き込める
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Messages collection rules
+    match /messages/{messageId} {
+      // 会話の参加者のみ読み書き可能
+      allow read, write: if request.auth != null && 
+        (request.auth.uid in resource.data.participants ||
+         request.auth.uid in request.resource.data.participants);
+    }
+    
+    // Matches collection rules
+    match /matches/{matchId} {
+      // マッチに関わるユーザーのみ読み書き可能
+      allow read, write: if request.auth != null && 
+        (request.auth.uid in resource.data.users ||
+         request.auth.uid in request.resource.data.users);
+    }
+  }
+}
+```
+
+**Storage ルール (storage.rules):**
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+### 注意事項
+
+- **テスト環境**: 開発中は上記のようなシンプルなルールで問題ありませんが、本番環境ではより厳格なルールを設定してください
+- **Firebase CLI vs コンソール**: Firebase CLIでデプロイすると、コンソールで設定したルールが上書きされます。チーム開発では統一した方法を使用してください
+- **ルールシミュレーター**: Firebaseコンソールのルールタブには、ルールをテストできるシミュレーターがあります。公開前に必ずテストしてください
+
 ## 管理者用秘密URL
 
 以下のURLは管理者のみがアクセス可能な隠しページです。これらのURLは通常のナビゲーションからはアクセスできません。
