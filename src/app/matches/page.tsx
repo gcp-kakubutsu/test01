@@ -49,6 +49,8 @@ export default function MatchesPage() {
   const [receivedLikes, setReceivedLikes] = useState<Like[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
+  const [processingLikes, setProcessingLikes] = useState<Set<string>>(new Set());
+  const [likedBackUsers, setLikedBackUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -146,8 +148,16 @@ export default function MatchesPage() {
           };
         }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Sort by date desc
         
+        // Check which received likes have been liked back (exist in sent likes)
+        const alreadyLikedBackUserIds = new Set(
+          receivedLikesList.filter(receivedLike => 
+            sentLikeUserIds.includes(receivedLike.userId)
+          ).map(like => like.userId)
+        );
+        
         setSentLikes(sentLikesList);
         setReceivedLikes(receivedLikesList);
+        setLikedBackUsers(alreadyLikedBackUserIds);
         
       } catch (error) {
         console.error('Error loading likes:', error);
@@ -230,10 +240,12 @@ export default function MatchesPage() {
   );
 
   const handleLikeBack = async (like: Like) => {
-    if (isProcessingLike || !currentUser) return;
+    if (processingLikes.has(like.userId) || likedBackUsers.has(like.userId) || !currentUser) return;
     
     console.log('Sending like back to:', like.userId);
-    setIsProcessingLike(true);
+    
+    // Add to processing set
+    setProcessingLikes(prev => new Set(prev).add(like.userId));
     
     try {
       const result = await sendLike(currentUser.uid, like.userId);
@@ -259,10 +271,7 @@ export default function MatchesPage() {
           ),
         });
         
-        // Remove from received likes
-        setReceivedLikes(prev => prev.filter(l => l.userId !== like.userId));
-        
-        // Reload to update matches list
+        // Reload to update matches list after a delay
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -272,9 +281,6 @@ export default function MatchesPage() {
           description: `${like.name}さんにいいねを返しました。`,
         });
         
-        // Remove from received likes list
-        setReceivedLikes(prev => prev.filter(l => l.userId !== like.userId));
-        
         // Add to sent likes list
         const newSentLike: Like = {
           ...like,
@@ -283,6 +289,10 @@ export default function MatchesPage() {
         };
         setSentLikes(prev => [newSentLike, ...prev]);
       }
+      
+      // Mark user as liked back (for all cases)
+      setLikedBackUsers(prev => new Set(prev).add(like.userId));
+      
     } catch (error) {
       console.error('Error sending like back:', error);
       toast({
@@ -291,7 +301,12 @@ export default function MatchesPage() {
         variant: "destructive",
       });
     } finally {
-      setIsProcessingLike(false);
+      // Remove from processing set
+      setProcessingLikes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(like.userId);
+        return newSet;
+      });
     }
   };
 
@@ -333,15 +348,38 @@ export default function MatchesPage() {
           </div>
           
           {showLikeButton && (
-            <Button
-              size="sm"
-              className="bg-[#F0306A] hover:bg-[#E02860]"
-              onClick={() => handleLikeBack(like)}
-              disabled={isProcessingLike}
-            >
-              <Heart className="h-4 w-4 mr-1" />
-              いいねを返す
-            </Button>
+            <div>
+              {likedBackUsers.has(like.userId) ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled
+                  className="text-gray-500 border-gray-300"
+                >
+                  <Heart className="h-4 w-4 mr-1 fill-gray-400 text-gray-400" />
+                  いいね済み
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="bg-[#F0306A] hover:bg-[#E02860]"
+                  onClick={() => handleLikeBack(like)}
+                  disabled={processingLikes.has(like.userId)}
+                >
+                  {processingLikes.has(like.userId) ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      送信中...
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="h-4 w-4 mr-1" />
+                      いいねを返す
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </CardContent>

@@ -45,6 +45,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe = onAuthStateChanged(auth, (user) => {
         setCurrentUser(user);
         setIsLoading(false);
+      }, (error) => {
+        // 認証状態の監視でエラーが発生した場合のハンドリング
+        console.error('Auth state change error:', error);
+        
+        // 一時的なネットワークエラーの場合は現在のユーザー状態を保持
+        if (error.code === 'auth/network-request-failed' || 
+            error.code === 'auth/internal-error' ||
+            error.message.includes('503') ||
+            error.message.includes('Service Unavailable')) {
+          console.warn('一時的なネットワークエラーが発生しました。ユーザー状態を保持します。');
+          // ユーザー状態を変更せずにローディングだけ終了
+          setIsLoading(false);
+          return;
+        }
+        
+        // その他のエラーの場合は通常通り処理
+        setCurrentUser(null);
+        setIsLoading(false);
+        toast({
+          title: "認証エラー",
+          description: "認証状態の確認中にエラーが発生しました。再度ログインしてください。",
+          variant: "destructive",
+        });
       });
     } else {
       console.warn("AuthContext: Firebase Auth が初期化されていませんが、firebaseInitErrorは設定されていませんでした。認証機能は動作しません。");
