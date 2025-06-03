@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCircle, Image as ImageIcon, Tag } from 'lucide-react';
+import { Loader2, UserCircle, Image as ImageIcon, Tag, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,6 +17,7 @@ import { db } from '@/lib/firebase/client';
 import { uploadProfileImage, deleteProfileImage } from '@/lib/firebase/storage';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import { updateUserProfile } from '../actions';
+import { ImagePositionAdjuster } from '@/components/ui/image-position-adjuster';
 
 
 interface UserProfileData {
@@ -43,6 +44,10 @@ export default function EditProfilePage() {
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingData, setIsFetchingData] = useState(true);
+  const [showImageAdjuster, setShowImageAdjuster] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [adjustedPhotoBlob, setAdjustedPhotoBlob] = useState<Blob | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -75,12 +80,42 @@ export default function EditProfilePage() {
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setProfilePhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePhotoPreview(reader.result as string);
+        setTempImageUrl(reader.result as string);
+        setShowImageAdjuster(true);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageSave = (croppedBlob: Blob) => {
+    setAdjustedPhotoBlob(croppedBlob);
+    const file = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' });
+    setProfilePhotoFile(file);
+    
+    // Create preview URL
+    const url = URL.createObjectURL(croppedBlob);
+    setProfilePhotoPreview(url);
+    setShowImageAdjuster(false);
+    setTempImageUrl(null);
+  };
+
+  const handleImageCancel = () => {
+    setShowImageAdjuster(false);
+    setTempImageUrl(null);
+  };
+
+  const handleRemovePhoto = () => {
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(null);
+    setAdjustedPhotoBlob(null);
+    if (profilePhotoPreview && profilePhotoPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(profilePhotoPreview);
+    }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -96,7 +131,8 @@ export default function EditProfilePage() {
       let photoUrl = profile?.profilePhotoUrl || '';
       
       // 新しい画像がアップロードされた場合
-      if (profilePhotoFile) {
+      if (profilePhotoFile && adjustedPhotoBlob) {
+        console.log('Uploading adjusted photo:', adjustedPhotoBlob, profilePhotoFile);
         // 既存の画像がある場合は削除
         if (profile?.profilePhotoUrl) {
           try {
@@ -108,6 +144,7 @@ export default function EditProfilePage() {
         
         // 新しい画像をアップロード
         photoUrl = await uploadProfileImage(currentUser.uid, profilePhotoFile, 'main');
+        console.log('New photo URL:', photoUrl);
       }
 
       const updateData = {
@@ -166,15 +203,32 @@ export default function EditProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center space-y-3">
               <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-primary shadow-md bg-secondary">
-                {profilePhotoPreview ? (
-                  <Image src={profilePhotoPreview} alt="プロフィールプレビュー" layout="fill" objectFit="cover" data-ai-hint="人物 近影" />
+                {profilePhotoPreview || profile?.profilePhotoUrl ? (
+                  <div className="relative w-full h-full group">
+                    <Image 
+                      src={profilePhotoPreview || profile?.profilePhotoUrl || ''} 
+                      alt="プロフィールプレビュー" 
+                      layout="fill" 
+                      objectFit="contain" 
+                      data-ai-hint="人物 近影" 
+                    />
+                    {profilePhotoPreview && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <X className="w-8 h-8 text-white" />
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <ImageIcon className="w-16 h-16 text-muted-foreground" />
                   </div>
                 )}
               </div>
-              <Input id="profilePhoto" type="file" accept="image/*" onChange={handlePhotoChange} className="max-w-xs file:text-primary file:font-semibold"/>
+              <Input ref={fileInputRef} id="profilePhoto" type="file" accept="image/*" onChange={handlePhotoChange} className="max-w-xs file:text-primary file:font-semibold"/>
             </div>
 
             <div className="space-y-2">
@@ -232,6 +286,15 @@ export default function EditProfilePage() {
           </CardFooter>
         </form>
       </Card>
+
+      {showImageAdjuster && tempImageUrl && (
+        <ImagePositionAdjuster
+          imageUrl={tempImageUrl}
+          onSave={handleImageSave}
+          onCancel={handleImageCancel}
+          circular={true}
+        />
+      )}
     </div>
   );
 }

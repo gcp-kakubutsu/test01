@@ -24,17 +24,33 @@ function initializeAdmin(): App | undefined {
       
       console.log('Initializing Firebase Admin SDK with environment variables');
       
-      adminApp = initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        }),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      }, 'admin');
-      
-      console.log('Firebase Admin SDK initialized successfully (production mode)');
-      return adminApp;
+      try {
+        // プライベートキーの処理を改善
+        let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+        
+        // JSONエスケープされた改行を実際の改行に変換
+        privateKey = privateKey.replace(/\\n/g, '\n');
+        
+        // もしキーが引用符で囲まれている場合は削除
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.slice(1, -1);
+        }
+        
+        adminApp = initializeApp({
+          credential: cert({
+            projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+            privateKey: privateKey,
+          }),
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        }, 'admin');
+        
+        console.log('Firebase Admin SDK initialized successfully (production mode)');
+        return adminApp;
+      } catch (certError) {
+        console.error('Error with certificate:', certError);
+        throw certError;
+      }
     }
     
     // 開発環境: GOOGLE_APPLICATION_CREDENTIALSを使用

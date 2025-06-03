@@ -1,10 +1,10 @@
-
 "use client";
 
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Ban } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export interface UserProfile {
   id: string;
@@ -45,7 +45,16 @@ export function UserProfileCard({ user, feedback }: UserProfileCardProps) {
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-          <CardTitle className="text-3xl font-bold text-white shadow-sm">{user.name}, {user.age}</CardTitle>
+          <div className="flex items-end justify-between">
+            <div>
+              <CardTitle className="text-3xl font-bold text-white shadow-sm">{user.name}, {user.age}</CardTitle>
+            </div>
+            {/* 円形プロフィール写真を追加 */}
+            <Avatar className="h-16 w-16 border-3 border-white shadow-lg">
+              <AvatarImage src={user.imageUrl} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </div>
       <CardContent className="p-6 space-y-3">

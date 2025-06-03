@@ -92,13 +92,15 @@ export default function ProfilePage() {
           
           <div className="flex items-center gap-4 mb-4">
             <div className="relative">
-              <Image
-                src={profilePhoto}
-                alt="Profile"
-                width={100}
-                height={100}
-                className="rounded-full object-cover"
-              />
+              <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-gray-100">
+                <Image
+                  src={profilePhoto}
+                  alt="Profile"
+                  width={100}
+                  height={100}
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <Link href="/profile/edit">
                 <Button
                   size="sm"

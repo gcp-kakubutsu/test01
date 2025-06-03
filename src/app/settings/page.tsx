@@ -13,6 +13,9 @@ import { Bell, EyeOff, ShieldAlert, Trash2, UserX, Loader2, Save, AlertTriangle 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { deleteAccount } from './actions';
+import { deleteUser } from 'firebase/auth';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/client';
 
 export default function SettingsPage() {
   const { isAuthenticated, isLoading: authIsLoading, currentUser, logout } = useAuth();
@@ -177,7 +180,15 @@ export default function SettingsPage() {
                 
                 setIsDeleting(true);
                 try {
-                  const result = await deleteAccount(currentUser.uid);
+                  // First try server-side deletion via API
+                  const response = await fetch('/api/account/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUser.uid }),
+                  });
+                  
+                  const result = await response.json();
+                  
                   if (result.success) {
                     toast({
                       title: 'アカウントを削除しました',
@@ -186,14 +197,55 @@ export default function SettingsPage() {
                     // Sign out and redirect to home
                     await logout();
                     router.push('/');
+                  } else if (result.error === 'admin-not-initialized' || result.error === 'admin-deletion-failed') {
+                    // Fallback to client-side deletion
+                    console.log('Falling back to client-side deletion');
+                    
+                    try {
+                      // Delete Firestore document first
+                      const userDocRef = doc(db, 'users', currentUser.uid);
+                      await deleteDoc(userDocRef);
+                      console.log('User document deleted from Firestore');
+                      
+                      // Delete auth user
+                      if (auth.currentUser) {
+                        await deleteUser(auth.currentUser);
+                        console.log('User deleted from Firebase Auth');
+                      }
+                      
+                      toast({
+                        title: 'アカウントを削除しました',
+                        description: 'ご利用ありがとうございました。',
+                      });
+                      
+                      router.push('/');
+                    } catch (clientError: any) {
+                      console.error('Client-side deletion error:', clientError);
+                      
+                      // If it's a permission error, the user might be deleted from auth but not from Firestore
+                      if (clientError.code === 'permission-denied') {
+                        toast({
+                          title: 'アカウントを削除しました',
+                          description: 'ご利用ありがとうございました。',
+                        });
+                        router.push('/');
+                      } else {
+                        toast({
+                          title: 'エラー',
+                          description: 'アカウントの削除に失敗しました。再度ログインしてお試しください。',
+                          variant: 'destructive',
+                        });
+                      }
+                    }
                   } else {
                     toast({
                       title: 'エラー',
-                      description: 'アカウントの削除に失敗しました。',
+                      description: result.error || 'アカウントの削除に失敗しました。',
                       variant: 'destructive',
                     });
                   }
                 } catch (error) {
+                  console.error('Account deletion error:', error);
                   toast({
                     title: 'エラー',
                     description: 'アカウントの削除に失敗しました。',

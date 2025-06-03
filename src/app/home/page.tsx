@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 const mockUsers: UserProfile[] = [
   { id: '1', name: 'さくら', age: 28, imageUrl: 'https://placehold.co/400x500/F0306A/FFF.png?text=S', bio: 'アート、冒険、深い会話が大好き。誠実な人を探しています。', kinks: ['スリル', '知性', '旅行'] , dataAiHint: "女性 ポートレート" },
@@ -16,17 +18,63 @@ const mockUsers: UserProfile[] = [
 ];
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, currentUser } = useAuth();
   const router = useRouter();
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
-  const [users, setUsers] = useState<UserProfile[]>(mockUsers); // 実際のアプリではこれをフェッチします
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [feedback, setFeedback] = useState<'liked' | 'passed' | null>(null);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoadingUsers(true);
+        // Fetch female users (excluding current user)
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('gender', '==', 'female'),
+          limit(20)
+        );
+        
+        const querySnapshot = await getDocs(usersQuery);
+        const fetchedUsers: UserProfile[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.uid !== currentUser.uid) { // Exclude current user
+            fetchedUsers.push({
+              id: doc.id,
+              name: data.username || data.email?.split('@')[0] || '名前なし',
+              age: data.age || 20,
+              imageUrl: data.profilePhotoUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=User',
+              bio: data.bio || '自己紹介はまだありません',
+              kinks: data.interests || [],
+            });
+          }
+        });
+        
+        // If no users found, use mock data
+        setUsers(fetchedUsers.length > 0 ? fetchedUsers : mockUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsers(mockUsers); // Fallback to mock data
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    if (isAuthenticated && currentUser) {
+      fetchUsers();
+    }
+  }, [isAuthenticated, currentUser]);
 
   const handleAction = (action: 'like' | 'pass') => {
     setFeedback(action === 'like' ? 'liked' : 'passed');
@@ -47,7 +95,7 @@ export default function HomePage() {
     setUsers([...mockUsers].sort(() => Math.random() - 0.5)); // デモ用の簡単なシャッフル
   }
 
-  if (isLoading) {
+  if (isLoading || loadingUsers) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
 
@@ -61,13 +109,13 @@ export default function HomePage() {
     return <div className="text-center py-10">現在表示できるプロフィールはありません。後でもう一度確認してください！</div>;
   }
 
-  const currentUser = users[currentUserIndex];
+  const currentProfile = users[currentUserIndex];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] py-8">
       <div className="w-full max-w-sm relative">
-        {currentUser ? (
-          <UserProfileCard user={currentUser} feedback={feedback} />
+        {currentProfile ? (
+          <UserProfileCard user={currentProfile} feedback={feedback} />
         ) : (
           <div className="text-center py-10 text-muted-foreground">
             <p className="text-xl mb-4">現在表示できるプロフィールはありません！</p>
@@ -77,7 +125,7 @@ export default function HomePage() {
           </div>
         )}
       </div>
-      {currentUser && (
+      {currentProfile && (
         <div className="flex justify-center items-center gap-4 mt-8">
           <Button variant="outline" size="lg" className="rounded-full p-4 h-16 w-16 shadow-lg hover:bg-secondary" onClick={handlePrevious} aria-label="前へ">
             <ChevronLeft className="h-8 w-8 text-muted-foreground" />

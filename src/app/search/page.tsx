@@ -9,6 +9,7 @@ import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface UserProfile {
   id: string;
@@ -132,9 +133,16 @@ export default function SearchPage() {
             
             {/* User Info Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-2xl font-bold">{currentUser.name}</h2>
-                <span className="text-xl">{currentUser.age}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold">{currentUser.name}</h2>
+                  <span className="text-xl">{currentUser.age}</span>
+                </div>
+                {/* 円形プロフィール写真 */}
+                <Avatar className="h-14 w-14 border-3 border-white shadow-lg">
+                  <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
+                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                </Avatar>
               </div>
               
               <div className="flex items-center gap-1 mb-3 text-sm">
