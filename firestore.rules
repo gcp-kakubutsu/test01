@@ -48,6 +48,39 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    // Communities collection rules
+    match /communities/{communityId} {
+      // 認証されたユーザーは全てのコミュニティを読める
+      allow read: if request.auth != null;
+      
+      // コミュニティの作成は認証されたユーザーのみ
+      allow create: if request.auth != null;
+      
+      // コミュニティの更新（参加・退会など）は認証されたユーザーのみ
+      allow update: if request.auth != null;
+      
+      // コミュニティの削除は作成者のみ（createdByフィールドがある場合）
+      allow delete: if request.auth != null && 
+        (resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Posts collection rules
+    match /posts/{postId} {
+      // 認証されたユーザーは全ての投稿を読める
+      allow read: if request.auth != null;
+      
+      // 投稿の作成は認証されたユーザーのみ（自分のauthorIdで）
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.authorId;
+      
+      // 投稿の更新（いいねなど）は認証されたユーザーのみ
+      allow update: if request.auth != null;
+      
+      // 投稿の削除は作成者のみ
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.authorId;
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;
