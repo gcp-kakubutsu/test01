@@ -152,7 +152,7 @@ export default function MatchesPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-center mb-6">あうね</h1>
+      <h1 className="text-2xl font-bold text-center mb-6">マッチ</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">

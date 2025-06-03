@@ -30,7 +30,7 @@ export function Header() {
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/home" className="flex items-center gap-1">
-                  <HeartHandshake className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">マッチ</span>
+                  <HeartHandshake className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">さがす</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>

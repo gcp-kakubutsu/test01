@@ -14,7 +14,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/search', icon: Search, label: 'さがす' },
-  { href: '/matches', icon: Heart, label: 'あうね' },
+  { href: '/matches', icon: Heart, label: 'マッチ' },
   { href: '/community', icon: Users, label: 'コミュニティ' },
   { href: '/messages', icon: MessageCircle, label: 'メッセージ' },
   { href: '/profile', icon: User, label: 'マイページ' },
