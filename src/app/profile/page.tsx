@@ -98,7 +98,7 @@ export default function ProfilePage() {
                   alt="Profile"
                   width={100}
                   height={100}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <Link href="/profile/edit">
@@ -206,15 +206,15 @@ export default function ProfilePage() {
           <div>
             <h3 className="font-semibold mb-2">写真</h3>
             <div className="grid grid-cols-2 gap-2">
-              <div className="relative aspect-square">
+              <div className="relative h-48 w-full">
                 <Image
                   src={profilePhoto}
                   alt="Profile Photo"
                   fill
-                  className="object-cover rounded-lg"
+                  className="object-contain rounded-lg"
                 />
               </div>
-              <Link href="/profile/edit" className="relative aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
+              <Link href="/profile/edit" className="relative h-48 w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
                 <div className="text-center">
                   <Camera className="h-8 w-8 text-gray-400 mx-auto mb-1" />
                   <p className="text-sm text-gray-500">写真を追加</p>

@@ -37,10 +37,10 @@ export default function HomePage() {
       
       try {
         setLoadingUsers(true);
-        // Fetch female users (excluding current user)
+        // Fetch admin-registered female users (excluding current user)
         const usersQuery = query(
           collection(db, 'users'),
-          where('gender', '==', 'female'),
+          where('isGirl', '==', true),
           limit(20)
         );
         

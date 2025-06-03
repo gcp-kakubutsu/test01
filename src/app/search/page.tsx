@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 interface UserProfile {
   id: string;
@@ -53,11 +55,13 @@ const mockUsers: UserProfile[] = [
 ];
 
 export default function SearchPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, currentUser } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [filteredUsers, setFilteredUsers] = useState(mockUsers);
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -65,8 +69,57 @@ export default function SearchPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoadingUsers(true);
+        // Fetch admin-registered female users (excluding current user)
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('isGirl', '==', true),
+          limit(50)
+        );
+        
+        const querySnapshot = await getDocs(usersQuery);
+        const fetchedUsers: UserProfile[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.uid !== currentUser.uid) { // Exclude current user
+            fetchedUsers.push({
+              id: doc.id,
+              name: data.username || data.email?.split('@')[0] || '名前なし',
+              age: data.age || 20,
+              location: data.location || '未設定',
+              bio: data.bio || '自己紹介はまだありません',
+              interests: data.interests || [],
+              imageUrl: data.profilePhotoUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=User',
+            });
+          }
+        });
+        
+        // If no users found, use mock data as fallback
+        const usersToSet = fetchedUsers.length > 0 ? fetchedUsers : mockUsers;
+        setAllUsers(usersToSet);
+        setFilteredUsers(usersToSet);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setAllUsers(mockUsers);
+        setFilteredUsers(mockUsers);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    if (isAuthenticated && currentUser) {
+      fetchUsers();
+    }
+  }, [isAuthenticated, currentUser]);
+
   const handleSearch = () => {
-    const filtered = mockUsers.filter(user => 
+    const filtered = allUsers.filter(user => 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.bio.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.interests.some(interest => 
@@ -93,11 +146,18 @@ export default function SearchPage() {
     }
   };
 
-  if (isLoading || !isAuthenticated) {
-    return null;
+  if (isLoading || loadingUsers || !isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>読み込み中...</p>
+        </div>
+      </div>
+    );
   }
 
-  const currentUser = filteredUsers[currentIndex];
+  const currentProfile = filteredUsers[currentIndex];
 
   return (
     <div className="max-w-md mx-auto space-y-4">
@@ -120,12 +180,12 @@ export default function SearchPage() {
       </div>
 
       {/* User Cards */}
-      {currentUser ? (
+      {currentProfile ? (
         <Card className="overflow-hidden shadow-lg">
           <div className="relative h-[500px]">
             <Image
-              src={currentUser.imageUrl}
-              alt={currentUser.name}
+              src={currentProfile.imageUrl}
+              alt={currentProfile.name}
               fill
               className="object-cover"
             />
@@ -135,25 +195,25 @@ export default function SearchPage() {
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{currentUser.name}</h2>
-                  <span className="text-xl">{currentUser.age}</span>
+                  <h2 className="text-2xl font-bold">{currentProfile.name}</h2>
+                  <span className="text-xl">{currentProfile.age}</span>
                 </div>
                 {/* 円形プロフィール写真 */}
                 <Avatar className="h-14 w-14 border-3 border-white shadow-lg">
-                  <AvatarImage src={currentUser.imageUrl} alt={currentUser.name} />
-                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={currentProfile.imageUrl} alt={currentProfile.name} />
+                  <AvatarFallback>{currentProfile.name.charAt(0)}</AvatarFallback>
                 </Avatar>
               </div>
               
               <div className="flex items-center gap-1 mb-3 text-sm">
                 <MapPin className="h-4 w-4" />
-                <span>{currentUser.location}</span>
+                <span>{currentProfile.location}</span>
               </div>
               
-              <p className="mb-3 text-sm">{currentUser.bio}</p>
+              <p className="mb-3 text-sm">{currentProfile.bio}</p>
               
               <div className="flex flex-wrap gap-2">
-                {currentUser.interests.map((interest) => (
+                {currentProfile.interests.map((interest) => (
                   <Badge key={interest} variant="secondary" className="bg-white/20 text-white border-white/30">
                     {interest}
                   </Badge>
