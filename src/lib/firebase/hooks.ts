@@ -181,13 +181,20 @@ export async function fetchUserProfiles(userIds: string[]): Promise<Map<string, 
   }
   
   for (const chunk of chunks) {
+    // Use document IDs directly instead of uid field
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('uid', 'in', chunk));
-    const snapshot = await getDocs(q);
     
-    snapshot.docs.forEach(doc => {
-      profiles.set(doc.id, { uid: doc.id, ...doc.data() } as UserProfile);
-    });
+    // Fetch each user document by ID
+    for (const userId of chunk) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          profiles.set(userId, { uid: userId, ...userDoc.data() } as UserProfile);
+        }
+      } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error);
+      }
+    }
   }
   
   return profiles;
@@ -243,7 +250,7 @@ export function useMatches() {
 }
 
 // Hook to get user statistics (likes received, matches count, profile views)
-export function useUserStats() {
+export function useUserStats(userId?: string) {
   const { currentUser } = useAuth();
   const [stats, setStats] = useState({
     likesReceived: 0,
@@ -253,8 +260,10 @@ export function useUserStats() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const targetUserId = userId || currentUser?.uid;
+
   useEffect(() => {
-    if (!currentUser || !db) {
+    if (!targetUserId || !db) {
       setLoading(false);
       return;
     }
@@ -265,13 +274,13 @@ export function useUserStats() {
 
         // Get likes received
         const likesRef = collection(db, 'likes');
-        const likesQuery = query(likesRef, where('to', '==', currentUser.uid));
+        const likesQuery = query(likesRef, where('to', '==', targetUserId));
         const likesSnapshot = await getDocs(likesQuery);
         const likesReceived = likesSnapshot.size;
 
         // Get matches count
         const matchesRef = collection(db, 'matches');
-        const matchesQuery = query(matchesRef, where('users', 'array-contains', currentUser.uid));
+        const matchesQuery = query(matchesRef, where('users', 'array-contains', targetUserId));
         const matchesSnapshot = await getDocs(matchesQuery);
         const matchesCount = matchesSnapshot.size;
 
@@ -280,7 +289,7 @@ export function useUserStats() {
         let profileViews = 0;
         try {
           const viewsRef = collection(db, 'profileViews');
-          const viewsQuery = query(viewsRef, where('viewedUserId', '==', currentUser.uid));
+          const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
           const viewsSnapshot = await getDocs(viewsQuery);
           profileViews = viewsSnapshot.size;
         } catch (viewsError) {
@@ -302,7 +311,7 @@ export function useUserStats() {
     };
 
     fetchStats();
-  }, [currentUser]);
+  }, [targetUserId]);
 
   return { stats, loading, error };
 }

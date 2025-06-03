@@ -98,7 +98,6 @@ export default function MatchesPage() {
           where('from', '==', currentUser.uid)
         );
         const sentLikesSnapshot = await getDocs(sentLikesQuery);
-        console.log('Sent likes count:', sentLikesSnapshot.size);
         const sentLikeUserIds = sentLikesSnapshot.docs.map(doc => doc.data().to);
         
         // Load received likes (without orderBy to avoid index requirement initially)
@@ -107,7 +106,6 @@ export default function MatchesPage() {
           where('to', '==', currentUser.uid)
         );
         const receivedLikesSnapshot = await getDocs(receivedLikesQuery);
-        console.log('Received likes count:', receivedLikesSnapshot.size);
         const receivedLikeUserIds = receivedLikesSnapshot.docs.map(doc => doc.data().from);
         
         // Fetch all user profiles
@@ -117,10 +115,12 @@ export default function MatchesPage() {
         // Process sent likes
         const sentLikesList: Like[] = sentLikesSnapshot.docs.map(doc => {
           const data = doc.data();
-          const userProfile = allUserProfiles.get(data.to);
+          const targetUserId = data.to; // The user we sent the like to
+          const userProfile = allUserProfiles.get(targetUserId);
+          
           return {
             id: doc.id,
-            userId: data.to,
+            userId: targetUserId, // This should be the other user's ID
             name: userProfile?.username || 'ユーザー',
             age: userProfile?.age || 20,
             imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
@@ -134,10 +134,12 @@ export default function MatchesPage() {
         // Process received likes
         const receivedLikesList: Like[] = receivedLikesSnapshot.docs.map(doc => {
           const data = doc.data();
-          const userProfile = allUserProfiles.get(data.from);
+          const senderUserId = data.from; // The user who sent the like to us
+          const userProfile = allUserProfiles.get(senderUserId);
+          
           return {
             id: doc.id,
-            userId: data.from,
+            userId: senderUserId, // This should be the sender's ID
             name: userProfile?.username || 'ユーザー',
             age: userProfile?.age || 20,
             imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
@@ -310,8 +312,18 @@ export default function MatchesPage() {
     }
   };
 
-  const LikeCard = ({ like, showLikeButton = false }: { like: Like; showLikeButton?: boolean }) => (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+  const LikeCard = ({ like, showLikeButton = false, clickable = false }: { like: Like; showLikeButton?: boolean; clickable?: boolean }) => {
+    const handleCardClick = () => {
+      if (clickable && like.userId && like.userId !== currentUser?.uid) {
+        router.push(`/user/${like.userId}`);
+      }
+    };
+
+    return (
+      <Card 
+        className={`overflow-hidden hover:shadow-md transition-shadow ${clickable ? 'cursor-pointer' : ''}`}
+        onClick={handleCardClick}
+      >
       <CardContent className="p-4">
         <div className="flex items-start space-x-4">
           <div className="relative">
@@ -363,7 +375,10 @@ export default function MatchesPage() {
                 <Button
                   size="sm"
                   className="bg-[#F0306A] hover:bg-[#E02860]"
-                  onClick={() => handleLikeBack(like)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLikeBack(like);
+                  }}
                   disabled={processingLikes.has(like.userId)}
                 >
                   {processingLikes.has(like.userId) ? (
@@ -384,7 +399,8 @@ export default function MatchesPage() {
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -427,7 +443,7 @@ export default function MatchesPage() {
                 あなたが「いいね」を送った人たちです。
               </p>
               {sentLikes.map(like => (
-                <LikeCard key={like.id} like={like} />
+                <LikeCard key={like.id} like={like} clickable={true} />
               ))}
             </>
           ) : (
@@ -446,7 +462,7 @@ export default function MatchesPage() {
                 あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
               </p>
               {receivedLikes.map(like => (
-                <LikeCard key={like.id} like={like} showLikeButton={true} />
+                <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} />
               ))}
             </>
           ) : (

@@ -244,35 +244,13 @@ export async function recordProfileView(viewerUserId: string, viewedUserId: stri
   if (viewerUserId === viewedUserId) return;
   
   try {
-    const { getDocs, query, where } = await import('firebase/firestore');
-    const profileViewsRef = collection(db, 'profileViews');
-    
-    // Check if view already exists today (to avoid duplicate counting)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const existingViewQuery = query(
-      profileViewsRef,
-      where('viewerUserId', '==', viewerUserId),
-      where('viewedUserId', '==', viewedUserId),
-      where('viewedAt', '>=', today)
-    );
-    
-    const existingViewSnapshot = await getDocs(existingViewQuery);
-    
-    if (!existingViewSnapshot.empty) {
-      // Already viewed today, don't count again
-      return;
-    }
-    
-    // Record new profile view
-    await addDoc(profileViewsRef, {
+    // Record profile view without complex queries to avoid index requirements
+    // We'll use a simple approach: just record all views
+    await addDoc(collection(db, 'profileViews'), {
       viewerUserId,
       viewedUserId,
       viewedAt: serverTimestamp()
     });
-    
-    console.log('Profile view recorded:', viewerUserId, 'viewed', viewedUserId);
   } catch (error: any) {
     console.error('Error recording profile view:', error);
     // Don't throw error for profile views as it's not critical
