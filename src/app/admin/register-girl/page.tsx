@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { uploadProfileImage } from '@/lib/firebase/storage'
+import { uploadProfileImageForAdmin } from '@/lib/firebase/storage'
 import { ImagePositionAdjuster } from '@/components/ui/image-position-adjuster'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,6 +74,7 @@ const formSchema = z.object({
 export default function RegisterGirlPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { isAuthenticated, currentUser, isLoading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null)
   const [showImageAdjuster, setShowImageAdjuster] = useState(false)
@@ -98,16 +100,44 @@ export default function RegisterGirlPage() {
     },
   })
 
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [authLoading, isAuthenticated, router])
+
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 83 }, (_, i) => (currentYear - 18 - i).toString())
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'))
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'))
 
+  // Show loading screen while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white mb-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+          <p>認証状態を確認中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return null
+  }
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      console.log('Selected file:', file.name, file.type, file.size)
       const reader = new FileReader()
       reader.onloadend = () => {
+        console.log('File read complete, showing image adjuster')
         setTempImageUrl(reader.result as string)
         setShowImageAdjuster(true)
       }
@@ -149,31 +179,7 @@ export default function RegisterGirlPage() {
     try {
       const birthDate = `${values.birthYear}-${values.birthMonth}-${values.birthDay}`
       
-      let profilePhotoUrl = ''
-      let tempUserId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      // Upload photo first with temporary ID
-      if (adjustedPhotoBlob) {
-        try {
-          console.log('Uploading adjusted photo blob:', adjustedPhotoBlob)
-          const file = new File([adjustedPhotoBlob], 'profile.jpg', { type: 'image/jpeg' })
-          profilePhotoUrl = await uploadProfileImage(
-            tempUserId,
-            file,
-            'main'
-          )
-          console.log('Uploaded photo URL:', profilePhotoUrl)
-        } catch (photoError) {
-          console.error('Photo upload error:', photoError)
-          toast({
-            title: '警告',
-            description: '写真のアップロードに失敗しました',
-            variant: 'destructive',
-          })
-        }
-      }
-
-      // Create user via API
+      // Create user first without photo
       const response = await fetch('/api/admin/create-girl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,7 +191,7 @@ export default function RegisterGirlPage() {
           location: values.location,
           bio: values.bio || '',
           interests: values.interests,
-          profilePhotoUrl,
+          profilePhotoUrl: '', // Will be updated after photo upload
         }),
       })
 
@@ -193,6 +199,45 @@ export default function RegisterGirlPage() {
 
       if (!result.success) {
         throw new Error(result.error || '登録に失敗しました')
+      }
+
+      // If user creation was successful and we have a photo, upload it
+      if (result.uid && adjustedPhotoBlob) {
+        try {
+          console.log('Uploading photo for user:', result.uid)
+          console.log('Current auth user:', currentUser?.uid)
+          console.log('Is authenticated:', isAuthenticated)
+          
+          const file = new File([adjustedPhotoBlob], 'profile.jpg', { type: 'image/jpeg' })
+          // Use admin upload function which stores in admin-uploads folder
+          const profilePhotoUrl = await uploadProfileImageForAdmin(
+            result.uid,
+            file,
+            'main'
+          )
+          console.log('Uploaded photo URL:', profilePhotoUrl)
+
+          // Update user document with photo URL
+          const updateResponse = await fetch('/api/admin/update-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: result.uid,
+              profilePhotoUrl,
+            }),
+          })
+
+          if (!updateResponse.ok) {
+            console.warn('Failed to update user with photo URL')
+          }
+        } catch (photoError) {
+          console.error('Photo upload error:', photoError)
+          toast({
+            title: '警告',
+            description: 'ユーザーは作成されましたが、写真のアップロードに失敗しました',
+            variant: 'destructive',
+          })
+        }
       }
 
       toast({

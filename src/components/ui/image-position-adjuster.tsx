@@ -95,10 +95,14 @@ export function ImagePositionAdjuster({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Set canvas size to a reasonable output size
-    const outputSize = 400 // 400x400px output
+    // Set canvas size to a high resolution for better quality
+    const outputSize = 800 // 800x800px output for better quality
     canvas.width = outputSize
     canvas.height = outputSize
+    
+    // Enable image smoothing for better quality
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
 
     // Clear canvas with white background
     ctx.fillStyle = 'white'
@@ -125,14 +129,24 @@ export function ImagePositionAdjuster({
     // Calculate the scaled dimensions
     const scaledWidth = previewSize * scaleFactor
     const scaledHeight = previewSize * scaleFactor
-
+    
+    // Calculate scale ratio between canvas and preview
+    const canvasToPreviewRatio = outputSize / previewSize
+    
     // Calculate the source rectangle based on position and scale
-    const sourceX = (-position.x / previewSize) * imageSize.width / scaleFactor + (imageSize.width - imageSize.width / scaleFactor) / 2
-    const sourceY = (-position.y / previewSize) * imageSize.height / scaleFactor + (imageSize.height - imageSize.height / scaleFactor) / 2
-    const sourceWidth = imageSize.width / scaleFactor
-    const sourceHeight = imageSize.height / scaleFactor
+    const cropSize = imageSize.width / scaleFactor
+    const centerX = imageSize.width / 2
+    const centerY = imageSize.height / 2
+    
+    const offsetX = (position.x / previewSize) * imageSize.width / scaleFactor
+    const offsetY = (position.y / previewSize) * imageSize.height / scaleFactor
+    
+    const sourceX = Math.max(0, centerX - cropSize / 2 - offsetX)
+    const sourceY = Math.max(0, centerY - cropSize / 2 - offsetY)
+    const sourceWidth = Math.min(cropSize, imageSize.width - sourceX)
+    const sourceHeight = Math.min(cropSize, imageSize.height - sourceY)
 
-    // Draw the image
+    // Draw the image with proper scaling
     ctx.drawImage(
       img,
       sourceX,
@@ -153,7 +167,7 @@ export function ImagePositionAdjuster({
       if (blob) {
         onSave(blob)
       }
-    }, 'image/jpeg', 0.95)
+    }, 'image/jpeg', 0.98)
   }
 
   return (
@@ -175,8 +189,8 @@ export function ImagePositionAdjuster({
           ref={containerRef}
           className="relative mx-auto mb-6 overflow-hidden cursor-move select-none"
           style={{
-            width: '300px',
-            height: '300px',
+            width: '320px',
+            height: '320px',
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -199,8 +213,8 @@ export function ImagePositionAdjuster({
               style={{
                 transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale})`,
                 maxWidth: 'none',
-                width: '300px',
-                height: '300px',
+                width: '320px',
+                height: '320px',
                 objectFit: 'cover',
                 userSelect: 'none',
                 pointerEvents: 'none',

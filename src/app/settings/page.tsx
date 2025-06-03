@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { deleteAccount } from './actions';
 import { deleteUser } from 'firebase/auth';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 
 export default function SettingsPage() {
@@ -180,7 +180,34 @@ export default function SettingsPage() {
                 
                 setIsDeleting(true);
                 try {
-                  // First try server-side deletion via API
+                  // Check if this is an admin-created user by checking Firestore first
+                  const userDocRef = doc(db, 'users', currentUser.uid);
+                  const userDocSnapshot = await getDoc(userDocRef);
+                  const userData = userDocSnapshot.data();
+                  
+                  // If user exists in Firestore but not in Auth (admin-created), use direct Firestore deletion
+                  if (userData && userData.isGirl) {
+                    try {
+                      // Delete directly from Firestore for admin-created users
+                      await deleteDoc(userDocRef);
+                      console.log('Admin-created user deleted from Firestore:', currentUser.uid);
+                      
+                      toast({
+                        title: 'アカウントを削除しました',
+                        description: 'ご利用ありがとうございました。',
+                      });
+                      
+                      // Sign out and redirect to home
+                      await logout();
+                      router.push('/');
+                      return; // Exit early for admin-created users
+                    } catch (firestoreError) {
+                      console.error('Direct Firestore deletion failed:', firestoreError);
+                      // Fall through to API deletion attempt
+                    }
+                  }
+                  
+                  // For regular users, try server-side deletion via API
                   const response = await fetch('/api/account/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

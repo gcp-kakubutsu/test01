@@ -12,6 +12,9 @@ service cloud.firestore {
       
       // Allow user creation during signup
       allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to delete their own account (including admin-created users)
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
     // Messages collection rules
