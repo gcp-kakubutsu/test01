@@ -82,26 +82,16 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             }
           }
         } else {
-          // Match not found - create dummy data for testing
-          console.log('Match not found, using dummy data');
-          setMatchUser({
-            id: 'dummy-user',
-            name: 'テストユーザー',
-            profilePhotoUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=Test'
-          });
-          setMatchData({
-            users: [currentUser.uid, 'dummy-user'],
-            matchedAt: new Date()
-          });
+          // Match not found
+          console.log('Match not found');
+          setMatchUser(null);
+          setMatchData(null);
         }
       } catch (error) {
         console.error('Error fetching match data:', error);
-        // On error, show dummy data
-        setMatchUser({
-          id: 'error-user',
-          name: 'エラー',
-          profilePhotoUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=Error'
-        });
+        // On error, set null
+        setMatchUser(null);
+        setMatchData(null);
       } finally {
         setIsLoadingMatch(false);
       }

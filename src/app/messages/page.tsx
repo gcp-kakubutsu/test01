@@ -45,35 +45,9 @@ export default function MessagesPage() {
       
       setIsLoadingChats(true);
       
-      // If no matches, show dummy data
+      // If no matches, set empty array
       if (matches.length === 0) {
-        const dummyChats: ChatDisplay[] = [
-          { 
-            id: 'dummy-1', 
-            name: 'さくら', 
-            lastMessage: '元気？最近どうしてる？', 
-            unreadCount: 2, 
-            avatarUrl: 'https://placehold.co/100x100/F0306A/FFF.png?text=S',
-            lastMessageTime: '2時間前'
-          },
-          { 
-            id: 'dummy-2', 
-            name: 'かける', 
-            lastMessage: 'プロフィール見ました！お話しませんか？', 
-            unreadCount: 0, 
-            avatarUrl: 'https://placehold.co/100x100/FF7F50/FFF.png?text=K',
-            lastMessageTime: '5時間前'
-          },
-          { 
-            id: 'dummy-3', 
-            name: 'ひなた', 
-            lastMessage: '週末は何してるの？', 
-            unreadCount: 5, 
-            avatarUrl: 'https://placehold.co/100x100/F9E4EB/333.png?text=H',
-            lastMessageTime: '1日前'
-          },
-        ];
-        setChats(dummyChats);
+        setChats([]);
         setIsLoadingChats(false);
         return;
       }

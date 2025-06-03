@@ -9,8 +9,7 @@ import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { fetchAdminGirls } from '@/lib/firebase/user-utils';
 
 interface UserProfile {
   id: string;
@@ -22,36 +21,6 @@ interface UserProfile {
   imageUrl: string;
 }
 
-// Mock data
-const mockUsers: UserProfile[] = [
-  {
-    id: '1',
-    name: 'さくら',
-    age: 25,
-    location: '東京',
-    bio: 'カフェ巡りが好きです☕️ 週末は美術館によく行きます',
-    interests: ['カフェ', 'アート', '映画'],
-    imageUrl: 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=User'
-  },
-  {
-    id: '2',
-    name: 'ゆうた',
-    age: 28,
-    location: '大阪',
-    bio: 'アウトドア派です！キャンプと登山が趣味',
-    interests: ['キャンプ', '登山', '写真'],
-    imageUrl: 'https://placehold.co/400x600/87CEEB/FFFFFF?text=User'
-  },
-  {
-    id: '3',
-    name: 'みく',
-    age: 23,
-    location: '福岡',
-    bio: '音楽と旅行が大好き♪ フェスによく参加してます',
-    interests: ['音楽', '旅行', 'フェス'],
-    imageUrl: 'https://placehold.co/400x600/DDA0DD/FFFFFF?text=User'
-  }
-];
 
 export default function SearchPage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
@@ -74,39 +43,27 @@ export default function SearchPage() {
       
       try {
         setLoadingUsers(true);
-        // Fetch admin-registered female users (excluding current user)
-        const usersQuery = query(
-          collection(db, 'users'),
-          where('isGirl', '==', true),
-          limit(50)
-        );
+        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（無制限に近い数を取得）
+        const fetchedUsers = await fetchAdminGirls(currentUser.uid, 1000);
         
-        const querySnapshot = await getDocs(usersQuery);
-        const fetchedUsers: UserProfile[] = [];
+        // UserProfile型に変換（検索ページ用）
+        const searchUsers: UserProfile[] = fetchedUsers.map(user => ({
+          id: user.id,
+          name: user.name,
+          age: user.age,
+          location: user.location || '未設定',
+          bio: user.bio,
+          interests: user.interests || user.kinks || [],
+          imageUrl: user.imageUrl
+        }));
         
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.uid !== currentUser.uid) { // Exclude current user
-            fetchedUsers.push({
-              id: doc.id,
-              name: data.username || data.email?.split('@')[0] || '名前なし',
-              age: data.age || 20,
-              location: data.location || '未設定',
-              bio: data.bio || '自己紹介はまだありません',
-              interests: data.interests || [],
-              imageUrl: data.profilePhotoUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=User',
-            });
-          }
-        });
-        
-        // If no users found, use mock data as fallback
-        const usersToSet = fetchedUsers.length > 0 ? fetchedUsers : mockUsers;
-        setAllUsers(usersToSet);
-        setFilteredUsers(usersToSet);
+        // フェッチしたユーザーを設定
+        setAllUsers(searchUsers);
+        setFilteredUsers(searchUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
-        setAllUsers(mockUsers);
-        setFilteredUsers(mockUsers);
+        setAllUsers([]);
+        setFilteredUsers([]);
       } finally {
         setLoadingUsers(false);
       }
@@ -140,9 +97,8 @@ export default function SearchPage() {
   };
 
   const nextProfile = () => {
-    if (currentIndex < filteredUsers.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
+    // 最後のプロフィールの場合は最初に戻る（無限ループ）
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % filteredUsers.length);
   };
 
   if (isLoading || loadingUsers || !isAuthenticated) {

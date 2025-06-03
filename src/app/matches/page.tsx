@@ -4,92 +4,99 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageCircle, Clock, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useMatches, fetchUserProfiles } from '@/lib/firebase/hooks';
+import { formatDistanceToNow } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 interface Match {
   id: string;
   name: string;
   age: number;
   imageUrl: string;
-  matchedAt: string;
+  matchedAt: Date;
   lastMessage?: string;
   isNew?: boolean;
 }
 
-// Mock data
-const mockMatches: Match[] = [
-  {
-    id: '1',
-    name: 'さくら',
-    age: 25,
-    imageUrl: 'https://placehold.co/200x200/FFB6C1/FFFFFF?text=S',
-    matchedAt: '2024-06-01',
-    lastMessage: 'こんにちは！よろしくお願いします😊',
-    isNew: true
-  },
-  {
-    id: '2',
-    name: 'ゆい',
-    age: 27,
-    imageUrl: 'https://placehold.co/200x200/87CEEB/FFFFFF?text=Y',
-    matchedAt: '2024-05-30',
-    lastMessage: '週末はどんな過ごし方してますか？'
-  },
-  {
-    id: '3',
-    name: 'あかり',
-    age: 24,
-    imageUrl: 'https://placehold.co/200x200/DDA0DD/FFFFFF?text=A',
-    matchedAt: '2024-05-28'
-  }
-];
-
-const mockLikes: Match[] = [
-  {
-    id: '4',
-    name: 'みお',
-    age: 26,
-    imageUrl: 'https://placehold.co/200x200/98FB98/FFFFFF?text=M',
-    matchedAt: '2024-06-02',
-    isNew: true
-  },
-  {
-    id: '5',
-    name: 'ひなた',
-    age: 23,
-    imageUrl: 'https://placehold.co/200x200/F0E68C/FFFFFF?text=H',
-    matchedAt: '2024-06-01'
-  }
-];
-
 export default function MatchesPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
+  const { matches, loading: matchesLoading } = useMatches();
   const [activeTab, setActiveTab] = useState('matches');
+  const [displayMatches, setDisplayMatches] = useState<Match[]>([]);
+  const [displayLikes, setDisplayLikes] = useState<Match[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, authLoading, router]);
 
-  if (isLoading || !isAuthenticated) {
-    return null;
+  // Convert Firebase matches to display format
+  useEffect(() => {
+    const loadMatches = async () => {
+      if (!currentUser || matchesLoading) return;
+      
+      setIsLoadingData(true);
+      
+      // Get all other user IDs from matches
+      const otherUserIds = matches.map(match => 
+        match.users.find(uid => uid !== currentUser.uid)
+      ).filter(Boolean) as string[];
+      
+      // Fetch user profiles
+      const userProfiles = await fetchUserProfiles(otherUserIds);
+      
+      // Convert to display format
+      const matchList: Match[] = matches.map(match => {
+        const otherUserId = match.users.find(uid => uid !== currentUser.uid);
+        const otherUser = otherUserId ? userProfiles.get(otherUserId) : null;
+        
+        return {
+          id: match.id,
+          name: otherUser?.username || 'ユーザー',
+          age: otherUser?.age || 20,
+          imageUrl: otherUser?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+          matchedAt: match.matchedAt?.toDate() || new Date(),
+          lastMessage: match.lastMessage,
+          isNew: match.status === 'pending'
+        };
+      });
+      
+      // Separate matches and likes based on status
+      const activeMatches = matchList.filter(m => {
+        const match = matches.find(ma => ma.id === m.id);
+        return match?.status === 'matched';
+      });
+      
+      const pendingLikes = matchList.filter(m => {
+        const match = matches.find(ma => ma.id === m.id);
+        return match?.status === 'pending' && match?.initiator !== currentUser.uid;
+      });
+      
+      setDisplayMatches(activeMatches);
+      setDisplayLikes(pendingLikes);
+      setIsLoadingData(false);
+    };
+    
+    loadMatches();
+  }, [matches, matchesLoading, currentUser]);
+
+  if (authLoading || isLoadingData) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return '今日';
-    if (diffDays === 1) return '昨日';
-    if (diffDays < 7) return `${diffDays}日前`;
-    return date.toLocaleDateString('ja-JP');
+  const formatDate = (date: Date) => {
+    return formatDistanceToNow(date, { addSuffix: true, locale: ja });
   };
 
   const MatchCard = ({ match, showMessage = true }: { match: Match; showMessage?: boolean }) => (
@@ -158,17 +165,17 @@ export default function MatchesPage() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="matches" className="flex items-center gap-2">
             <Heart className="h-4 w-4" />
-            マッチ中 ({mockMatches.length})
+            マッチ中 ({displayMatches.length})
           </TabsTrigger>
           <TabsTrigger value="likes" className="flex items-center gap-2">
             <Heart className="h-4 w-4" fill="currentColor" />
-            いいねされた ({mockLikes.length})
+            いいねされた ({displayLikes.length})
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="matches" className="space-y-3 mt-6">
-          {mockMatches.length > 0 ? (
-            mockMatches.map(match => (
+          {displayMatches.length > 0 ? (
+            displayMatches.map(match => (
               <MatchCard key={match.id} match={match} />
             ))
           ) : (
@@ -181,12 +188,12 @@ export default function MatchesPage() {
         </TabsContent>
         
         <TabsContent value="likes" className="space-y-3 mt-6">
-          {mockLikes.length > 0 ? (
+          {displayLikes.length > 0 ? (
             <>
               <p className="text-sm text-gray-600 mb-3">
                 あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
               </p>
-              {mockLikes.map(like => (
+              {displayLikes.map(like => (
                 <MatchCard key={like.id} match={like} showMessage={false} />
               ))}
             </>

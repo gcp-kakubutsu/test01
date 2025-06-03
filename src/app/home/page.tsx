@@ -1,21 +1,13 @@
 
 "use client";
 
-import { UserProfileCard, type UserProfile } from '@/components/home/UserProfileCard';
+import { UserProfileCard } from '@/components/home/UserProfileCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
-
-const mockUsers: UserProfile[] = [
-  { id: '1', name: 'さくら', age: 28, imageUrl: 'https://placehold.co/400x500/F0306A/FFF.png?text=S', bio: 'アート、冒険、深い会話が大好き。誠実な人を探しています。', kinks: ['スリル', '知性', '旅行'] , dataAiHint: "女性 ポートレート" },
-  { id: '2', name: 'かける', age: 32, imageUrl: 'https://placehold.co/400x500/FF7F50/FFF.png?text=K', bio: 'テクノロジー好きで、ハイキングと良い音楽を楽しみます。意味のある繋がりを求めています。', kinks: ['正直', 'ユーモア', '犬'] , dataAiHint: "男性 ポートレート" },
-  { id: '3', name: 'ひなた', age: 25, imageUrl: 'https://placehold.co/400x500/F9E4EB/333.png?text=H', bio: '読書家で食いしん坊。理想のデートは居心地の良いカフェでのおしゃべり。', kinks: ['優しさ', 'グルメ', '読書'] , dataAiHint: "女性 笑顔" },
-  { id: '4', name: 'りく', age: 30, imageUrl: 'https://placehold.co/400x500/333/FFF.png?text=R', bio: 'ミュージシャンで夢想家。一緒に美しい思い出を作りましょう。', kinks: ['音楽', '創造性', '夜遊び'] , dataAiHint: "男性 カジュアル" },
-];
+import { fetchAdminGirls, shuffleUsers, type UserProfile } from '@/lib/firebase/user-utils';
 
 export default function HomePage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
@@ -37,35 +29,14 @@ export default function HomePage() {
       
       try {
         setLoadingUsers(true);
-        // Fetch admin-registered female users (excluding current user)
-        const usersQuery = query(
-          collection(db, 'users'),
-          where('isGirl', '==', true),
-          limit(20)
-        );
+        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
+        const fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
         
-        const querySnapshot = await getDocs(usersQuery);
-        const fetchedUsers: UserProfile[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.uid !== currentUser.uid) { // Exclude current user
-            fetchedUsers.push({
-              id: doc.id,
-              name: data.username || data.email?.split('@')[0] || '名前なし',
-              age: data.age || 20,
-              imageUrl: data.profilePhotoUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=User',
-              bio: data.bio || '自己紹介はまだありません',
-              kinks: data.interests || [],
-            });
-          }
-        });
-        
-        // If no users found, use mock data
-        setUsers(fetchedUsers.length > 0 ? fetchedUsers : mockUsers);
+        // Firebaseから取得したデータのみを使用
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
-        setUsers(mockUsers); // Fallback to mock data
+        setUsers([]); // エラー時は空配列
       } finally {
         setLoadingUsers(false);
       }
@@ -89,10 +60,25 @@ export default function HomePage() {
   const handlePrevious = () => {
      setCurrentUserIndex((prevIndex) => (prevIndex - 1 + users.length) % users.length);
   };
-  const handleReset = () => {
+  const handleReset = async () => {
     setCurrentUserIndex(0); // 最初のユーザーにリセット
-    // 実際のアプリではここでユーザーを再フェッチまたはシャッフルする可能性があります
-    setUsers([...mockUsers].sort(() => Math.random() - 0.5)); // デモ用の簡単なシャッフル
+    // Firebase から再度データを取得
+    if (!currentUser) return;
+    
+    try {
+      setLoadingUsers(true);
+      // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得
+      const fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+      
+      // シャッフルして設定
+      const shuffledUsers = shuffleUsers(fetchedUsers);
+      setUsers(shuffledUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]); // エラー時は空配列
+    } finally {
+      setLoadingUsers(false);
+    }
   }
 
   if (isLoading || loadingUsers) {
