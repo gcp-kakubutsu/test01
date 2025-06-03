@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const [profileCompletion, setProfileCompletion] = useState(0);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -48,6 +49,14 @@ export default function ProfilePage() {
       if (profile.profilePhotoUrl) completion += 20;
       if (profile.interests && profile.interests.length > 0) completion += 20;
       setProfileCompletion(completion);
+      
+      // Set photos array (profile photo + additional photos)
+      const allPhotos = [];
+      if (profile.profilePhotoUrl) allPhotos.push(profile.profilePhotoUrl);
+      if (profile.additionalPhotos && Array.isArray(profile.additionalPhotos)) {
+        allPhotos.push(...profile.additionalPhotos);
+      }
+      setPhotos(allPhotos);
     }
   }, [profile]);
 
@@ -205,21 +214,30 @@ export default function ProfilePage() {
           {/* Photos */}
           <div>
             <h3 className="font-semibold mb-2">写真</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={profilePhoto}
-                  alt="Profile Photo"
-                  fill
-                  className="object-contain rounded-lg"
-                />
-              </div>
-              <Link href="/profile/edit" className="relative h-48 w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
-                <div className="text-center">
-                  <Camera className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                  <p className="text-sm text-gray-500">写真を追加</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {photos.map((photo, index) => (
+                <div key={index} className="relative group">
+                  <div className="relative w-full h-0 pb-[100%] overflow-hidden rounded-lg bg-gray-100">
+                    <Image
+                      src={photo}
+                      alt={`Photo ${index + 1}`}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
-              </Link>
+              ))}
+              {photos.length < 6 && (
+                <Link href="/profile/edit" className="relative">
+                  <div className="relative w-full h-0 pb-[100%] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <Camera className="h-8 w-8 text-gray-400 mb-1" />
+                      <p className="text-sm text-gray-500">写真を追加</p>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </CardContent>

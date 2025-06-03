@@ -42,12 +42,15 @@ export default function EditProfilePage() {
   const [occupation, setOccupation] = useState('');
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+  const [additionalPhotos, setAdditionalPhotos] = useState<{file: File | null, preview: string, existing?: boolean}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingData, setIsFetchingData] = useState(true);
   const [showImageAdjuster, setShowImageAdjuster] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
   const [adjustedPhotoBlob, setAdjustedPhotoBlob] = useState<Blob | null>(null);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalPhotoInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -64,6 +67,17 @@ export default function EditProfilePage() {
       setLocation(profile.location || '');
       setOccupation(profile.occupation || '');
       setProfilePhotoPreview(profile.profilePhotoUrl || null);
+      
+      // Load additional photos
+      if (profile.additionalPhotos && Array.isArray(profile.additionalPhotos)) {
+        const existingPhotos = profile.additionalPhotos.map(url => ({
+          file: null,
+          preview: url,
+          existing: true
+        }));
+        setAdditionalPhotos(existingPhotos);
+      }
+      
       setIsFetchingData(false);
     }
   }, [profile]);
@@ -83,6 +97,20 @@ export default function EditProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setTempImageUrl(reader.result as string);
+        setCurrentPhotoIndex(null); // null means profile photo
+        setShowImageAdjuster(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAdditionalPhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && additionalPhotos.length < 5) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTempImageUrl(reader.result as string);
+        setCurrentPhotoIndex(additionalPhotos.length); // Index for new photo
         setShowImageAdjuster(true);
       };
       reader.readAsDataURL(file);
@@ -90,15 +118,24 @@ export default function EditProfilePage() {
   };
 
   const handleImageSave = (croppedBlob: Blob) => {
-    setAdjustedPhotoBlob(croppedBlob);
-    const file = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' });
-    setProfilePhotoFile(file);
-    
-    // Create preview URL
+    const file = new File([croppedBlob], 'photo.jpg', { type: 'image/jpeg' });
     const url = URL.createObjectURL(croppedBlob);
-    setProfilePhotoPreview(url);
+    
+    if (currentPhotoIndex === null) {
+      // Profile photo
+      setAdjustedPhotoBlob(croppedBlob);
+      setProfilePhotoFile(file);
+      setProfilePhotoPreview(url);
+    } else {
+      // Additional photo
+      const newPhotos = [...additionalPhotos];
+      newPhotos[currentPhotoIndex] = { file, preview: url, existing: false };
+      setAdditionalPhotos(newPhotos);
+    }
+    
     setShowImageAdjuster(false);
     setTempImageUrl(null);
+    setCurrentPhotoIndex(null);
   };
 
   const handleImageCancel = () => {
@@ -119,6 +156,11 @@ export default function EditProfilePage() {
     }
   };
 
+  const handleRemoveAdditionalPhoto = (index: number) => {
+    const newPhotos = additionalPhotos.filter((_, i) => i !== index);
+    setAdditionalPhotos(newPhotos);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!currentUser) {
@@ -129,8 +171,9 @@ export default function EditProfilePage() {
 
     try {
       let photoUrl = profile?.profilePhotoUrl || '';
+      const additionalPhotoUrls: string[] = [];
       
-      // 新しい画像がアップロードされた場合
+      // 新しいプロフィール画像がアップロードされた場合
       if (profilePhotoFile && adjustedPhotoBlob) {
         console.log('Uploading adjusted photo:', adjustedPhotoBlob, profilePhotoFile);
         // 既存の画像がある場合は削除
@@ -147,6 +190,20 @@ export default function EditProfilePage() {
         console.log('New photo URL:', photoUrl);
       }
 
+      // Upload additional photos
+      for (let i = 0; i < additionalPhotos.length; i++) {
+        const photo = additionalPhotos[i];
+        if (photo.existing) {
+          // Keep existing photo URL
+          additionalPhotoUrls.push(photo.preview);
+        } else if (photo.file) {
+          // Upload new photo
+          const photoType = i === 0 ? 'sub1' : i === 1 ? 'sub2' : 'sub3';
+          const uploadedUrl = await uploadProfileImage(currentUser.uid, photo.file, photoType as any);
+          additionalPhotoUrls.push(uploadedUrl);
+        }
+      }
+
       const updateData = {
         username,
         bio,
@@ -154,6 +211,7 @@ export default function EditProfilePage() {
         location,
         occupation,
         profilePhotoUrl: photoUrl,
+        additionalPhotos: additionalPhotoUrls,
       };
 
       const result = await updateUserProfile(currentUser.uid, updateData);
@@ -271,6 +329,51 @@ export default function EditProfilePage() {
               />
               <p className="text-xs text-muted-foreground">項目はカンマで区切ってください。</p>
             </div>
+
+            {/* Additional Photos Section */}
+            <div className="space-y-3">
+              <Label className="text-base flex items-center">
+                <ImageIcon className="mr-2 h-4 w-4 text-primary" />
+                追加写真（最大5枚）
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+                {additionalPhotos.map((photo, index) => (
+                  <div key={index} className="relative group">
+                    <div className="relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200">
+                      <Image
+                        src={photo.preview}
+                        alt={`Additional photo ${index + 1}`}
+                        layout="fill"
+                        objectFit="contain"
+                        className="bg-gray-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAdditionalPhoto(index)}
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <X className="w-8 h-8 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {additionalPhotos.length < 5 && (
+                  <label className="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-gray-300 cursor-pointer hover:bg-gray-50 flex items-center justify-center">
+                    <div className="text-center">
+                      <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+                      <p className="text-xs text-gray-500">写真を追加</p>
+                    </div>
+                    <input
+                      ref={additionalPhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAdditionalPhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isLoading} className="w-full text-lg py-3">
@@ -292,7 +395,7 @@ export default function EditProfilePage() {
           imageUrl={tempImageUrl}
           onSave={handleImageSave}
           onCancel={handleImageCancel}
-          circular={true}
+          circular={currentPhotoIndex === null} // Only circular for profile photo
         />
       )}
     </div>
