@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { fetchAdminGirls } from '@/lib/firebase/user-utils';
-import { sendLike } from '@/lib/firebase/actions';
+import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
 import { useUserProfile } from '@/lib/firebase/hooks';
@@ -123,6 +123,20 @@ export default function SearchPage() {
       fetchUsers();
     }
   }, [isAuthenticated, currentUser, userLocation, userProfile]);
+
+  // Record profile view when current user changes (with delay to avoid rapid fire)
+  useEffect(() => {
+    if (currentUser && filteredUsers.length > 0 && currentIndex < filteredUsers.length) {
+      const currentProfile = filteredUsers[currentIndex];
+      if (currentProfile && currentProfile.id !== currentUser.uid) {
+        const timer = setTimeout(() => {
+          recordProfileView(currentUser.uid, currentProfile.id);
+        }, 200);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentUser, filteredUsers, currentIndex]);
 
   const handleSearch = () => {
     const filtered = allUsers.filter(user => 

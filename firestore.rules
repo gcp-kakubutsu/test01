@@ -83,12 +83,10 @@ service cloud.firestore {
     
     // Profile views collection rules
     match /profileViews/{viewId} {
-      // 認証されたユーザーは自分に関連する閲覧データを読める
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.viewedUserId ||
-         request.auth.uid == resource.data.viewerUserId);
+      // 認証されたユーザーは全ての閲覧データを読める（プロフィール閲覧数表示のため）
+      allow read: if request.auth != null;
       
-      // プロフィール閲覧の記録は認証されたユーザーのみ
+      // プロフィール閲覧の記録は認証されたユーザーのみ（自分がviewerの場合のみ）
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.viewerUserId;
       

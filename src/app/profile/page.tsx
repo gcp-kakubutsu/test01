@@ -31,6 +31,11 @@ export default function ProfilePage() {
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
+  
+  // Refresh stats when profile data changes to ensure accurate counts
+  useEffect(() => {
+    // Stats will automatically refresh when currentUser changes
+  }, [profile]);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
 

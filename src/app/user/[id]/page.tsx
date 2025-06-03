@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,8 +42,38 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   }, [params]);
 
   const { profile, loading: profileLoading, error } = useUserProfile(userId || undefined);
-  // Don't fetch stats for other users due to permission restrictions
-  // const { stats, loading: statsLoading } = useUserStats(userId || undefined);
+  // Fetch only profile views for other users
+  const [profileViews, setProfileViews] = useState(0);
+  const [loadingViews, setLoadingViews] = useState(true);
+
+  const fetchProfileViewsCount = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoadingViews(true);
+    try {
+      const { collection, query, where, onSnapshot } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase/client');
+      
+      const viewsRef = collection(db, 'profileViews');
+      const viewsQuery = query(viewsRef, where('viewedUserId', '==', userId));
+      
+      // Use onSnapshot for real-time updates
+      const unsubscribe = onSnapshot(viewsQuery, (snapshot) => {
+        setProfileViews(snapshot.size);
+        setLoadingViews(false);
+      }, (error) => {
+        console.error('Error fetching profile views:', error);
+        setProfileViews(0);
+        setLoadingViews(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up profile views listener:', error);
+      setProfileViews(0);
+      setLoadingViews(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -58,11 +88,18 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     }
   }, [currentUser, userId, router]);
 
-  // Record profile view when page loads
+  // Record profile view when page loads (with slight delay to avoid duplicate records)
   useEffect(() => {
-    if (currentUser && userId && currentUser.uid !== userId) {
-      recordProfileView(currentUser.uid, userId);
-    }
+    const recordView = async () => {
+      if (currentUser && userId && currentUser.uid !== userId) {
+        // Small delay to ensure page is fully loaded
+        setTimeout(async () => {
+          await recordProfileView(currentUser.uid, userId);
+          // Real-time listener will automatically update the count
+        }, 100);
+      }
+    };
+    recordView();
   }, [currentUser, userId]);
 
   useEffect(() => {
@@ -76,6 +113,25 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       setPhotos(allPhotos);
     }
   }, [profile]);
+
+  // Set up real-time profile views listener
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    const setupListener = async () => {
+      unsubscribe = await fetchProfileViewsCount();
+    };
+
+    if (userId) {
+      setupListener();
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [fetchProfileViewsCount]);
 
   const handleLike = async () => {
     if (!currentUser || !userId || isProcessingLike) return;
@@ -232,7 +288,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         </CardHeader>
         
         <CardContent>
-          {/* Stats - Hidden for other users due to privacy */}
+          {/* Stats - Only profile views are shown for other users */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <Heart className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
@@ -246,7 +302,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <MessageCircle className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">-</p>
+              <p className="text-2xl font-bold">
+                {loadingViews ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                ) : (
+                  profileViews
+                )}
+              </p>
               <p className="text-xs text-gray-600">閲覧数</p>
             </div>
           </div>

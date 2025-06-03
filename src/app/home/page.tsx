@@ -85,12 +85,16 @@ export default function HomePage() {
     }
   }, [isAuthenticated, currentUser, userLocation, userProfile]);
 
-  // Record profile view when user changes
+  // Record profile view when user changes (with delay to avoid rapid fire)
   useEffect(() => {
     if (currentUser && users.length > 0 && currentUserIndex < users.length) {
       const currentProfile = users[currentUserIndex];
       if (currentProfile && currentProfile.id !== currentUser.uid) {
-        recordProfileView(currentUser.uid, currentProfile.id);
+        const timer = setTimeout(() => {
+          recordProfileView(currentUser.uid, currentProfile.id);
+        }, 200);
+        
+        return () => clearTimeout(timer);
       }
     }
   }, [currentUser, users, currentUserIndex]);

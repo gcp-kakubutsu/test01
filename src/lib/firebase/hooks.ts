@@ -268,41 +268,40 @@ export function useUserStats(userId?: string) {
       return;
     }
 
-    const fetchStats = async () => {
+    const setupStatsListeners = async () => {
       try {
         setLoading(true);
+        let currentStats = { likesReceived: 0, matchesCount: 0, profileViews: 0 };
 
-        // Get likes received
+        // Set up real-time listener for profile views
+        const viewsRef = collection(db, 'profileViews');
+        const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
+        const unsubscribeViews = onSnapshot(viewsQuery, (snapshot) => {
+          currentStats.profileViews = snapshot.size;
+          setStats({ ...currentStats });
+        }, (error) => {
+          console.error('Error listening to profile views:', error);
+        });
+
+        // Get likes received (one-time fetch for now)
         const likesRef = collection(db, 'likes');
         const likesQuery = query(likesRef, where('to', '==', targetUserId));
         const likesSnapshot = await getDocs(likesQuery);
-        const likesReceived = likesSnapshot.size;
+        currentStats.likesReceived = likesSnapshot.size;
 
-        // Get matches count
+        // Get matches count (one-time fetch for now)
         const matchesRef = collection(db, 'matches');
         const matchesQuery = query(matchesRef, where('users', 'array-contains', targetUserId));
         const matchesSnapshot = await getDocs(matchesQuery);
-        const matchesCount = matchesSnapshot.size;
+        currentStats.matchesCount = matchesSnapshot.size;
 
-        // Get profile views (if implemented)
-        // For now, we'll use a placeholder or check if there's a profileViews collection
-        let profileViews = 0;
-        try {
-          const viewsRef = collection(db, 'profileViews');
-          const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
-          const viewsSnapshot = await getDocs(viewsQuery);
-          profileViews = viewsSnapshot.size;
-        } catch (viewsError) {
-          // Profile views collection might not exist yet
-          console.log('Profile views collection not found, defaulting to 0');
-        }
-
-        setStats({
-          likesReceived,
-          matchesCount,
-          profileViews
-        });
+        setStats(currentStats);
         setLoading(false);
+
+        // Return cleanup function
+        return () => {
+          unsubscribeViews();
+        };
       } catch (err) {
         console.error('Error fetching user stats:', err);
         setError('統計情報の取得に失敗しました');
@@ -310,7 +309,14 @@ export function useUserStats(userId?: string) {
       }
     };
 
-    fetchStats();
+    let cleanup: (() => void) | undefined;
+    setupStatsListeners().then((cleanupFn) => {
+      cleanup = cleanupFn;
+    });
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [targetUserId]);
 
   return { stats, loading, error };

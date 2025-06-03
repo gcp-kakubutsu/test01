@@ -244,13 +244,26 @@ export async function recordProfileView(viewerUserId: string, viewedUserId: stri
   if (viewerUserId === viewedUserId) return;
   
   try {
-    // Record profile view without complex queries to avoid index requirements
-    // We'll use a simple approach: just record all views
-    await addDoc(collection(db, 'profileViews'), {
-      viewerUserId,
-      viewedUserId,
-      viewedAt: serverTimestamp()
-    });
+    const { getDocs, query, where } = await import('firebase/firestore');
+    const profileViewsRef = collection(db, 'profileViews');
+    
+    // Check if this viewer has already viewed this profile
+    const existingViewQuery = query(
+      profileViewsRef,
+      where('viewerUserId', '==', viewerUserId),
+      where('viewedUserId', '==', viewedUserId)
+    );
+    
+    const existingViewSnapshot = await getDocs(existingViewQuery);
+    
+    // Only record the view if it doesn't already exist
+    if (existingViewSnapshot.empty) {
+      await addDoc(profileViewsRef, {
+        viewerUserId,
+        viewedUserId,
+        viewedAt: serverTimestamp()
+      });
+    }
   } catch (error: any) {
     console.error('Error recording profile view:', error);
     // Don't throw error for profile views as it's not critical
