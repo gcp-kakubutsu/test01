@@ -235,3 +235,46 @@ export async function sendLike(fromUserId: string, toUserId: string) {
     throw error;
   }
 }
+
+// Profile View Actions
+export async function recordProfileView(viewerUserId: string, viewedUserId: string) {
+  if (!db) throw new Error('Firestore is not initialized');
+  
+  // Don't record self-views
+  if (viewerUserId === viewedUserId) return;
+  
+  try {
+    const { getDocs, query, where } = await import('firebase/firestore');
+    const profileViewsRef = collection(db, 'profileViews');
+    
+    // Check if view already exists today (to avoid duplicate counting)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const existingViewQuery = query(
+      profileViewsRef,
+      where('viewerUserId', '==', viewerUserId),
+      where('viewedUserId', '==', viewedUserId),
+      where('viewedAt', '>=', today)
+    );
+    
+    const existingViewSnapshot = await getDocs(existingViewQuery);
+    
+    if (!existingViewSnapshot.empty) {
+      // Already viewed today, don't count again
+      return;
+    }
+    
+    // Record new profile view
+    await addDoc(profileViewsRef, {
+      viewerUserId,
+      viewedUserId,
+      viewedAt: serverTimestamp()
+    });
+    
+    console.log('Profile view recorded:', viewerUserId, 'viewed', viewedUserId);
+  } catch (error: any) {
+    console.error('Error recording profile view:', error);
+    // Don't throw error for profile views as it's not critical
+  }
+}

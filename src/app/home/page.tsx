@@ -8,7 +8,7 @@ import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucid
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchAdminGirls, shuffleUsers, type UserProfile } from '@/lib/firebase/user-utils';
-import { sendLike } from '@/lib/firebase/actions';
+import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
 import { useUserProfile } from '@/lib/firebase/hooks';
@@ -84,6 +84,16 @@ export default function HomePage() {
       fetchUsers();
     }
   }, [isAuthenticated, currentUser, userLocation, userProfile]);
+
+  // Record profile view when user changes
+  useEffect(() => {
+    if (currentUser && users.length > 0 && currentUserIndex < users.length) {
+      const currentProfile = users[currentUserIndex];
+      if (currentProfile && currentProfile.id !== currentUser.uid) {
+        recordProfileView(currentUser.uid, currentProfile.id);
+      }
+    }
+  }, [currentUser, users, currentUserIndex]);
 
   const handleAction = (action: 'like' | 'pass') => {
     setFeedback(action === 'like' ? 'liked' : 'passed');

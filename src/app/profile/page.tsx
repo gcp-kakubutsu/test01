@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUserProfile } from '@/lib/firebase/hooks';
+import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 
 
@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
+  const { stats, loading: statsLoading, error: statsError } = useUserStats();
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
 
@@ -170,21 +171,45 @@ export default function ProfilePage() {
         </CardHeader>
         
         <CardContent>
-          {/* Stats - These will be implemented with real data later */}
+          {/* Stats - Real data from Firebase */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <Heart className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">-</p>
+              <p className="text-2xl font-bold">
+                {statsLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                ) : statsError ? (
+                  '-'
+                ) : (
+                  stats.likesReceived
+                )}
+              </p>
               <p className="text-xs text-gray-600">いいね</p>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <Users className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">-</p>
+              <p className="text-2xl font-bold">
+                {statsLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                ) : statsError ? (
+                  '-'
+                ) : (
+                  stats.matchesCount
+                )}
+              </p>
               <p className="text-xs text-gray-600">マッチ</p>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <MessageCircle className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">-</p>
+              <p className="text-2xl font-bold">
+                {statsLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                ) : statsError ? (
+                  '-'
+                ) : (
+                  stats.profileViews
+                )}
+              </p>
               <p className="text-xs text-gray-600">閲覧数</p>
             </div>
           </div>

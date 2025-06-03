@@ -241,3 +241,68 @@ export function useMatches() {
 
   return { matches, loading, error };
 }
+
+// Hook to get user statistics (likes received, matches count, profile views)
+export function useUserStats() {
+  const { currentUser } = useAuth();
+  const [stats, setStats] = useState({
+    likesReceived: 0,
+    matchesCount: 0,
+    profileViews: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser || !db) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+
+        // Get likes received
+        const likesRef = collection(db, 'likes');
+        const likesQuery = query(likesRef, where('to', '==', currentUser.uid));
+        const likesSnapshot = await getDocs(likesQuery);
+        const likesReceived = likesSnapshot.size;
+
+        // Get matches count
+        const matchesRef = collection(db, 'matches');
+        const matchesQuery = query(matchesRef, where('users', 'array-contains', currentUser.uid));
+        const matchesSnapshot = await getDocs(matchesQuery);
+        const matchesCount = matchesSnapshot.size;
+
+        // Get profile views (if implemented)
+        // For now, we'll use a placeholder or check if there's a profileViews collection
+        let profileViews = 0;
+        try {
+          const viewsRef = collection(db, 'profileViews');
+          const viewsQuery = query(viewsRef, where('viewedUserId', '==', currentUser.uid));
+          const viewsSnapshot = await getDocs(viewsQuery);
+          profileViews = viewsSnapshot.size;
+        } catch (viewsError) {
+          // Profile views collection might not exist yet
+          console.log('Profile views collection not found, defaulting to 0');
+        }
+
+        setStats({
+          likesReceived,
+          matchesCount,
+          profileViews
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching user stats:', err);
+        setError('統計情報の取得に失敗しました');
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [currentUser]);
+
+  return { stats, loading, error };
+}

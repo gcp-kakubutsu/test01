@@ -81,6 +81,21 @@ service cloud.firestore {
         request.auth.uid == resource.data.authorId;
     }
     
+    // Profile views collection rules
+    match /profileViews/{viewId} {
+      // 認証されたユーザーは自分に関連する閲覧データを読める
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.viewedUserId ||
+         request.auth.uid == resource.data.viewerUserId);
+      
+      // プロフィール閲覧の記録は認証されたユーザーのみ
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.viewerUserId;
+      
+      // 閲覧記録の更新・削除は不可
+      allow update, delete: if false;
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;
