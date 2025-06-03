@@ -10,9 +10,12 @@ import { useEffect, useState } from 'react';
 import { fetchAdminGirls, shuffleUsers, type UserProfile } from '@/lib/firebase/user-utils';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
+import { useUserProfile } from '@/lib/firebase/hooks';
 
 export default function HomePage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
+  const { profile: userProfile } = useUserProfile();
   const router = useRouter();
   const { toast } = useToast();
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
@@ -20,12 +23,31 @@ export default function HomePage() {
   const [feedback, setFeedback] = useState<'liked' | 'passed' | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // 位置情報を取得
+  useEffect(() => {
+    const getLocation = async () => {
+      try {
+        const locationInfo = await getCurrentLocation();
+        if (locationInfo.coordinates) {
+          setUserLocation(locationInfo.coordinates);
+        }
+      } catch (error) {
+        console.error('位置情報取得エラー:', error);
+      }
+    };
+
+    if (isAuthenticated) {
+      getLocation();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -34,9 +56,21 @@ export default function HomePage() {
       try {
         setLoadingUsers(true);
         // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
-        const fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
         
-        // Firebaseから取得したデータのみを使用
+        // 位置情報が取得できている場合は距離順にソート
+        if (userLocation) {
+          fetchedUsers = sortUsersByDistance(fetchedUsers, userLocation);
+        } else if (userProfile?.location) {
+          // GPS位置情報がない場合はプロフィールの住所を使用
+          const { getCoordinatesFromAddress } = await import('@/lib/utils/location');
+          const profileCoords = getCoordinatesFromAddress(userProfile.location);
+          if (profileCoords) {
+            fetchedUsers = sortUsersByDistance(fetchedUsers, profileCoords);
+          }
+        }
+        
+        // Firebaseから取得したデータを設定
         setUsers(fetchedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -49,7 +83,7 @@ export default function HomePage() {
     if (isAuthenticated && currentUser) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUser]);
+  }, [isAuthenticated, currentUser, userLocation, userProfile]);
 
   const handleAction = (action: 'like' | 'pass') => {
     setFeedback(action === 'like' ? 'liked' : 'passed');
@@ -117,11 +151,25 @@ export default function HomePage() {
     try {
       setLoadingUsers(true);
       // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得
-      const fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+      let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
       
-      // シャッフルして設定
-      const shuffledUsers = shuffleUsers(fetchedUsers);
-      setUsers(shuffledUsers);
+      // 位置情報が取得できている場合は距離順にソート、そうでなければシャッフル
+      if (userLocation) {
+        fetchedUsers = sortUsersByDistance(fetchedUsers, userLocation);
+      } else if (userProfile?.location) {
+        // GPS位置情報がない場合はプロフィールの住所を使用
+        const { getCoordinatesFromAddress } = await import('@/lib/utils/location');
+        const profileCoords = getCoordinatesFromAddress(userProfile.location);
+        if (profileCoords) {
+          fetchedUsers = sortUsersByDistance(fetchedUsers, profileCoords);
+        } else {
+          fetchedUsers = shuffleUsers(fetchedUsers);
+        }
+      } else {
+        fetchedUsers = shuffleUsers(fetchedUsers);
+      }
+      
+      setUsers(fetchedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]); // エラー時は空配列

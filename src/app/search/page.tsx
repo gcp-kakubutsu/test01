@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, X, Navigation } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { fetchAdminGirls } from '@/lib/firebase/user-utils';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
+import { useUserProfile } from '@/lib/firebase/hooks';
 
 interface UserProfile {
   id: string;
@@ -21,11 +23,13 @@ interface UserProfile {
   bio: string;
   interests: string[];
   imageUrl: string;
+  distance?: number;
 }
 
 
 export default function SearchPage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
+  const { profile: userProfile } = useUserProfile();
   const router = useRouter();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,12 +38,42 @@ export default function SearchPage() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // 位置情報を取得
+  useEffect(() => {
+    const getLocation = async () => {
+      setIsLoadingLocation(true);
+      try {
+        const locationInfo = await getCurrentLocation();
+        if (locationInfo.coordinates) {
+          setUserLocation(locationInfo.coordinates);
+          toast({
+            title: "位置情報を取得しました",
+            description: "近くの女性から優先的に表示します。",
+          });
+        } else if (locationInfo.error) {
+          console.warn('位置情報の取得に失敗:', locationInfo.error);
+          // エラーの場合はユーザープロフィールの住所を使用
+        }
+      } catch (error) {
+        console.error('位置情報取得エラー:', error);
+      } finally {
+        setIsLoadingLocation(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      getLocation();
+    }
+  }, [isAuthenticated, toast]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -51,7 +85,7 @@ export default function SearchPage() {
         const fetchedUsers = await fetchAdminGirls(currentUser.uid, 1000);
         
         // UserProfile型に変換（検索ページ用）
-        const searchUsers: UserProfile[] = fetchedUsers.map(user => ({
+        let searchUsers: UserProfile[] = fetchedUsers.map(user => ({
           id: user.id,
           name: user.name,
           age: user.age,
@@ -60,6 +94,18 @@ export default function SearchPage() {
           interests: user.interests || user.kinks || [],
           imageUrl: user.imageUrl
         }));
+        
+        // 位置情報が取得できている場合は距離順にソート
+        if (userLocation) {
+          searchUsers = sortUsersByDistance(searchUsers, userLocation);
+        } else if (userProfile?.location) {
+          // GPS位置情報がない場合はプロフィールの住所を使用
+          const { getCoordinatesFromAddress } = await import('@/lib/utils/location');
+          const profileCoords = getCoordinatesFromAddress(userProfile.location);
+          if (profileCoords) {
+            searchUsers = sortUsersByDistance(searchUsers, profileCoords);
+          }
+        }
         
         // フェッチしたユーザーを設定
         setAllUsers(searchUsers);
@@ -76,18 +122,50 @@ export default function SearchPage() {
     if (isAuthenticated && currentUser) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUser]);
+  }, [isAuthenticated, currentUser, userLocation, userProfile]);
 
   const handleSearch = () => {
     const filtered = allUsers.filter(user => 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.bio.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.interests.some(interest => 
         interest.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
     setFilteredUsers(filtered);
     setCurrentIndex(0);
+  };
+
+  const handleLocationSort = async () => {
+    setIsLoadingLocation(true);
+    try {
+      const locationInfo = await getCurrentLocation();
+      if (locationInfo.coordinates) {
+        setUserLocation(locationInfo.coordinates);
+        const sortedUsers = sortUsersByDistance(filteredUsers, locationInfo.coordinates);
+        setFilteredUsers(sortedUsers);
+        setCurrentIndex(0);
+        toast({
+          title: "位置情報で並び替えました",
+          description: "近い順に表示しています。",
+        });
+      } else {
+        toast({
+          title: "位置情報の取得に失敗",
+          description: locationInfo.error || "位置情報を取得できませんでした。",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "位置情報の取得中にエラーが発生しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingLocation(false);
+    }
   };
 
   const handleLike = async () => {
@@ -177,6 +255,18 @@ export default function SearchPage() {
         <Button onClick={handleSearch} variant="outline">
           <Filter className="h-4 w-4" />
         </Button>
+        <Button 
+          onClick={handleLocationSort} 
+          variant="outline"
+          disabled={isLoadingLocation}
+          title="位置情報で並び替え"
+        >
+          {isLoadingLocation ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+          ) : (
+            <Navigation className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {/* User Cards */}
@@ -203,6 +293,11 @@ export default function SearchPage() {
               <div className="flex items-center gap-1 mb-3 text-sm">
                 <MapPin className="h-4 w-4" />
                 <span>{currentProfile.location}</span>
+                {currentProfile.distance !== undefined && currentProfile.distance !== Infinity && (
+                  <span className="ml-2 px-2 py-1 bg-black/30 rounded-full text-xs">
+                    約{Math.round(currentProfile.distance)}km
+                  </span>
+                )}
               </div>
               
               <p className="mb-3 text-sm">{currentProfile.bio}</p>

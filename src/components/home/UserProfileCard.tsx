@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Ban } from 'lucide-react';
+import { Heart, Ban, MapPin } from 'lucide-react';
 
 export interface UserProfile {
   id: string;
@@ -12,6 +12,8 @@ export interface UserProfile {
   imageUrl: string;
   bio: string;
   kinks: string[];
+  location?: string;
+  distance?: number;
   dataAiHint?: string;
 }
 
@@ -46,6 +48,17 @@ export function UserProfileCard({ user, feedback }: UserProfileCardProps) {
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
           <div>
             <CardTitle className="text-3xl font-bold text-white shadow-sm">{user.name}, {user.age}</CardTitle>
+            {user.location && (
+              <div className="flex items-center gap-1 mt-2 text-white/90">
+                <MapPin className="h-4 w-4" />
+                <span className="text-sm">{user.location}</span>
+                {user.distance !== undefined && user.distance !== Infinity && (
+                  <span className="ml-2 px-2 py-1 bg-black/30 rounded-full text-xs">
+                    約{Math.round(user.distance)}km
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
