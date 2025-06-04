@@ -90,55 +90,49 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       {/* Profile Header */}
       <Card>
-        <CardHeader className="relative pb-0">
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Link href="/profile/edit">
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1" />
-                編集
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative">
-              <div className="w-[100px] h-[100px] rounded-lg overflow-hidden bg-gray-100">
-                <Image
-                  src={profilePhoto}
-                  alt="Profile"
-                  width={100}
-                  height={100}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+        <CardHeader className="pb-0">
+          {/* Action Buttons - Above the image */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">マイプロフィール</h2>
+            <div className="flex gap-2">
               <Link href="/profile/edit">
-                <Button
-                  size="sm"
-                  className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0 bg-[#F0306A] hover:bg-[#E02860]"
-                >
-                  <Camera className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="bg-white/90 backdrop-blur-sm">
+                  <Edit className="h-4 w-4 mr-1" />
+                  編集
+                </Button>
+              </Link>
+              <Link href="/settings">
+                <Button variant="outline" size="sm" className="bg-white/90 backdrop-blur-sm">
+                  <Settings className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
+          </div>
+          
+          {/* Large Profile Image */}
+          <div className="relative h-[400px] sm:h-[450px] md:h-[500px] rounded-lg overflow-hidden mb-6">
+            <Image
+              src={profilePhoto}
+              alt="Profile"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold">{displayName}</h1>
-                {age && <span className="text-lg text-gray-600">{age}歳</span>}
+            {/* User Info Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">{displayName}</h1>
+                {age && <span className="text-xl sm:text-2xl">{age}歳</span>}
                 {profile.accountStatus === 'verified' && (
-                  <Badge className="bg-blue-500">
+                  <Badge className="bg-blue-500/80 backdrop-blur-sm">
                     <Shield className="h-3 w-3 mr-1" />
                     認証済み
                   </Badge>
                 )}
               </div>
               
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-4 text-sm mb-2">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   {location}
@@ -150,14 +144,24 @@ export default function ProfilePage() {
               </div>
               
               {profile.gender && (
-                <div className="mt-1">
-                  <Badge variant="outline">
+                <div>
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                     {profile.gender === 'male' ? '男性' : 
                      profile.gender === 'female' ? '女性' : 'その他'}
                   </Badge>
                 </div>
               )}
             </div>
+            
+            {/* Quick Edit Camera Button */}
+            <Link href="/profile/edit">
+              <Button
+                size="sm"
+                className="absolute top-4 right-4 rounded-full h-10 w-10 p-0 bg-[#F0306A]/90 hover:bg-[#E02860] backdrop-blur-sm shadow-lg"
+              >
+                <Camera className="h-4 w-4 text-white" />
+              </Button>
+            </Link>
           </div>
           
           {/* Profile Completion */}
@@ -241,34 +245,70 @@ export default function ProfilePage() {
             </div>
           </div>
           
-          {/* Photos */}
+          {/* Additional Photos Gallery */}
           <div>
-            <h3 className="font-semibold mb-2">写真</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {photos.map((photo, index) => (
-                <div key={index} className="relative group">
-                  <div className="relative w-full h-0 pb-[100%] overflow-hidden rounded-lg bg-gray-100">
-                    <Image
-                      src={photo}
-                      alt={`Photo ${index + 1}`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      className="object-contain"
-                    />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">フォトギャラリー</h3>
+              {photos.length > 1 && (
+                <Badge variant="secondary" className="bg-[#F0306A]/10 text-[#F0306A]">
+                  {photos.length - 1}枚の写真
+                </Badge>
+              )}
+            </div>
+            
+            {photos.length > 1 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {photos.slice(1).map((photo, index) => (
+                  <div key={index + 1} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] lg:pb-[80%]">
+                      <Image
+                        src={photo}
+                        alt={`Photo ${index + 2}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Photo Index Badge */}
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                        {index + 2}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {photos.length < 6 && (
-                <Link href="/profile/edit" className="relative">
-                  <div className="relative w-full h-0 pb-[100%] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <Camera className="h-8 w-8 text-gray-400 mb-1" />
-                      <p className="text-sm text-gray-500">写真を追加</p>
+                ))}
+                
+                {/* Add Photo Button */}
+                {photos.length < 6 && (
+                  <Link href="/profile/edit" className="relative group">
+                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] lg:pb-[80%] border-2 border-dashed border-[#F0306A]/30 rounded-xl flex items-center justify-center hover:border-[#F0306A]/60 hover:bg-[#F0306A]/5 transition-all duration-300 bg-gradient-to-br from-[#F0306A]/5 to-[#F0306A]/10">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                        <div className="w-16 h-16 rounded-full bg-[#F0306A]/10 flex items-center justify-center mb-3 group-hover:bg-[#F0306A]/20 transition-colors duration-300">
+                          <Camera className="h-8 w-8 text-[#F0306A]" />
+                        </div>
+                        <p className="text-sm font-medium text-[#F0306A] text-center">写真を追加</p>
+                        <p className="text-xs text-gray-500 text-center mt-1">最大6枚まで</p>
+                      </div>
+                    </div>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Link href="/profile/edit" className="relative group">
+                  <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] lg:pb-[80%] border-2 border-dashed border-[#F0306A]/30 rounded-xl flex items-center justify-center hover:border-[#F0306A]/60 hover:bg-[#F0306A]/5 transition-all duration-300 bg-gradient-to-br from-[#F0306A]/5 to-[#F0306A]/10">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                      <div className="w-20 h-20 rounded-full bg-[#F0306A]/10 flex items-center justify-center mb-4 group-hover:bg-[#F0306A]/20 transition-colors duration-300">
+                        <Camera className="h-10 w-10 text-[#F0306A]" />
+                      </div>
+                      <p className="text-base font-semibold text-[#F0306A] text-center mb-2">追加の写真をアップロード</p>
+                      <p className="text-sm text-gray-500 text-center">あなたの魅力をもっと伝えましょう</p>
+                      <p className="text-xs text-gray-400 text-center mt-1">最大6枚まで追加可能</p>
                     </div>
                   </div>
                 </Link>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

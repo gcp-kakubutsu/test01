@@ -14,7 +14,8 @@ import {
   MessageCircle,
   Shield,
   Loader2,
-  Ban
+  Ban,
+  Camera
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -236,35 +237,26 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         <h1 className="text-xl font-bold">プロフィール</h1>
       </div>
 
-      {/* Profile Header */}
-      <Card>
-        <CardHeader className="pb-0">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative">
-              <div className="w-[100px] h-[100px] rounded-lg overflow-hidden bg-gray-100">
-                <Image
-                  src={profilePhoto}
-                  alt="Profile"
-                  width={100}
-                  height={100}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold">{displayName}</h1>
-                {age && <span className="text-lg text-gray-600">{age}歳</span>}
-                {profile.accountStatus === 'verified' && (
-                  <Badge className="bg-blue-500">
-                    <Shield className="h-3 w-3 mr-1" />
-                    認証済み
-                  </Badge>
-                )}
+      {/* Large Profile Header - Instagram style */}
+      <Card className="overflow-hidden shadow-lg">
+        <div className="relative h-[400px] sm:h-[450px] md:h-[500px]">
+          <Image
+            src={profilePhoto}
+            alt="Profile"
+            fill
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          
+          {/* User Info Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+            <div className="mb-2">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">{displayName}</h1>
+                {age && <span className="text-xl sm:text-2xl">{age}歳</span>}
               </div>
               
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-4 text-sm mb-2">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   {location}
@@ -275,17 +267,23 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 </span>
               </div>
               
-              {profile.gender && (
-                <div className="mt-1">
-                  <Badge variant="outline">
+              <div className="flex items-center gap-2">
+                {profile.accountStatus === 'verified' && (
+                  <Badge className="bg-blue-500/80 backdrop-blur-sm">
+                    <Shield className="h-3 w-3 mr-1" />
+                    認証済み
+                  </Badge>
+                )}
+                {profile.gender && (
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/30">
                     {profile.gender === 'male' ? '男性' : 
                      profile.gender === 'female' ? '女性' : 'その他'}
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </CardHeader>
+        </div>
         
         <CardContent>
           {/* Stats - Only profile views are shown for other users */}
@@ -335,29 +333,53 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             </div>
           </div>
           
-          {/* Photos */}
+          {/* Additional Photos Gallery */}
           <div>
-            <h3 className="font-semibold mb-2">写真</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {photos.map((photo, index) => (
-                <div key={index} className="relative group">
-                  <div className="relative w-full h-0 pb-[100%] overflow-hidden rounded-lg bg-gray-100">
-                    <Image
-                      src={photo}
-                      alt={`Photo ${index + 1}`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      className="object-contain"
-                    />
-                  </div>
-                </div>
-              ))}
-              {photos.length === 0 && (
-                <div className="col-span-2 sm:col-span-3 text-center py-8 text-gray-500">
-                  <p>写真がありません</p>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">フォトギャラリー</h3>
+              {photos.length > 1 && (
+                <Badge variant="secondary" className="bg-[#F0306A]/10 text-[#F0306A]">
+                  {photos.length - 1}枚の写真
+                </Badge>
               )}
             </div>
+            
+            {photos.length > 1 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {photos.slice(1).map((photo, index) => (
+                  <div key={index + 1} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] lg:pb-[80%]">
+                      <Image
+                        src={photo}
+                        alt={`Photo ${index + 2}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Photo Index Badge */}
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                        {index + 2}
+                      </div>
+                      
+                      {/* View Full Size Hint */}
+                      <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm rounded-full px-3 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        拡大表示
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-200">
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
+                  <Camera className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">追加の写真がありません</p>
+                <p className="text-sm text-gray-400 mt-1">プロフィール写真のみ表示中</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

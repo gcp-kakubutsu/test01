@@ -4,12 +4,13 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCircle, Image as ImageIcon, Tag, X } from 'lucide-react';
+import { Loader2, UserCircle, Image as ImageIcon, Tag, X, ArrowLeft, Camera } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -247,46 +248,76 @@ export default function EditProfilePage() {
 
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <UserCircle className="mr-3 h-8 w-8" /> プロフィール編集
-          </CardTitle>
-          <CardDescription>
-            最高のマッチングのために、プロフィールを最新の状態に保ちましょう。
-          </CardDescription>
+    <div className="max-w-2xl mx-auto space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-xl font-bold">プロフィール編集</h1>
+      </div>
+
+      <Card className="overflow-hidden shadow-lg">
+        <CardHeader className="pb-4">
+          <div className="text-center">
+            <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+              プロフィールを編集
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              最高のマッチングのために、プロフィールを最新の状態に保ちましょう。
+            </CardDescription>
+          </div>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
-            <div className="flex flex-col items-center space-y-3">
-              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-primary shadow-md bg-secondary">
+            {/* Profile Photo Section */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">メイン写真</h3>
+              <div className="relative h-[300px] sm:h-[350px] rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg">
                 {profilePhotoPreview || profile?.profilePhotoUrl ? (
                   <div className="relative w-full h-full group">
                     <Image 
                       src={profilePhotoPreview || profile?.profilePhotoUrl || ''} 
                       alt="プロフィールプレビュー" 
-                      layout="fill" 
-                      objectFit="contain" 
+                      fill
+                      className="object-cover"
                       data-ai-hint="人物 近影" 
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Edit Button */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="absolute top-4 right-4 rounded-full h-10 w-10 p-0 bg-[#F0306A]/90 hover:bg-[#E02860] backdrop-blur-sm shadow-lg"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera className="h-4 w-4 text-white" />
+                    </Button>
+                    
                     {profilePhotoPreview && (
-                      <button
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-4 left-4 rounded-full h-10 w-10 p-0 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm shadow-lg"
                         onClick={handleRemovePhoto}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                       >
-                        <X className="w-8 h-8 text-white" />
-                      </button>
+                        <X className="h-4 w-4 text-white" />
+                      </Button>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <ImageIcon className="w-16 h-16 text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center h-full p-6 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <div className="w-20 h-20 rounded-full bg-[#F0306A]/10 flex items-center justify-center mb-4">
+                      <Camera className="h-10 w-10 text-[#F0306A]" />
+                    </div>
+                    <p className="text-lg font-semibold text-[#F0306A] text-center mb-2">メイン写真をアップロード</p>
+                    <p className="text-sm text-gray-500 text-center">あなたの魅力的な写真を選んでください</p>
                   </div>
                 )}
               </div>
-              <Input ref={fileInputRef} id="profilePhoto" type="file" accept="image/*" onChange={handlePhotoChange} className="max-w-xs file:text-primary file:font-semibold"/>
+              <input ref={fileInputRef} id="profilePhoto" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden"/>
             </div>
 
             <div className="space-y-2">
@@ -330,38 +361,58 @@ export default function EditProfilePage() {
               <p className="text-xs text-muted-foreground">項目はカンマで区切ってください。</p>
             </div>
 
-            {/* Additional Photos Section */}
-            <div className="space-y-3">
-              <Label className="text-base flex items-center">
-                <ImageIcon className="mr-2 h-4 w-4 text-primary" />
-                追加写真（最大5枚）
-              </Label>
-              <div className="grid grid-cols-3 gap-3">
+            {/* Additional Photos Gallery */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">追加写真</h3>
+                <Badge variant="secondary" className="bg-[#F0306A]/10 text-[#F0306A]">
+                  {additionalPhotos.length}/5枚
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {additionalPhotos.map((photo, index) => (
-                  <div key={index} className="relative group">
-                    <div className="relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200">
+                  <div key={index} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%]">
                       <Image
                         src={photo.preview}
                         alt={`Additional photo ${index + 1}`}
-                        layout="fill"
-                        objectFit="contain"
-                        className="bg-gray-50"
+                        fill
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                       />
-                      <button
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Photo Index Badge */}
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                        {index + 2}
+                      </div>
+                      
+                      {/* Remove Button */}
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-3 right-3 rounded-full h-8 w-8 p-0 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                         onClick={() => handleRemoveAdditionalPhoto(index)}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                       >
-                        <X className="w-8 h-8 text-white" />
-                      </button>
+                        <X className="h-4 w-4 text-white" />
+                      </Button>
                     </div>
                   </div>
                 ))}
+                
+                {/* Add Photo Button */}
                 {additionalPhotos.length < 5 && (
-                  <label className="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-gray-300 cursor-pointer hover:bg-gray-50 flex items-center justify-center">
-                    <div className="text-center">
-                      <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-500">写真を追加</p>
+                  <label className="relative group cursor-pointer">
+                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] border-2 border-dashed border-[#F0306A]/30 rounded-xl flex items-center justify-center hover:border-[#F0306A]/60 hover:bg-[#F0306A]/5 transition-all duration-300 bg-gradient-to-br from-[#F0306A]/5 to-[#F0306A]/10">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                        <div className="w-16 h-16 rounded-full bg-[#F0306A]/10 flex items-center justify-center mb-3 group-hover:bg-[#F0306A]/20 transition-colors duration-300">
+                          <Camera className="h-8 w-8 text-[#F0306A]" />
+                        </div>
+                        <p className="text-sm font-medium text-[#F0306A] text-center">写真を追加</p>
+                        <p className="text-xs text-gray-500 text-center mt-1">最大5枚まで</p>
+                      </div>
                     </div>
                     <input
                       ref={additionalPhotoInputRef}
@@ -375,17 +426,22 @@ export default function EditProfilePage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isLoading} className="w-full text-lg py-3">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                '変更を保存'
-              )}
-            </Button>
+          <CardFooter className="pt-6">
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <Button type="button" variant="outline" onClick={() => router.back()} className="py-3">
+                キャンセル
+              </Button>
+              <Button type="submit" disabled={isLoading} className="bg-[#F0306A] hover:bg-[#E02860] py-3">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  '変更を保存'
+                )}
+              </Button>
+            </div>
           </CardFooter>
         </form>
       </Card>
