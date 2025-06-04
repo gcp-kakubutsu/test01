@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -24,6 +24,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
+import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
 
 
 export default function ProfilePage() {
@@ -38,6 +39,7 @@ export default function ProfilePage() {
   }, [profile]);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [malePreferences, setMalePreferences] = useState<MalePreferences | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -65,6 +67,24 @@ export default function ProfilePage() {
       setPhotos(allPhotos);
     }
   }, [profile]);
+
+  // Load male preferences for male users
+  useEffect(() => {
+    const loadMalePreferences = async () => {
+      if (currentUser && profile?.gender === 'male') {
+        try {
+          const preferences = await getMalePreferences(currentUser.uid);
+          setMalePreferences(preferences);
+        } catch (error) {
+          console.error('Error loading male preferences:', error);
+        }
+      }
+    };
+
+    if (currentUser && profile) {
+      loadMalePreferences();
+    }
+  }, [currentUser, profile]);
 
   if (authLoading || profileLoading) {
     return (
@@ -312,6 +332,70 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Male User Preferences Section */}
+      {profile?.gender === 'male' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold text-gray-900">詳細設定</CardTitle>
+              <Badge variant={malePreferences?.isComplete ? "default" : "secondary"} className={malePreferences?.isComplete ? "bg-green-500" : "bg-yellow-500"}>
+                {malePreferences?.isComplete ? "設定完了" : "設定未完了"}
+              </Badge>
+            </div>
+            <p className="text-gray-600">相手探しの条件や嗜好の設定</p>
+          </CardHeader>
+          <CardContent>
+            {malePreferences?.isComplete ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">求めるもの</p>
+                    <p className="font-medium">{malePreferences.seekingType || '未設定'}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">年齢範囲</p>
+                    <p className="font-medium">{malePreferences.partnerAgeMin}-{malePreferences.partnerAgeMax}歳</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">体型</p>
+                    <p className="font-medium">{malePreferences.partnerBodyType || '未設定'}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">活動エリア</p>
+                    <p className="font-medium">{malePreferences.activityAreas?.length ? `${malePreferences.activityAreas.length}地域` : '未設定'}</p>
+                  </div>
+                </div>
+                
+                {malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">希望する相手の体型</p>
+                    <div className="flex flex-wrap gap-2">
+                      {malePreferences.partnerBodyTypes.map((bodyType) => (
+                        <Badge key={bodyType} variant="outline" className="text-xs">
+                          {bodyType}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <Button variant="outline" className="w-full" onClick={() => router.push('/profile/preferences')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  詳細設定を編集
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-600 mb-4">マッチングを開始するには詳細設定の完了が必要です</p>
+                <Button className="bg-[#F0306A] hover:bg-[#E02860]" onClick={() => router.push('/profile/preferences')}>
+                  詳細設定を開始
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Premium Upsell */}
       <Card className="bg-gradient-to-r from-[#F0306A] to-[#FF7F50] text-white">
