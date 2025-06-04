@@ -186,25 +186,30 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           'スリム', 'やや細め', '細め', 'グラマー',
           '筋肉質', 'ややぽっちゃり', 'ぽっちゃり', 'こだわらない'
         ].map((bodyType) => (
-          <div key={bodyType} className="flex items-center space-x-2 p-3 border rounded-lg">
+          <div 
+            key={bodyType} 
+            className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            onClick={() => {
+              const isChecked = preferences.partnerBodyTypes?.includes(bodyType) || false;
+              if (!isChecked) {
+                setPreferences(prev => ({
+                  ...prev,
+                  partnerBodyTypes: [...(prev.partnerBodyTypes || []), bodyType]
+                }));
+              } else {
+                setPreferences(prev => ({
+                  ...prev,
+                  partnerBodyTypes: (prev.partnerBodyTypes || []).filter(t => t !== bodyType)
+                }));
+              }
+            }}
+          >
             <Checkbox
               id={bodyType}
               checked={preferences.partnerBodyTypes?.includes(bodyType) || false}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  setPreferences(prev => ({
-                    ...prev,
-                    partnerBodyTypes: [...(prev.partnerBodyTypes || []), bodyType]
-                  }));
-                } else {
-                  setPreferences(prev => ({
-                    ...prev,
-                    partnerBodyTypes: (prev.partnerBodyTypes || []).filter(t => t !== bodyType)
-                  }));
-                }
-              }}
+              readOnly
             />
-            <Label htmlFor={bodyType} className="text-sm font-medium">
+            <Label htmlFor={bodyType} className="text-sm font-medium cursor-pointer">
               {bodyType}
             </Label>
           </div>
@@ -224,11 +229,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         <p className="text-gray-600">相手に求める条件を入力してください</p>
       </div>
       
-      <div className="bg-gray-100 p-4 rounded-lg mb-6">
-        <p className="text-sm text-gray-700">
-          このアカウントは{userEmail || 'メールアドレス'}で登録されています。
-        </p>
-      </div>
 
       <div className="space-y-4">
         <div>
@@ -312,17 +312,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     <div className="space-y-6">
       <div className="text-center mb-6">
         <div className="w-12 h-12 bg-[#F0306A] text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-          4/8
+          6/8
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">プロフィール入力</h2>
         <p className="text-gray-600">あなたの基本情報を教えてください</p>
       </div>
       
-      <div className="bg-gray-100 p-4 rounded-lg mb-6">
-        <p className="text-sm text-gray-700">
-          このアカウントは{userEmail || 'メールアドレス'}で登録されています。
-        </p>
-      </div>
 
       <div className="space-y-4">
         <div>
@@ -392,17 +387,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     <div className="space-y-6">
       <div className="text-center mb-6">
         <div className="w-12 h-12 bg-[#F0306A] text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-          3/8
+          7/8
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">プロフィール入力</h2>
         <p className="text-gray-600">あなたの基本情報を教えてください</p>
       </div>
       
-      <div className="bg-gray-100 p-4 rounded-lg mb-6">
-        <p className="text-sm text-gray-700">
-          このアカウントは{userEmail || 'メールアドレス'}で登録されています。
-        </p>
-      </div>
 
       <div className="space-y-4">
         <div>
@@ -440,12 +430,13 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">体重</Label>
+          <Label className="text-base font-medium">相手の体重</Label>
           <Select value={preferences.partnerWeight} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerWeight: value }))}>
             <SelectTrigger className="w-full mt-2">
-              <SelectValue placeholder="50kg" />
+              <SelectValue placeholder="相手の体重を選択してください" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="こだわらない">こだわらない</SelectItem>
               {Array.from({ length: 101 }, (_, i) => i + 40).map((weight) => (
                 <SelectItem key={weight} value={`${weight}kg`}>{weight}kg</SelectItem>
               ))}
@@ -506,25 +497,30 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           <Label className="text-base font-medium mb-3 block">＜活動したい日＞</Label>
           <div className="grid grid-cols-3 gap-3">
             {['平日', '休日', '祝日'].map((day) => (
-              <div key={day} className="flex items-center space-x-2 p-3 border rounded-lg">
+              <div 
+                key={day} 
+                className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                onClick={() => {
+                  const isChecked = preferences.availableDays?.includes(day) || false;
+                  if (!isChecked) {
+                    setPreferences(prev => ({
+                      ...prev,
+                      availableDays: [...(prev.availableDays || []), day]
+                    }));
+                  } else {
+                    setPreferences(prev => ({
+                      ...prev,
+                      availableDays: (prev.availableDays || []).filter(d => d !== day)
+                    }));
+                  }
+                }}
+              >
                 <Checkbox
                   id={day}
                   checked={preferences.availableDays?.includes(day) || false}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setPreferences(prev => ({
-                        ...prev,
-                        availableDays: [...(prev.availableDays || []), day]
-                      }));
-                    } else {
-                      setPreferences(prev => ({
-                        ...prev,
-                        availableDays: (prev.availableDays || []).filter(d => d !== day)
-                      }));
-                    }
-                  }}
+                  readOnly
                 />
-                <Label htmlFor={day} className="text-sm font-medium">
+                <Label htmlFor={day} className="text-sm font-medium cursor-pointer">
                   {day}
                 </Label>
               </div>
@@ -540,25 +536,30 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
               { value: '昼', label: '☀️ 昼', emoji: '☀️' },
               { value: '夜', label: '🌙 夜', emoji: '🌙' }
             ].map((timeSlot) => (
-              <div key={timeSlot.value} className="flex items-center space-x-2 p-3 border rounded-lg">
+              <div 
+                key={timeSlot.value} 
+                className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                onClick={() => {
+                  const isChecked = preferences.availableTimeSlots?.includes(timeSlot.value) || false;
+                  if (!isChecked) {
+                    setPreferences(prev => ({
+                      ...prev,
+                      availableTimeSlots: [...(prev.availableTimeSlots || []), timeSlot.value]
+                    }));
+                  } else {
+                    setPreferences(prev => ({
+                      ...prev,
+                      availableTimeSlots: (prev.availableTimeSlots || []).filter(t => t !== timeSlot.value)
+                    }));
+                  }
+                }}
+              >
                 <Checkbox
                   id={timeSlot.value}
                   checked={preferences.availableTimeSlots?.includes(timeSlot.value) || false}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setPreferences(prev => ({
-                        ...prev,
-                        availableTimeSlots: [...(prev.availableTimeSlots || []), timeSlot.value]
-                      }));
-                    } else {
-                      setPreferences(prev => ({
-                        ...prev,
-                        availableTimeSlots: (prev.availableTimeSlots || []).filter(t => t !== timeSlot.value)
-                      }));
-                    }
-                  }}
+                  readOnly
                 />
-                <Label htmlFor={timeSlot.value} className="text-sm font-medium">
+                <Label htmlFor={timeSlot.value} className="text-sm font-medium cursor-pointer">
                   {timeSlot.label}
                 </Label>
               </div>
@@ -620,12 +621,95 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     </div>
   );
 
+  // ステップのバリデーション
+  const validateCurrentStep = (): boolean => {
+    console.log('=== VALIDATION CHECK START ===');
+    console.log('Current step:', currentStep);
+    console.log('Current preferences:', preferences);
+    
+    switch (currentStep) {
+      case 5: // Step 5: 基本情報
+        const step5Valid = !!(
+          preferences.contactBeforeMeeting &&
+          preferences.photoExchangeBeforeMeeting &&
+          preferences.partnerAgeMin > 0 &&
+          preferences.partnerAgeMax > 0
+        );
+        console.log('Step 5 validation:', {
+          contactBeforeMeeting: preferences.contactBeforeMeeting,
+          photoExchangeBeforeMeeting: preferences.photoExchangeBeforeMeeting,
+          partnerAgeMin: preferences.partnerAgeMin,
+          partnerAgeMax: preferences.partnerAgeMax,
+          result: step5Valid
+        });
+        return step5Valid;
+      case 6: // Step 6: 詳細な基本情報
+        const step6Valid = !!(
+          preferences.experienceCount &&
+          preferences.recordingDuringPlay &&
+          preferences.isSadist &&
+          preferences.isMasochist
+        );
+        console.log('Step 6 validation:', {
+          experienceCount: preferences.experienceCount,
+          recordingDuringPlay: preferences.recordingDuringPlay,
+          isSadist: preferences.isSadist,
+          isMasochist: preferences.isMasochist,
+          result: step6Valid
+        });
+        return step6Valid;
+      case 7: // Step 7: 相手の詳細条件
+        const step7Valid = !!(
+          preferences.seekingType &&
+          preferences.partnerHeight &&
+          preferences.partnerWeight &&
+          preferences.partnerBodyType &&
+          preferences.partnerLocation
+        );
+        console.log('Step 7 validation:', {
+          seekingType: preferences.seekingType,
+          partnerHeight: preferences.partnerHeight,
+          partnerWeight: preferences.partnerWeight,
+          partnerBodyType: preferences.partnerBodyType,
+          partnerLocation: preferences.partnerLocation,
+          result: step7Valid
+        });
+        return step7Valid;
+      case 8: // Step 8: 活動タイミング
+        const step8Valid = !!(
+          preferences.availableDays && preferences.availableDays.length > 0 &&
+          preferences.availableTimeSlots && preferences.availableTimeSlots.length > 0 &&
+          preferences.activityAreas && preferences.activityAreas.length > 0
+        );
+        console.log('Step 8 validation:', {
+          availableDays: preferences.availableDays,
+          availableTimeSlots: preferences.availableTimeSlots,
+          activityAreas: preferences.activityAreas,
+          result: step8Valid
+        });
+        return step8Valid;
+      default:
+        console.log('No validation required for step:', currentStep);
+        return true; // その他のステップはバリデーション不要
+    }
+  };
+
   const handleNext = async () => {
     console.log('=== handleNext START ===');
     console.log('Current step before update:', currentStep);
     console.log('TOTAL_STEPS:', TOTAL_STEPS);
     console.log('isLoading:', isLoading);
     console.log('loadingInitialData:', loadingInitialData);
+    
+    // バリデーションチェック
+    if (!validateCurrentStep()) {
+      toast({
+        title: "入力不備",
+        description: "すべての項目を入力してください。",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (currentStep < TOTAL_STEPS) {
       console.log('Condition met: currentStep < TOTAL_STEPS');
