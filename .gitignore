@@ -26,7 +26,6 @@ dist
 # Gatsby
 .cache/
 # Add storybook build directory here too.
-public
 
 # Environment Variables
 .env
@@ -62,3 +61,16 @@ firebase-crashlytics-build.json
 .cursorindexingignore
 
 *.json
+
+# publicディレクトリ全体を無視
+public/
+
+# 特定の画像ファイルは除外（追跡する）
+!public/img/
+!public/img/feature-advanced-search.jpg
+!public/img/feature-ai-matching.jpg
+!public/img/feature-post-date.jpg
+!public/img/final-cta-banner.jpg
+!public/img/hero-banner-couple.jpg
+!public/img/nukune-about.jpg
+!public/img/nukune-simei.jpg
