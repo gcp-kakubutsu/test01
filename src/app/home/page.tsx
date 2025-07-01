@@ -1,16 +1,14 @@
 
 "use client";
 
-import { UserProfileCard } from '@/components/home/UserProfileCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Ban, ChevronLeft, ChevronRight, Heart, Loader2, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { fetchAdminGirls, shuffleUsers, type UserProfile } from '@/lib/firebase/user-utils';
-import { sendLike, recordProfileView } from '@/lib/firebase/actions';
-import { useToast } from '@/hooks/use-toast';
-import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
+import { fetchAdminGirls, type UserProfile } from '@/lib/firebase/user-utils';
+import { recordProfileView } from '@/lib/firebase/actions';
+import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import WelcomePage from '@/components/WelcomePage';
@@ -19,20 +17,19 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
 
+const USERS_PER_PAGE = 20;
+
 export default function HomePage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const { profile: userProfile } = useUserProfile();
   const router = useRouter();
-  const { toast } = useToast();
-  const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [feedback, setFeedback] = useState<'liked' | 'passed' | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [isProcessingLike, setIsProcessingLike] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingWelcome, setCheckingWelcome] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -199,80 +196,7 @@ export default function HomePage() {
     }
   }, [isAuthenticated, currentUser, userLocation, userProfile]);
 
-  // Record profile view when user changes (with delay to avoid rapid fire)
-  useEffect(() => {
-    if (currentUser && users.length > 0 && currentUserIndex < users.length) {
-      const currentProfile = users[currentUserIndex];
-      if (currentProfile && currentProfile.id !== currentUser.uid) {
-        const timer = setTimeout(() => {
-          recordProfileView(currentUser.uid, currentProfile.id);
-        }, 200);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [currentUser, users, currentUserIndex]);
-
-  const handleAction = (action: 'like' | 'pass') => {
-    setFeedback(action === 'like' ? 'liked' : 'passed');
-    setTimeout(() => {
-      setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length);
-      setFeedback(null);
-    }, 500); // フィードバックアニメーションの時間
-  };
-
-  const handleLike = async () => {
-    if (isProcessingLike || !currentUser) return;
-    
-    const targetUser = users[currentUserIndex];
-    if (!targetUser) return;
-    
-    setIsProcessingLike(true);
-    setFeedback('liked');
-    
-    try {
-      const result = await sendLike(currentUser.uid, targetUser.id);
-      
-      if (result.isMatch) {
-        toast({
-          title: "マッチしました！🎉",
-          description: `${targetUser.name}さんとマッチしました！メッセージを送ってみましょう。`,
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/messages/${result.matchId}`)}
-            >
-              メッセージを送る
-            </Button>
-          ),
-        });
-      }
-      
-      // Move to next profile after animation
-      setTimeout(() => {
-        setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length);
-        setFeedback(null);
-        setIsProcessingLike(false);
-      }, 500);
-      
-    } catch (error) {
-      console.error('Error sending like:', error);
-      toast({
-        title: "エラー",
-        description: "いいねの送信に失敗しました。",
-        variant: "destructive",
-      });
-      setFeedback(null);
-      setIsProcessingLike(false);
-    }
-  };
-  const handlePass = () => handleAction('pass');
-  const handlePrevious = () => {
-     setCurrentUserIndex((prevIndex) => (prevIndex - 1 + users.length) % users.length);
-  };
   const handleReset = async () => {
-    setCurrentUserIndex(0); // 最初のユーザーにリセット
     // Firebase から再度データを取得
     if (!currentUser) return;
     
@@ -290,6 +214,7 @@ export default function HomePage() {
       );
       
       setUsers(fetchedUsers);
+      setCurrentPage(1); // リセット時は最初のページに戻る
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]); // エラー時は空配列
@@ -322,48 +247,96 @@ export default function HomePage() {
     return <div className="text-center py-10">現在表示できるプロフィールはありません。後でもう一度確認してください！</div>;
   }
 
-  const currentProfile = users[currentUserIndex];
+  // Calculate pagination
+  const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const endIndex = startIndex + USERS_PER_PAGE;
+  const currentUsers = users.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] py-8">
-      <div className="w-full max-w-sm relative">
-        {currentProfile ? (
-          <UserProfileCard user={currentProfile} feedback={feedback} />
-        ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <p className="text-xl mb-4">現在表示できるプロフィールはありません！</p>
-            <Button onClick={handleReset} variant="outline">
-              <RotateCcw className="mr-2 h-4 w-4" /> プロフィールを再読み込み
-            </Button>
-          </div>
-        )}
-      </div>
-      {currentProfile && (
-        <div className="flex justify-center items-center gap-4 mt-8">
-          <Button variant="outline" size="lg" className="rounded-full p-4 h-16 w-16 shadow-lg hover:bg-secondary" onClick={handlePrevious} aria-label="前へ">
-            <ChevronLeft className="h-8 w-8 text-muted-foreground" />
-          </Button>
-          <Button variant="destructive" size="lg" className="rounded-full p-4 h-20 w-20 shadow-xl hover:bg-destructive/90" onClick={handlePass} aria-label="スキップ">
-            <Ban className="h-10 w-10" />
-          </Button>
-          <Button 
-            variant="default" 
-            size="lg" 
-            className="rounded-full p-4 h-20 w-20 bg-green-500 hover:bg-green-600 shadow-xl" 
-            onClick={handleLike} 
-            aria-label="いいね"
-            disabled={isProcessingLike}
+    <div className="w-full px-4 py-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        {currentUsers.map((user) => (
+          <div
+            key={user.id}
+            className="relative cursor-pointer transform transition-transform hover:scale-105"
+            onClick={() => {
+              router.push(`/user/${user.id}`);
+              recordProfileView(currentUser!.uid, user.id);
+            }}
           >
-            <Heart className="h-10 w-10" />
-          </Button>
-          <Button variant="outline" size="lg" className="rounded-full p-4 h-16 w-16 shadow-lg hover:bg-secondary" onClick={() => setCurrentUserIndex((prevIndex) => (prevIndex + 1) % users.length)} aria-label="次へ">
-            <ChevronRight className="h-8 w-8 text-muted-foreground" />
+            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md">
+              <img
+                src={user.imageUrl || '/placeholder.jpg'}
+                alt={user.name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <p className="text-white font-semibold text-sm">{user.name}, {user.age}</p>
+                {user.location && (
+                  <p className="text-white/80 text-xs">{user.location}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {users.length === 0 && (
+        <div className="text-center py-10 text-muted-foreground">
+          <p className="text-xl mb-4">現在表示できるプロフィールはありません！</p>
+          <Button onClick={handleReset} variant="outline">
+            <RotateCcw className="mr-2 h-4 w-4" /> プロフィールを再読み込み
           </Button>
         </div>
       )}
-       <Button onClick={handleReset} variant="outline" className="mt-6">
-          <RotateCcw className="mr-2 h-4 w-4" /> スワイプをリセット
-       </Button>
+      
+      {/* Pagination */}
+      {users.length > 0 && (
+        <div className="flex justify-center items-center mt-8 gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className="flex items-center gap-2 px-6 py-3 text-base"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            前のページ
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-base font-medium">
+              {currentPage} / {totalPages} ページ
+            </span>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-2 px-6 py-3 text-base"
+          >
+            次のページ
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
