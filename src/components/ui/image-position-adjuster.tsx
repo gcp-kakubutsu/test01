@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { X, ZoomIn, ZoomOut, Move } from 'lucide-react'
+import Image from 'next/image'
 
 interface ImagePositionAdjusterProps {
   imageUrl: string
@@ -30,7 +31,7 @@ export function ImagePositionAdjuster({
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const image = new Image()
+    const image = new window.Image()
     image.src = imageUrl
     image.onload = () => {
       setImageSize({ width: image.width, height: image.height })
@@ -205,6 +206,7 @@ export function ImagePositionAdjuster({
               circular ? 'rounded-full' : 'rounded-lg'
             } border-2 border-pink-500 overflow-hidden bg-gray-100`}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imageRef}
               src={imageUrl}

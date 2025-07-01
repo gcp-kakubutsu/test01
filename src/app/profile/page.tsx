@@ -350,20 +350,12 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">求めるもの</p>
-                    <p className="font-medium">{malePreferences.seekingType || '未設定'}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">年齢範囲</p>
                     <p className="font-medium">{malePreferences.partnerAgeMin}-{malePreferences.partnerAgeMax}歳</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">体型</p>
                     <p className="font-medium">{malePreferences.partnerBodyType || '未設定'}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">活動エリア</p>
-                    <p className="font-medium">{malePreferences.activityAreas?.length ? `${malePreferences.activityAreas.length}地域` : '未設定'}</p>
                   </div>
                 </div>
                 

@@ -71,7 +71,7 @@ export default function EditProfilePage() {
       
       // Load additional photos
       if (profile.additionalPhotos && Array.isArray(profile.additionalPhotos)) {
-        const existingPhotos = profile.additionalPhotos.map(url => ({
+        const existingPhotos = profile.additionalPhotos.map((url: string) => ({
           file: null,
           preview: url,
           existing: true

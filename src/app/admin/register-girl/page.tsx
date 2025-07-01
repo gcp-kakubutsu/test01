@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { uploadProfileImageForAdmin } from '@/lib/firebase/storage'
 import { ImagePositionAdjuster } from '@/components/ui/image-position-adjuster'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -296,10 +297,11 @@ export default function RegisterGirlPage() {
                           <div className="relative">
                             {profilePhotoPreview ? (
                               <div className="relative group mx-auto w-64 h-64 sm:w-80 sm:h-80 bg-gray-100 rounded-lg overflow-hidden">
-                                <img
+                                <Image
                                   src={profilePhotoPreview}
                                   alt="プロフィール写真プレビュー"
-                                  className="w-full h-full object-contain shadow-lg"
+                                  fill
+                                  className="object-contain shadow-lg"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <Button

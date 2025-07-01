@@ -20,7 +20,7 @@ export async function sortUsersByPreference(
   try {
     // 男性ユーザーの活動エリア設定を取得
     const malePreferences = await getMalePreferences(currentUserId);
-    const userActivityAreas = malePreferences?.activityAreas || [];
+    const userActivityAreas: string[] = [];
 
     // 各ユーザーに優先度スコアを付与
     const usersWithScore = users.map(user => {
@@ -31,7 +31,7 @@ export async function sortUsersByPreference(
       if (userLocation && user.location) {
         const userCoords = getCoordinatesFromAddress(user.location);
         if (userCoords) {
-          distance = calculateDistance(userLocation, userCoords);
+          distance = calculateDistance(userLocation.lat, userLocation.lng, userCoords.lat, userCoords.lng);
           // GPSによる距離スコア（距離が近いほど高スコア）
           score += Math.max(0, 1000 - distance);
         }
@@ -42,7 +42,7 @@ export async function sortUsersByPreference(
         const userCoords = getCoordinatesFromAddress(userProfileLocation);
         const targetCoords = getCoordinatesFromAddress(user.location);
         if (userCoords && targetCoords) {
-          distance = calculateDistance(userCoords, targetCoords);
+          distance = calculateDistance(userCoords.lat, userCoords.lng, targetCoords.lat, targetCoords.lng);
           // 住所による距離スコア（GPSより低い基準）
           score += Math.max(0, 500 - distance);
         }
@@ -51,7 +51,7 @@ export async function sortUsersByPreference(
       // 3. 活動エリアのマッチング（最後の優先順位）
       if (userActivityAreas.length > 0 && user.location) {
         // ユーザーの居住地が活動エリアに含まれているかチェック
-        const isInActivityArea = userActivityAreas.some(area => {
+        const isInActivityArea = userActivityAreas.some((area: string) => {
           // 完全一致または部分一致でチェック
           return user.location?.includes(area) || area.includes(user.location || '');
         });
@@ -95,7 +95,7 @@ export async function filterUsersByActivityArea(
 ): Promise<UserProfile[]> {
   try {
     const malePreferences = await getMalePreferences(currentUserId);
-    const userActivityAreas = malePreferences?.activityAreas || [];
+    const userActivityAreas: string[] = [];
 
     if (userActivityAreas.length === 0) {
       return users; // 活動エリア未設定の場合は全ユーザー表示
@@ -105,7 +105,7 @@ export async function filterUsersByActivityArea(
       if (!user.location) return false;
       
       // ユーザーの居住地が活動エリアに含まれているかチェック
-      return userActivityAreas.some(area => {
+      return userActivityAreas.some((area: string) => {
         return user.location?.includes(area) || area.includes(user.location || '');
       });
     });

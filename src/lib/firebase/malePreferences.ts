@@ -7,12 +7,8 @@ import { db } from './client';
 export interface MalePreferences {
   // セクシュアル嗜好（1-5スケール）
   spanking: number; // スパンキング
-  outdoorPlay: number; // 野外プレイ
   groupPlay: number; // 複数人プレイ
   throating: number; // ゴックン
-  bondage: number; // 首絞めプレイ
-  oralReceiving: number; // 噛む・噛まれる
-  hypnosisPlay: number; // 催眠プレイ
   analPlay: number; // アナルプレイ
   cosplay: number; // コスプレプレイ
   toyPlay: number; // おもちゃを使う
@@ -24,28 +20,22 @@ export interface MalePreferences {
   partnerBodyTypes: string[]; // ["スリム", "やや細め", "細め", "グラマー", "筋肉質", "やややっちゃり", "ぽっちゃり", "こだわらない"]
 
   // 基本情報
-  experienceCount: string; // 経験人数
   recordingDuringPlay: string; // プレイ時の撮影
   isSadist: string; // あなたはSですか？
   isMasochist: string; // あなたはMですか？
 
   // 相手に求める条件
-  seekingType: string; // あなたの求めるものは？
   partnerHeight: string; // 身長
   partnerWeight: string; // 体重
   partnerBodyType: string; // 体型
   partnerLocation: string; // 居住地
 
   // 活動条件
-  contactBeforeMeeting: string; // 会う前の連絡
   photoExchangeBeforeMeeting: string; // 会う前の写真交換
   partnerAgeMin: number; // 相手の年齢（最小）
   partnerAgeMax: number; // 相手の年齢（最大）
 
   // 活動タイミング
-  availableDays: string[]; // 活動したい日 ["平日", "休日", "祝日"]
-  availableTimeSlots: string[]; // 活動したい時間帯 ["朝", "昼", "夜"]
-  activityAreas: string[]; // 活動エリア
 
   // システム情報
   completedAt?: any; // 完了日時
@@ -56,12 +46,8 @@ export interface MalePreferences {
 // デフォルト値
 export const defaultMalePreferences: Partial<MalePreferences> = {
   spanking: 3,
-  outdoorPlay: 3,
   groupPlay: 3,
   throating: 3,
-  bondage: 3,
-  oralReceiving: 3,
-  hypnosisPlay: 3,
   analPlay: 3,
   cosplay: 3,
   toyPlay: 3,
@@ -69,22 +55,16 @@ export const defaultMalePreferences: Partial<MalePreferences> = {
   squirting: 3,
   deepthroat: 3,
   partnerBodyTypes: [],
-  experienceCount: '',
   recordingDuringPlay: '',
   isSadist: '',
   isMasochist: '',
-  seekingType: '',
   partnerHeight: '',
   partnerWeight: '',
   partnerBodyType: '',
   partnerLocation: '',
-  contactBeforeMeeting: '',
   photoExchangeBeforeMeeting: '',
   partnerAgeMin: 18,
   partnerAgeMax: 30,
-  availableDays: [],
-  availableTimeSlots: [],
-  activityAreas: [],
   isComplete: false
 };
 
@@ -156,17 +136,11 @@ async function updateUserProfileWithPreferences(userId: string, preferences: Par
     };
 
     // 重要な設定項目をユーザープロフィールにも保存
-    if (preferences.seekingType) {
-      profileUpdateData.seekingType = preferences.seekingType;
-    }
     if (preferences.partnerAgeMin && preferences.partnerAgeMax) {
       profileUpdateData.partnerAgeRange = {
         min: preferences.partnerAgeMin,
         max: preferences.partnerAgeMax
       };
-    }
-    if (preferences.activityAreas) {
-      profileUpdateData.preferredAreas = preferences.activityAreas;
     }
 
     await updateDoc(userRef, profileUpdateData);
@@ -190,16 +164,13 @@ export function isMalePreferencesComplete(preferences: MalePreferences | null): 
   }
   
   const requiredFields = [
-    'experienceCount',
     'recordingDuringPlay', 
     'isSadist',
     'isMasochist',
-    'seekingType',
     'partnerHeight',
     'partnerWeight',
     'partnerBodyType',
     'partnerLocation',
-    'contactBeforeMeeting',
     'photoExchangeBeforeMeeting'
   ];
   
@@ -228,25 +199,19 @@ export function isMalePreferencesComplete(preferences: MalePreferences | null): 
     console.log('Preferences check: No body types selected:', preferences.partnerBodyTypes);
   }
   
-  // 活動エリアが選択されているかチェック
-  const hasActivityAreas = preferences.activityAreas && preferences.activityAreas.length > 0;
-  if (!hasActivityAreas) {
-    console.log('Preferences check: No activity areas selected:', preferences.activityAreas);
-  }
   
   // isCompleteフラグもチェック
-  const isMarkedComplete = preferences.isComplete === true;
+  const isMarkedComplete = Boolean(preferences.isComplete);
   if (!isMarkedComplete) {
     console.log('Preferences check: isComplete flag is false:', preferences.isComplete);
   }
   
-  const result = hasAllRequiredFields && hasAgeRange && hasBodyTypes && hasActivityAreas && isMarkedComplete;
+  const result = hasAllRequiredFields && hasAgeRange && hasBodyTypes && isMarkedComplete;
   
   console.log('Full preferences completion check result:', {
     hasAllRequiredFields,
     hasAgeRange,
     hasBodyTypes,
-    hasActivityAreas,
     isMarkedComplete,
     finalResult: result
   });

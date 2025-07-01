@@ -181,6 +181,7 @@ export default function SettingsPage() {
                 setIsDeleting(true);
                 try {
                   // Check if this is an admin-created user by checking Firestore first
+                  if (!db) throw new Error('Firestore is not initialized');
                   const userDocRef = doc(db, 'users', currentUser.uid);
                   const userDocSnapshot = await getDoc(userDocRef);
                   const userData = userDocSnapshot.data();
@@ -230,11 +231,13 @@ export default function SettingsPage() {
                     
                     try {
                       // Delete Firestore document first
+                      if (!db) throw new Error('Firestore is not initialized');
                       const userDocRef = doc(db, 'users', currentUser.uid);
                       await deleteDoc(userDocRef);
                       console.log('User document deleted from Firestore');
                       
                       // Delete auth user
+                      if (!auth) throw new Error('Firebase Auth is not initialized');
                       if (auth.currentUser) {
                         await deleteUser(auth.currentUser);
                         console.log('User deleted from Firebase Auth');

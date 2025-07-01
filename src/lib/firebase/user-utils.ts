@@ -11,6 +11,7 @@ export interface UserProfile {
   location?: string;
   interests?: string[];
   dataAiHint?: string;
+  additionalPhotos?: string[];
 }
 
 
@@ -31,6 +32,8 @@ export async function fetchAdminGirls(
       where('isGirl', '==', true),
       limit(limitCount)
     ];
+    
+    if (!db) throw new Error('Firestore is not initialized');
     
     const usersQuery = query(collection(db, 'users'), ...constraints);
     console.log('Query created, executing getDocs...');

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUserWithEmailAndPassword } from 'firebase-admin/auth'
+// Firebase Admin SDK doesn't have createUserWithEmailAndPassword - that's a client SDK method
 import { getAdminAuth } from '@/lib/firebase/admin'
 import { addGirlToFirestore } from '@/app/admin/actions'
 

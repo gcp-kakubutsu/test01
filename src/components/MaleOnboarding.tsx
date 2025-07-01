@@ -20,7 +20,7 @@ interface MaleOnboardingProps {
   onBack?: () => void;
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 
 export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }: MaleOnboardingProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -136,7 +136,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       </div>
       
       {renderRatingScale('スパンキングは好き・興味ありますか？', 'spanking', preferences.spanking)}
-      {renderRatingScale('野外プレイは好き・興味ありますか？', 'outdoorPlay', preferences.outdoorPlay)}
       {renderRatingScale('複数人プレイは好き・興味ありますか？', 'groupPlay', preferences.groupPlay)}
     </div>
   );
@@ -150,9 +149,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       </div>
       
       {renderRatingScale('ゴックンは好き・興味ありますか？', 'throating', preferences.throating)}
-      {renderRatingScale('首絞めプレイは好き・興味ありますか？', 'bondage', preferences.bondage)}
-      {renderRatingScale('噛む・噛まれるのは好き・興味ありますか？', 'oralReceiving', preferences.oralReceiving)}
-      {renderRatingScale('催眠プレイは好き・興味ありますか？', 'hypnosisPlay', preferences.hypnosisPlay)}
       {renderRatingScale('アナルプレイは好き・興味ありますか？', 'analPlay', preferences.analPlay)}
     </div>
   );
@@ -207,7 +203,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             <Checkbox
               id={bodyType}
               checked={preferences.partnerBodyTypes?.includes(bodyType) || false}
-              readOnly
             />
             <Label htmlFor={bodyType} className="text-sm font-medium cursor-pointer">
               {bodyType}
@@ -231,28 +226,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       
 
       <div className="space-y-4">
-        <div>
-          <Label className="text-base font-medium">会う前の連絡</Label>
-          <RadioGroup
-            value={preferences.contactBeforeMeeting}
-            onValueChange={(value) => setPreferences(prev => ({ ...prev, contactBeforeMeeting: value }))}
-            className="grid grid-cols-2 gap-3 mt-2"
-          >
-            {[
-              { value: 'したくない', label: 'したくない' },
-              { value: 'できればしたい', label: 'できればしたい' },
-              { value: '相手が望むなら', label: '相手が望むなら' },
-              { value: '絶対にしたい', label: '絶対にしたい' }
-            ].map((option) => (
-              <div key={option.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={`contact-${option.value}`} />
-                <Label htmlFor={`contact-${option.value}`} className="text-sm">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
 
         <div>
           <Label className="text-base font-medium">会う前の写真交換</Label>
@@ -320,22 +293,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       
 
       <div className="space-y-4">
-        <div>
-          <Label className="text-base font-medium">経験人数</Label>
-          <Select value={preferences.experienceCount} onValueChange={(value) => setPreferences(prev => ({ ...prev, experienceCount: value }))}>
-            <SelectTrigger className="w-full mt-2">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0人">0人</SelectItem>
-              <SelectItem value="1-5人">1-5人</SelectItem>
-              <SelectItem value="6-10人">6-10人</SelectItem>
-              <SelectItem value="11-20人">11-20人</SelectItem>
-              <SelectItem value="21-50人">21-50人</SelectItem>
-              <SelectItem value="50人以上">50人以上</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         <div>
           <Label className="text-base font-medium">プレイ時の撮影</Label>
@@ -395,21 +352,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       
 
       <div className="space-y-4">
-        <div>
-          <Label className="text-base font-medium">あなたの求めるものは？</Label>
-          <Select value={preferences.seekingType} onValueChange={(value) => setPreferences(prev => ({ ...prev, seekingType: value }))}>
-            <SelectTrigger className="w-full mt-2">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="恋人">恋人</SelectItem>
-              <SelectItem value="セフレ">セフレ</SelectItem>
-              <SelectItem value="友達">友達</SelectItem>
-              <SelectItem value="結婚相手">結婚相手</SelectItem>
-              <SelectItem value="不倫相手">不倫相手</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         <div>
           <Label className="text-base font-medium">相手の身長</Label>
@@ -484,142 +426,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     </div>
   );
 
-  // Step 8: 活動タイミング
-  const renderStep8 = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">活動タイミング</h2>
-        <p className="text-gray-600">希望する活動タイミングを教えてください</p>
-      </div>
-      
-      <div className="space-y-6">
-        <div>
-          <Label className="text-base font-medium mb-3 block">＜活動したい日＞</Label>
-          <div className="grid grid-cols-3 gap-3">
-            {['平日', '休日', '祝日'].map((day) => (
-              <div 
-                key={day} 
-                className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-                onClick={() => {
-                  const isChecked = preferences.availableDays?.includes(day) || false;
-                  if (!isChecked) {
-                    setPreferences(prev => ({
-                      ...prev,
-                      availableDays: [...(prev.availableDays || []), day]
-                    }));
-                  } else {
-                    setPreferences(prev => ({
-                      ...prev,
-                      availableDays: (prev.availableDays || []).filter(d => d !== day)
-                    }));
-                  }
-                }}
-              >
-                <Checkbox
-                  id={day}
-                  checked={preferences.availableDays?.includes(day) || false}
-                  readOnly
-                />
-                <Label htmlFor={day} className="text-sm font-medium cursor-pointer">
-                  {day}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-base font-medium mb-3 block">＜活動したい時間帯＞</Label>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { value: '朝', label: '🌅 朝', emoji: '🌅' },
-              { value: '昼', label: '☀️ 昼', emoji: '☀️' },
-              { value: '夜', label: '🌙 夜', emoji: '🌙' }
-            ].map((timeSlot) => (
-              <div 
-                key={timeSlot.value} 
-                className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-                onClick={() => {
-                  const isChecked = preferences.availableTimeSlots?.includes(timeSlot.value) || false;
-                  if (!isChecked) {
-                    setPreferences(prev => ({
-                      ...prev,
-                      availableTimeSlots: [...(prev.availableTimeSlots || []), timeSlot.value]
-                    }));
-                  } else {
-                    setPreferences(prev => ({
-                      ...prev,
-                      availableTimeSlots: (prev.availableTimeSlots || []).filter(t => t !== timeSlot.value)
-                    }));
-                  }
-                }}
-              >
-                <Checkbox
-                  id={timeSlot.value}
-                  checked={preferences.availableTimeSlots?.includes(timeSlot.value) || false}
-                  readOnly
-                />
-                <Label htmlFor={timeSlot.value} className="text-sm font-medium cursor-pointer">
-                  {timeSlot.label}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-base font-medium">活動エリア（1つ以上入力してください）</Label>
-          <Select 
-            value="" 
-            onValueChange={(value) => {
-              if (value && !preferences.activityAreas?.includes(value)) {
-                setPreferences(prev => ({
-                  ...prev,
-                  activityAreas: [...(prev.activityAreas || []), value]
-                }));
-              }
-            }}
-          >
-            <SelectTrigger className="w-full mt-2">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
-                '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
-                '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県',
-                '三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県',
-                '鳥取県', '島根県', '岡山県', '広島県', '山口県',
-                '徳島県', '香川県', '愛媛県', '高知県',
-                '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
-              ].map((area) => (
-                <SelectItem key={area} value={area}>{area}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          {preferences.activityAreas && preferences.activityAreas.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {preferences.activityAreas.map((area) => (
-                <Badge key={area} variant="secondary" className="bg-[#F0306A]/10 text-[#F0306A]">
-                  {area}
-                  <button
-                    onClick={() => setPreferences(prev => ({
-                      ...prev,
-                      activityAreas: (prev.activityAreas || []).filter(a => a !== area)
-                    }))}
-                    className="ml-2 text-xs"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // ステップのバリデーション
   const validateCurrentStep = (): boolean => {
@@ -630,13 +436,11 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     switch (currentStep) {
       case 5: // Step 5: 基本情報
         const step5Valid = !!(
-          preferences.contactBeforeMeeting &&
           preferences.photoExchangeBeforeMeeting &&
           preferences.partnerAgeMin > 0 &&
           preferences.partnerAgeMax > 0
         );
         console.log('Step 5 validation:', {
-          contactBeforeMeeting: preferences.contactBeforeMeeting,
           photoExchangeBeforeMeeting: preferences.photoExchangeBeforeMeeting,
           partnerAgeMin: preferences.partnerAgeMin,
           partnerAgeMax: preferences.partnerAgeMax,
@@ -645,13 +449,11 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         return step5Valid;
       case 6: // Step 6: 詳細な基本情報
         const step6Valid = !!(
-          preferences.experienceCount &&
           preferences.recordingDuringPlay &&
           preferences.isSadist &&
           preferences.isMasochist
         );
         console.log('Step 6 validation:', {
-          experienceCount: preferences.experienceCount,
           recordingDuringPlay: preferences.recordingDuringPlay,
           isSadist: preferences.isSadist,
           isMasochist: preferences.isMasochist,
@@ -660,14 +462,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         return step6Valid;
       case 7: // Step 7: 相手の詳細条件
         const step7Valid = !!(
-          preferences.seekingType &&
           preferences.partnerHeight &&
           preferences.partnerWeight &&
           preferences.partnerBodyType &&
           preferences.partnerLocation
         );
         console.log('Step 7 validation:', {
-          seekingType: preferences.seekingType,
           partnerHeight: preferences.partnerHeight,
           partnerWeight: preferences.partnerWeight,
           partnerBodyType: preferences.partnerBodyType,
@@ -675,19 +475,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           result: step7Valid
         });
         return step7Valid;
-      case 8: // Step 8: 活動タイミング
-        const step8Valid = !!(
-          preferences.availableDays && preferences.availableDays.length > 0 &&
-          preferences.availableTimeSlots && preferences.availableTimeSlots.length > 0 &&
-          preferences.activityAreas && preferences.activityAreas.length > 0
-        );
-        console.log('Step 8 validation:', {
-          availableDays: preferences.availableDays,
-          availableTimeSlots: preferences.availableTimeSlots,
-          activityAreas: preferences.activityAreas,
-          result: step8Valid
-        });
-        return step8Valid;
       default:
         console.log('No validation required for step:', currentStep);
         return true; // その他のステップはバリデーション不要
@@ -804,7 +591,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       case 5: return renderStep5();
       case 6: return renderStep6();
       case 7: return renderStep7();
-      case 8: return renderStep8();
       default: 
         console.warn('Unknown step:', currentStep);
         return renderStep1();

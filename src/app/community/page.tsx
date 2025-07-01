@@ -94,6 +94,7 @@ export default function CommunityPage() {
     const fetchCommunities = async () => {
       try {
         setLoadingCommunities(true);
+        if (!db) throw new Error('Firestore is not initialized');
         const communitiesRef = collection(db, 'communities');
         const communitiesQuery = query(communitiesRef, orderBy('memberCount', 'desc'));
         
@@ -160,6 +161,7 @@ export default function CommunityPage() {
     const fetchPosts = async () => {
       try {
         setLoadingPosts(true);
+        if (!db) throw new Error('Firestore is not initialized');
         const postsRef = collection(db, 'posts');
         const postsQuery = query(
           postsRef,
@@ -223,6 +225,7 @@ export default function CommunityPage() {
     if (!currentUser) return;
     
     try {
+      if (!db) throw new Error('Firestore is not initialized');
       const communityRef = doc(db, 'communities', communityId);
       const community = communities.find(c => c.id === communityId);
       
@@ -271,6 +274,7 @@ export default function CommunityPage() {
     if (!currentUser) return;
     
     try {
+      if (!db) throw new Error('Firestore is not initialized');
       const postRef = doc(db, 'posts', postId);
       const post = posts.find(p => p.id === postId);
       
@@ -312,6 +316,7 @@ export default function CommunityPage() {
     
     setIsPosting(true);
     try {
+      if (!db) throw new Error('Firestore is not initialized');
       const postsRef = collection(db, 'posts');
       await addDoc(postsRef, {
         authorId: currentUser.uid,

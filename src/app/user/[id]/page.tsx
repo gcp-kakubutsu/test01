@@ -55,6 +55,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       const { collection, query, where, onSnapshot } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase/client');
       
+      if (!db) throw new Error('Firestore is not initialized');
       const viewsRef = collection(db, 'profileViews');
       const viewsQuery = query(viewsRef, where('viewedUserId', '==', userId));
       
@@ -132,7 +133,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         unsubscribe();
       }
     };
-  }, [fetchProfileViewsCount]);
+  }, [fetchProfileViewsCount, userId]);
 
   const handleLike = async () => {
     if (!currentUser || !userId || isProcessingLike) return;

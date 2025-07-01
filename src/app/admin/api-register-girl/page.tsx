@@ -45,7 +45,7 @@ export default function ApiRegisterGirlPage() {
     defaultValues: {
       apiEndpoint: '',
       apiKey: '',
-      fetchCount: '10',
+      fetchCount: 10,
     },
   })
 

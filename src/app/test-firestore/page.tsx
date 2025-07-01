@@ -28,6 +28,7 @@ export default function TestFirestorePage() {
         
         // 1. すべてのユーザーを取得
         console.log('Fetching all users...');
+        if (!db) throw new Error('Firestore is not initialized');
         const allUsersQuery = query(collection(db, 'users'), limit(10));
         const allUsersSnapshot = await getDocs(allUsersQuery);
         const allUsersData = allUsersSnapshot.docs.map(doc => ({
@@ -39,6 +40,7 @@ export default function TestFirestorePage() {
 
         // 2. isGirl=trueのユーザーを取得
         console.log('Fetching girl users...');
+        if (!db) throw new Error('Firestore is not initialized');
         const girlUsersQuery = query(collection(db, 'users'), where('isGirl', '==', true), limit(10));
         const girlUsersSnapshot = await getDocs(girlUsersQuery);
         const girlUsersData = girlUsersSnapshot.docs.map(doc => ({

@@ -57,6 +57,9 @@ pnpm-debug.log*
 firebase-debug.log
 firebase-crashlytics-build.json
 
+# TypeScript
+tsconfig.tsbuildinfo
+
 .specstory/
 .cursorindexingignore
 

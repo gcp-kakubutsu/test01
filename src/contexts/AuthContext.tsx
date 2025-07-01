@@ -50,8 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Auth state change error:', error);
         
         // 一時的なネットワークエラーの場合は現在のユーザー状態を保持
-        if (error.code === 'auth/network-request-failed' || 
-            error.code === 'auth/internal-error' ||
+        const firebaseError = error as any;
+        if (firebaseError.code === 'auth/network-request-failed' || 
+            firebaseError.code === 'auth/internal-error' ||
             error.message.includes('503') ||
             error.message.includes('Service Unavailable')) {
           console.warn('一時的なネットワークエラーが発生しました。ユーザー状態を保持します。');
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (data: AuthFormData) => {

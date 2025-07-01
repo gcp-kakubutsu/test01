@@ -21,7 +21,7 @@ interface ChatDisplay {
   lastMessage: string;
   unreadCount: number;
   avatarUrl: string;
-  lastMessageTime?: string;
+  lastMessageTime?: string | null;
 }
 
 export default function MessagesPage() {

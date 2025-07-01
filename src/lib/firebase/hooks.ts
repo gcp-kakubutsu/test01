@@ -19,6 +19,8 @@ export interface UserProfile {
   accountStatus?: string;
   createdAt?: any;
   updatedAt?: any;
+  age?: number;
+  additionalPhotos?: string[];
 }
 
 export function useUserProfile(userId?: string) {
@@ -35,6 +37,7 @@ export function useUserProfile(userId?: string) {
       return;
     }
 
+    if (!db) throw new Error('Firestore is not initialized');
     const userRef = doc(db, 'users', uid);
     
     const unsubscribe = onSnapshot(
@@ -95,6 +98,7 @@ export function useCommunities() {
       return;
     }
 
+    if (!db) throw new Error('Firestore is not initialized');
     const communitiesRef = collection(db, 'communities');
     const q = query(communitiesRef, orderBy('memberCount', 'desc'), limit(20));
 
@@ -141,6 +145,7 @@ export function useMessages(matchId: string) {
       return;
     }
 
+    if (!db) throw new Error('Firestore is not initialized');
     const messagesRef = collection(db, 'matches', matchId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
@@ -182,11 +187,13 @@ export async function fetchUserProfiles(userIds: string[]): Promise<Map<string, 
   
   for (const chunk of chunks) {
     // Use document IDs directly instead of uid field
+    if (!db) throw new Error('Firestore is not initialized');
     const usersRef = collection(db, 'users');
     
     // Fetch each user document by ID
     for (const userId of chunk) {
       try {
+        if (!db) throw new Error('Firestore is not initialized');
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
           profiles.set(userId, { uid: userId, ...userDoc.data() } as UserProfile);
@@ -214,6 +221,7 @@ export function useMatches() {
     }
 
     // Query matches where current user is in the users array (no orderBy to avoid index requirement)
+    if (!db) throw new Error('Firestore is not initialized');
     const matchesRef = collection(db, 'matches');
     const q = query(
       matchesRef,
@@ -274,6 +282,7 @@ export function useUserStats(userId?: string) {
         let currentStats = { likesReceived: 0, matchesCount: 0, profileViews: 0 };
 
         // Set up real-time listener for profile views
+        if (!db) throw new Error('Firestore is not initialized');
         const viewsRef = collection(db, 'profileViews');
         const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
         const unsubscribeViews = onSnapshot(viewsQuery, (snapshot) => {
@@ -284,12 +293,14 @@ export function useUserStats(userId?: string) {
         });
 
         // Get likes received (one-time fetch for now)
+        if (!db) throw new Error('Firestore is not initialized');
         const likesRef = collection(db, 'likes');
         const likesQuery = query(likesRef, where('to', '==', targetUserId));
         const likesSnapshot = await getDocs(likesQuery);
         currentStats.likesReceived = likesSnapshot.size;
 
         // Get matches count (one-time fetch for now)
+        if (!db) throw new Error('Firestore is not initialized');
         const matchesRef = collection(db, 'matches');
         const matchesQuery = query(matchesRef, where('users', 'array-contains', targetUserId));
         const matchesSnapshot = await getDocs(matchesQuery);
