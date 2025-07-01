@@ -307,33 +307,33 @@ export default function HomePage() {
       
       {/* Pagination */}
       {users.length > 0 && (
-        <div className="flex justify-center items-center mt-8 gap-4">
+        <div className="flex justify-center items-center mt-8 gap-2 sm:gap-4">
           <Button
             variant="outline"
-            size="lg"
+            size="default"
             onClick={handlePreviousPage}
             disabled={currentPage === 1}
-            className="flex items-center gap-2 px-6 py-3 text-base"
+            className="flex items-center gap-1 px-3 sm:px-4"
           >
-            <ChevronLeft className="h-5 w-5" />
-            前のページ
+            <ChevronLeft className="h-4 w-4" />
+            <span>前へ</span>
           </Button>
           
-          <div className="flex items-center gap-2">
-            <span className="text-base font-medium">
-              {currentPage} / {totalPages} ページ
+          <div className="flex items-center gap-2 px-2 sm:px-4">
+            <span className="text-sm sm:text-base font-semibold min-w-[60px] text-center">
+              {currentPage} / {totalPages}
             </span>
           </div>
           
           <Button
             variant="outline"
-            size="lg"
+            size="default"
             onClick={handleNextPage}
             disabled={currentPage === totalPages}
-            className="flex items-center gap-2 px-6 py-3 text-base"
+            className="flex items-center gap-1 px-3 sm:px-4"
           >
-            次のページ
-            <ChevronRight className="h-5 w-5" />
+            <span>次へ</span>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}
