@@ -48,32 +48,47 @@ export default function SearchPage() {
   }, [isAuthenticated, isLoading, router]);
 
   // 位置情報を取得
-  useEffect(() => {
-    const getLocation = async () => {
-      setIsLoadingLocation(true);
-      try {
-        const locationInfo = await getCurrentLocation();
-        if (locationInfo.coordinates) {
-          setUserLocation(locationInfo.coordinates);
-          toast({
-            title: "位置情報を取得しました",
-            description: "近くの女性から優先的に表示します。",
-          });
-        } else if (locationInfo.error) {
-          console.warn('位置情報の取得に失敗:', locationInfo.error);
-          // エラーの場合はユーザープロフィールの住所を使用
+  const requestLocation = async () => {
+    setIsLoadingLocation(true);
+    try {
+      const locationInfo = await getCurrentLocation();
+      if (locationInfo.coordinates) {
+        setUserLocation(locationInfo.coordinates);
+        toast({
+          title: "位置情報を取得しました",
+          description: "近くの女性から優先的に表示します。",
+        });
+        
+        // 位置情報が取得できたら、ユーザーリストを再ソート
+        if (allUsers.length > 0) {
+          const sortedUsers = sortUsersByDistance(allUsers, locationInfo.coordinates);
+          setFilteredUsers(sortedUsers);
         }
-      } catch (error) {
-        console.error('位置情報取得エラー:', error);
-      } finally {
-        setIsLoadingLocation(false);
+      } else if (locationInfo.error) {
+        console.warn('位置情報の取得に失敗:', locationInfo.error);
+        toast({
+          title: "位置情報を取得できません",
+          description: locationInfo.error,
+          variant: "destructive",
+        });
       }
-    };
-
-    if (isAuthenticated) {
-      getLocation();
+    } catch (error) {
+      console.error('位置情報取得エラー:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: "位置情報の取得中にエラーが発生しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingLocation(false);
     }
-  }, [isAuthenticated, toast]);
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && !userLocation) {
+      requestLocation();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -152,6 +167,19 @@ export default function SearchPage() {
   };
 
   const handleLocationSort = async () => {
+    // 既に位置情報がある場合は、そのまま並び替え
+    if (userLocation && filteredUsers.length > 0) {
+      const sortedUsers = sortUsersByDistance(filteredUsers, userLocation);
+      setFilteredUsers(sortedUsers);
+      setCurrentIndex(0);
+      toast({
+        title: "位置情報で並び替えました",
+        description: "近い順に表示しています。",
+      });
+      return;
+    }
+
+    // 位置情報がない場合は取得
     setIsLoadingLocation(true);
     try {
       const locationInfo = await getCurrentLocation();
@@ -172,6 +200,7 @@ export default function SearchPage() {
         });
       }
     } catch (error) {
+      console.error('位置情報取得エラー:', error);
       toast({
         title: "エラー",
         description: "位置情報の取得中にエラーが発生しました。",
@@ -254,33 +283,43 @@ export default function SearchPage() {
   return (
     <div className="max-w-md mx-auto space-y-4">
       {/* Search Bar */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="名前、趣味、場所で検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="pl-10"
-          />
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="名前、趣味、場所で検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="pl-10"
+            />
+          </div>
+          <Button onClick={handleSearch} variant="outline">
+            <Filter className="h-4 w-4" />
+          </Button>
+          <Button 
+            onClick={handleLocationSort} 
+            variant="outline"
+            disabled={isLoadingLocation}
+            title={userLocation ? "位置情報で再度並び替え" : "位置情報を取得して並び替え"}
+          >
+            {isLoadingLocation ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+            ) : (
+              <Navigation className={`h-4 w-4 ${userLocation ? 'text-green-600' : ''}`} />
+            )}
+          </Button>
         </div>
-        <Button onClick={handleSearch} variant="outline">
-          <Filter className="h-4 w-4" />
-        </Button>
-        <Button 
-          onClick={handleLocationSort} 
-          variant="outline"
-          disabled={isLoadingLocation}
-          title="位置情報で並び替え"
-        >
-          {isLoadingLocation ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-          ) : (
-            <Navigation className="h-4 w-4" />
-          )}
-        </Button>
+        
+        {/* 位置情報のステータス表示 */}
+        {userLocation && (
+          <div className="text-xs text-green-600 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            位置情報を使用して表示中
+          </div>
+        )}
       </div>
 
       {/* User Cards */}

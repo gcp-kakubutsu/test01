@@ -37,6 +37,12 @@ function deg2rad(deg: number): number {
 // GPS位置情報を取得
 export async function getCurrentLocation(): Promise<LocationInfo> {
   return new Promise((resolve) => {
+    // HTTPS環境のチェック
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      resolve({ error: '位置情報を使用するにはHTTPSが必要です' });
+      return;
+    }
+
     if (!navigator.geolocation) {
       resolve({ error: 'このブラウザは位置情報をサポートしていません' });
       return;
@@ -44,12 +50,18 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 15000, // 15秒に延長
       maximumAge: 300000 // 5分間キャッシュ
     };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('位置情報取得成功:', {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+        
         resolve({
           coordinates: {
             lat: position.coords.latitude,
@@ -58,18 +70,24 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
         });
       },
       (error) => {
+        // エラーオブジェクトの安全な処理
+        const errorCode = error?.code || 0;
+        const errorMsg = error?.message || 'Unknown error';
+        
         let errorMessage = '位置情報の取得に失敗しました';
         
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = '位置情報の使用が拒否されました';
+        switch (errorCode) {
+          case 1: // PERMISSION_DENIED
+            errorMessage = '位置情報の使用が拒否されました。ブラウザの設定で位置情報を許可してください。';
             break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = '位置情報が利用できません';
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = '位置情報が利用できません。GPSが有効か確認してください。';
             break;
-          case error.TIMEOUT:
-            errorMessage = '位置情報の取得がタイムアウトしました';
+          case 3: // TIMEOUT
+            errorMessage = '位置情報の取得がタイムアウトしました。もう一度お試しください。';
             break;
+          default:
+            errorMessage = `位置情報エラー: ${errorMsg}`;
         }
         
         resolve({ error: errorMessage });
