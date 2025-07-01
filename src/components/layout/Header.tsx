@@ -2,10 +2,11 @@
 "use client";
 
 import Link from 'next/link';
-import { HeartHandshake, LogIn, LogOut, MessageSquare, Settings, User, UserPlus, Loader2 } from 'lucide-react';
+import { LogIn, LogOut, MessageSquare, Settings, User, UserPlus, Loader2, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export function Header() {
   const { isAuthenticated, logout, isLoading } = useAuth();
@@ -19,9 +20,15 @@ export function Header() {
   return (
     <header className="bg-card text-card-foreground shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
-          <HeartHandshake className="h-8 w-8" />
-          Nukune
+        <Link href="/" className="flex items-center">
+          <Image 
+            src="/img/logo_nukune.svg" 
+            alt="Nukune Logo" 
+            width={150} 
+            height={40}
+            priority
+            className="h-10 w-auto"
+          />
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
           {isLoading ? (
@@ -30,7 +37,7 @@ export function Header() {
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/home" className="flex items-center gap-1">
-                  <HeartHandshake className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">ホーム</span>
+                  <Home className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">ホーム</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>

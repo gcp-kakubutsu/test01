@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, HeartHandshake, Target } from "lucide-react";
+import { Users, Target } from "lucide-react";
 import Image from "next/image";
 
 export default function AboutPage() {
@@ -8,8 +8,14 @@ export default function AboutPage() {
     <div className="container mx-auto px-4 py-12">
       <Card className="shadow-xl">
         <CardHeader className="text-center">
-          <HeartHandshake className="mx-auto h-16 w-16 text-primary mb-4" />
-          <CardTitle className="text-4xl font-bold text-primary">Nukuneについて</CardTitle>
+          <Image 
+            src="/img/logo_nukune.svg" 
+            alt="Nukune Logo" 
+            width={200} 
+            height={56}
+            className="mx-auto mb-4"
+          />
+          <CardTitle className="text-4xl font-bold text-primary">について</CardTitle>
         </CardHeader>
         <CardContent className="space-y-10 text-lg text-muted-foreground leading-relaxed">
           <section className="text-center">
