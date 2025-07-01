@@ -13,7 +13,7 @@ export default function AboutPage() {
             alt="Nukune Logo" 
             width={200} 
             height={56}
-            className="mx-auto mb-4"
+            className="mx-auto mb-4 h-12 w-auto sm:h-14 max-w-[160px] sm:max-w-[200px]"
           />
           <CardTitle className="text-4xl font-bold text-primary">について</CardTitle>
         </CardHeader>

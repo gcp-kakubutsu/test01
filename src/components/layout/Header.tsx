@@ -19,20 +19,20 @@ export function Header() {
 
   return (
     <header className="bg-card text-card-foreground shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="flex items-center">
+      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center gap-2">
+        <Link href="/" className="flex items-center flex-shrink-0">
           <Image 
             src="/img/logo_nukune.svg" 
             alt="Nukune Logo" 
             width={150} 
             height={40}
             priority
-            className="h-10 w-auto"
+            className="h-8 w-auto sm:h-10 max-w-[120px] sm:max-w-[150px]"
           />
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-4">
+        <nav className="flex items-center gap-1 sm:gap-2 lg:gap-4 overflow-x-auto">
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
           ) : isAuthenticated ? (
             <>
               <Button variant="ghost" size="sm" asChild>
