@@ -227,28 +227,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
 
       <div className="space-y-4">
 
-        <div>
-          <Label className="text-base font-medium">会う前の写真交換</Label>
-          <RadioGroup
-            value={preferences.photoExchangeBeforeMeeting}
-            onValueChange={(value) => setPreferences(prev => ({ ...prev, photoExchangeBeforeMeeting: value }))}
-            className="grid grid-cols-2 gap-3 mt-2"
-          >
-            {[
-              { value: 'したくない', label: 'したくない' },
-              { value: 'できればしたい', label: 'できればしたい' },
-              { value: '相手が望むなら', label: '相手が望むなら' },
-              { value: '絶対にしたい', label: '絶対にしたい' }
-            ].map((option) => (
-              <div key={option.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={`photo-${option.value}`} />
-                <Label htmlFor={`photo-${option.value}`} className="text-sm">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
 
         <div>
           <Label className="text-base font-medium">相手の年齢</Label>
@@ -302,7 +280,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="しない">しない</SelectItem>
-              <SelectItem value="相手が望むなら">相手が望むなら</SelectItem>
               <SelectItem value="したい">したい</SelectItem>
             </SelectContent>
           </Select>
