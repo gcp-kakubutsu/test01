@@ -62,13 +62,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex items-center justify-center py-6 sm:py-12 px-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto p-3 bg-primary rounded-full w-fit mb-4">
-            <LogInIcon className="h-10 w-10 text-primary-foreground" />
+          <div className="mx-auto p-2 sm:p-3 bg-primary rounded-full w-fit mb-4">
+            <LogInIcon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold text-primary">おかえりなさい！</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl font-bold text-primary">おかえりなさい！</CardTitle>
           <CardDescription>ログインしてNukuneの旅を続けましょう。</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -92,7 +92,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full text-lg py-3" disabled={isSubmitting || authIsLoading}>
+            <Button type="submit" className="w-full text-base sm:text-lg py-2.5 sm:py-3" disabled={isSubmitting || authIsLoading}>
               {isSubmitting || authIsLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 送信中...

@@ -89,7 +89,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-8 px-4 bg-[#F9E4EB] min-h-screen">
+    <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4 bg-[#F9E4EB] min-h-screen">
       <Card className="w-full max-w-md shadow-lg bg-white">
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5 pt-8 pb-6">
@@ -107,9 +107,9 @@ export default function SignupPage() {
             
             <div className="space-y-2">
               <Label className="text-sm font-medium">生年月日</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
                 <Select value={birthYear} onValueChange={setBirthYear} required>
-                  <SelectTrigger className="h-12 border-gray-300">
+                  <SelectTrigger className="h-10 sm:h-12 text-sm sm:text-base border-gray-300">
                     <SelectValue placeholder="年" />
                   </SelectTrigger>
                   <SelectContent>
@@ -122,7 +122,7 @@ export default function SignupPage() {
                 </Select>
                 
                 <Select value={birthMonth} onValueChange={setBirthMonth} required>
-                  <SelectTrigger className="h-12 border-gray-300">
+                  <SelectTrigger className="h-10 sm:h-12 text-sm sm:text-base border-gray-300">
                     <SelectValue placeholder="月" />
                   </SelectTrigger>
                   <SelectContent>
@@ -135,7 +135,7 @@ export default function SignupPage() {
                 </Select>
                 
                 <Select value={birthDay} onValueChange={setBirthDay} required>
-                  <SelectTrigger className="h-12 border-gray-300">
+                  <SelectTrigger className="h-10 sm:h-12 text-sm sm:text-base border-gray-300">
                     <SelectValue placeholder="日" />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,7 +233,7 @@ export default function SignupPage() {
           <CardFooter className="pb-8">
             <Button 
               type="submit" 
-              className="w-full h-14 text-lg font-medium bg-[#F0306A] hover:bg-[#E02860] text-white rounded-full" 
+              className="w-full h-12 sm:h-14 text-base sm:text-lg font-medium bg-[#F0306A] hover:bg-[#E02860] text-white rounded-full" 
               disabled={isSubmitting || authIsLoading || !isOver18}
             >
               {isSubmitting || authIsLoading ? (

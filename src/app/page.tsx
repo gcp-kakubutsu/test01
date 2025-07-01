@@ -71,7 +71,7 @@ export default function LandingPage() {
   return (
     <div className="space-y-16 md:space-y-24">
       {/* Hero Section */}
-      <section className="relative text-center py-20 md:py-32 rounded-lg overflow-hidden">
+      <section className="relative text-center py-12 sm:py-20 md:py-32 rounded-lg overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src="/img/hero-banner-couple.jpg"
@@ -85,17 +85,17 @@ export default function LandingPage() {
            <div className="absolute inset-0 bg-black/30"></div>
         </div>
         <div className="relative container mx-auto px-4">
-          <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-primary-foreground mb-4 sm:mb-6">
             心で繋がる。豊かに生きる。
           </h1>
-          <p className="text-lg md:text-xl text-primary-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-primary-foreground mb-6 sm:mb-8 max-w-2xl mx-auto">
             Nukuneは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
           </p>
-          <div className="space-x-4">
-            <Button size="lg" asChild className="bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+            <Button size="default" asChild className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/signup">Nukuneに参加</Link>
             </Button>
-            <Button size="lg" asChild className="bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
+            <Button size="default" asChild className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
               <Link href="/login">ログイン</Link>
             </Button>
           </div>
@@ -136,7 +136,7 @@ export default function LandingPage() {
       {/* Why Nukune Section */}
        <section className="bg-secondary py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-12">Nukuneが選ばれる理由</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-8 sm:mb-12">Nukuneが選ばれる理由</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {whyNukune.map((reason) => (
               <Card key={reason.title} className="bg-card shadow-lg">
@@ -158,7 +158,7 @@ export default function LandingPage() {
 
       {/* How to Register Section */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">簡単スタートガイド</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-primary mb-8 sm:mb-12">簡単スタートガイド</h2>
         <div className="max-w-2xl mx-auto">
           <div>
             <h3 className="text-2xl font-semibold text-center text-blue-600 mb-6 p-3 bg-blue-100 rounded-lg">男性の方</h3>
