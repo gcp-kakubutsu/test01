@@ -70,6 +70,7 @@ public/
 
 # 特定の画像ファイルは除外（追跡する）
 !public/img/
+!public/img/logo_nukune.svg
 !public/img/feature-advanced-search.jpg
 !public/img/feature-ai-matching.jpg
 !public/img/feature-post-date.jpg
