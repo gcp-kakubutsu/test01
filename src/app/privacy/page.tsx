@@ -2,17 +2,8 @@
 "use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
 
 export default function PrivacyPage() {
-  const [lastUpdated, setLastUpdated] = useState('');
-
-  useEffect(() => {
-    // クライアントサイドでのみ実行
-    setLastUpdated(new Date().toLocaleDateString('ja-JP'));
-  }, []);
-
-
   return (
     <div className="container mx-auto px-4 py-12">
       <Card className="shadow-xl">
@@ -20,59 +11,117 @@ export default function PrivacyPage() {
           <ShieldCheck className="mx-auto h-16 w-16 text-primary mb-4" />
           <CardTitle className="text-4xl font-bold text-primary">プライバシーポリシー</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 text-muted-foreground leading-relaxed">
-          {lastUpdated && <p className="text-sm">最終更新日: {lastUpdated}</p>}
-
+        <CardContent className="space-y-8 text-muted-foreground leading-relaxed">
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">1. はじめに</h2>
-            <p>Nukune（以下「当社」）は、お客様のプライバシー保護に努めています。本プライバシーポリシーは、お客様が当社のモバイルアプリケーションおよびウェブサイト（総称して「本サービス」）を利用する際に、当社がお客様の情報をどのように収集、使用、開示、保護するかを説明するものです。</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第1条　収集する利用者情報及び収集方法</h2>
+            <p className="mb-4">本ポリシーにおいて、「利用者情報」とは、利用者の識別に係る情報、通信サービス上の行動履歴、その他利用者又は利用者の端末に関連して生成又は蓄積された情報であって、本ポリシーに基づき当社が収集するものを意味するものとします。</p>
+            <p className="mb-4">本サービスにおいて当社が収集する利用者情報は、その収集方法に応じて、以下のようなものとなります。</p>
+            
+            <div className="space-y-4 pl-4">
+              <div>
+                <h3 className="font-semibold mb-2">(1)利用者からご提供いただく情報</h3>
+                <p className="mb-2">本サービスを利用するために、又は本サービスの利用を通じて利用者からご提供いただく情報は以下のとおりです。</p>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  <li>利用者の氏名、生年月日、性別等プロフィールに関する情報</li>
+                  <li>利用者のメールアドレス、電話番号等連絡先に関する情報</li>
+                  <li>利用者の肖像を含む静止画、動画情報</li>
+                  <li>利用者の本サービスの利用状況に関する情報</li>
+                  <li>利用者のクレジットカード情報、口座情報等決済に必要な情報</li>
+                  <li>入力フォームその他当社が定める方法を通じて利用者が入力又は送信する情報</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">(2)利用者が本サービスの利用において、他のサービスと連携を許可することにより、当該他のサービスからご提供いただく情報</h3>
+                <p className="mb-2">利用者が、本サービスを利用するにあたり、ソーシャルネットワーキングサービス等の他のサービスとの連携を許可した場合には、その許可の際にご同意いただいた内容に基づき、以下の情報を当該外部サービスから収集します。</p>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  <li>当該外部サービスで利用者が利用するID</li>
+                  <li>その他当該外部サービスのプライバシー設定により利用者が連携先に開示を認めた情報</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">(3)利用者が本サービスを利用するにあたって、当社が収集する情報</h3>
+                <p className="mb-2">当社は、本サービスへのアクセス状況やそのご利用方法に関する情報を収集することがあります。これには以下の情報が含まれます。</p>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  <li>リファラ</li>
+                  <li>ＩＰアドレス</li>
+                  <li>サーバーアクセスログに関する情報</li>
+                  <li>Cookie、ADID、IDFAその他の識別子</li>
+                  <li>位置情報</li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">2. 収集する情報</h2>
-            <p>当社は、様々な方法でお客様に関する情報を収集することがあります。本サービスを通じて収集する可能性のある情報は以下の通りです。</p>
-            <ul className="list-disc list-inside pl-4 mt-2 space-y-1">
-              <li><strong>個人データ：</strong>お客様が本サービスに登録する際、または本サービスに関連する様々な活動に参加する際に自発的に提供する、氏名、メールアドレス、性別、年齢、写真、興味などの個人を特定できる情報。</li>
-              <li><strong>派生データ：</strong>お客様が本サービスにアクセスした際に当社のサーバーが自動的に収集する情報。例えば、IPアドレス、ブラウザの種類、オペレーティングシステム、アクセス時間、本サービスへのアクセス直前および直後に閲覧したページなど。</li>
-              <li><strong>プロフィール認証データ：</strong>AIによるプロフィール認証のためにお客様が提供する画像および説明文。これらは安全性と信頼性の分析のために処理されます。</li>
-            </ul>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第2条　利用目的</h2>
+            <p className="mb-4">本サービスのサービス提供にかかわる利用者情報の具体的な利用目的は以下のとおりです。</p>
+            <ol className="list-decimal list-inside space-y-2 pl-4">
+              <li>本サービスに関する登録の受付、本人確認、利用者認証、利用者設定の記録、利用料金の決済計算、マッチングのための利用者情報の掲載等本サービスの提供、維持、保護及び改善のため</li>
+              <li>利用者のトラフィック測定及び行動測定のため</li>
+              <li>広告の配信、表示及び効果測定のため</li>
+              <li>本サービスに関するご案内、お問い合わせ等への対応のため</li>
+              <li>本サービスに関する当社の規約、ポリシー等（以下「規約等」といいます。）に違反する行為に対する対応のため</li>
+              <li>本サービスに関する規約等の変更などを通知するため</li>
+            </ol>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">3. お客様情報の利用</h2>
-            <p>お客様に関する正確な情報を保有することにより、当社は円滑で効率的、かつカスタマイズされた体験を提供することができます。具体的には、本サービスを通じて収集したお客様の情報を以下の目的で利用することがあります。</p>
-            <ul className="list-disc list-inside pl-4 mt-2 space-y-1">
-              <li>お客様のアカウント作成および管理。</li>
-              <li>他のユーザーとのマッチング。</li>
-              <li>本サービスおよび提供内容の改善。</li>
-              <li>本サービスの利用状況および傾向の監視・分析による体験向上。</li>
-              <li>安全性および認証目的でのプロフィールデータに対するAI主導の分析実行。</li>
-              <li>不正取引の防止、盗難の監視、および犯罪行為からの保護。</li>
-            </ul>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第3条　第三者提供</h2>
+            <p className="mb-4">当社は、利用者情報のうち、個人情報及び個人関連情報については、あらかじめ利用者の同意を得ないで、第三者（日本国外にある者を含みます。）に提供しません。但し、次に掲げる必要があり第三者（日本国外にある者を含みます。）に提供する場合はこの限りではありません。</p>
+            <ol className="list-decimal list-inside space-y-2 pl-4">
+              <li>当社が利用目的の達成に必要な範囲内において個人情報の取扱いの全部又は一部を委託する場合</li>
+              <li>合併その他の事由による事業の承継に伴って個人情報が提供される場合</li>
+              <li>本ポリシーにおいて公表した提携先又は情報収集モジュール提供者へ個人情報又は個人関連情報が提供される場合</li>
+              <li>国の機関もしくは地方公共団体又はその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合であって、利用者の同意を得ることによって当該事務の遂行に支障を及ぼすおそれがある場合</li>
+              <li>その他、個人情報の保護に関する法律（以下「個人情報保護法」といいます。）その他の法令で認められる場合</li>
+            </ol>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">4. お客様情報の開示</h2>
-            <p>当社は、特定の状況においてお客様に関して収集した情報を共有することがあります。お客様の情報は以下のように開示される場合があります。</p>
-             <ul className="list-disc list-inside pl-4 mt-2 space-y-1">
-                <li><strong>法律による場合または権利保護のため：</strong>法的手続きに対応するため、当社のポリシーの潜在的な違反を調査または是正するため、あるいは他者の権利、財産、安全を保護するために、お客様に関する情報の開示が必要であると当社が判断した場合。</li>
-                <li><strong>第三者サービスプロバイダー：</strong>データ分析、AI処理、ホスティングサービス、顧客サービス、マーケティング支援など、当社のためにまたは当社に代わってサービスを実行する第三者とお客様の情報を共有する場合があります。</li>
-             </ul>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第4条　個人情報の開示</h2>
+            <p className="mb-4">当社は、利用者から、個人情報保護法の定めに基づき個人情報の開示を求められたときは、利用者ご本人からのご請求であることを確認の上で、利用者に対し、遅滞なく開示を行います（当該個人情報が存在しないときにはその旨を通知いたします。）。但し、個人情報保護法その他の法令により、当社が開示の義務を負わない場合は、この限りではありません。なお、個人情報の開示につきましては、手数料（1件あたり3,000円）を頂戴しておりますので、あらかじめ御了承ください。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">5. お客様情報のセキュリティ</h2>
-            <p>当社は、お客様の個人情報を保護するために、管理的、技術的、物理的なセキュリティ対策を講じています。当社がお客様から提供された個人情報を保護するために合理的な措置を講じている一方で、当社の努力にもかかわらず、いかなるセキュリティ対策も完璧または不可侵ではなく、いかなるデータ送信方法も傍受やその他の種類の誤用から保証されるものではないことをご承知おきください。</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第5条　個人情報の訂正及び利用停止等</h2>
+            <ol className="list-decimal list-inside space-y-4 pl-4">
+              <li>当社は、利用者から、個人情報が真実でないという理由によって個人情報保護法の定めに基づきその個人情報等の訂正を求められた場合には、利用者ご本人からのご請求であることを確認の上で遅滞なく必要な調査を行い、その結果に基づき、個人情報の内容の訂正を行い、その旨を利用者に通知します。なお、訂正を行わない旨の決定をしたときは、利用者に対しその旨を通知いたします。</li>
+              
+              <li>当社は、利用者から、以下の各号の理由によって個人情報保護法の定めに基づきその個人情報等の利用の停止又は消去を求められた場合には、利用者ご本人からのご請求であることを確認の上で遅滞なく必要な調査を行い、その結果に基づき、個人情報の利用停止又は消去行い、その旨を利用者に通知します。なお、利用停止又は消去を行わない旨の決定をしたときは、利用者に対しその旨を通知いたします。
+                <ul className="list-disc list-inside space-y-1 pl-4 mt-2">
+                  <li>偽りその他不正の手段により収集されたものである場合</li>
+                  <li>個人情報等を利用する必要がなくなったとき</li>
+                  <li>その他個人情報保護法に定めのある場合</li>
+                </ul>
+              </li>
+              
+              <li>当社は、利用者から、以下の各号の理由によって個人情報保護法の定めに基づき利用者の個人情報について第三者提供の停止を求められた場合、利用者ご本人からのご請求であることを確認の上で、個人情報の第三者提供の停止を行い、その旨を利用者に通知します。
+                <ul className="list-disc list-inside space-y-1 pl-4 mt-2">
+                  <li>利用者の同意なく個人情報等を第三者（日本国外にある者を含みます。）に提供した場合</li>
+                  <li>個人情報等を利用する必要がなくなったとき</li>
+                  <li>その他個人情報保護法に定めのある場合</li>
+                </ul>
+              </li>
+              
+              <li>個人情報保護法その他の法令により、当社が訂正、利用停止、消去、第三者提供の停止等の義務を負わない場合は前3項の規定は適用されません。</li>
+            </ol>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">6. 未成年者に関するポリシー</h2>
-            <p>当社は、18歳未満の子供から情報を故意に勧誘したり、マーケティングを行ったりすることはありません。18歳未満の子供から収集したデータに気づいた場合は、以下に記載の連絡先情報を使用して当社にご連絡ください。</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第6条　安全管理措置</h2>
+            <p>当社は、個人情報を利用目的の範囲内で正確・完全・最新の内容に保つよう努め、不正なアクセス、漏えい、改ざん、滅失、き損等を防止するため、現時点での技術水準に合わせた必要かつ適切な安全管理措置を講じ、必要に応じて是正してまいります。</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">7. お問い合わせ</h2>
-            <p>本プライバシーポリシーに関するご質問やご意見がございましたら、privacy@nukune.example.com までご連絡ください。</p>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第7条　お問い合わせ窓口</h2>
+            <p>ご意見、ご質問、苦情のお申出その他利用者情報の取扱いに関するお問い合わせは、以下の窓口までお願いいたします。</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-3">第8条　プライバシーポリシーの変更手続</h2>
+            <p>当社は、必要に応じて、本ポリシーを変更します。但し、法令上利用者の同意が必要となるような本ポリシーの変更を行う場合、変更後の本ポリシーは、当社所定の方法で変更に同意した利用者に対してのみ適用されるものとします。なお、当社は、本ポリシーを変更する場合には、変更後の本ポリシーの施行時期及び内容を当社のウェブサイト上での表示その他の適切な方法により周知し、又は利用者に通知します。</p>
           </section>
         </CardContent>
       </Card>
