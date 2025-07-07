@@ -15,7 +15,7 @@ export function Footer() {
     <footer className="bg-card text-card-foreground border-t py-8 mt-auto">
       <div className="container mx-auto px-4 text-center">
         <div className="flex justify-center gap-4 mb-4">
-          <Link href="/about" className="text-sm hover:text-primary">会社概要</Link>
+          <Link href="/company" className="text-sm hover:text-primary">会社概要</Link>
           <Link href="/terms" className="text-sm hover:text-primary">利用規約</Link>
           <Link href="/privacy" className="text-sm hover:text-primary">プライバシーポリシー</Link>
           <Link href="/contact" className="text-sm hover:text-primary">お問い合わせ</Link>
