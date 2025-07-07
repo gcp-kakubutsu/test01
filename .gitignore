@@ -1,4 +1,3 @@
-
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Dependencies
@@ -65,16 +64,6 @@ tsconfig.tsbuildinfo
 
 *.json
 
-# publicディレクトリ全体を無視
-public/
-
-# 特定の画像ファイルは除外（追跡する）
-!public/img/
-!public/img/logo_nukune.svg
-!public/img/feature-advanced-search.jpg
-!public/img/feature-ai-matching.jpg
-!public/img/feature-post-date.jpg
-!public/img/final-cta-banner.jpg
-!public/img/hero-banner-couple.jpg
-!public/img/nukune-about.jpg
-!public/img/nukune-simei.jpg
+# publicディレクトリ内のファイルを無視するが、imgディレクトリは除外する
+public/*
+!public/img
