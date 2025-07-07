@@ -223,6 +223,45 @@ export default function LandingPage() {
         </Accordion>
       </section>
 
+      {/* Pricing Section */}
+      <section className="bg-background py-8">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-8">料金プラン</h2>
+          <p className="text-lg text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+            Nukuneは登録無料で利用できるマッチングサービスですが、良質な出会いを提供するために男性会員様には女性とのやりとりに付随する機能は月額定額制の有料プランで提供しています。
+          </p>
+          <div className="flex flex-col gap-8 max-w-2xl mx-auto">
+            <div className="relative">
+              <Image
+                src="/img/ryoukin_1.png"
+                alt="料金プラン1"
+                width={800}
+                height={600}
+                className="rounded-lg shadow-lg w-full h-auto"
+              />
+            </div>
+            <div className="relative">
+              <Image
+                src="/img/ryoukin_2.png"
+                alt="料金プラン2"
+                width={800}
+                height={600}
+                className="rounded-lg shadow-lg w-full h-auto"
+              />
+            </div>
+            <div className="relative">
+              <Image
+                src="/img/ryoukin_3.png"
+                alt="料金プラン3"
+                width={800}
+                height={600}
+                className="rounded-lg shadow-lg w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final Call to Action Section */}
       <section className="py-16 bg-gradient-to-tr from-accent to-primary">
         <div className="container mx-auto px-4 text-center">
