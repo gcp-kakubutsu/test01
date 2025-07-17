@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, CheckCircle, Plus } from 'lucide-react';
 import styles from './page.module.scss';
+import { Footer } from '@/components/layout/Footer';
 
 export default function LandingPage() {
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -466,6 +467,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </>
   );
 }
