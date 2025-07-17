@@ -137,9 +137,9 @@ export default function LandingPage() {
     }
   };
 
-  const handlePricingClick = () => {
+  const handlePricingClick = (plan: string) => {
     if (confirm('あなたは18歳以上ですか？')) {
-      alert('プラン登録ページに移動します');
+      window.location.href = `/payment?plan=${plan}`;
     }
   };
 
@@ -402,7 +402,7 @@ export default function LandingPage() {
                 <li>カスタマーサポート</li>
               </ul>
               <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+                <button className={styles.pricingBtn} onClick={() => handlePricingClick('1month')}>プラン登録</button>
               </div>
             </div>
             <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -421,7 +421,7 @@ export default function LandingPage() {
                 <li>特別検索機能</li>
               </ul>
               <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+                <button className={styles.pricingBtn} onClick={() => handlePricingClick('6month')}>プラン登録</button>
               </div>
             </div>
             <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -441,7 +441,7 @@ export default function LandingPage() {
                 <li>プレミアムバッジ</li>
               </ul>
               <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+                <button className={styles.pricingBtn} onClick={() => handlePricingClick('12month')}>プラン登録</button>
               </div>
             </div>
           </div>
