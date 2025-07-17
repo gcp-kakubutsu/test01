@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Home, MessageCircle, User, LogOut } from 'lucide-react';
 import styles from './Header.module.scss';
 
 export function Header() {
@@ -14,6 +15,9 @@ export function Header() {
     await logout();
     router.push('/');
   };
+
+  // Always show header
+  // Remove the hiding logic to ensure header is always visible
 
   return (
     <header className={styles.header}>
@@ -32,12 +36,29 @@ export function Header() {
           {!isLoading && (
             isAuthenticated ? (
               <>
-                <Link href="/home" className={styles.navLink}>ホーム</Link>
-                <Link href="/messages" className={styles.navLink}>メッセージ</Link>
-                <Link href="/profile/edit" className={styles.navLink}>プロフィール</Link>
-                <button onClick={handleLogout} className={`${styles.navLink} ${styles.primary}`}>
+                {/* Desktop Navigation */}
+                <Link href="/home" className={`${styles.navLink} ${styles.hideOnMobile}`}>ホーム</Link>
+                <Link href="/messages" className={`${styles.navLink} ${styles.hideOnMobile}`}>メッセージ</Link>
+                <Link href="/profile/edit" className={`${styles.navLink} ${styles.hideOnMobile}`}>プロフィール</Link>
+                <button onClick={handleLogout} className={`${styles.navLink} ${styles.primary} ${styles.hideOnMobile}`}>
                   ログアウト
                 </button>
+                
+                {/* Mobile Navigation Icons */}
+                <div className={styles.mobileNav}>
+                  <Link href="/home" className={styles.iconLink}>
+                    <Home size={20} />
+                  </Link>
+                  <Link href="/messages" className={styles.iconLink}>
+                    <MessageCircle size={20} />
+                  </Link>
+                  <Link href="/profile/edit" className={styles.iconLink}>
+                    <User size={20} />
+                  </Link>
+                  <button onClick={handleLogout} className={styles.iconButton}>
+                    <LogOut size={20} />
+                  </button>
+                </div>
               </>
             ) : (
               <>

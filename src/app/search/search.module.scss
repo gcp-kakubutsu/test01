@@ -1,0 +1,321 @@
+// Search page styles
+.searchContainer {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-top: 0.5rem; // Further reduced to give more space for error message
+  
+  @media (max-width: 640px) {
+    padding: 0.5rem;
+    padding-top: 0.25rem; // Minimal top padding on mobile
+  }
+}
+
+// Error Message
+.errorMessage {
+  background: #DC2626;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem; // Add top margin to ensure visibility
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  word-wrap: break-word; // Ensure long text wraps
+  
+  &:hover {
+    background: #B91C1C;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  @media (max-width: 640px) {
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+  
+  // Add a subtle animation when appearing
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.searchSection {
+  margin-bottom: 1.5rem;
+  
+  @media (max-width: 640px) {
+    margin-bottom: 1rem;
+  }
+}
+
+.searchBar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  
+  @media (max-width: 640px) {
+    gap: 0.25rem;
+  }
+}
+
+.searchInputWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1rem;
+  width: 1rem;
+  color: #9CA3AF;
+}
+
+.searchInput {
+  padding-left: 2.5rem;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  color: var(--text-light);
+  
+  &:focus {
+    border-color: var(--accent-gold);
+    outline: none;
+  }
+}
+
+.filterButton,
+.locationButton {
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  color: var(--text-light);
+  padding: 0.5rem 1rem;
+  
+  &:hover {
+    background: rgba(17, 24, 39, 0.8);
+    border-color: var(--accent-gold);
+  }
+  
+  @media (max-width: 640px) {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+.locationStatus {
+  font-size: 0.75rem;
+  color: #10B981;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.profileCard {
+  overflow: hidden;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.profileImageContainer {
+  position: relative;
+  height: 60vh;
+  min-height: 400px;
+  max-height: 600px;
+  
+  @media (max-width: 640px) {
+    height: 70vh;
+    min-height: 350px;
+    max-height: 500px;
+  }
+}
+
+.profileGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 40%, transparent 100%);
+}
+
+.profileInfo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem 1.5rem 1.5rem;
+  color: white;
+  
+  @media (max-width: 640px) {
+    padding: 1.5rem 1rem 1rem;
+  }
+}
+
+.profileHeader {
+  margin-bottom: 0.5rem;
+}
+
+.profileName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  
+  h2 {
+    font-size: 1.875rem;
+    font-weight: bold;
+    
+    @media (max-width: 640px) {
+      font-size: 1.5rem;
+    }
+  }
+  
+  span {
+    font-size: 1.25rem;
+    
+    @media (max-width: 640px) {
+      font-size: 1.125rem;
+    }
+  }
+}
+
+.profileLocation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.distanceBadge {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.profileBio {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  
+  @media (max-width: 640px) {
+    font-size: 0.8125rem;
+  }
+}
+
+.profileInterests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.interestBadge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.actionButtons {
+  padding: 1.5rem;
+  background: var(--bg-card);
+  
+  @media (max-width: 640px) {
+    padding: 1rem;
+  }
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  
+  @media (max-width: 640px) {
+    gap: 1.5rem;
+  }
+}
+
+.actionButton {
+  height: 4rem;
+  width: 4rem;
+  padding: 0;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  
+  @media (max-width: 640px) {
+    height: 3.5rem;
+    width: 3.5rem;
+  }
+  
+  &.passButton {
+    background: rgba(31, 41, 55, 0.95);
+    border: 2px solid #EF4444;
+    
+    &:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #DC2626;
+      transform: scale(1.1);
+    }
+    
+    svg {
+      color: #EF4444;
+      height: 2rem;
+      width: 2rem;
+      
+      @media (max-width: 640px) {
+        height: 1.75rem;
+        width: 1.75rem;
+      }
+    }
+  }
+  
+  &.likeButton {
+    background: linear-gradient(135deg, #F0306A, #D91E5A);
+    border: 2px solid transparent;
+    
+    &:hover:not(:disabled) {
+      transform: scale(1.1);
+      box-shadow: 0 10px 25px rgba(240, 48, 106, 0.4);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    svg {
+      color: white;
+      height: 2rem;
+      width: 2rem;
+      
+      @media (max-width: 640px) {
+        height: 1.75rem;
+        width: 1.75rem;
+      }
+    }
+  }
+}

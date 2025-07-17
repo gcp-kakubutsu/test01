@@ -14,6 +14,7 @@ import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
 import { useUserProfile } from '@/lib/firebase/hooks';
+import styles from './search.module.scss';
 
 interface UserProfile {
   id: string;
@@ -40,6 +41,7 @@ export default function SearchPage() {
   const [isProcessingLike, setIsProcessingLike] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -50,6 +52,7 @@ export default function SearchPage() {
   // 位置情報を取得
   const requestLocation = async () => {
     setIsLoadingLocation(true);
+    setLocationError(null); // Clear any existing errors
     try {
       const locationInfo = await getCurrentLocation();
       if (locationInfo.coordinates) {
@@ -66,19 +69,12 @@ export default function SearchPage() {
         }
       } else if (locationInfo.error) {
         console.warn('位置情報の取得に失敗:', locationInfo.error);
-        toast({
-          title: "位置情報を取得できません",
-          description: locationInfo.error,
-          variant: "destructive",
-        });
+        // Don't show toast here, only set error state
+        setLocationError(locationInfo.error);
       }
     } catch (error) {
       console.error('位置情報取得エラー:', error);
-      toast({
-        title: "エラーが発生しました",
-        description: "位置情報の取得中にエラーが発生しました。",
-        variant: "destructive",
-      });
+      setLocationError("位置情報の取得中にエラーが発生しました。");
     } finally {
       setIsLoadingLocation(false);
     }
@@ -181,6 +177,7 @@ export default function SearchPage() {
 
     // 位置情報がない場合は取得
     setIsLoadingLocation(true);
+    setLocationError(null);
     try {
       const locationInfo = await getCurrentLocation();
       if (locationInfo.coordinates) {
@@ -193,19 +190,15 @@ export default function SearchPage() {
           description: "近い順に表示しています。",
         });
       } else {
-        toast({
-          title: "位置情報の取得に失敗",
-          description: locationInfo.error || "位置情報を取得できませんでした。",
-          variant: "destructive",
-        });
+        const errorMsg = locationInfo.error || "位置情報を取得できませんでした。";
+        setLocationError(errorMsg);
+        // Don't show toast when we're already showing error message
       }
     } catch (error) {
       console.error('位置情報取得エラー:', error);
-      toast({
-        title: "エラー",
-        description: "位置情報の取得中にエラーが発生しました。",
-        variant: "destructive",
-      });
+      const errorMsg = "位置情報の取得中にエラーが発生しました。";
+      setLocationError(errorMsg);
+      // Don't show toast when we're already showing error message
     } finally {
       setIsLoadingLocation(false);
     }
@@ -281,27 +274,44 @@ export default function SearchPage() {
   const currentProfile = filteredUsers[currentIndex];
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
+    <div className={styles.searchContainer}>
+      {/* Location Error Message */}
+      {locationError && (
+        <div 
+          className={styles.errorMessage}
+          onClick={() => setLocationError(null)}
+          role="alert"
+          aria-live="assertive"
+        >
+          <div style={{ marginBottom: '0.25rem' }}>
+            {locationError}
+          </div>
+          <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+            (タップして閉じる)
+          </div>
+        </div>
+      )}
+      
       {/* Search Bar */}
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className={styles.searchSection}>
+        <div className={styles.searchBar}>
+          <div className={styles.searchInputWrapper}>
+            <Search className={styles.searchIcon} />
             <Input
               type="text"
               placeholder="名前、趣味、場所で検索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-10"
+              className={styles.searchInput}
             />
           </div>
-          <Button onClick={handleSearch} variant="outline">
+          <Button onClick={handleSearch} className={styles.filterButton}>
             <Filter className="h-4 w-4" />
           </Button>
           <Button 
             onClick={handleLocationSort} 
-            variant="outline"
+            className={styles.locationButton}
             disabled={isLoadingLocation}
             title={userLocation ? "位置情報で再度並び替え" : "位置情報を取得して並び替え"}
           >
@@ -315,7 +325,7 @@ export default function SearchPage() {
         
         {/* 位置情報のステータス表示 */}
         {userLocation && (
-          <div className="text-xs text-green-600 flex items-center gap-1">
+          <div className={styles.locationStatus}>
             <MapPin className="h-3 w-3" />
             位置情報を使用して表示中
           </div>
@@ -324,78 +334,77 @@ export default function SearchPage() {
 
       {/* User Cards */}
       {currentProfile ? (
-        <Card className="overflow-hidden shadow-lg">
-          <div className="relative h-[500px]">
+        <div className={styles.profileCard}>
+          <div className={styles.profileImageContainer}>
             <Image
               src={currentProfile.imageUrl}
               alt={currentProfile.name}
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className={styles.profileGradient} />
             
             {/* User Info Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <div className="mb-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{currentProfile.name}</h2>
-                  <span className="text-xl">{currentProfile.age}</span>
+            <div className={styles.profileInfo}>
+              <div className={styles.profileHeader}>
+                <div className={styles.profileName}>
+                  <h2>{currentProfile.name}</h2>
+                  <span>{currentProfile.age}歳</span>
                 </div>
               </div>
               
-              <div className="flex items-center gap-1 mb-3 text-sm">
+              <div className={styles.profileLocation}>
                 <MapPin className="h-4 w-4" />
                 <span>{currentProfile.location}</span>
                 {currentProfile.distance !== undefined && currentProfile.distance !== Infinity && (
-                  <span className="ml-2 px-2 py-1 bg-black/30 rounded-full text-xs">
+                  <span className={styles.distanceBadge}>
                     約{Math.round(currentProfile.distance)}km
                   </span>
                 )}
               </div>
               
-              <p className="mb-3 text-sm">{currentProfile.bio}</p>
+              <p className={styles.profileBio}>{currentProfile.bio}</p>
               
-              <div className="flex flex-wrap gap-2">
+              <div className={styles.profileInterests}>
                 {currentProfile.interests.map((interest) => (
-                  <Badge key={interest} variant="secondary" className="bg-white/20 text-white border-white/30">
+                  <span key={interest} className={styles.interestBadge}>
                     {interest}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <CardContent className="p-4">
-            <div className="flex justify-center gap-4">
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full h-16 w-16 p-0 border-2 hover:border-red-500 hover:bg-red-50"
+          <div className={styles.actionButtons}>
+            <div className={styles.buttonContainer}>
+              <button
+                className={`${styles.actionButton} ${styles.passButton}`}
                 onClick={handlePass}
               >
-                <X className="h-8 w-8 text-red-500" />
-              </Button>
-              <Button
-                size="lg"
-                className="rounded-full h-16 w-16 p-0 bg-[#F0306A] hover:bg-[#E02860]"
+                <X />
+              </button>
+              <button
+                className={`${styles.actionButton} ${styles.likeButton}`}
                 onClick={handleLike}
                 disabled={isProcessingLike}
               >
-                <Heart className="h-8 w-8 text-white" fill="white" />
-              </Button>
+                <Heart fill="white" />
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card className="p-8 text-center">
-          <p className="text-gray-500">検索結果がありません</p>
-        </Card>
+        <div className={styles.profileCard}>
+          <div className="p-8 text-center">
+            <p className="text-gray-400">検索結果がありません</p>
+          </div>
+        </div>
       )}
 
       {/* Results Counter */}
       {filteredUsers.length > 0 && (
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-gray-400 mt-4">
           {currentIndex + 1} / {filteredUsers.length} 人
         </p>
       )}

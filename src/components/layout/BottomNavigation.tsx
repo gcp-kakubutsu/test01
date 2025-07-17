@@ -3,37 +3,44 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Heart, Users, MessageCircle, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Search, Heart, Users, MessageCircle, User, Home, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMatches } from '@/lib/firebase/hooks';
-import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import styles from './BottomNavigation.module.scss';
 
 interface NavItem {
-  href: string;
+  href?: string;
+  action?: () => void;
   icon: React.ElementType;
   label: string;
 }
 
-const navItems: NavItem[] = [
-  { href: '/search', icon: Search, label: 'さがす' },
-  { href: '/matches', icon: Heart, label: 'マッチ' },
-  { href: '/community', icon: Users, label: 'コミュニティ' },
-  { href: '/messages', icon: MessageCircle, label: 'メッセージ' },
-  { href: '/profile', icon: User, label: 'マイページ' },
-];
-
 export default function BottomNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { matches } = useMatches();
 
   // Calculate total unread messages
   const totalUnreadCount = currentUser && matches 
     ? matches.reduce((total, match) => total + (match.unreadCount?.[currentUser.uid] || 0), 0)
     : 0;
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  const navItems: NavItem[] = [
+    { href: '/search', icon: Search, label: 'さがす' },
+    { href: '/matches', icon: Heart, label: 'マッチ' },
+    { href: '/community', icon: Users, label: 'コミュニティ' },
+    { href: '/messages', icon: MessageCircle, label: 'メッセージ' },
+    { href: '/profile', icon: User, label: 'マイページ' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,44 +67,54 @@ export default function BottomNavigation() {
   }
 
   return (
-    <nav 
-      className={cn(
-        "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 transition-transform duration-300 z-50",
-        !isVisible && "translate-y-full"
-      )}
-    >
-      <div className="grid grid-cols-5 h-16">
-        {navItems.map((item) => {
+    <nav className={`${styles.bottomNav} ${!isVisible ? styles.hidden : ''}`}>
+      <div className={styles.navGrid}>
+        {navItems.map((item, index) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || 
-                          (item.href === '/profile' && pathname.startsWith('/profile')) ||
-                          (item.href === '/profile' && pathname === '/settings');
+          const isActive = item.href && (
+            pathname === item.href || 
+            (item.href === '/profile' && pathname.startsWith('/profile')) ||
+            (item.href === '/profile' && pathname === '/settings')
+          );
           
+          if (item.action) {
+            return (
+              <button
+                key={index}
+                onClick={item.action}
+                className={styles.navItem}
+              >
+                <div className={styles.navIcon}>
+                  <Icon 
+                    size={20}
+                    strokeWidth={2}
+                  />
+                </div>
+                <span className={styles.navLabel}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          }
+
           return (
             <Link
               key={item.href}
-              href={item.href}
-              className={cn(
-                "relative flex flex-col items-center justify-center space-y-1 transition-colors",
-                isActive 
-                  ? "text-[#F0306A]" 
-                  : "text-gray-500 hover:text-gray-700"
-              )}
+              href={item.href!}
+              className={`${styles.navItem} ${isActive ? styles.active : ''}`}
             >
-              <div className="relative">
+              <div className={styles.navIcon}>
                 <Icon 
-                  className="h-5 w-5" 
+                  size={20}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
                 {item.href === '/messages' && totalUnreadCount > 0 && (
-                  <Badge 
-                    className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
-                  >
+                  <span className={styles.badge}>
                     {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                  </Badge>
+                  </span>
                 )}
               </div>
-              <span className="text-xs font-medium">
+              <span className={styles.navLabel}>
                 {item.label}
               </span>
             </Link>

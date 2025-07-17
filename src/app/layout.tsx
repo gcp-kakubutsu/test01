@@ -2,9 +2,10 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import './globals.scss';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import BottomNavigation from '@/components/layout/BottomNavigation';
+import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -30,14 +31,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-black`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
         <AuthProvider>
           <Header />
-          <main className="flex-grow pt-16">
-            {children}
-          </main>
-          <Footer />
-          <BottomNavigation />
+          <LayoutWrapper>
+            <main className="flex-grow">
+              <PageWrapper>
+                {children}
+              </PageWrapper>
+            </main>
+          </LayoutWrapper>
           <Toaster />
         </AuthProvider>
       </body>
