@@ -30,10 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-black`}>
         <AuthProvider>
           <Header />
-          <main className="flex-grow container mx-auto px-4 py-8 pb-20">
+          <main className="flex-grow pt-16">
             {children}
           </main>
           <Footer />

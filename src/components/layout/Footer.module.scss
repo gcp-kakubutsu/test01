@@ -1,0 +1,46 @@
+// Footer styles
+.footer {
+  background: #111827;
+  padding: 3rem 0 1rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.footerContent {
+  text-align: center;
+  color: #9CA3AF;
+}
+
+.footerLinks {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.footerLink {
+  color: #9CA3AF;
+  text-decoration: none;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #D4AF37;
+  }
+}
+
+.footerNotice {
+  color: #DC2626;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.footerCopyright {
+  font-size: 0.9rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+}

@@ -1,198 +1,377 @@
+'use client';
 
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, ShieldCheck, Users, MessageCircle, Search, Award, PhoneOff, UserCheck, Eye, TrendingUp, Smile, Info as InfoIcon, HelpCircle as HelpCircleIcon } from 'lucide-react'; // Renamed to avoid conflict
-
-const features = [
-  {
-    title: 'AIによる最適なマッチング',
-    description: 'AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。',
-    icon: <TrendingUp className="h-10 w-10 text-primary mb-4" />,
-    image: "/img/feature-ai-matching.jpg",
-    dataAiHint: "AI 男女",
-  },
-  {
-    title: '「会いたい」を投稿',
-    description: 'あなたの希望や理想のデートを投稿して、特別な人との出会いのチャンスを広げましょう。',
-    icon: <MessageCircle className="h-10 w-10 text-primary mb-4" />,
-    image: "/img/feature-post-date.jpg",
-    dataAiHint: "男女 デート",
-  },
-  {
-    title: '高度な検索機能',
-    description: '詳細な条件や好みでプロフィールを絞り込み、理想の相手を見つけて直接つながりましょう。',
-    icon: <Search className="h-10 w-10 text-primary mb-4" />,
-    image: "/img/feature-advanced-search.jpg",
-    dataAiHint: "検索 男女",
-  },
-];
-
-const whyNukune = [
-  { title: '手頃な価格設定', description: 'プレミアム機能も安心価格で。女性はほとんどの機能を無料で利用できます！', icon: <Smile className="h-6 w-6 text-accent" /> },
-  { title: '完全匿名制', description: 'プライバシーは最優先。準備ができるまで本当の自分を明かさずに繋がれます。', icon: <Eye className="h-6 w-6 text-accent" /> },
-  { title: 'アプリ内コミュニケーション', description: 'LINEやTwitterなど外部アプリは不要。Nukune内で全てのやり取りが完結します。', icon: <MessageCircle className="h-6 w-6 text-accent" /> },
-  { title: 'ユーザー評価', description: '会う前にコミュニティの評価を確認できるので、より安全な出会いが可能です。', icon: <UserCheck className="h-6 w-6 text-accent" /> },
-  { title: 'プライバシー管理', description: '電話番号で連絡先をブロックし、知り合いとの不要な出会いを避けられます。', icon: <PhoneOff className="h-6 w-6 text-accent" /> },
-];
-
-const safetyFeatures = [
-  { title: '本人確認', description: 'プロフィールの信頼性とユーザーの安全のため、本人確認書類の提出を必須としています。', icon: <UserCheck className="h-8 w-8 text-primary" /> },
-  { title: '24時間監視体制', description: '不審なアクティビティやポリシー違反を、運営チームとAIシステムが常時監視しています。', icon: <ShieldCheck className="h-8 w-8 text-primary" /> },
-  { title: '厳格なユーザー行動規範', description: 'ハラスメント行為は一切容認しません。違反者には警告または永久追放処分を行います。', icon: <Users className="h-8 w-8 text-primary" /> },
-  { title: '通報・ブロック機能', description: '不適切な行動をとるユーザーを簡単に通報・ブロックできます。', icon: <CheckCircle className="h-8 w-8 text-primary" /> },
-  { title: 'ニックネーム登録', description: 'ニックネームで利用できるため、本名は非公開。個人情報が共有されることはありません。', icon: <Eye className="h-8 w-8 text-primary" /> },
-  { title: '公的機関への届出済み', description: '法令遵守とユーザー保護のため、関連当局に届出済みです。', icon: <Award className="h-8 w-8 text-primary" /> },
-];
-
-const faqItems = [
-  {
-    question: 'Nukuneは無料で使えますか？',
-    answer: '基本機能はどなたでも無料でご利用いただけます。女性はほとんどの機能を無料で楽しめます。男性はプレミアムプランにアップグレードすることで、全ての機能にアクセス可能になります。料金プランも手頃な価格からご用意しています。',
-  },
-  {
-    question: '身元はバレますか？',
-    answer: 'Nukuneは匿名性を重視して設計されています。ニックネームで利用でき、本名は公開されません。また、知人とのマッチングを防ぐための電話番号ブロック機能なども提供しています。',
-  },
-  {
-    question: 'Nukuneはどのように安全性を確保していますか？',
-    answer: '本人確認、24時間監視体制、厳格な行動規範、簡単な通報・ブロック機能など、複数の安全対策を講じています。お客様の安全が私たちの最優先事項です。',
-  },
-  {
-    question: '誰がNukuneを利用できますか？',
-    answer: 'Nukuneは18歳以上の方を対象としています。',
-  },
-];
-
+import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, CheckCircle, Plus } from 'lucide-react';
+import styles from './page.module.scss';
 
 export default function LandingPage() {
+  const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    // Smooth scrolling for anchor links
+    const anchors = document.querySelectorAll('a[href^="#"]');
+    anchors.forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(anchor.getAttribute('href') as string);
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Parallax effect for hero video
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      const heroVideo = document.querySelector(`.${styles.heroVideo}`) as HTMLVideoElement;
+      if (heroVideo) {
+        const parallaxSpeed = 0.5;
+        heroVideo.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add(styles.animate);
+        }
+      });
+    }, observerOptions);
+
+    // Observe all scroll animation elements
+    const animatedElements = document.querySelectorAll(`.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}`);
+    animatedElements.forEach(el => observer.observe(el));
+
+    // Stagger animation observer
+    const staggerObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
+          staggerElements.forEach((el, index) => {
+            setTimeout(() => {
+              el.classList.add(styles.animate);
+            }, index * 100);
+          });
+        }
+      });
+    }, observerOptions);
+
+    // Observe containers with stagger elements
+    const staggerContainers = document.querySelectorAll(`.${styles.featuresGrid}, .${styles.reasonsGrid}, .${styles.stepsContainer}, .${styles.safetyGrid}, .${styles.faqContainer}, .${styles.pricingGrid}`);
+    staggerContainers.forEach(container => staggerObserver.observe(container));
+
+    // Counter animation
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const counter = entry.target as HTMLElement;
+          const target = parseInt(counter.getAttribute('data-count') || '0');
+          const duration = 500;
+          const increment = target / (duration / 16);
+          let current = 0;
+
+          const updateCounter = () => {
+            current += increment;
+            if (current < target) {
+              counter.textContent = `¥${Math.floor(current).toLocaleString()}`;
+              requestAnimationFrame(updateCounter);
+            } else {
+              counter.textContent = `¥${target.toLocaleString()}`;
+            }
+          };
+
+          updateCounter();
+          counterObserver.unobserve(counter);
+        }
+      });
+    }, observerOptions);
+
+    // Observe counter elements
+    const counters = document.querySelectorAll(`.${styles.counterNumber}`);
+    counters.forEach(counter => counterObserver.observe(counter));
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+      staggerObserver.disconnect();
+      counterObserver.disconnect();
+    };
+  }, []);
+
+  const toggleFAQ = (index: number) => {
+    const faqItem = faqRefs.current[index];
+    if (!faqItem) return;
+    
+    const isActive = faqItem.classList.contains(styles.active);
+    
+    // Close all FAQ items
+    faqRefs.current.forEach(item => {
+      if (item) item.classList.remove(styles.active);
+    });
+    
+    // Open clicked item if it wasn't active
+    if (!isActive) {
+      faqItem.classList.add(styles.active);
+    }
+  };
+
+  const handleAgeConfirmation = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (confirm('あなたは18歳以上ですか？')) {
+      window.location.href = e.currentTarget.href;
+    }
+  };
+
+  const handlePricingClick = () => {
+    if (confirm('あなたは18歳以上ですか？')) {
+      alert('プラン登録ページに移動します');
+    }
+  };
+
   return (
-    <div className="space-y-16 md:space-y-24">
+    <>
       {/* Hero Section */}
-      <section className="relative text-center py-12 sm:py-20 md:py-32 rounded-lg overflow-hidden">
-        <div className="absolute inset-0">
-          <Image
-            src="/img/hero-banner-couple.jpg"
-            alt="森の中で手を取り合う男女"
-            layout="fill"
-            objectFit="cover"
-            priority
-            className="opacity-70"
-            data-ai-hint="カップル 手を繋ぐ"
-          />
-           <div className="absolute inset-0 bg-black/30"></div>
-        </div>
-        <div className="relative container mx-auto px-4">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-primary-foreground mb-4 sm:mb-6">
-            心で繋がる。豊かに生きる。
+      <section className={styles.hero}>
+        <video autoPlay muted loop playsInline className={styles.heroVideo}>
+          <source src="/img/girl.mp4" type="video/mp4" />
+        </video>
+        <div className={styles.heroOverlay}></div>
+        <div className={styles.heroContent}>
+          <h1 className={styles.heroTitle}>
+            あなたの性癖に合う嬢と<br />秘密の出会いを。
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-primary-foreground mb-6 sm:mb-8 max-w-2xl mx-auto">
-            Nukuneは、本当の相性と共通の願いに基づいた、意義深い繋がりを見つけるお手伝いをします。より豊かな人生を。
+          <p className={styles.heroSubtitle}>
+            理想の相性を見つける、大人のための<br className={styles.sp} />プレミアムマッチングサイト
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
-            <Button size="default" asChild className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
-              <Link href="/signup">Nukuneに参加</Link>
-            </Button>
-            <Button size="default" asChild className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/80 shadow-lg rounded-lg transform transition-transform duration-200 ease-out hover:scale-105">
-              <Link href="/login">ログイン</Link>
-            </Button>
+          <div className={styles.heroCta}>
+            <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
+              <Heart size={20} />
+              Nukuneに参加
+            </Link>
+            <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
+              <span>ログイン</span>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Intro Section */}
-      <section className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">Nukuneとは？</h2>
-        <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-          Nukuneは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。
-        </p>
+      {/* About Section */}
+      <section className={`${styles.section} ${styles.about}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>Nukuneとは？</h2>
+          <div className={styles.aboutContent}>
+            <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
+              <p>Nukuneは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。</p>
+              <br />
+              <p>当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。完全匿名システムで、あなたのプライバシーを最優先に保護いたします。</p>
+            </div>
+            <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
+              <Image src="/img/woman.jpeg" alt="高級感のある大人の出会い" width={600} height={400} />
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">充実の機能で理想のパートナー探し</h2>
-        <div className="grid md:grid-cols-3 gap-8 md:auto-rows-fr">
-          {features.map((feature) => (
-            <Card key={feature.title} className="shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full">
-              <CardHeader className="items-center text-center">
-                {feature.icon}
-                <div className="min-h-[4rem] flex items-center justify-center"> {/* Ensure title area has enough height for 2 lines and centers content */}
-                  <CardTitle className="text-2xl">{feature.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <div className="relative w-full h-40 rounded-md overflow-hidden mb-4 shrink-0"> {/* Image container: fixed height, prevent shrinking */}
-                  <Image src={feature.image} alt={feature.title} layout="fill" objectFit="cover" data-ai-hint={feature.dataAiHint} />
+      <section className={`${styles.section} ${styles.features}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>充実の機能で理想の出会い探し</h2>
+          <div className={styles.featuresGrid}>
+            <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.featureIcon}>
+                <Brain />
               </div>
-              <CardContent className="flex-grow flex flex-col items-center justify-center text-center p-6 pt-0"> {/* Description: takes remaining space, centers content */}
-                  <p className="text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Why Nukune Section */}
-       <section className="bg-secondary py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-secondary-foreground mb-8 sm:mb-12">Nukuneが選ばれる理由</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {whyNukune.map((reason) => (
-              <Card key={reason.title} className="bg-card shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    {reason.icon}
-                    <CardTitle className="text-xl text-primary">{reason.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{reason.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+              <h3 className={styles.featureTitle}>AIによる最適なマッチング</h3>
+              <p className={styles.featureDescription}>AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。</p>
+            </div>
+            <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={`${styles.featureIcon} ${styles.faCalendarHeart}`}>
+                <Calendar />
+              </div>
+              <h3 className={styles.featureTitle}>「会いたい」を投稿</h3>
+              <p className={styles.featureDescription}>あなたの希望や理想のデートを投稿して、特別な人との出会いのチャンスを広げましょう。</p>
+            </div>
+            <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.featureIcon}>
+                <Search />
+              </div>
+              <h3 className={styles.featureTitle}>高度な検索機能</h3>
+              <p className={styles.featureDescription}>詳細な条件や好みでプロフィールを絞り込み、理想の相手を見つけて直接つながりましょう。</p>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* Reasons Section */}
+      <section className={`${styles.section} ${styles.reasons}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>Nukuneが選ばれる理由</h2>
+          <div className={styles.reasonsGrid}>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>プレミアム機能も安心価格で。女性はほとんどの機能を無料で利用できます！</p>
+            </div>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>プライバシーは最優先。準備ができるまで本当の自分を明かさずに繋がれます。</p>
+            </div>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>LINEやTwitterなど外部アプリは不要。Nukune内で全てのやり取りが完結します。</p>
+            </div>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>会う前にコミュニティの評価を確認できるので、より安全な出会いが可能です。</p>
+            </div>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>電話番号で連絡先をブロックし、知り合いとの不要な出会いを避けられます。</p>
+            </div>
+            <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <p className={styles.reasonText}>法令遵守とユーザー保護のため、関連当局に届出済みです。</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* How to Register Section */}
-      <section className="container mx-auto px-4">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-primary mb-8 sm:mb-12">簡単スタートガイド</h2>
-        <div className="max-w-2xl mx-auto">
-          <div>
-            <h3 className="text-2xl font-semibold text-center text-blue-600 mb-6 p-3 bg-blue-100 rounded-lg">男性の方</h3>
-            <ol className="space-y-6">
-              {['プロフィール設定', '本人確認', 'プラン選択', '積極的なアプローチ'].map((step, index) => (
-                <li key={step} className="flex items-start">
-                  <div className="flex-shrink-0 h-10 w-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">{index + 1}</div>
-                  <div>
-                    <h4 className="font-semibold text-lg text-blue-700">{step}</h4>
-                    <p className="text-muted-foreground text-sm">
-                      {index === 0 && "理想のマッチングのため、プロフィールを詳細に記入しましょう。"}
-                      {index === 1 && "信頼できるコミュニティのため、本人確認にご協力ください。"}
-                      {index === 2 && "プレミアムプランに登録して、全ての機能を利用しましょう。"}
-                      {index === 3 && "マッチを待つだけでなく、積極的に検索したり投稿したりしましょう！"}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+      {/* Start Guide Section */}
+      <section className={`${styles.section} ${styles.startGuide}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>簡単スタートガイド</h2>
+          <div className={`${styles.guideContainer} ${styles.scrollScaleUp}`}>
+            <div className={styles.guideHeader}>
+              <span className={styles.guideBadge}>男性の方</span>
+            </div>
+            <div className={styles.stepsContainer}>
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <div className={styles.stepNumber}>1</div>
+                <h3 className={styles.stepTitle}>プロフィール設定</h3>
+                <p className={styles.stepDescription}>理想のマッチングのため、プロフィールを詳細に記入しましょう。</p>
+              </div>
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <div className={styles.stepNumber}>2</div>
+                <h3 className={styles.stepTitle}>本人確認</h3>
+                <p className={styles.stepDescription}>信頼できるコミュニティのため、本人確認にご協力ください。</p>
+              </div>
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <div className={styles.stepNumber}>3</div>
+                <h3 className={styles.stepTitle}>プラン選択</h3>
+                <p className={styles.stepDescription}>プレミアムプランに登録して、全ての機能を利用しましょう。</p>
+              </div>
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <div className={styles.stepNumber}>4</div>
+                <h3 className={styles.stepTitle}>積極的なアプローチ</h3>
+                <p className={styles.stepDescription}>マッチを待つだけでなく、積極的に検索したり投稿したりしましょう！</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Safety Section */}
-      <section className="bg-primary-foreground py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">安全への取り組み</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
-            {safetyFeatures.map((feature) => (
-              <div key={feature.title} className="flex items-start gap-4 p-4 bg-background rounded-lg shadow-md">
-                <div className="flex-shrink-0">{feature.icon}</div>
-                <div>
-                  <h4 className="font-semibold text-lg text-primary">{feature.title}</h4>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+      <section className={`${styles.section} ${styles.safety}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>安全への取り組み</h2>
+          <div className={styles.safetyGrid}>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <UserCheck />
+                </div>
+                <h3 className={styles.safetyTitle}>本人確認</h3>
+              </div>
+              <p className={styles.safetyDescription}>プロフィールの信頼性とユーザーの安全のため、本人確認書類の提出を必須としています。</p>
+            </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <Shield />
+                </div>
+                <h3 className={styles.safetyTitle}>24時間監視体制</h3>
+              </div>
+              <p className={styles.safetyDescription}>不審なアクティビティやポリシー違反を、運営チームとAIシステムが常時監視しています。</p>
+            </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <Users />
+                </div>
+                <h3 className={styles.safetyTitle}>厳格なユーザー行動規範</h3>
+              </div>
+              <p className={styles.safetyDescription}>ハラスメント行為は一切容認しません。違反者には警告または永久追放処分を行います。</p>
+            </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <Ban />
+                </div>
+                <h3 className={styles.safetyTitle}>通報・ブロック機能</h3>
+              </div>
+              <p className={styles.safetyDescription}>不適切な行動をとるユーザーを簡単に通報・ブロックできます。</p>
+            </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <Eye />
+                </div>
+                <h3 className={styles.safetyTitle}>ニックネーム登録</h3>
+              </div>
+              <p className={styles.safetyDescription}>ニックネームで利用できるため、本名は非公開。個人情報が共有されることはありません。</p>
+            </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <Award />
+                </div>
+                <h3 className={styles.safetyTitle}>公的機関への届出済み</h3>
+              </div>
+              <p className={styles.safetyDescription}>法令遵守とユーザー保護のため、関連当局に届出済みです。<br />届出番号: 愛知県公安委員会 第000000号</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className={`${styles.section} ${styles.faq}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>よくあるご質問</h2>
+          <div className={styles.faqContainer}>
+            {[
+              {
+                question: '料金はどのようになっていますか？',
+                answer: '男性会員様には月額定額制の有料プランをご用意しております。女性はほとんどの機能を無料でご利用いただけます。詳細は料金プランをご確認ください。'
+              },
+              {
+                question: 'プライバシーは守られますか？',
+                answer: 'はい、完全匿名システムを採用しており、ニックネームでのご利用が可能です。本名や個人情報が他のユーザーに公開されることはありません。'
+              },
+              {
+                question: '安全性について教えてください',
+                answer: '24時間監視体制、本人確認の必須化、通報・ブロック機能など、多層的な安全対策を実施しています。また、関連当局への届出も完了しております。'
+              },
+              {
+                question: 'どのような人が利用していますか？',
+                answer: '真剣な出会いを求める18歳以上の大人の方々にご利用いただいております。幅広い年齢層の方が、理想のパートナー探しにご活用されています。'
+              }
+            ].map((item, index) => (
+              <div key={index} className={`${styles.faqItem} ${styles.scrollStagger}`} ref={(el) => {
+                if (el) faqRefs.current[index] = el;
+              }}>
+                <div className={styles.faqQuestion} onClick={() => toggleFAQ(index)}>
+                  <h3>{item.question}</h3>
+                  <Plus className={styles.faqIcon} />
+                </div>
+                <div className={styles.faqAnswer}>
+                  <p>{item.answer}</p>
                 </div>
               </div>
             ))}
@@ -200,92 +379,93 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-12">よくあるご質問</h2>
-        <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
-          {faqItems.map((item, index) => (
-            <AccordionItem value={`item-${index + 1}`} key={index}>
-              <AccordionTrigger className="text-lg hover:no-underline text-left">
-                <div className="flex items-center">
-                  <HelpCircleIcon className="h-5 w-5 mr-3 text-primary"/>
-                  {item.question}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="text-base">
-                <div className="flex items-start p-2">
-                  <InfoIcon className="h-5 w-5 mr-3 text-accent flex-shrink-0 mt-1"/>
-                  {item.answer}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </section>
-
       {/* Pricing Section */}
-      <section className="bg-background py-8">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-primary mb-8">料金プラン</h2>
-          <p className="text-lg text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+      <section className={`${styles.section} ${styles.pricing}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>料金プラン</h2>
+          <p className={`${styles.sectionSubtitle} ${styles.scrollFadeIn}`}>
             Nukuneは登録無料で利用できるマッチングサービスですが、良質な出会いを提供するために男性会員様には女性とのやりとりに付随する機能は月額定額制の有料プランで提供しています。
           </p>
-          <div className="flex flex-col gap-8 max-w-2xl mx-auto">
-            <div className="relative">
-              <Image
-                src="/img/ryoukin_1.png"
-                alt="料金プラン1"
-                width={800}
-                height={600}
-                className="rounded-lg shadow-lg w-full h-auto"
-              />
+          <div className={styles.pricingGrid}>
+            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.pricingHeader}>
+                <h3 className={styles.pricingTitle}>1ヶ月プラン</h3>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="2000">¥0</div>
+                <div className={styles.pricingPeriod}>月額</div>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>全ての基本機能</li>
+                <li>無制限メッセージ</li>
+                <li>プロフィール閲覧</li>
+                <li>マッチング機能</li>
+                <li>カスタマーサポート</li>
+              </ul>
+              <div className={styles.pricingCta}>
+                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+              </div>
             </div>
-            <div className="relative">
-              <Image
-                src="/img/ryoukin_2.png"
-                alt="料金プラン2"
-                width={800}
-                height={600}
-                className="rounded-lg shadow-lg w-full h-auto"
-              />
+            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.pricingHeader}>
+                <h3 className={styles.pricingTitle}>6ヶ月プラン</h3>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1500">¥0</div>
+                <div className={styles.pricingPeriod}>月額</div>
+                <span className={styles.pricingDiscount}>25%お得</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>全ての基本機能</li>
+                <li>無制限メッセージ</li>
+                <li>プロフィール閲覧</li>
+                <li>マッチング機能</li>
+                <li>優先サポート</li>
+                <li>特別検索機能</li>
+              </ul>
+              <div className={styles.pricingCta}>
+                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+              </div>
             </div>
-            <div className="relative">
-              <Image
-                src="/img/ryoukin_3.png"
-                alt="料金プラン3"
-                width={800}
-                height={600}
-                className="rounded-lg shadow-lg w-full h-auto"
-              />
+            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.pricingHeader}>
+                <h3 className={styles.pricingTitle}>12ヶ月プラン</h3>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1000">¥0</div>
+                <div className={styles.pricingPeriod}>月額</div>
+                <span className={styles.pricingDiscount}>50%お得</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>全ての基本機能</li>
+                <li>無制限メッセージ</li>
+                <li>プロフィール閲覧</li>
+                <li>マッチング機能</li>
+                <li>VIPサポート</li>
+                <li>特別検索機能</li>
+                <li>プレミアムバッジ</li>
+              </ul>
+              <div className={styles.pricingCta}>
+                <button className={styles.pricingBtn} onClick={handlePricingClick}>プラン登録</button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Final Call to Action Section */}
-      <section className="py-16 bg-gradient-to-tr from-accent to-primary">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-8">素敵な出会いを見つけませんか？</h2>
-          <p className="text-xl text-primary-foreground mb-10 max-w-xl mx-auto">
-            今すぐNukuneに参加して、より充実した関係を築くための一歩を踏み出しましょう。
-          </p>
-          <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 transform hover:scale-105 transition-transform duration-300 px-10 py-6 text-lg rounded-lg shadow-lg">
-            <Link href="/signup">今すぐ登録</Link>
-          </Button>
-          <div className="mt-8">
-            <Image
-                src="/img/final-cta-banner.jpg"
-                alt="Nukuneで繋がる幸せなカップルのイメージ（更新）"
-                width={800}
-                height={300}
-                className="rounded-lg shadow-2xl mx-auto"
-                data-ai-hint="カップル シルエット"
-                unoptimized
-            />
+      {/* CTA Section */}
+      <section className={`${styles.section} ${styles.cta}`}>
+        <div className={styles.container}>
+          <div className={styles.ctaContent}>
+            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖に正直な出会いを。</h2>
+            <p className={`${styles.ctaSubtitle} ${styles.scrollFadeIn}`}>
+              今すぐNukuneに参加して、より充実した関係を築くための一歩を踏み出しましょう。
+            </p>
+            <Link 
+              href="/signup" 
+              className={`${styles.btn} ${styles.btnPrimary} ${styles.scrollScaleUp} ${styles.enhancedHover}`}
+              onClick={handleAgeConfirmation}
+            >
+              <Heart size={20} />
+              今すぐ登録
+            </Link>
           </div>
         </div>
       </section>
-    </div>
+    </>
   );
 }
-
