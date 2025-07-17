@@ -102,7 +102,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   // 評価スケールのレンダリング
   const renderRatingScale = (label: string, field: keyof MalePreferences, value: number) => (
     <div className="space-y-3 mb-6">
-      <h3 className="text-base font-medium text-gray-900">{label}</h3>
+      <h3 className="text-base font-medium text-white">{label}</h3>
       <div className="flex items-center justify-between">
         <div className="flex space-x-2">
           {[1, 2, 3, 4, 5].map((rating) => (
@@ -111,8 +111,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
               onClick={() => setPreferences(prev => ({ ...prev, [field]: rating }))}
               className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-semibold transition-all ${
                 value === rating
-                  ? 'bg-[#F0306A] border-[#F0306A] text-white'
-                  : 'border-gray-300 text-gray-500 hover:border-[#F0306A]/50'
+                  ? 'bg-[#F0306A] border-[#F0306A] text-white shadow-lg shadow-[#F0306A]/30'
+                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-[#F0306A]/50 hover:bg-gray-700'
               }`}
             >
               {rating}
@@ -120,7 +120,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           ))}
         </div>
       </div>
-      <div className="flex justify-between text-sm text-gray-500">
+      <div className="flex justify-between text-sm text-gray-400">
         <span>全く</span>
         <span>とっても</span>
       </div>
@@ -131,8 +131,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">あなたの嗜好について</h2>
-        <p className="text-gray-600">1から5の段階で評価してください</p>
+        <h2 className="text-xl font-bold text-white mb-2">あなたの嗜好について</h2>
+        <p className="text-gray-300">1から5の段階で評価してください</p>
       </div>
       
       {renderRatingScale('スパンキングは好き・興味ありますか？', 'spanking', preferences.spanking)}
@@ -144,8 +144,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">あなたの嗜好について</h2>
-        <p className="text-gray-600">1から5の段階で評価してください</p>
+        <h2 className="text-xl font-bold text-white mb-2">あなたの嗜好について</h2>
+        <p className="text-gray-300">1から5の段階で評価してください</p>
       </div>
       
       {renderRatingScale('ゴックンは好き・興味ありますか？', 'throating', preferences.throating)}
@@ -157,8 +157,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">あなたの嗜好について</h2>
-        <p className="text-gray-600">1から5の段階で評価してください</p>
+        <h2 className="text-xl font-bold text-white mb-2">あなたの嗜好について</h2>
+        <p className="text-gray-300">1から5の段階で評価してください</p>
       </div>
       
       {renderRatingScale('コスプレプレイは好き・興味ありますか？', 'cosplay', preferences.cosplay)}
@@ -173,8 +173,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep4 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">相手の体型</h2>
-        <p className="text-gray-600">希望する体型を選択してください（複数選択可）</p>
+        <h2 className="text-xl font-bold text-white mb-2">相手の体型</h2>
+        <p className="text-gray-300">希望する体型を選択してください（複数選択可）</p>
       </div>
       
       <div className="grid grid-cols-2 gap-3">
@@ -184,7 +184,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         ].map((bodyType) => (
           <div 
             key={bodyType} 
-            className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            className="flex items-center space-x-2 p-3 border border-gray-600 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
             onClick={() => {
               const isChecked = preferences.partnerBodyTypes?.includes(bodyType) || false;
               if (!isChecked) {
@@ -203,8 +203,9 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             <Checkbox
               id={bodyType}
               checked={preferences.partnerBodyTypes?.includes(bodyType) || false}
+              className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
             />
-            <Label htmlFor={bodyType} className="text-sm font-medium cursor-pointer">
+            <Label htmlFor={bodyType} className="text-sm font-medium cursor-pointer text-gray-200">
               {bodyType}
             </Label>
           </div>
@@ -217,36 +218,45 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep5 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-12 h-12 bg-[#F0306A] text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-          5/8
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">プロフィール入力</h2>
-        <p className="text-gray-600">相手に求める条件を入力してください</p>
+        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
+        <p className="text-gray-300">相手に求める条件を入力してください</p>
       </div>
       
 
       <div className="space-y-4">
-
+        <div>
+          <Label className="text-base font-medium text-white">会う前の写真交換</Label>
+          <Select value={preferences.photoExchangeBeforeMeeting} onValueChange={(value) => setPreferences(prev => ({ ...prev, photoExchangeBeforeMeeting: value }))}>
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
+              <SelectValue placeholder="選択してください" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="する">する</SelectItem>
+              <SelectItem value="しない">しない</SelectItem>
+              <SelectItem value="相手次第">相手次第</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div>
-          <Label className="text-base font-medium">相手の年齢</Label>
+          <Label className="text-base font-medium text-white">相手の年齢</Label>
           <div className="flex items-center space-x-3 mt-2">
             <Select value={preferences.partnerAgeMin?.toString()} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerAgeMin: parseInt(value) }))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="選択してください" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 border-gray-700">
                 {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
                   <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-gray-500">〜</span>
+            <span className="text-gray-400">〜</span>
             <Select value={preferences.partnerAgeMax?.toString()} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerAgeMax: parseInt(value) }))}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="選択してください" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 border-gray-700">
                 {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
                   <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                 ))}
@@ -262,23 +272,20 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep6 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-12 h-12 bg-[#F0306A] text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-          6/8
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">プロフィール入力</h2>
-        <p className="text-gray-600">あなたの基本情報を教えてください</p>
+        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
+        <p className="text-gray-300">あなたの基本情報を教えてください</p>
       </div>
       
 
       <div className="space-y-4">
 
         <div>
-          <Label className="text-base font-medium">プレイ時の撮影</Label>
+          <Label className="text-base font-medium text-white">プレイ時の撮影</Label>
           <Select value={preferences.recordingDuringPlay} onValueChange={(value) => setPreferences(prev => ({ ...prev, recordingDuringPlay: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="プレイ時の撮影を入力" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="しない">しない</SelectItem>
               <SelectItem value="したい">したい</SelectItem>
             </SelectContent>
@@ -286,12 +293,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">あなたはSですか？</Label>
+          <Label className="text-base font-medium text-white">あなたはSですか？</Label>
           <Select value={preferences.isSadist} onValueChange={(value) => setPreferences(prev => ({ ...prev, isSadist: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="あなたはSですか？" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="はい">はい</SelectItem>
               <SelectItem value="いいえ">いいえ</SelectItem>
               <SelectItem value="わからない">わからない</SelectItem>
@@ -300,12 +307,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">あなたはMですか？</Label>
+          <Label className="text-base font-medium text-white">あなたはMですか？</Label>
           <Select value={preferences.isMasochist} onValueChange={(value) => setPreferences(prev => ({ ...prev, isMasochist: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="あなたはMですか？" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="はい">はい</SelectItem>
               <SelectItem value="いいえ">いいえ</SelectItem>
               <SelectItem value="わからない">わからない</SelectItem>
@@ -320,26 +327,23 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep7 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-12 h-12 bg-[#F0306A] text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-          7/8
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">プロフィール入力</h2>
-        <p className="text-gray-600">あなたの基本情報を教えてください</p>
+        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
+        <p className="text-gray-300">あなたの基本情報を教えてください</p>
       </div>
       
 
       <div className="space-y-4">
 
         <div>
-          <Label className="text-base font-medium">相手の身長</Label>
+          <Label className="text-base font-medium text-white">相手の身長</Label>
           <Select value={preferences.partnerHeight} onValueChange={(value) => {
             console.log('Height selection changed to:', value);
             setPreferences(prev => ({ ...prev, partnerHeight: value }));
           }}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="相手の身長を選択してください" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="こだわらない">こだわらない</SelectItem>
               {Array.from({ length: 61 }, (_, i) => i + 140).map((height) => (
                 <SelectItem key={height} value={`${height}cm`}>{height}cm</SelectItem>
@@ -349,12 +353,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">相手の体重</Label>
+          <Label className="text-base font-medium text-white">相手の体重</Label>
           <Select value={preferences.partnerWeight} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerWeight: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="相手の体重を選択してください" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="こだわらない">こだわらない</SelectItem>
               {Array.from({ length: 101 }, (_, i) => i + 40).map((weight) => (
                 <SelectItem key={weight} value={`${weight}kg`}>{weight}kg</SelectItem>
@@ -364,12 +368,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">体型</Label>
+          <Label className="text-base font-medium text-white">体型</Label>
           <Select value={preferences.partnerBodyType} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerBodyType: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="スリム">スリム</SelectItem>
               <SelectItem value="やや細め">やや細め</SelectItem>
               <SelectItem value="普通">普通</SelectItem>
@@ -382,12 +386,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium">居住地</Label>
+          <Label className="text-base font-medium text-white">居住地</Label>
           <Select value={preferences.partnerLocation} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerLocation: value }))}>
-            <SelectTrigger className="w-full mt-2">
+            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="北海道">北海道</SelectItem>
               <SelectItem value="東北">東北</SelectItem>
               <SelectItem value="関東">関東</SelectItem>
@@ -543,7 +547,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
 
   if (loadingInitialData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F0306A] via-[#FF69B4] to-[#FF1493] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p>設定を読み込んでいます...</p>
@@ -575,25 +579,24 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F0306A] via-[#FF69B4] to-[#FF1493] p-4">
+    <div className="min-h-screen bg-black p-4">
       <div className="max-w-2xl mx-auto">
         {/* Progress Header */}
         <div className="text-center mb-6 pt-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-[#F0306A]">
+            <div className="w-16 h-16 bg-[#F0306A] rounded-full flex items-center justify-center shadow-lg shadow-[#F0306A]/30">
+              <span className="text-2xl font-bold text-white">
                 {currentStep}/{TOTAL_STEPS}
               </span>
             </div>
           </div>
-          <Progress value={progress} className="w-full h-3 mb-4" />
+          <Progress value={progress} className="w-full h-3 mb-4 bg-gray-800" />
           <h1 className="text-2xl font-bold text-white">プロフィール入力</h1>
-          <p className="text-white/90">相手に求める条件を入力してください</p>
-          
+          <p className="text-gray-300">相手に求める条件を入力してください</p>
         </div>
 
         {/* Content Card */}
-        <Card className="bg-white shadow-xl">
+        <Card className="bg-gray-900 border-gray-800 shadow-xl">
           <CardContent className="p-6">
             {renderCurrentStep()}
           </CardContent>
@@ -604,7 +607,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           <Button
             variant="outline"
             onClick={handleBack}
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             戻る
@@ -628,7 +631,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
               }
             }}
             disabled={isLoading || loadingInitialData}
-            className="bg-white text-[#F0306A] hover:bg-white/90"
+            className="bg-[#F0306A] text-white hover:bg-[#F0306A]/90 shadow-lg shadow-[#F0306A]/30"
             type="button"
           >
             {isLoading ? (
