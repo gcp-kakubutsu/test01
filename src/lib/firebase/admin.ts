@@ -17,6 +17,14 @@ function initializeAdmin(): App | undefined {
   }
 
   try {
+    // 開発環境: GOOGLE_APPLICATION_CREDENTIALSを優先
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log('Initializing Firebase Admin SDK with service account file');
+      adminApp = initializeApp(undefined, 'admin');
+      console.log('Firebase Admin SDK initialized successfully (development mode)');
+      return adminApp;
+    }
+    
     // 本番環境: 環境変数から認証情報を読み込む
     if (process.env.FIREBASE_ADMIN_PROJECT_ID && 
         process.env.FIREBASE_ADMIN_CLIENT_EMAIL && 
@@ -28,13 +36,13 @@ function initializeAdmin(): App | undefined {
         // プライベートキーの処理を改善
         let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
         
-        // JSONエスケープされた改行を実際の改行に変換
-        privateKey = privateKey.replace(/\\n/g, '\n');
-        
         // もしキーが引用符で囲まれている場合は削除
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
           privateKey = privateKey.slice(1, -1);
         }
+        
+        // JSONエスケープされた改行を実際の改行に変換
+        privateKey = privateKey.replace(/\\n/g, '\n');
         
         adminApp = initializeApp({
           credential: cert({
@@ -51,14 +59,6 @@ function initializeAdmin(): App | undefined {
         console.error('Error with certificate:', certError);
         throw certError;
       }
-    }
-    
-    // 開発環境: GOOGLE_APPLICATION_CREDENTIALSを使用
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.log('Initializing Firebase Admin SDK with service account file');
-      adminApp = initializeApp(undefined, 'admin');
-      console.log('Firebase Admin SDK initialized successfully (development mode)');
-      return adminApp;
     }
     
     // 環境変数が設定されていない場合
