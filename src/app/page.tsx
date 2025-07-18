@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, CheckCircle, Plus } from 'lucide-react';
+import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
 
