@@ -1,0 +1,228 @@
+.mainContent {
+  margin-top: 80px;
+  padding: 4rem 0;
+  min-height: calc(100vh - 80px);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
+}
+
+.pageTitle {
+  font-family: 'Playfair Display', 'Noto Serif JP', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #F9FAFB;
+  font-weight: 600;
+}
+
+.pageSubtitle {
+  text-align: center;
+  color: #9CA3AF;
+  margin-bottom: 3rem;
+  font-size: 1.1rem;
+}
+
+.contentCard {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  backdrop-filter: blur(10px);
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    padding: 2rem 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+  }
+}
+
+.companyHeader {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+}
+
+.companyName {
+  font-family: 'Playfair Display', 'Noto Serif JP', serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #D4AF37;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.7rem;
+  }
+}
+
+.companyTagline {
+  font-size: 1.2rem;
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.companyInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.infoSection {
+  background: rgba(17, 24, 39, 0.6);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+  }
+}
+
+.infoTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #D4AF37;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.infoLabel {
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+.infoValue {
+  color: #F9FAFB;
+  font-weight: 600;
+  text-align: right;
+}
+
+.businessContent {
+  background: rgba(139, 30, 63, 0.1);
+  border: 1px solid rgba(139, 30, 63, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+  }
+
+  h3 {
+    color: #D4AF37;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+  }
+}
+
+.businessList {
+  list-style: none;
+  margin-left: 0;
+
+  li {
+    padding: 0.5rem 0;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #D4AF37;
+      flex-shrink: 0;
+    }
+  }
+}
+
+.missionSection {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  text-align: center;
+
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+  }
+}
+
+.missionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #D4AF37;
+  margin-bottom: 1rem;
+}
+
+.missionText {
+  color: var(--text-gray);
+  line-height: 1.8;
+  font-size: 1.1rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statCard {
+  background: rgba(17, 24, 39, 0.6);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.statNumber {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #D4AF37;
+  margin-bottom: 0.5rem;
+}
+
+.statLabel {
+  color: var(--text-gray);
+  font-size: 0.9rem;
+}

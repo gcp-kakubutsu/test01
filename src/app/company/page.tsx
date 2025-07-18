@@ -1,48 +1,97 @@
-"use client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2 } from "lucide-react";
+'use client';
+
+import React from 'react';
+import { Building, Mail, CheckCircle } from 'lucide-react';
+import styles from './company.module.scss';
 
 export default function CompanyPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <Card className="shadow-xl">
-        <CardHeader className="text-center">
-          <Building2 className="mx-auto h-16 w-16 text-primary mb-4" />
-          <CardTitle className="text-4xl font-bold text-primary">会社概要</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6 text-muted-foreground">
-          <div className="max-w-2xl mx-auto">
-            <table className="w-full">
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">会社名</td>
-                  <td className="py-4 text-lg">PEDIA株式会社（ペディア カブシキガイシャ）</td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">所在地</td>
-                  <td className="py-4 text-lg">〒464-0075　名古屋市千種区内山1-9-2</td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">代表者</td>
-                  <td className="py-4 text-lg">桐山 一喜</td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">資本金</td>
-                  <td className="py-4 text-lg">100万円</td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">設立日</td>
-                  <td className="py-4 text-lg">2025年6月23日</td>
-                </tr>
-                <tr>
-                  <td className="py-4 text-lg font-medium text-secondary-foreground w-1/3">決算月</td>
-                  <td className="py-4 text-lg">5月31日</td>
-                </tr>
-              </tbody>
-            </table>
+    <main className={styles.mainContent}>
+      <div className={styles.container}>
+        <h1 className={styles.pageTitle}>会社概要</h1>
+        <p className={styles.pageSubtitle}>PEDIA株式会社について</p>
+        
+        <div className={styles.contentCard}>
+          <div className={styles.companyHeader}>
+            <h2 className={styles.companyName}>PEDIA株式会社</h2>
+            <p className={styles.companyTagline}>
+              風俗業界の情報提供で、より良い出会いの場を創造する
+            </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className={styles.companyInfo}>
+            <div className={styles.infoSection}>
+              <h3 className={styles.infoTitle}>
+                <Building size={20} />
+                会社情報
+              </h3>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>企業名</span>
+                <span className={styles.infoValue}>PEDIA株式会社</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>所在地</span>
+                <span className={styles.infoValue}>名古屋市千種区内山1-9-2</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>メール</span>
+                <span className={styles.infoValue}>info@nukune.com</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}></span>
+                <span className={styles.infoValue}>インターネット異性紹介事業届出済</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.businessContent}>
+            <h3>事業内容</h3>
+            <ul className={styles.businessList}>
+              <li>
+                <CheckCircle size={16} />
+                風俗業界の情報提供
+              </li>
+              <li>
+                <CheckCircle size={16} />
+                優良店舗や女性の評価システム
+              </li>
+              <li>
+                <CheckCircle size={16} />
+                各種イベントの企画・運営
+              </li>
+              <li>
+                <CheckCircle size={16} />
+                マッチングサービス「NUKUNE」の運営
+              </li>
+              <li>
+                <CheckCircle size={16} />
+                業界向けコンサルティング
+              </li>
+            </ul>
+          </div>
+
+          <div className={styles.missionSection}>
+            <h3 className={styles.missionTitle}>私たちのミッション</h3>
+            <p className={styles.missionText}>
+              PEDIA株式会社は、風俗業界における情報の透明性と安全性を重視し、
+              利用者の皆様により良いサービスを提供することを目指しています。
+              適切な情報提供を通じて、業界全体の健全な発展に貢献し、
+              すべての関係者が安心して利用できる環境を構築してまいります。
+            </p>
+          </div>
+
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>2025</div>
+              <div className={styles.statLabel}>設立年</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>100%</div>
+              <div className={styles.statLabel}>法令遵守</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
