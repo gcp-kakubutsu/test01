@@ -260,6 +260,13 @@ export default function EditProfilePage() {
       <Card className="overflow-hidden shadow-lg">
         <CardHeader className="pb-4">
           <div className="text-center">
+            <div>
+              <img 
+                src="/img/kakubutsu.svg" 
+                alt="Profile Banner" 
+                className="w-full h-16 object-contain"
+              />
+            </div>
             <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
               プロフィールを編集
             </CardTitle>
