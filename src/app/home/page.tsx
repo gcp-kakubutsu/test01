@@ -268,8 +268,20 @@ export default function HomePage() {
   };
 
   return (
-    <div className="w-full px-4 py-6">
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+    <div className="w-full">
+      {/* Banner Image */}
+      <div className="w-full mb-4 px-4">
+        <div className="relative rounded-lg overflow-hidden">
+          <img 
+            src="/img/top_sod.svg" 
+            alt="Nukune Banner" 
+            className="w-full h-16 sm:h-20 object-contain px-2 pt-2 pb-0"
+          />
+        </div>
+      </div>
+      
+      <div className="px-4 py-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
         {currentUsers.map((user) => (
           <div
             key={user.id}
@@ -337,6 +349,7 @@ export default function HomePage() {
           </Button>
         </div>
       )}
+      </div>
     </div>
   );
 }
