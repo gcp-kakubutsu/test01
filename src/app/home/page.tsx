@@ -349,6 +349,15 @@ export default function HomePage() {
           </Button>
         </div>
       )}
+      
+      {/* Footer Logo */}
+      <div className="flex justify-center">
+        <img 
+          src="/img/land.svg" 
+          alt="Nukune Logo" 
+          className="h-12 object-contain"
+        />
+      </div>
       </div>
     </div>
   );
