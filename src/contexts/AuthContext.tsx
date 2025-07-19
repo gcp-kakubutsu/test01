@@ -102,11 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error("Login error:", error);
+      
       let description = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。';
       
       // Firebase v9以降では、多くのエラーがauth/invalid-credentialに統一されています
       if (error.code === 'auth/invalid-credential') {
-        description = 'メールアドレスまたはパスワードが正しくありません。';
+        description = 'メールアドレスまたはパスワードが正しくありません。新規登録がまだの場合は、先にアカウントを作成してください。';
       } else if (error.code === 'auth/user-not-found') {
         description = 'このメールアドレスは登録されていません。';
       } else if (error.code === 'auth/wrong-password') {

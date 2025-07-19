@@ -230,7 +230,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                               <AvatarImage src={matchUser.profilePhotoUrl} alt={matchUser.name} />
                               <AvatarFallback className="text-sm bg-secondary">{matchUser.name.substring(0,1).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <span className="text-xs font-medium text-muted-foreground mt-1 max-w-[60px] truncate">
+                            <span className="text-xs font-medium text-muted-foreground mt-1 min-w-0 break-words">
                               {matchUser.name}
                             </span>
                           </div>
@@ -253,7 +253,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                               <AvatarImage src={currentUserProfile.profilePhotoUrl || 'https://placehold.co/100x100/F0306A/FFF.png?text=U'} alt={currentUserProfile.username || 'あなた'} />
                               <AvatarFallback className="text-sm bg-primary text-primary-foreground">{(currentUserProfile.username || 'あなた').substring(0,1).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <span className="text-xs font-medium text-muted-foreground mt-1 max-w-[60px] truncate">
+                            <span className="text-xs font-medium text-muted-foreground mt-1 min-w-0 break-words">
                               {currentUserProfile.username || 'あなた'}
                             </span>
                           </div>

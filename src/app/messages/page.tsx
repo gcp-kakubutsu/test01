@@ -127,12 +127,12 @@ export default function MessagesPage() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-base font-semibold truncate">{chat.name}</p>
+                          <p className="text-base font-semibold line-clamp-1">{chat.name}</p>
                           {chat.lastMessageTime && (
                             <span className="text-xs text-muted-foreground">{chat.lastMessageTime}</span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{chat.lastMessage}</p>
                       </div>
                       {chat.unreadCount > 0 && (
                         <Badge variant="default" className="bg-red-500 text-white min-w-[24px] h-6 px-2 rounded-full flex items-center justify-center">

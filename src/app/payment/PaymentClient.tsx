@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreditCard, MapPin, Lock, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import styles from './payment.module.scss';
 
@@ -28,6 +29,7 @@ export default function PaymentClient() {
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [planConfig, setPlanConfig] = useState<PlanConfig>({
     name: '6ヶ月プラン',
@@ -166,10 +168,20 @@ export default function PaymentClient() {
           }));
         } else {
           setAddressError(true);
+          toast({
+            title: "郵便番号エラー",
+            description: "郵便番号が見つかりませんでした。",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Address search error:', error);
         setAddressError(true);
+        toast({
+          title: "エラー",
+          description: "住所の検索中にエラーが発生しました。",
+          variant: "destructive",
+        });
       } finally {
         setIsLoadingAddress(false);
       }
@@ -189,7 +201,11 @@ export default function PaymentClient() {
     const isValid = requiredFields.every(field => formData[field as keyof typeof formData]);
     
     if (!isValid || !formData.termsAccepted || !formData.ageConfirmed) {
-      alert('必要な項目をすべて入力してください。');
+      toast({
+        title: "入力エラー",
+        description: "必要な項目をすべて入力してください。",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -197,7 +213,10 @@ export default function PaymentClient() {
     
     // Simulate payment processing
     setTimeout(() => {
-      alert('決済が完了しました！ありがとうございます。');
+      toast({
+        title: "決済完了",
+        description: "決済が完了しました！ありがとうございます。",
+      });
       router.push('/profile');
     }, 2000);
   };
@@ -391,9 +410,7 @@ export default function PaymentClient() {
                         <Loader2 className={styles.postalLoader} />
                       )}
                     </div>
-                    {addressError && (
-                      <p className={styles.errorMessage}>郵便番号が見つかりませんでした</p>
-                    )}
+                    {/* Error is now shown via toast */}
                   </div>
 
                   <div className={styles.formRow}>

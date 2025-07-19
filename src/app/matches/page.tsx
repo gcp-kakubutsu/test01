@@ -212,7 +212,7 @@ export default function MatchesPage() {
             </div>
             
             {match.lastMessage ? (
-              <p className="text-sm text-gray-600 truncate">{match.lastMessage}</p>
+              <p className="text-sm text-gray-600 line-clamp-2">{match.lastMessage}</p>
             ) : (
               <p className="text-sm text-gray-400">メッセージを送ってみましょう</p>
             )}

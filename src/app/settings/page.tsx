@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,6 +9,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, EyeOff, ShieldAlert, Trash2, UserX, Loader2, Save, AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { deleteAccount } from './actions';
@@ -29,6 +38,8 @@ export default function SettingsPage() {
   const [blockUserInput, setBlockUserInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
 
   useEffect(() => {
      if (!authIsLoading && !isAuthenticated) {
@@ -63,6 +74,118 @@ export default function SettingsPage() {
   const handleUnblockUser = (userToUnblock: string) => {
     setBlockedUsers(prev => prev.filter(user => user !== userToUnblock));
     toast({ title: 'ユーザーのブロックを解除しました', description: `${userToUnblock} をブロックリストから削除しました。` });
+  };
+
+  const handleAccountDeletion = async () => {
+    setShowDeleteDialog(false);
+    if (!currentUser) return;
+    
+    setIsDeleting(true);
+    try {
+      // Check if this is an admin-created user by checking Firestore first
+      if (!db) throw new Error('Firestore is not initialized');
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocSnapshot = await getDoc(userDocRef);
+      const userData = userDocSnapshot.data();
+      
+      // If user exists in Firestore but not in Auth (admin-created), use direct Firestore deletion
+      if (userData && userData.isGirl) {
+        try {
+          // Delete directly from Firestore for admin-created users
+          await deleteDoc(userDocRef);
+          console.log('Admin-created user deleted from Firestore:', currentUser.uid);
+          
+          toast({
+            title: 'アカウントを削除しました',
+            description: 'ご利用ありがとうございました。',
+          });
+          
+          // Sign out and redirect to home
+          await logout();
+          router.push('/');
+          return; // Exit early for admin-created users
+        } catch (firestoreError) {
+          console.error('Direct Firestore deletion failed:', firestoreError);
+          // Fall through to API deletion attempt
+        }
+      }
+      
+      // For regular users, try server-side deletion via API
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.uid }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: 'アカウントを削除しました',
+          description: 'ご利用ありがとうございました。',
+        });
+        // Sign out and redirect to home
+        await logout();
+        router.push('/');
+      } else if (result.error === 'admin-not-initialized' || result.error === 'admin-deletion-failed') {
+        // Fallback to client-side deletion
+        console.log('Falling back to client-side deletion');
+        
+        try {
+          // Delete Firestore document first
+          if (!db) throw new Error('Firestore is not initialized');
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          await deleteDoc(userDocRef);
+          console.log('User document deleted from Firestore');
+          
+          // Delete auth user
+          if (!auth) throw new Error('Firebase Auth is not initialized');
+          if (auth.currentUser) {
+            await deleteUser(auth.currentUser);
+            console.log('User deleted from Firebase Auth');
+          }
+          
+          toast({
+            title: 'アカウントを削除しました',
+            description: 'ご利用ありがとうございました。',
+          });
+          
+          router.push('/');
+        } catch (clientError: any) {
+          console.error('Client-side deletion error:', clientError);
+          
+          // If it's a permission error, the user might be deleted from auth but not from Firestore
+          if (clientError.code === 'permission-denied') {
+            toast({
+              title: 'アカウントを削除しました',
+              description: 'ご利用ありがとうございました。',
+            });
+            router.push('/');
+          } else {
+            toast({
+              title: 'エラー',
+              description: 'アカウントの削除に失敗しました。再度ログインしてお試しください。',
+              variant: 'destructive',
+            });
+          }
+        }
+      } else {
+        toast({
+          title: 'エラー',
+          description: result.error || 'アカウントの削除に失敗しました。',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      toast({
+        title: 'エラー',
+        description: 'アカウントの削除に失敗しました。',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (authIsLoading) {
@@ -168,122 +291,9 @@ export default function SettingsPage() {
               variant="destructive" 
               className="w-full sm:w-auto"
               disabled={isDeleting}
-              onClick={async () => {
-                if (!currentUser) return;
-                
-                // Double confirmation for account deletion
-                const firstConfirm = confirm('本当にアカウントを削除しますか？\n\nこの操作は取り消すことができません。すべてのデータ、マッチ、メッセージが永久に削除されます。');
-                if (!firstConfirm) return;
-                
-                const secondConfirm = confirm('本当によろしいですか？\n\nアカウントを削除すると、二度と復元できません。');
-                if (!secondConfirm) return;
-                
-                setIsDeleting(true);
-                try {
-                  // Check if this is an admin-created user by checking Firestore first
-                  if (!db) throw new Error('Firestore is not initialized');
-                  const userDocRef = doc(db, 'users', currentUser.uid);
-                  const userDocSnapshot = await getDoc(userDocRef);
-                  const userData = userDocSnapshot.data();
-                  
-                  // If user exists in Firestore but not in Auth (admin-created), use direct Firestore deletion
-                  if (userData && userData.isGirl) {
-                    try {
-                      // Delete directly from Firestore for admin-created users
-                      await deleteDoc(userDocRef);
-                      console.log('Admin-created user deleted from Firestore:', currentUser.uid);
-                      
-                      toast({
-                        title: 'アカウントを削除しました',
-                        description: 'ご利用ありがとうございました。',
-                      });
-                      
-                      // Sign out and redirect to home
-                      await logout();
-                      router.push('/');
-                      return; // Exit early for admin-created users
-                    } catch (firestoreError) {
-                      console.error('Direct Firestore deletion failed:', firestoreError);
-                      // Fall through to API deletion attempt
-                    }
-                  }
-                  
-                  // For regular users, try server-side deletion via API
-                  const response = await fetch('/api/account/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser.uid }),
-                  });
-                  
-                  const result = await response.json();
-                  
-                  if (result.success) {
-                    toast({
-                      title: 'アカウントを削除しました',
-                      description: 'ご利用ありがとうございました。',
-                    });
-                    // Sign out and redirect to home
-                    await logout();
-                    router.push('/');
-                  } else if (result.error === 'admin-not-initialized' || result.error === 'admin-deletion-failed') {
-                    // Fallback to client-side deletion
-                    console.log('Falling back to client-side deletion');
-                    
-                    try {
-                      // Delete Firestore document first
-                      if (!db) throw new Error('Firestore is not initialized');
-                      const userDocRef = doc(db, 'users', currentUser.uid);
-                      await deleteDoc(userDocRef);
-                      console.log('User document deleted from Firestore');
-                      
-                      // Delete auth user
-                      if (!auth) throw new Error('Firebase Auth is not initialized');
-                      if (auth.currentUser) {
-                        await deleteUser(auth.currentUser);
-                        console.log('User deleted from Firebase Auth');
-                      }
-                      
-                      toast({
-                        title: 'アカウントを削除しました',
-                        description: 'ご利用ありがとうございました。',
-                      });
-                      
-                      router.push('/');
-                    } catch (clientError: any) {
-                      console.error('Client-side deletion error:', clientError);
-                      
-                      // If it's a permission error, the user might be deleted from auth but not from Firestore
-                      if (clientError.code === 'permission-denied') {
-                        toast({
-                          title: 'アカウントを削除しました',
-                          description: 'ご利用ありがとうございました。',
-                        });
-                        router.push('/');
-                      } else {
-                        toast({
-                          title: 'エラー',
-                          description: 'アカウントの削除に失敗しました。再度ログインしてお試しください。',
-                          variant: 'destructive',
-                        });
-                      }
-                    }
-                  } else {
-                    toast({
-                      title: 'エラー',
-                      description: result.error || 'アカウントの削除に失敗しました。',
-                      variant: 'destructive',
-                    });
-                  }
-                } catch (error) {
-                  console.error('Account deletion error:', error);
-                  toast({
-                    title: 'エラー',
-                    description: 'アカウントの削除に失敗しました。',
-                    variant: 'destructive',
-                  });
-                } finally {
-                  setIsDeleting(false);
-                }
+              onClick={() => {
+                setShowDeleteDialog(true);
+                setDeleteConfirmStep(1);
               }}
             >
               {isDeleting ? (
@@ -317,6 +327,44 @@ export default function SettingsPage() {
           )}
         </Button>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteConfirmStep === 1 ? 'アカウントを削除しますか？' : '本当によろしいですか？'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteConfirmStep === 1 
+                ? 'この操作は取り消すことができません。すべてのデータ、マッチ、メッセージが永久に削除されます。' 
+                : 'アカウントを削除すると、二度と復元できません。'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteDialog(false);
+              setDeleteConfirmStep(1);
+            }}>
+              キャンセル
+            </AlertDialogCancel>
+            {deleteConfirmStep === 1 ? (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => setDeleteConfirmStep(2)}
+              >
+                次へ
+              </AlertDialogAction>
+            ) : (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleAccountDeletion}
+              >
+                削除する
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

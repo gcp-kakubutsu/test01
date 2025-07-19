@@ -454,7 +454,7 @@ export default function CommunityPage() {
                 {community.latestPost && (
                   <div className="text-xs text-gray-500 border-t pt-2">
                     <p className="font-medium">{community.latestPost.author}</p>
-                    <p className="truncate">{community.latestPost.content}</p>
+                    <p className="line-clamp-2">{community.latestPost.content}</p>
                     <p className="text-gray-400">{community.latestPost.timestamp}</p>
                   </div>
                 )}

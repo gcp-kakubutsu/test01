@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAdminGirls } from '@/lib/firebase/user-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export default function TestFirestorePage() {
   const { currentUser, isAuthenticated } = useAuth();
@@ -14,11 +15,16 @@ export default function TestFirestorePage() {
   const [fetchedGirls, setFetchedGirls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const testFirestore = async () => {
       if (!isAuthenticated || !currentUser) {
-        setError('ログインしてください');
+        toast({
+          title: "認証エラー",
+          description: "ログインしてください",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
@@ -58,6 +64,11 @@ export default function TestFirestorePage() {
 
       } catch (err: any) {
         console.error('Error:', err);
+        toast({
+          title: "エラー",
+          description: err.message || "データの取得に失敗しました",
+          variant: "destructive",
+        });
         setError(err.message);
       } finally {
         setLoading(false);
@@ -75,16 +86,7 @@ export default function TestFirestorePage() {
     <div className="max-w-4xl mx-auto p-8 space-y-6">
       <h1 className="text-2xl font-bold">Firestore デバッグページ</h1>
       
-      {error && (
-        <Card className="border-red-500">
-          <CardHeader>
-            <CardTitle className="text-red-600">エラー</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-sm">{error}</pre>
-          </CardContent>
-        </Card>
-      )}
+      {/* Errors are now shown via toast */}
 
       <Card>
         <CardHeader>
