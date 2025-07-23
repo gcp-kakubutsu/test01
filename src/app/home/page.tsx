@@ -273,9 +273,9 @@ export default function HomePage() {
       <div className="w-full mb-4 px-4">
         <div className="relative rounded-lg overflow-hidden">
           <img 
-            src="/img/top_sod.svg" 
+            src="/img/sod.webp" 
             alt="Nukune Banner" 
-            className="w-full h-16 sm:h-20 object-contain px-2 pt-2 pb-0"
+            className="w-full h-24 sm:h-32 object-contain px-2 pt-2 pb-0"
           />
         </div>
       </div>
