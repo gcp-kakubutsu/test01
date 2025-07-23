@@ -270,12 +270,12 @@ export default function HomePage() {
   return (
     <div className="w-full">
       {/* Banner Image */}
-      <div className="w-full mb-4 px-4">
-        <div className="relative rounded-lg overflow-hidden">
+      <div className="w-full mb-4 px-1">
+        <div className="relative">
           <img 
             src="/img/sod.webp" 
             alt="Nukune Banner" 
-            className="w-full h-24 sm:h-32 object-contain px-2 pt-2 pb-0"
+            className="w-full h-auto object-contain sm:max-h-40 md:max-h-48 lg:max-h-56"
           />
         </div>
       </div>
@@ -351,11 +351,11 @@ export default function HomePage() {
       )}
       
       {/* Footer Logo */}
-      <div className="flex justify-center">
+      <div className="w-full">
         <img 
           src="/img/sodland.webp" 
           alt="Nukune Logo" 
-          className="h-24 sm:h-32 object-contain"
+          className="w-full h-auto object-contain sm:max-h-40 md:max-h-48 lg:max-h-56"
         />
       </div>
       </div>
