@@ -262,9 +262,9 @@ export default function EditProfilePage() {
           <div className="text-center">
             <div>
               <img 
-                src="/img/kakubutsu.svg" 
+                src="/img/kakubutsu.webp" 
                 alt="Profile Banner" 
-                className="w-full h-16 object-contain"
+                className="w-full h-24 sm:h-32 object-contain"
               />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
