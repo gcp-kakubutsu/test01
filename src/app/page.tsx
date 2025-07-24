@@ -335,7 +335,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className={styles.safetyTitle}>公的機関への届出済み</h3>
               </div>
-              <p className={styles.safetyDescription}>法令遵守とユーザー保護のため、関連当局に届出済みです。<br />届出番号: 愛知県公安委員会 第000000号</p>
+              <p className={styles.safetyDescription}>法令遵守とユーザー保護のため、関連当局に届出済みです。<br /></p>
             </div>
           </div>
         </div>
