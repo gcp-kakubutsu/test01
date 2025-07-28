@@ -78,8 +78,11 @@ export default function HomePage() {
 
     if (isAuthenticated && currentUser && userProfile) {
       checkWelcomeStatus();
+    } else if (isAuthenticated && currentUser && !isLoading) {
+      // If authenticated but no profile yet, still stop checking
+      setCheckingWelcome(false);
     }
-  }, [isAuthenticated, currentUser, userProfile]);
+  }, [isAuthenticated, currentUser, userProfile, isLoading]);
 
   // Handle welcome completion
   const handleWelcomeComplete = async () => {
@@ -191,10 +194,11 @@ export default function HomePage() {
       }
     };
 
-    if (isAuthenticated && currentUser) {
+    // Don't wait for userProfile if it's not a male user
+    if (isAuthenticated && currentUser && !checkingWelcome) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUser, userLocation, userProfile]);
+  }, [isAuthenticated, currentUser, userLocation, userProfile, checkingWelcome]);
 
   const handleReset = async () => {
     // Firebase から再度データを取得
@@ -223,7 +227,7 @@ export default function HomePage() {
     }
   }
 
-  if (isLoading || loadingUsers || checkingWelcome) {
+  if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male')) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
 
