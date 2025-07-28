@@ -22,7 +22,7 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.headerContainer}>
-        <Link href="/" className={styles.logo}>
+        <Link href={isAuthenticated ? "/home" : "/"} className={styles.logo}>
           <Image 
             src="/img/logo_nukune.svg" 
             alt="Nukune Logo" 

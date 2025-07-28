@@ -3,12 +3,23 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus } from 'lucide-react';
+import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2 } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/home');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     // Smooth scrolling for anchor links
@@ -142,6 +153,26 @@ export default function LandingPage() {
       window.location.href = `/payment?plan=${plan}`;
     }
   };
+
+  // Show loading while checking auth status
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // If authenticated, the redirect effect will handle navigation
+  if (isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">ホームへ移動中...</p>
+      </div>
+    );
+  }
 
   return (
     <>
