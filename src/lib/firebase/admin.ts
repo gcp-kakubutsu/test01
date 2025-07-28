@@ -2,6 +2,8 @@ import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let adminApp: App | undefined;
 
@@ -19,13 +21,43 @@ function initializeAdmin(): App | undefined {
   try {
     // 開発環境: GOOGLE_APPLICATION_CREDENTIALSを優先
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.log('Initializing Firebase Admin SDK with service account file');
-      adminApp = initializeApp(undefined, 'admin');
-      console.log('Firebase Admin SDK initialized successfully (development mode)');
-      return adminApp;
+      let credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      console.log('Initial credentials path:', credentialsPath);
+      
+      // If it's a relative path, resolve it from the project root
+      if (!path.isAbsolute(credentialsPath)) {
+        credentialsPath = path.resolve(process.cwd(), credentialsPath);
+        console.log('Resolved to absolute path:', credentialsPath);
+      }
+      
+      // Check if file exists
+      if (!fs.existsSync(credentialsPath)) {
+        console.error('Service account file not found at:', credentialsPath);
+        console.error('Current working directory:', process.cwd());
+        console.error('Files in project root:', fs.readdirSync(process.cwd()).filter(f => f.endsWith('.json')));
+        // Try alternative path
+        const altPath = path.join(process.cwd(), 'nukune-e72e97115cbd.json');
+        if (fs.existsSync(altPath)) {
+          console.log('Found service account file at alternative path:', altPath);
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = altPath;
+        } else {
+          return undefined;
+        }
+      }
+      
+      console.log('Service account file found, initializing Firebase Admin SDK');
+      try {
+        adminApp = initializeApp(undefined, 'admin');
+        console.log('Firebase Admin SDK initialized successfully (development mode)');
+        return adminApp;
+      } catch (initError) {
+        console.error('Failed to initialize with service account file:', initError);
+        return undefined;
+      }
     }
     
-    // 本番環境: 環境変数から認証情報を読み込む
+    // Fallback: 環境変数から認証情報を読み込む
+    console.log('Service account file not available, trying environment variables');
     if (process.env.FIREBASE_ADMIN_PROJECT_ID && 
         process.env.FIREBASE_ADMIN_CLIENT_EMAIL && 
         process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
@@ -53,11 +85,15 @@ function initializeAdmin(): App | undefined {
           storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         }, 'admin');
         
-        console.log('Firebase Admin SDK initialized successfully (production mode)');
+        console.log('Firebase Admin SDK initialized successfully (environment variables mode)');
         return adminApp;
       } catch (certError) {
         console.error('Error with certificate:', certError);
-        throw certError;
+        console.error('Certificate details:');
+        console.error('- Project ID:', process.env.FIREBASE_ADMIN_PROJECT_ID);
+        console.error('- Client Email:', process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+        console.error('- Private Key format valid:', process.env.FIREBASE_ADMIN_PRIVATE_KEY?.includes('BEGIN PRIVATE KEY'));
+        return undefined;
       }
     }
     
@@ -76,7 +112,15 @@ function initializeAdmin(): App | undefined {
 }
 
 // Admin SDKを初期化
+console.log('=== Firebase Admin SDK Initialization ===');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('GOOGLE_APPLICATION_CREDENTIALS:', process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'Set' : 'Not set');
+console.log('FIREBASE_ADMIN_PROJECT_ID:', process.env.FIREBASE_ADMIN_PROJECT_ID ? 'Set' : 'Not set');
+console.log('FIREBASE_ADMIN_CLIENT_EMAIL:', process.env.FIREBASE_ADMIN_CLIENT_EMAIL ? 'Set' : 'Not set');
+console.log('FIREBASE_ADMIN_PRIVATE_KEY:', process.env.FIREBASE_ADMIN_PRIVATE_KEY ? 'Set (length: ' + process.env.FIREBASE_ADMIN_PRIVATE_KEY.length + ')' : 'Not set');
 const app = initializeAdmin();
+console.log('Admin SDK initialized:', !!app);
+console.log('=========================================');
 
 // エクスポート用のヘルパー関数
 export function getAdminAuth() {
