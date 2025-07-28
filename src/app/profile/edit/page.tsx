@@ -287,7 +287,15 @@ export default function EditProfilePage() {
                       src={profilePhotoPreview || profile?.profilePhotoUrl || ''} 
                       alt="プロフィールプレビュー" 
                       fill
-                      className="object-cover"
+                      className="object-cover w-full h-full"
+                      style={{
+                        imageRendering: '-webkit-optimize-contrast',
+                        filter: 'contrast(1.05) saturate(1.1)',
+                      }}
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      quality={100}
+                      priority
+                      unoptimized={profilePhotoPreview?.startsWith('blob:')}
                       data-ai-hint="人物 近影" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -380,13 +388,20 @@ export default function EditProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {additionalPhotos.map((photo, index) => (
                   <div key={index} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%]">
+                    <div className="relative w-full aspect-square">
                       <Image
                         src={photo.preview}
                         alt={`Additional photo ${index + 1}`}
                         fill
                         sizes="(max-width: 640px) 100vw, 50vw"
-                        className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                        className="object-cover w-full h-full"
+                        style={{
+                          imageRendering: '-webkit-optimize-contrast',
+                          filter: 'contrast(1.05) saturate(1.1)',
+                        }}
+                        quality={100}
+                        priority={index === 0}
+                        unoptimized={photo.preview.startsWith('blob:')}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       

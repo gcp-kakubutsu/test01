@@ -245,7 +245,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             src={profilePhoto}
             alt="Profile"
             fill
-            className="object-cover"
+            className="object-cover w-full h-full"
+            style={{
+              imageRendering: 'crisp-edges',
+              filter: 'contrast(1.05) saturate(1.1) sharpen(1)',
+            }}
+            sizes="(max-width: 768px) 100vw, 50vw"
+            quality={100}
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
           
@@ -349,13 +356,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {photos.slice(1).map((photo, index) => (
                   <div key={index + 1} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
-                    <div className="relative w-full h-0 pb-[120%] sm:pb-[100%] lg:pb-[80%]">
+                    <div className="relative w-full aspect-square">
                       <Image
                         src={photo}
                         alt={`Photo ${index + 2}`}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                        className="object-cover w-full h-full"
+                        style={{
+                          imageRendering: 'crisp-edges',
+                          filter: 'contrast(1.05) saturate(1.1) sharpen(1)',
+                        }}
+                        quality={100}
+                        priority={index === 0}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       

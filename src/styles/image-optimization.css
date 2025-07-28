@@ -1,0 +1,46 @@
+/* Image optimization styles for sharp rendering */
+
+/* Force high-quality image rendering */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Prevent blur on scaled images */
+img[data-nimg] {
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* High-quality scaling */
+.high-quality-image {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  filter: contrast(1.02) saturate(1.05);
+}
+
+/* Disable blur on Safari */
+@supports (-webkit-appearance: none) {
+  img {
+    -webkit-transform: translateZ(0);
+    -webkit-perspective: 1000;
+  }
+}
+
+/* Profile images specific optimization */
+img[alt*="Profile"],
+img[alt*="プロフィール"],
+img[alt*="Photo"] {
+  filter: contrast(1.05) saturate(1.1) brightness(1.02);
+  image-rendering: -webkit-optimize-contrast;
+}

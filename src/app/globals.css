@@ -1,4 +1,6 @@
 
+@import '../styles/image-optimization.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
