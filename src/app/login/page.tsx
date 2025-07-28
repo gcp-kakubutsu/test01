@@ -42,15 +42,11 @@ export default function LoginPage() {
       return;
     }
     setIsSubmitting(true);
-    try {
-      await login({ email, password });
+    const success = await login({ email, password });
+    if (success) {
       // Redirect is handled by useEffect
-    } catch (error: any) {
-      // Toast is handled by AuthContext
-      console.error("Login page submit error:", error);
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   if (authIsLoading && !isAuthenticated) { // Show loading only if not yet authenticated

@@ -57,20 +57,18 @@ export default function SignupPage() {
     }
     
     setIsSubmitting(true);
-    try {
-      const birthDate = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
-      await signup({ 
-        email, 
-        password, 
-        username: nickname,
-        birthDate,
-        gender
-      });
-    } catch (error: any) {
-      console.error("Signup page submit error:", error);
-    } finally {
-      setIsSubmitting(false);
+    const birthDate = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
+    const success = await signup({ 
+      email, 
+      password, 
+      username: nickname,
+      birthDate,
+      gender
+    });
+    if (success) {
+      // Redirect is handled by useEffect
     }
+    setIsSubmitting(false);
   };
 
   const currentYear = new Date().getFullYear();

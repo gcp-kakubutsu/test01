@@ -12,8 +12,10 @@ export function Header() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await logout();
-    router.push('/');
+    const success = await logout();
+    if (success) {
+      router.push('/');
+    }
   };
 
   // Always show header

@@ -13,9 +13,9 @@ interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (data: AuthFormData) => Promise<void>;
-  signup: (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (data: AuthFormData) => Promise<boolean>;
+  signup: (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => Promise<boolean>;
+  logout: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,23 +85,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = async (data: AuthFormData) => {
+  const login = async (data: AuthFormData): Promise<boolean> => {
     if (firebaseInitError) {
       toast({ title: 'ログインエラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。設定を確認してください。`, variant: 'destructive' });
-      throw new Error(`Firebase initialization error during login: ${firebaseInitError}`);
+      return false;
     }
     if (!auth) {
       toast({ title: 'ログインエラー', description: 'Firebase認証が初期化されていません。設定を確認してください。', variant: 'destructive' });
-      throw new Error('Firebase Auth is not initialized.');
+      return false;
     }
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
         toast({ title: 'ログインしました', description: 'Nukuneへようこそ！' });
+        return true;
       }
+      return false;
     } catch (error: any) {
-      console.error("Login error:", error);
+      // Don't log error to console to prevent error messages
       
       let description = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。';
       
@@ -124,18 +126,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       toast({ title: 'ログインエラー', description, variant: 'destructive' });
       setIsLoading(false);
-      throw error;
+      // Don't throw the error to prevent console errors
+      return false;
     }
   };
 
-  const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => {
+  const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }): Promise<boolean> => {
     if (firebaseInitError) {
       toast({ title: '登録エラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。設定を確認してください。`, variant: 'destructive' });
-      throw new Error(`Firebase initialization error during signup: ${firebaseInitError}`);
+      return false;
     }
     if (!auth || !db) {
       toast({ title: '登録エラー', description: 'Firebase認証またはデータベースが初期化されていません。設定を確認してください。', variant: 'destructive' });
-      throw new Error('Firebase Auth or Firestore is not initialized.');
+      return false;
     }
     setIsLoading(true);
     try {
@@ -148,9 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
             toast({ title: '登録完了！', description: 'Nukuneへようこそ！プロフィールを編集しましょう。' });
         }
+        return true;
       }
+      return false;
     } catch (error: any) {
-      console.error("Signup error:", error);
+      // Don't log error to console to prevent error messages
       let description = '登録に失敗しました。';
       if (error.code === 'auth/email-already-in-use') {
         description = 'このメールアドレスは既に使用されています。';
@@ -161,28 +166,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       toast({ title: '登録エラー', description, variant: 'destructive' });
       setIsLoading(false);
-      throw error;
+      return false;
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<boolean> => {
     if (firebaseInitError) {
       toast({ title: 'ログアウトエラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。`, variant: 'destructive' });
-      throw new Error(`Firebase initialization error during logout: ${firebaseInitError}`);
+      return false;
     }
     if (!auth) {
       toast({ title: 'ログアウトエラー', description: 'Firebase認証が初期化されていません。', variant: 'destructive' });
-      throw new Error('Firebase Auth is not initialized.');
+      return false;
     }
     setIsLoading(true);
     try {
       await firebaseSignOut(auth);
       toast({ title: 'ログアウトしました' });
+      return true;
     } catch (error: any) {
-      console.error("Logout error:", error);
+      // Don't log error to console to prevent error messages
       toast({ title: 'ログアウトエラー', description: error.message || 'ログアウトに失敗しました。', variant: 'destructive' });
       setIsLoading(false);
-      throw error;
+      return false;
     }
   };
 
