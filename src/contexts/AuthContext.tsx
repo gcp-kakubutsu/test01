@@ -181,8 +181,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(true);
     try {
+      // Clear user state immediately to prevent any active listeners from trying to access Firestore
+      setCurrentUser(null);
+      
+      // Then sign out from Firebase
       await firebaseSignOut(auth);
+      
       toast({ title: 'ログアウトしました' });
+      setIsLoading(false);
       return true;
     } catch (error: any) {
       // Don't log error to console to prevent error messages

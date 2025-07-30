@@ -64,6 +64,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         setProfileViews(snapshot.size);
         setLoadingViews(false);
       }, (error) => {
+        // Handle permission errors gracefully
+        const firebaseError = error as any;
+        if (firebaseError.code === 'permission-denied' && !currentUser) {
+          // User logged out, this is expected
+          setProfileViews(0);
+          setLoadingViews(false);
+          return;
+        }
         console.error('Error fetching profile views:', error);
         setProfileViews(0);
         setLoadingViews(false);

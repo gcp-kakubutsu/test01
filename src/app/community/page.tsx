@@ -121,7 +121,13 @@ export default function CommunityPage() {
             setLoadingCommunities(false);
             
             // Handle permission errors specifically
-            if (error.code === 'permission-denied') {
+            const firebaseError = error as any;
+            if (firebaseError.code === 'permission-denied') {
+              // Check if user is still authenticated
+              if (!currentUser) {
+                // User has logged out, this is expected - don't show error
+                return;
+              }
               toast({
                 title: "アクセス権限がありません",
                 description: "コミュニティデータにアクセスする権限がありません。管理者にお問い合わせください。",

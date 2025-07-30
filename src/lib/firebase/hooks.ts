@@ -37,6 +37,13 @@ export function useUserProfile(userId?: string) {
       return;
     }
 
+    // Check if user is still authenticated before setting up listener
+    if (!currentUser) {
+      setLoading(false);
+      setProfile(null);
+      return;
+    }
+
     if (!db) throw new Error('Firestore is not initialized');
     const userRef = doc(db, 'users', uid);
     
@@ -51,6 +58,14 @@ export function useUserProfile(userId?: string) {
         setLoading(false);
       },
       (err) => {
+        // Handle permission errors gracefully when user is logged out
+        const firebaseError = err as any;
+        if (firebaseError.code === 'permission-denied' && !currentUser) {
+          // User logged out, this is expected
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching user profile:', err);
         setError('プロフィールの取得に失敗しました');
         setLoading(false);
@@ -58,7 +73,7 @@ export function useUserProfile(userId?: string) {
     );
 
     return () => unsubscribe();
-  }, [uid]);
+  }, [uid, currentUser]);
 
   return { profile, loading, error };
 }
@@ -88,6 +103,7 @@ export interface Community {
 }
 
 export function useCommunities() {
+  const { currentUser } = useAuth();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +111,13 @@ export function useCommunities() {
   useEffect(() => {
     if (!db) {
       setLoading(false);
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!currentUser) {
+      setLoading(false);
+      setCommunities([]);
       return;
     }
 
@@ -113,6 +136,14 @@ export function useCommunities() {
         setLoading(false);
       },
       (err) => {
+        // Handle permission errors gracefully when user is logged out
+        const firebaseError = err as any;
+        if (firebaseError.code === 'permission-denied' && !currentUser) {
+          // User logged out, this is expected
+          setCommunities([]);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching communities:', err);
         setError('コミュニティの取得に失敗しました');
         setLoading(false);
@@ -120,7 +151,7 @@ export function useCommunities() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
   return { communities, loading, error };
 }
@@ -135,6 +166,7 @@ export interface Message {
 }
 
 export function useMessages(matchId: string) {
+  const { currentUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +174,13 @@ export function useMessages(matchId: string) {
   useEffect(() => {
     if (!matchId || !db) {
       setLoading(false);
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!currentUser) {
+      setLoading(false);
+      setMessages([]);
       return;
     }
 
@@ -161,6 +200,14 @@ export function useMessages(matchId: string) {
         setLoading(false);
       },
       (err) => {
+        // Handle permission errors gracefully when user is logged out
+        const firebaseError = err as any;
+        if (firebaseError.code === 'permission-denied' && !currentUser) {
+          // User logged out, this is expected
+          setMessages([]);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching messages:', err);
         setError('メッセージの取得に失敗しました');
         setLoading(false);
@@ -168,7 +215,7 @@ export function useMessages(matchId: string) {
     );
 
     return () => unsubscribe();
-  }, [matchId]);
+  }, [matchId, currentUser]);
 
   return { messages, loading, error };
 }
@@ -188,7 +235,6 @@ export async function fetchUserProfiles(userIds: string[]): Promise<Map<string, 
   for (const chunk of chunks) {
     // Use document IDs directly instead of uid field
     if (!db) throw new Error('Firestore is not initialized');
-    const usersRef = collection(db, 'users');
     
     // Fetch each user document by ID
     for (const userId of chunk) {
@@ -217,6 +263,7 @@ export function useMatches() {
   useEffect(() => {
     if (!currentUser || !db) {
       setLoading(false);
+      setMatches([]);
       return;
     }
 
@@ -245,6 +292,14 @@ export function useMatches() {
         setLoading(false);
       },
       (err) => {
+        // Handle permission errors gracefully when user is logged out
+        const firebaseError = err as any;
+        if (firebaseError.code === 'permission-denied') {
+          // User logged out or no permission, this might be expected
+          setMatches([]);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching matches:', err);
         setError('マッチの取得に失敗しました');
         setLoading(false);
@@ -289,6 +344,12 @@ export function useUserStats(userId?: string) {
           currentStats.profileViews = snapshot.size;
           setStats({ ...currentStats });
         }, (error) => {
+          // Handle permission errors gracefully
+          const firebaseError = error as any;
+          if (firebaseError.code === 'permission-denied') {
+            // User might have logged out, ignore this error
+            return;
+          }
           console.error('Error listening to profile views:', error);
         });
 
