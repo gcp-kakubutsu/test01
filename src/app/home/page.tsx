@@ -305,16 +305,20 @@ export default function HomePage() {
               recordProfileView(currentUser!.uid, user.id);
             }}
           >
-            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md">
+            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-100">
               <img
-                src={user.imageUrl || '/placeholder.jpg'}
+                src={user.imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                 alt={user.name}
                 className={`absolute inset-0 w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo';
+                }}
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                <p className="text-white font-bold text-base sm:text-lg">{user.name}, {user.age}</p>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
+                <p className="text-white font-bold text-base sm:text-lg drop-shadow-lg">{user.name}, {user.age}</p>
                 {user.location && (
-                  <p className="text-white/90 text-sm sm:text-base">{user.location}</p>
+                  <p className="text-white/90 text-sm sm:text-base drop-shadow-lg">{user.location}</p>
                 )}
               </div>
             </div>
