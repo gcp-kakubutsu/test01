@@ -24,6 +24,7 @@ import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface UserProfilePageProps {
   params: Promise<{ id: string }>;
@@ -33,6 +34,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const [userId, setUserId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
@@ -99,9 +101,10 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   }, [currentUser, userId, router]);
 
   // Record profile view when page loads (with slight delay to avoid duplicate records)
+  // Only record if user is premium
   useEffect(() => {
     const recordView = async () => {
-      if (currentUser && userId && currentUser.uid !== userId) {
+      if (currentUser && userId && currentUser.uid !== userId && isPremium) {
         // Small delay to ensure page is fully loaded
         setTimeout(async () => {
           await recordProfileView(currentUser.uid, userId);
@@ -110,7 +113,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       }
     };
     recordView();
-  }, [currentUser, userId]);
+  }, [currentUser, userId, isPremium]);
 
   useEffect(() => {
     if (profile) {
@@ -195,7 +198,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     });
   };
 
-  if (authLoading || profileLoading || !userId) {
+  if (authLoading || profileLoading || subscriptionLoading || !userId) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -205,6 +208,33 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  // Check if user is premium - if not, show restriction message
+  if (!isPremium) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 pb-20">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-xl font-bold">プロフィール</h1>
+        </div>
+        <Card className="p-8 text-center">
+          <div className="mb-4">
+            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">有料会員限定</h2>
+            <p className="text-gray-500 mb-4">プロフィールの詳細は有料会員のみ閲覧できます</p>
+          </div>
+          <Button
+            className="bg-[#F0306A] hover:bg-[#E02860]"
+            onClick={() => router.push('/subscription')}
+          >
+            有料プランを見る
+          </Button>
+        </Card>
+      </div>
+    );
   }
 
   if (error || !profile) {
