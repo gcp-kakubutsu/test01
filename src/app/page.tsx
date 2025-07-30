@@ -152,13 +152,24 @@ export default function LandingPage() {
   const handleAgeConfirmation = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (confirm('あなたは18歳以上ですか？')) {
-      window.location.href = e.currentTarget.href;
+      // Check if there's a selected plan stored
+      const selectedPlan = sessionStorage.getItem('selectedPlan');
+      if (selectedPlan) {
+        // If plan is selected, go to signup (which will redirect to subscription after signup)
+        router.push('/signup');
+      } else {
+        // Otherwise, proceed normally
+        router.push(e.currentTarget.pathname);
+      }
     }
   };
 
   const handlePricingClick = (plan: string) => {
     if (confirm('あなたは18歳以上ですか？')) {
-      window.location.href = `/payment?plan=${plan}`;
+      // Store the selected plan in sessionStorage
+      sessionStorage.setItem('selectedPlan', plan);
+      // Redirect to login page
+      router.push('/login');
     }
   };
 

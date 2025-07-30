@@ -27,7 +27,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/home');
+      // Check if there's a selected plan in sessionStorage
+      const selectedPlan = sessionStorage.getItem('selectedPlan');
+      if (selectedPlan) {
+        // Clear the stored plan
+        sessionStorage.removeItem('selectedPlan');
+        // Redirect to subscription page with the plan
+        router.push(`/subscription?plan=${selectedPlan}`);
+      } else {
+        router.push('/home');
+      }
     }
   }, [isAuthenticated, router]);
 
