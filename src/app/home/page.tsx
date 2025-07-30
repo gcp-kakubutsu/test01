@@ -16,13 +16,23 @@ import MaleOnboarding from '@/components/MaleOnboarding';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
+import { useSubscription } from '@/hooks/useSubscription';
+import '@/styles/blur.css';
 
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const { profile: userProfile } = useUserProfile();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
+  
+  // デバッグ用ログ
+  useEffect(() => {
+    console.log('HomePage - Current user:', currentUser?.email);
+    console.log('HomePage - isPremium:', isPremium);
+    console.log('HomePage - subscriptionLoading:', subscriptionLoading);
+  }, [currentUser, isPremium, subscriptionLoading]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
@@ -227,7 +237,7 @@ export default function HomePage() {
     }
   }
 
-  if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male')) {
+  if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
 
@@ -299,12 +309,12 @@ export default function HomePage() {
               <img
                 src={user.imageUrl || '/placeholder.jpg'}
                 alt={user.name}
-                className="absolute inset-0 w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                <p className="text-white font-semibold text-sm">{user.name}, {user.age}</p>
+                <p className="text-white font-bold text-base sm:text-lg">{user.name}, {user.age}</p>
                 {user.location && (
-                  <p className="text-white/80 text-xs">{user.location}</p>
+                  <p className="text-white/90 text-sm sm:text-base">{user.location}</p>
                 )}
               </div>
             </div>

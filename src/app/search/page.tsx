@@ -14,7 +14,9 @@ import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location';
 import { useUserProfile } from '@/lib/firebase/hooks';
+import { useSubscription } from '@/hooks/useSubscription';
 import styles from './search.module.scss';
+import '@/styles/blur.css';
 
 interface UserProfile {
   id: string;
@@ -31,6 +33,7 @@ interface UserProfile {
 export default function SearchPage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const { profile: userProfile } = useUserProfile();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -260,7 +263,7 @@ export default function SearchPage() {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % filteredUsers.length);
   };
 
-  if (isLoading || loadingUsers || !isAuthenticated) {
+  if (isLoading || loadingUsers || subscriptionLoading || !isAuthenticated) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
@@ -335,12 +338,12 @@ export default function SearchPage() {
       {/* User Cards */}
       {currentProfile ? (
         <div className={styles.profileCard}>
-          <div className={styles.profileImageContainer}>
+          <div className={`${styles.profileImageContainer} ${!isPremium ? 'blur-overlay' : ''}`}>
             <Image
               src={currentProfile.imageUrl}
               alt={currentProfile.name}
               fill
-              className="object-cover"
+              className={`object-cover ${!isPremium ? 'blur-image' : ''}`}
             />
             <div className={styles.profileGradient} />
             
@@ -363,9 +366,9 @@ export default function SearchPage() {
                 )}
               </div>
               
-              <p className={styles.profileBio}>{currentProfile.bio}</p>
+              <p className={`${styles.profileBio} ${!isPremium ? 'blur-content' : ''}`}>{currentProfile.bio}</p>
               
-              <div className={styles.profileInterests}>
+              <div className={`${styles.profileInterests} ${!isPremium ? 'blur-content' : ''}`}>
                 {currentProfile.interests.map((interest) => (
                   <span key={interest} className={styles.interestBadge}>
                     {interest}
