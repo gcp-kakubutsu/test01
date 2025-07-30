@@ -22,107 +22,115 @@ export default function LandingPage() {
   }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
-    // Smooth scrolling for anchor links
-    const anchors = document.querySelectorAll('a[href^="#"]');
-    anchors.forEach(anchor => {
-      anchor.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = document.querySelector(anchor.getAttribute('href') as string);
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
+    // Skip animations if authenticated (will redirect anyway)
+    if (isAuthenticated) return;
+
+    // Add a small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      // Smooth scrolling for anchor links
+      const handleAnchorClick = (e: Event) => {
+        const anchor = e.currentTarget as HTMLAnchorElement;
+        const href = anchor.getAttribute('href');
+        if (href && href.startsWith('#')) {
+          e.preventDefault();
+          const target = document.querySelector(href);
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
         }
+      };
+
+      const anchors = document.querySelectorAll('a[href^="#"]');
+      anchors.forEach(anchor => {
+        anchor.addEventListener('click', handleAnchorClick);
       });
-    });
 
-    // Parallax effect for hero video
-    const handleScroll = () => {
-      const scrolled = window.scrollY;
-      const heroVideo = document.querySelector(`.${styles.heroVideo}`) as HTMLVideoElement;
-      if (heroVideo) {
-        const parallaxSpeed = 0.5;
-        heroVideo.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
-      }
-    };
+      // Remove parallax effect to ensure video stays visible
 
-    window.addEventListener('scroll', handleScroll);
+      // Intersection Observer for scroll animations
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
 
-    // Intersection Observer for scroll animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add(styles.animate);
+          }
+        });
+      }, observerOptions);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add(styles.animate);
-        }
-      });
-    }, observerOptions);
+      // Observe all scroll animation elements
+      const animatedElements = document.querySelectorAll(`.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}`);
+      animatedElements.forEach(el => observer.observe(el));
 
-    // Observe all scroll animation elements
-    const animatedElements = document.querySelectorAll(`.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}`);
-    animatedElements.forEach(el => observer.observe(el));
+      // Stagger animation observer
+      const staggerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
+            staggerElements.forEach((el, index) => {
+              setTimeout(() => {
+                el.classList.add(styles.animate);
+              }, index * 100);
+            });
+          }
+        });
+      }, observerOptions);
 
-    // Stagger animation observer
-    const staggerObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
-          staggerElements.forEach((el, index) => {
-            setTimeout(() => {
-              el.classList.add(styles.animate);
-            }, index * 100);
-          });
-        }
-      });
-    }, observerOptions);
+      // Observe containers with stagger elements
+      const staggerContainers = document.querySelectorAll(`.${styles.featuresGrid}, .${styles.reasonsGrid}, .${styles.stepsContainer}, .${styles.safetyGrid}, .${styles.faqContainer}, .${styles.pricingGrid}`);
+      staggerContainers.forEach(container => staggerObserver.observe(container));
 
-    // Observe containers with stagger elements
-    const staggerContainers = document.querySelectorAll(`.${styles.featuresGrid}, .${styles.reasonsGrid}, .${styles.stepsContainer}, .${styles.safetyGrid}, .${styles.faqContainer}, .${styles.pricingGrid}`);
-    staggerContainers.forEach(container => staggerObserver.observe(container));
+      // Counter animation
+      const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const counter = entry.target as HTMLElement;
+            const target = parseInt(counter.getAttribute('data-count') || '0');
+            const duration = 500;
+            const increment = target / (duration / 16);
+            let current = 0;
 
-    // Counter animation
-    const counterObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const counter = entry.target as HTMLElement;
-          const target = parseInt(counter.getAttribute('data-count') || '0');
-          const duration = 500;
-          const increment = target / (duration / 16);
-          let current = 0;
+            const updateCounter = () => {
+              current += increment;
+              if (current < target) {
+                counter.textContent = `¥${Math.floor(current).toLocaleString()}`;
+                requestAnimationFrame(updateCounter);
+              } else {
+                counter.textContent = `¥${target.toLocaleString()}`;
+              }
+            };
 
-          const updateCounter = () => {
-            current += increment;
-            if (current < target) {
-              counter.textContent = `¥${Math.floor(current).toLocaleString()}`;
-              requestAnimationFrame(updateCounter);
-            } else {
-              counter.textContent = `¥${target.toLocaleString()}`;
-            }
-          };
+            updateCounter();
+            counterObserver.unobserve(counter);
+          }
+        });
+      }, observerOptions);
 
-          updateCounter();
-          counterObserver.unobserve(counter);
-        }
-      });
-    }, observerOptions);
+      // Observe counter elements
+      const counters = document.querySelectorAll(`.${styles.counterNumber}`);
+      counters.forEach(counter => counterObserver.observe(counter));
 
-    // Observe counter elements
-    const counters = document.querySelectorAll(`.${styles.counterNumber}`);
-    counters.forEach(counter => counterObserver.observe(counter));
+      // Cleanup
+      return () => {
+        anchors.forEach(anchor => {
+          anchor.removeEventListener('click', handleAnchorClick);
+        });
+        observer.disconnect();
+        staggerObserver.disconnect();
+        counterObserver.disconnect();
+      };
+    }, 100);
 
-    // Cleanup
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
-      staggerObserver.disconnect();
-      counterObserver.disconnect();
+      clearTimeout(timer);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const toggleFAQ = (index: number) => {
     const faqItem = faqRefs.current[index];
@@ -154,32 +162,41 @@ export default function LandingPage() {
     }
   };
 
-  // Show loading while checking auth status
+  // Show loading only during initial auth check
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">読み込み中...</p>
+        <p className="ml-2 text-white">読み込み中...</p>
       </div>
     );
   }
 
-  // If authenticated, the redirect effect will handle navigation
+  // If authenticated, show redirect message briefly
   if (isAuthenticated) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">ホームへ移動中...</p>
+        <p className="ml-2 text-white">ホームへ移動中...</p>
       </div>
     );
   }
 
   return (
-    <>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000000' }}>
       {/* Hero Section */}
       <section className={styles.hero}>
-        <video autoPlay muted loop playsInline className={styles.heroVideo}>
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          className={styles.heroVideo}
+          preload="auto"
+          poster="/img/woman.jpeg"
+        >
           <source src="/img/girl.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
@@ -501,6 +518,6 @@ export default function LandingPage() {
 
       {/* Footer */}
       <Footer />
-    </>
+    </div>
   );
 }

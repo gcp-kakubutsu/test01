@@ -34,6 +34,8 @@ export function useUserProfile(userId?: string) {
   useEffect(() => {
     if (!uid || !db) {
       setLoading(false);
+      setProfile(null);
+      setError(null);
       return;
     }
 
@@ -41,6 +43,7 @@ export function useUserProfile(userId?: string) {
     if (!currentUser) {
       setLoading(false);
       setProfile(null);
+      setError(null);
       return;
     }
 
