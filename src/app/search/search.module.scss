@@ -162,6 +162,7 @@
   right: 0;
   padding: 2rem 1.5rem 1.5rem;
   color: white;
+  z-index: 20; /* Ensure info is above blur overlay */
   
   @media (max-width: 640px) {
     padding: 1.5rem 1rem 1rem;

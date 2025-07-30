@@ -210,6 +210,24 @@ export default function SearchPage() {
   const handleLike = async () => {
     if (isProcessingLike || !currentUser) return;
     
+    // Premium check
+    if (!isPremium) {
+      toast({
+        title: "有料会員限定",
+        description: "有料会員にならないといいねは出来ません。",
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/subscription')}
+          >
+            有料会員になる
+          </Button>
+        ),
+      });
+      return;
+    }
+    
     const targetUser = filteredUsers[currentIndex];
     if (!targetUser) return;
     
