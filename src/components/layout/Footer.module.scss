@@ -5,11 +5,20 @@
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   position: relative;
   z-index: 10;
+
+  :global(.light) & {
+    background: #F9FAFB;
+    border-top: 1px solid #E5E7EB;
+  }
 }
 
 .footerContent {
   text-align: center;
   color: #9CA3AF;
+
+  :global(.light) & {
+    color: #6B7280;
+  }
 }
 
 .footerLinks {
@@ -30,8 +39,16 @@
   text-decoration: none;
   transition: color 0.3s ease;
 
+  :global(.light) & {
+    color: #6B7280;
+  }
+
   &:hover {
     color: #D4AF37;
+
+    :global(.light) & {
+      color: #F0306A;
+    }
   }
 }
 
@@ -45,4 +62,8 @@
   font-size: 0.9rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
+
+  :global(.light) & {
+    border-top: 1px solid #E5E7EB;
+  }
 }

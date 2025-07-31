@@ -1,6 +1,6 @@
 // Global SCSS Variables and Styles
 
-// Color Variables
+// Color Variables - Dark mode (default)
 :root {
   --primary-dark: #111827;
   --accent-burgundy: #8B1E3F;
@@ -13,6 +13,18 @@
   --text-muted: #6B7280;
   --border-color: rgba(212, 175, 55, 0.2);
   --border-subtle: rgba(255, 255, 255, 0.1);
+}
+
+// Light mode color overrides
+.light {
+  --bg-dark: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-card: #FFFFFF;
+  --text-light: #1F2937;
+  --text-gray: #4B5563;
+  --text-muted: #6B7280;
+  --border-color: #E5E7EB;
+  --border-subtle: #E5E7EB;
 }
 
 // Global Styles
@@ -36,6 +48,7 @@ body {
   color: var(--text-light);
   line-height: 1.6;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 // Typography
@@ -44,11 +57,13 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-light);
+  transition: color 0.3s ease;
 }
 
 p {
   color: var(--text-gray);
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 a {
@@ -85,6 +100,15 @@ a {
     transform: translateY(-5px);
     box-shadow: 0 15px 30px rgba(212, 175, 55, 0.1);
     border-color: var(--accent-gold);
+  }
+  
+  .light & {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      box-shadow: 0 10px 20px rgba(240, 48, 106, 0.15);
+      border-color: #F0306A;
+    }
   }
 }
 
@@ -125,15 +149,27 @@ a {
   }
 }
 
-// Override button styles for dark theme
+// Override button styles
 button:not(.btn):not(.btn-primary):not(.btn-secondary) {
   background-color: rgba(17, 24, 39, 0.95);
   color: var(--text-light);
   border: 1px solid var(--border-subtle);
+  transition: all 0.3s ease;
+  
+  .light & {
+    background-color: #FFFFFF;
+    color: var(--text-light);
+    border: 1px solid var(--border-subtle);
+  }
   
   &:hover:not(:disabled) {
     background-color: rgba(17, 24, 39, 0.8);
     border-color: var(--accent-gold);
+    
+    .light & {
+      background-color: #F3F4F6;
+      border-color: #F0306A;
+    }
   }
   
   &:disabled {
@@ -152,9 +188,20 @@ button:not(.btn):not(.btn-primary):not(.btn-secondary) {
   color: var(--text-light) !important;
   border: 1px solid rgba(212, 175, 55, 0.3) !important;
   
+  .light & {
+    background-color: #FFFFFF !important;
+    color: var(--text-light) !important;
+    border: 1px solid var(--border-subtle) !important;
+  }
+  
   &:hover {
     background-color: rgba(31, 41, 55, 0.8) !important;
     border-color: var(--accent-gold) !important;
+    
+    .light & {
+      background-color: #F3F4F6 !important;
+      border-color: #F0306A !important;
+    }
   }
 }
 
@@ -182,11 +229,22 @@ select {
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
+  
+  .light & {
+    background: #FFFFFF;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-light);
+  }
 
   &:focus {
     outline: none;
     border-color: var(--accent-gold);
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    
+    .light & {
+      border-color: #F0306A;
+      box-shadow: 0 0 0 3px rgba(240, 48, 106, 0.1);
+    }
   }
 
   &::placeholder {
@@ -338,13 +396,20 @@ select {
   border-top-color: var(--border-subtle) !important;
 }
 
-// Make all cards and UI components dark
+// Make all cards and UI components
 .ui-card,
 [class*="card"],
 [class*="Card"] {
   background-color: var(--bg-card) !important;
   color: var(--text-light) !important;
   border-color: var(--border-subtle) !important;
+  
+  .light & {
+    background-color: #FFFFFF !important;
+    color: var(--text-light) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
 }
 
 // Profile page specific buttons
@@ -356,18 +421,33 @@ select {
     color: var(--text-light) !important;
     border: 1px solid rgba(212, 175, 55, 0.3) !important;
     
+    .light & {
+      background-color: #FFFFFF !important;
+      color: var(--text-light) !important;
+      border: 1px solid var(--border-subtle) !important;
+    }
+    
     &:hover {
       background-color: rgba(31, 41, 55, 0.8) !important;
       border-color: var(--accent-gold) !important;
+      
+      .light & {
+        background-color: #F3F4F6 !important;
+        border-color: #F0306A !important;
+      }
     }
   }
 }
 
-// Ensure all text is visible on dark background
+// Ensure all text is visible
 h1, h2, h3, h4, h5, h6,
 p, span, div, a, button,
 label, input, textarea, select {
   color: var(--text-light);
+  
+  .light & {
+    color: var(--text-light);
+  }
 }
 
 // Specific overrides for common UI elements
