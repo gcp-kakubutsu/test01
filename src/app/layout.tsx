@@ -8,6 +8,7 @@ import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,17 +33,19 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <Header />
-          <LayoutWrapper>
-            <main>
-              <PageWrapper>
-                {children}
-              </PageWrapper>
-            </main>
-          </LayoutWrapper>
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Header />
+            <LayoutWrapper>
+              <main>
+                <PageWrapper>
+                  {children}
+                </PageWrapper>
+              </main>
+            </LayoutWrapper>
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

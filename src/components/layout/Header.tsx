@@ -6,6 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Home, MessageCircle, User, LogOut } from 'lucide-react';
 import styles from './Header.module.scss';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Logo } from '@/components/ui/logo';
 
 export function Header() {
   const { isAuthenticated, logout, isLoading } = useAuth();
@@ -23,14 +25,7 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.headerContainer}>
         <Link href={isAuthenticated ? "/home" : "/"} className={styles.logo}>
-          <Image 
-            src="/img/logo_nukune.svg" 
-            alt="Nukune Logo" 
-            width={150} 
-            height={40}
-            priority
-            className={styles.logoImg}
-          />
+          <Logo width={150} height={40} className={styles.logoImg} />
         </Link>
         <nav className={styles.navLinks}>
           {!isLoading && (
@@ -62,6 +57,7 @@ export function Header() {
               </>
             ) : (
               <>
+                <ThemeToggle />
                 <Link href="/login" className={styles.navLink}>ログイン</Link>
                 <Link href="/signup" className={`${styles.navLink} ${styles.primary}`}>新規登録</Link>
               </>

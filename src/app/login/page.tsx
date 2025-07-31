@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useState, useEffect } from 'react';
 import { LogInIcon, Mail, KeyRound, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Logo } from '@/components/ui/logo';
 
 export interface AuthFormData {
   email: string;
@@ -70,6 +71,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center py-6 sm:py-12 px-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
+          <div className="mb-4">
+            <Logo width={150} height={50} />
+          </div>
           <div className="mx-auto p-2 sm:p-3 bg-primary rounded-full w-fit mb-4">
             <LogInIcon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
           </div>
