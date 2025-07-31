@@ -238,13 +238,13 @@ export default function HomePage() {
   }
 
   if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
+    return <div className="flex justify-center items-center h-screen bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-white">読み込み中...</p></div>;
   }
 
   if (!isAuthenticated) {
     // This case should ideally be handled by the redirect in useEffect,
     // but as a fallback or during transition:
-    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+    return <div className="flex justify-center items-center h-screen bg-black"><p className="text-white">ログインページへリダイレクト中...</p></div>;
   }
 
   // Show welcome page for first-time male users
@@ -258,7 +258,7 @@ export default function HomePage() {
   }
 
   if (users.length === 0) {
-    return <div className="text-center py-10">現在表示できるプロフィールはありません。後でもう一度確認してください！</div>;
+    return <div className="text-center py-10 bg-black min-h-screen"><p className="text-white">現在表示できるプロフィールはありません。後でもう一度確認してください！</p></div>;
   }
 
   // Calculate pagination
@@ -282,7 +282,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="w-full" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
+    <div className="w-full" style={{ backgroundColor: '#000000', minHeight: '100vh' }}>
       {/* Banner Image */}
       <div className="w-full mb-4 px-1">
         <div className="relative">
@@ -305,7 +305,7 @@ export default function HomePage() {
               recordProfileView(currentUser!.uid, user.id);
             }}
           >
-            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-100">
+            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-800">
               <img
                 src={user.imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                 alt={user.name}
@@ -327,8 +327,8 @@ export default function HomePage() {
       </div>
       
       {users.length === 0 && (
-        <div className="text-center py-10 text-muted-foreground">
-          <p className="text-xl mb-4">現在表示できるプロフィールはありません！</p>
+        <div className="text-center py-10 text-gray-300">
+          <p className="text-xl mb-4 text-white">現在表示できるプロフィールはありません！</p>
           <Button onClick={handleReset} variant="outline">
             <RotateCcw className="mr-2 h-4 w-4" /> プロフィールを再読み込み
           </Button>
