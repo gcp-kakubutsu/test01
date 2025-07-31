@@ -32,9 +32,7 @@ $border-color: rgba(212, 175, 55, 0.2);
 // Hero Section
 .hero {
   width: 100%;
-  height: calc(100vh - 80px); // ヘッダーの高さを引く
-  margin-top: -80px; // ヘッダーの下に隠れる部分を補正
-  padding-top: 80px; // コンテンツがヘッダーに隠れないように
+  height: 100vh; // 正確に1ページの高さにする
   position: relative;
   display: flex;
   align-items: center;
@@ -52,6 +50,11 @@ $border-color: rgba(212, 175, 55, 0.2);
   height: 100%;
   object-fit: cover;
   z-index: 0;
+  // モバイルでの表示を最適化
+  @media (max-width: 768px) {
+    object-fit: cover;
+    object-position: center;
+  }
 }
 
 .heroOverlay {
@@ -432,7 +435,7 @@ $border-color: rgba(212, 175, 55, 0.2);
 // Safety Section
 .safety {
   width: 100%;
-  background-color: #0a0a0a;
+  background-color: #0a0a0a !important;
   padding: 4rem 0;
 }
 
@@ -559,7 +562,7 @@ $border-color: rgba(212, 175, 55, 0.2);
 // Pricing Section
 .pricing {
   width: 100%;
-  background-color: #0a0a0a;
+  background-color: #0a0a0a !important;
   padding: 4rem 0;
 }
 
@@ -706,55 +709,70 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Animation Classes
 .scrollFadeIn {
-  opacity: 0;
-  transform: translateY(30px);
   transition: all 0.8s ease;
   
-  &.animate {
+  &[data-animated="false"] {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  
+  &[data-animated="true"] {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 .scrollSlideLeft {
-  opacity: 0;
-  transform: translateX(-50px);
   transition: all 0.8s ease;
   
-  &.animate {
+  &[data-animated="false"] {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  
+  &[data-animated="true"] {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
 .scrollSlideRight {
-  opacity: 0;
-  transform: translateX(50px);
   transition: all 0.8s ease;
   
-  &.animate {
+  &[data-animated="false"] {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  
+  &[data-animated="true"] {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
 .scrollScaleUp {
-  opacity: 0;
-  transform: scale(0.8);
   transition: all 0.8s ease;
   
-  &.animate {
+  &[data-animated="false"] {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  
+  &[data-animated="true"] {
     opacity: 1;
     transform: scale(1);
   }
 }
 
 .scrollStagger {
-  opacity: 0;
-  transform: translateY(30px);
   transition: all 0.8s ease;
   
-  &.animate {
+  &[data-animated="false"] {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  
+  &[data-animated="true"] {
     opacity: 1;
     transform: translateY(0);
   }

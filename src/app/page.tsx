@@ -27,6 +27,7 @@ export default function LandingPage() {
 
     // Add a small delay to ensure DOM is ready
     const timer = setTimeout(() => {
+      
       // Smooth scrolling for anchor links
       const handleAnchorClick = (e: Event) => {
         const anchor = e.currentTarget as HTMLAnchorElement;
@@ -50,6 +51,20 @@ export default function LandingPage() {
 
       // Remove parallax effect to ensure video stays visible
 
+
+      // Set initial state for animation elements
+      const initializeElements = () => {
+        const allAnimatedElements = document.querySelectorAll(
+          `.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}, .${styles.scrollStagger}`
+        );
+        allAnimatedElements.forEach(el => {
+          el.setAttribute('data-animated', 'false');
+        });
+      };
+      
+      // Initialize immediately
+      initializeElements();
+
       // Intersection Observer for scroll animations
       const observerOptions = {
         threshold: 0.1,
@@ -59,7 +74,8 @@ export default function LandingPage() {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            entry.target.classList.add(styles.animate);
+            entry.target.setAttribute('data-animated', 'true');
+            observer.unobserve(entry.target);
           }
         });
       }, observerOptions);
@@ -75,9 +91,10 @@ export default function LandingPage() {
             const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
             staggerElements.forEach((el, index) => {
               setTimeout(() => {
-                el.classList.add(styles.animate);
+                el.setAttribute('data-animated', 'true');
               }, index * 100);
             });
+            staggerObserver.unobserve(entry.target);
           }
         });
       }, observerOptions);
@@ -450,7 +467,7 @@ export default function LandingPage() {
             <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.pricingHeader}>
                 <h3 className={styles.pricingTitle}>1ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="2000">¥0</div>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="2000">¥2,000</div>
                 <div className={styles.pricingPeriod}>月額</div>
               </div>
               <ul className={styles.pricingFeatures}>
@@ -467,7 +484,7 @@ export default function LandingPage() {
             <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.pricingHeader}>
                 <h3 className={styles.pricingTitle}>6ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1500">¥0</div>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1500">¥1,500</div>
                 <div className={styles.pricingPeriod}>月額</div>
                 <span className={styles.pricingDiscount}>25%お得</span>
               </div>
@@ -486,7 +503,7 @@ export default function LandingPage() {
             <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.pricingHeader}>
                 <h3 className={styles.pricingTitle}>12ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1000">¥0</div>
+                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1000">¥1,000</div>
                 <div className={styles.pricingPeriod}>月額</div>
                 <span className={styles.pricingDiscount}>50%お得</span>
               </div>
