@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthActionPage() {
+function AuthActionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,5 +45,20 @@ export default function AuthActionPage() {
         <p className="text-gray-600">リダイレクト中...</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthActionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F9E4EB] flex items-center justify-center px-4">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-[#F0306A]" />
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <AuthActionContent />
+    </Suspense>
   );
 }
