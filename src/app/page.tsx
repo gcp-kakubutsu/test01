@@ -52,30 +52,21 @@ export default function LandingPage() {
       // Remove parallax effect to ensure video stays visible
 
 
-      // Set initial state for animation elements
-      const initializeElements = () => {
-        const allAnimatedElements = document.querySelectorAll(
-          `.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}, .${styles.scrollStagger}`
-        );
-        allAnimatedElements.forEach(el => {
-          el.setAttribute('data-animated', 'false');
-        });
-      };
-      
-      // Initialize immediately
-      initializeElements();
 
       // Intersection Observer for scroll animations
       const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+        threshold: 0.1, // 10%見えたらアニメーション開始
+        rootMargin: '-50px 0px -50px 0px' // 上下両方向に余白を設定
       };
 
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
+            // 画面に入ったらアニメーション開始
             entry.target.setAttribute('data-animated', 'true');
-            observer.unobserve(entry.target);
+          } else {
+            // 画面から出たらアニメーションをリセット（毎回動作）
+            entry.target.setAttribute('data-animated', 'false');
           }
         });
       }, observerOptions);
@@ -87,14 +78,19 @@ export default function LandingPage() {
       // Stagger animation observer
       const staggerObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
+          const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
           if (entry.isIntersecting) {
-            const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
+            // 画面に入ったら順番にアニメーション
             staggerElements.forEach((el, index) => {
               setTimeout(() => {
                 el.setAttribute('data-animated', 'true');
-              }, index * 100);
+              }, index * 80); // より速いスタッガー
             });
-            staggerObserver.unobserve(entry.target);
+          } else {
+            // 画面から出たら即座にリセット
+            staggerElements.forEach(el => {
+              el.setAttribute('data-animated', 'false');
+            });
           }
         });
       }, observerOptions);

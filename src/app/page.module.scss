@@ -709,11 +709,18 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Animation Classes
 .scrollFadeIn {
-  transition: all 0.8s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  opacity: 1;
+  transform: translateY(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateY(30px);
+    
+    @media (max-width: 768px) {
+      transform: translateY(20px);
+    }
   }
   
   &[data-animated="true"] {
@@ -723,11 +730,18 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .scrollSlideLeft {
-  transition: all 0.8s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  opacity: 1;
+  transform: translateX(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateX(-50px);
+    
+    @media (max-width: 768px) {
+      transform: translateX(-30px);
+    }
   }
   
   &[data-animated="true"] {
@@ -737,11 +751,18 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .scrollSlideRight {
-  transition: all 0.8s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  opacity: 1;
+  transform: translateX(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateX(50px);
+    
+    @media (max-width: 768px) {
+      transform: translateX(30px);
+    }
   }
   
   &[data-animated="true"] {
@@ -751,7 +772,10 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .scrollScaleUp {
-  transition: all 0.8s ease;
+  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  opacity: 1;
+  transform: scale(1);
   
   &[data-animated="false"] {
     opacity: 0;
@@ -765,11 +789,18 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .scrollStagger {
-  transition: all 0.8s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  opacity: 1;
+  transform: translateY(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateY(30px);
+    
+    @media (max-width: 768px) {
+      transform: translateY(20px);
+    }
   }
   
   &[data-animated="true"] {
