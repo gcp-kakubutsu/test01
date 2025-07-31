@@ -267,7 +267,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20">
+    <div className="max-w-2xl mx-auto space-y-6 pb-20 bg-white min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -278,21 +278,21 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
       {/* Large Profile Header - Instagram style */}
       <Card className="overflow-hidden shadow-lg">
-        <div className="relative h-[400px] sm:h-[450px] md:h-[500px]">
+        <div className="relative h-[400px] sm:h-[450px] md:h-[500px] bg-gray-100">
           <Image
             src={profilePhoto}
             alt="Profile"
             fill
-            className="object-cover w-full h-full"
-            style={{
-              imageRendering: 'crisp-edges',
-              filter: 'contrast(1.05) saturate(1.1) sharpen(1)',
-            }}
+            className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
             quality={100}
             priority
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.src = 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           
           {/* User Info Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
@@ -331,7 +331,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           </div>
         </div>
         
-        <CardContent>
+        <CardContent className="bg-white">
           {/* Stats - Only profile views are shown for other users */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -400,15 +400,15 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                         alt={`Photo ${index + 2}`}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover w-full h-full"
-                        style={{
-                          imageRendering: 'crisp-edges',
-                          filter: 'contrast(1.05) saturate(1.1) sharpen(1)',
-                        }}
+                        className="object-cover"
                         quality={100}
                         priority={index === 0}
+                        onError={(e) => {
+                          const img = e.target as HTMLImageElement;
+                          img.src = 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       
                       {/* Photo Index Badge */}
                       <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">

@@ -11,11 +11,11 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Black */
-    --foreground: 0 0% 98%; /* White */
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 0%; /* Black */
 
-    --card: 0 0% 7%; /* Very Dark Gray */
-    --card-foreground: 0 0% 98%; /* White */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 0%; /* Black */
 
     --popover: 0 0% 7%; /* Very Dark Gray */
     --popover-foreground: 0 0% 98%; /* White */
