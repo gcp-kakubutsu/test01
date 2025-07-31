@@ -10,9 +10,13 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Global styles
 .pageWrapper {
-  background-color: $bg-dark;
-  color: $text-light;
+  width: 100%;
+  background-color: $bg-dark !important;
+  color: $text-light !important;
   min-height: 100vh;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 
 .container {
@@ -27,14 +31,17 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Hero Section
 .hero {
-  height: 100vh;
+  width: 100%;
+  height: calc(100vh - 80px); // ヘッダーの高さを引く
+  margin-top: -80px; // ヘッダーの下に隠れる部分を補正
+  padding-top: 80px; // コンテンツがヘッダーに隠れないように
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  background-color: #000 !important;
   overflow: hidden;
-  background-color: #000;
 }
 
 .heroVideo {
@@ -45,8 +52,6 @@ $border-color: rgba(212, 175, 55, 0.2);
   height: 100%;
   object-fit: cover;
   z-index: 0;
-  opacity: 1;
-  visibility: visible;
 }
 
 .heroOverlay {
@@ -60,6 +65,7 @@ $border-color: rgba(212, 175, 55, 0.2);
     rgba(139, 30, 63, 0.4) 50%, 
     rgba(17, 24, 39, 0.9) 100%);
   z-index: 1;
+  pointer-events: none;
 }
 
 .heroContent {
@@ -70,8 +76,8 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .heroTitle {
-  font-family: 'Playfair Display', 'Noto Serif JP', serif;
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-family: 'Noto Serif JP', serif;
+  font-size: 3rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   background: linear-gradient(135deg, $text-light, $accent-gold);
@@ -80,16 +86,12 @@ $border-color: rgba(212, 175, 55, 0.2);
   background-clip: text;
 
   @media (max-width: 768px) {
-    font-size: 1.8rem;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 1.7rem;
+    font-size: 2rem;
   }
 }
 
 .heroSubtitle {
-  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  font-size: 1.2rem;
   margin-bottom: 2rem;
   color: #fff;
   font-weight: 300;
@@ -153,25 +155,28 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Section Styles
 .section {
+  width: 100%;
   padding: 4rem 0;
+  background-color: $bg-dark !important;
   position: relative;
-  background-color: $bg-dark;
+  z-index: 1;
+
+  @media (max-width: 768px) {
+    padding: 3rem 0;
+  }
 }
 
 .sectionTitle {
-  font-family: 'Playfair Display', 'Noto Serif JP', serif;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-family: 'Noto Serif JP', serif;
+  font-size: 2.5rem;
   text-align: center;
   margin-bottom: 3rem;
-  color: $text-light;
-  font-weight: 600;
+  color: #ffffff !important;
+  font-weight: 500;
 
   @media (max-width: 768px) {
-    font-size: 1.4rem;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 1.4rem;
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
   }
 }
 
@@ -187,8 +192,15 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // About Section
 .about {
-  background: $bg-dark;
+  width: 100%;
+  background-color: #0a0a0a !important;
+  padding: 4rem 0;
   position: relative;
+  z-index: 1;
+
+  @media (max-width: 768px) {
+    padding: 3rem 0;
+  }
 }
 
 .aboutContent {
@@ -196,45 +208,53 @@ $border-color: rgba(212, 175, 55, 0.2);
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
-  margin-top: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 2rem;
+    padding: 0 1.5rem;
   }
 }
 
 .aboutText {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: $text-gray;
+  p {
+    line-height: 1.8;
+    color: #e5e5e5 !important;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
+  }
 }
 
 .aboutImage {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-
-  @media (max-width: 768px) {
-    order: -1;
-  }
+  text-align: center;
 
   img {
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     width: 100%;
-    height: 400px;
-    object-fit: cover;
-
+    height: auto;
+    max-width: 500px;
+    
     @media (max-width: 768px) {
-      height: auto;
-      object-fit: contain;
+      max-width: 100%;
     }
   }
 }
 
 // Features Section
 .features {
-  background: rgba(17, 24, 39, 0.5);
+  width: 100%;
+  background-color: $bg-dark !important;
+  padding: 4rem 0;
+  position: relative;
+  z-index: 1;
 }
 
 .featuresGrid {
@@ -242,41 +262,43 @@ $border-color: rgba(212, 175, 55, 0.2);
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   margin-top: 3rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 .featureCard {
-  background: $card-bg;
-  padding: 2rem;
-  border-radius: 16px;
-  text-align: center;
+  background: $card-bg !important;
   border: 1px solid $border-color;
+  border-radius: 15px;
+  padding: 2.5rem;
+  text-align: center;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  color: $text-light !important;
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(212, 175, 55, 0.1);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
     border-color: $accent-gold;
-  }
-
-  @media (max-width: 480px) {
-    padding: 1.5rem;
   }
 }
 
 .featureIcon {
-  font-size: 3rem;
-  color: $accent-gold;
-  margin-bottom: 1.5rem;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, $accent-burgundy, $accent-gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 .featureTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.3rem;
   margin-bottom: 1rem;
   color: $text-light;
 }
@@ -288,7 +310,11 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Reasons Section
 .reasons {
-  background: $bg-dark;
+  width: 100%;
+  background-color: #0a0a0a !important;
+  padding: 4rem 0;
+  position: relative;
+  z-index: 1;
 }
 
 .reasonsGrid {
@@ -299,25 +325,21 @@ $border-color: rgba(212, 175, 55, 0.2);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1rem;
   }
 }
 
 .reasonCard {
-  background: $card-bg;
+  background: rgba(212, 175, 55, 0.05) !important;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 10px;
   padding: 2rem;
-  border-radius: 12px;
-  border-left: 4px solid $accent-gold;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  color: $text-light !important;
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.1);
-  }
-
-  @media (max-width: 480px) {
-    padding: 1.5rem;
+    background: rgba(212, 175, 55, 0.08);
+    border-color: rgba(212, 175, 55, 0.2);
+    transform: translateX(5px);
   }
 }
 
@@ -328,18 +350,20 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Start Guide Section
 .startGuide {
-  background: rgba(17, 24, 39, 0.5);
+  width: 100%;
+  background-color: $bg-dark;
+  padding: 4rem 0;
 }
 
 .guideContainer {
-  background: $card-bg;
+  background: $card-bg !important;
   border-radius: 20px;
-  padding: 3rem 2rem;
-  border: 1px solid $border-color;
-  backdrop-filter: blur(10px);
+  padding: 3rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  color: $text-light !important;
 
   @media (max-width: 768px) {
-    padding: 2rem 1.5rem;
+    padding: 2rem;
   }
 }
 
@@ -349,18 +373,17 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .guideBadge {
-  background: linear-gradient(135deg, $accent-burgundy, #A02141);
+  background: linear-gradient(135deg, $accent-burgundy, $accent-gold);
   color: white;
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 2rem;
   border-radius: 25px;
   font-weight: 600;
   display: inline-block;
-  margin-bottom: 1rem;
 }
 
 .stepsContainer {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
 
   @media (max-width: 768px) {
@@ -370,28 +393,33 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 .stepCard {
   text-align: center;
-  position: relative;
+  padding: 1.5rem;
+  border-radius: 15px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(212, 175, 55, 0.05);
+    transform: translateY(-5px);
+  }
 }
 
 .stepNumber {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, $accent-gold, #F59E0B);
+  width: 50px;
+  height: 50px;
+  background: $accent-gold;
   color: $primary-dark;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  margin: 0 auto 1rem;
   font-weight: 700;
-  margin: 0 auto 1.5rem;
-  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+  font-size: 1.5rem;
 }
 
 .stepTitle {
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
   color: $text-light;
 }
 
@@ -403,7 +431,9 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Safety Section
 .safety {
-  background: $bg-dark;
+  width: 100%;
+  background-color: #0a0a0a;
+  padding: 4rem 0;
 }
 
 .safetyGrid {
@@ -418,21 +448,17 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .safetyCard {
-  background: $card-bg;
-  padding: 2rem;
-  border-radius: 16px;
+  background: $card-bg !important;
   border: 1px solid $border-color;
+  border-radius: 15px;
+  padding: 2rem;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  color: $text-light !important;
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(212, 175, 55, 0.1);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
     border-color: $accent-gold;
-  }
-
-  @media (max-width: 480px) {
-    padding: 1.5rem;
   }
 }
 
@@ -444,24 +470,37 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .safetyIcon {
-  font-size: 2rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: $accent-gold;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .safetyTitle {
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.1rem;
   color: $text-light;
 }
 
 .safetyDescription {
   color: $text-gray;
   line-height: 1.6;
+  font-size: 15px;
 }
 
 // FAQ Section
 .faq {
-  background: rgba(17, 24, 39, 0.5);
+  width: 100%;
+  background-color: $bg-dark;
+  padding: 4rem 0;
 }
 
 .faqContainer {
@@ -470,21 +509,23 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .faqItem {
-  background: $card-bg;
-  border-radius: 12px;
-  margin-bottom: 1rem;
+  background: $card-bg !important;
   border: 1px solid $border-color;
+  border-radius: 15px;
+  margin-bottom: 1rem;
   overflow: hidden;
-  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  color: $text-light !important;
 
   &.active {
-    .faqIcon {
-      transform: rotate(45deg);
-    }
+    border-color: $accent-gold;
 
     .faqAnswer {
       display: block;
-      padding-top: 24px;
+    }
+
+    .faqIcon {
+      transform: rotate(45deg);
     }
   }
 }
@@ -495,19 +536,11 @@ $border-color: rgba(212, 175, 55, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(212, 175, 55, 0.05);
-  }
 
   h3 {
+    font-size: 1.1rem;
     color: $text-light;
-    font-weight: 600;
-
-    @media (max-width: 768px) {
-      font-size: 16px;
-    }
+    margin: 0;
   }
 }
 
@@ -525,7 +558,9 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 // Pricing Section
 .pricing {
-  background: $bg-dark;
+  width: 100%;
+  background-color: #0a0a0a;
+  padding: 4rem 0;
 }
 
 .pricingGrid {
@@ -536,30 +571,23 @@ $border-color: rgba(212, 175, 55, 0.2);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
   }
 }
 
 .pricingCard {
-  background: $card-bg;
-  padding: 2.5rem;
+  background: $card-bg !important;
+  border: 2px solid $border-color;
   border-radius: 20px;
+  padding: 2.5rem;
   text-align: center;
-  border: 1px solid $border-color;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   position: relative;
-  display: flex;
-  flex-direction: column;
+  transition: all 0.3s ease;
+  color: $text-light !important;
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(212, 175, 55, 0.15);
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3);
     border-color: $accent-gold;
-  }
-
-  @media (max-width: 480px) {
-    padding: 2rem 1.5rem;
   }
 }
 
@@ -569,48 +597,53 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 .pricingTitle {
   font-size: 1.5rem;
-  font-weight: 700;
   color: $text-light;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .pricingPrice {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
   color: $accent-gold;
   margin-bottom: 0.5rem;
 }
 
+.counterNumber {
+  display: inline-block;
+}
+
 .pricingPeriod {
   color: $text-gray;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .pricingDiscount {
-  background: linear-gradient(135deg, $accent-burgundy, #A02141);
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(135deg, $accent-burgundy, $accent-gold);
   color: white;
-  padding: 0.25rem 1rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
   font-weight: 600;
-  margin-top: 0.5rem;
-  display: inline-block;
 }
 
 .pricingFeatures {
   list-style: none;
-  margin-bottom: 2rem;
-  flex-grow: 1;
+  padding: 0;
+  margin: 2rem 0;
 
   li {
-    padding: 0.5rem 0;
     color: $text-gray;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    position: relative;
 
-    &::before {
+    &:before {
       content: '✓';
+      position: absolute;
+      left: 0;
       color: $accent-gold;
       font-weight: bold;
     }
@@ -618,84 +651,65 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .pricingCta {
-  margin-top: auto;
+  margin-top: 2rem;
 }
 
 .pricingBtn {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, $accent-burgundy, #A02141);
+  background: linear-gradient(135deg, $accent-burgundy, $accent-gold);
   color: white;
+  padding: 1rem 3rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 50px;
   font-weight: 600;
-  font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-
+  
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(139, 30, 63, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
   }
 }
 
 // CTA Section
 .cta {
-  background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(139, 30, 63, 0.6) 100%);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="%23D4AF37" opacity="0.1"/></svg>') repeat;
-    animation: float 20s linear infinite;
-  }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px) translateX(0px); }
-  100% { transform: translateY(-100px) translateX(100px); }
+  width: 100%;
+  background: linear-gradient(180deg, $bg-dark 0%, rgba(139, 30, 63, 0.3) 100%);
+  padding: 6rem 0;
 }
 
 .ctaContent {
-  position: relative;
-  z-index: 1;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .ctaTitle {
-  font-family: 'Playfair Display', 'Noto Serif JP', serif;
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  font-weight: 700;
+  font-size: 3rem;
   margin-bottom: 1.5rem;
-  color: $text-light;
+  background: linear-gradient(135deg, $text-light, $accent-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
 
   @media (max-width: 768px) {
-    font-size: 1.7rem;
+    font-size: 2rem;
   }
 }
 
 .ctaSubtitle {
   font-size: 1.2rem;
   color: $text-gray;
-  margin-bottom: 2.5rem;
-
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
+  margin-bottom: 3rem;
+  line-height: 1.6;
 }
 
-// Animations
+// Animation Classes
 .scrollFadeIn {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-
+  transition: all 0.8s ease;
+  
   &.animate {
     opacity: 1;
     transform: translateY(0);
@@ -705,8 +719,8 @@ $border-color: rgba(212, 175, 55, 0.2);
 .scrollSlideLeft {
   opacity: 0;
   transform: translateX(-50px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-
+  transition: all 0.8s ease;
+  
   &.animate {
     opacity: 1;
     transform: translateX(0);
@@ -716,8 +730,8 @@ $border-color: rgba(212, 175, 55, 0.2);
 .scrollSlideRight {
   opacity: 0;
   transform: translateX(50px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-
+  transition: all 0.8s ease;
+  
   &.animate {
     opacity: 1;
     transform: translateX(0);
@@ -727,8 +741,8 @@ $border-color: rgba(212, 175, 55, 0.2);
 .scrollScaleUp {
   opacity: 0;
   transform: scale(0.8);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-
+  transition: all 0.8s ease;
+  
   &.animate {
     opacity: 1;
     transform: scale(1);
@@ -737,9 +751,9 @@ $border-color: rgba(212, 175, 55, 0.2);
 
 .scrollStagger {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-
+  transform: translateY(30px);
+  transition: all 0.8s ease;
+  
   &.animate {
     opacity: 1;
     transform: translateY(0);
@@ -747,44 +761,35 @@ $border-color: rgba(212, 175, 55, 0.2);
 }
 
 .enhancedHover {
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-  &:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(212, 175, 55, 0.2);
+  position: relative;
+  overflow: hidden;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  &:hover:before {
+    left: 100%;
   }
 }
 
-// Mobile specific
+// SP (Mobile) Utilities
 .sp {
   display: none;
-
-  @media (max-width: 768px) {
-    display: block;
-  }
-}
-
-// Logo
-.logoImg {
-  @media (max-width: 768px) {
-    width: 120px;
-    height: auto;
-  }
-}
-
-// Heart icon for calendar
-.faCalendarHeart {
-  position: relative;
   
-  &::before {
-    content: "";
-    background-image: url("/img/heart.png");
-    width: 48px;
-    height: 48px;
-    background-size: contain;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  @media (max-width: 768px) {
+    display: inline;
   }
+}
+
+// Parallax scroll effect
+.parallaxElement {
+  transition: transform 0.3s ease-out;
 }

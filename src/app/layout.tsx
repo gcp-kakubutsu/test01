@@ -31,11 +31,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           <Header />
           <LayoutWrapper>
-            <main className="flex-grow">
+            <main>
               <PageWrapper>
                 {children}
               </PageWrapper>

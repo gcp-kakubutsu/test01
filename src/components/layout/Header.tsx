@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Home, MessageCircle, User, LogOut } from 'lucide-react';
 import styles from './Header.module.scss';
@@ -19,8 +19,6 @@ export function Header() {
   };
 
   // Always show header
-  // Remove the hiding logic to ensure header is always visible
-
   return (
     <header className={styles.header}>
       <div className={styles.headerContainer}>

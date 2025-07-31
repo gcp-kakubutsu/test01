@@ -3,6 +3,8 @@
   background: #111827;
   padding: 3rem 0 1rem;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
+  position: relative;
+  z-index: 10;
 }
 
 .footerContent {
