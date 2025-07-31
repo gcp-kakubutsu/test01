@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { validatePassword } from '@/lib/password-validation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState, useEffect } from 'react';
@@ -30,6 +32,7 @@ export default function SignupPage() {
   const [gender, setGender] = useState('');
   const [isOver18, setIsOver18] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,6 +63,17 @@ export default function SignupPage() {
       return;
     }
     
+    // パスワードバリデーション
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      toast({ 
+        title: "パスワードエラー", 
+        description: "パスワードが要件を満たしていません。", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     if (!isOver18) {
       toast({ title: "年齢確認", description: "18歳以上である必要があります。", variant: "destructive" });
       return;
@@ -75,7 +89,8 @@ export default function SignupPage() {
       gender
     });
     if (success) {
-      // Redirect is handled by useEffect
+      // メール確認ページへリダイレクト
+      router.push('/verify-email');
     }
     setIsSubmitting(false);
   };
@@ -170,13 +185,18 @@ export default function SignupPage() {
             
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">パスワード</Label>
+              <p className="text-xs text-gray-500">8文字以上、大文字・小文字・数字を各1文字以上含む</p>
               <div className="relative">
                 <Input 
                   id="password" 
                   type={showPassword ? "text" : "password"}
                   required 
                   value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    const validation = validatePassword(e.target.value);
+                    setPasswordErrors(validation.errors);
+                  }} 
                   className="h-12 text-base pr-10 border-gray-300"
                 />
                 <button
@@ -187,6 +207,20 @@ export default function SignupPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {password && passwordErrors.length > 0 && (
+                <Alert className="mt-2">
+                  <AlertDescription>
+                    <ul className="text-xs space-y-1">
+                      {passwordErrors.map((error, index) => (
+                        <li key={index} className="text-red-600">・{error}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {password && passwordErrors.length === 0 && (
+                <p className="text-xs text-green-600 mt-1">✓ パスワードは要件を満たしています</p>
+              )}
             </div>
             
             <div className="space-y-2">

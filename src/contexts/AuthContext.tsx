@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth, db, firebaseInitError } from '@/lib/firebase/client'; // auth, db は undefined の可能性があり、firebaseInitError をインポート
 import type { AuthFormData } from '@/app/login/page';
 import { addUserToFirestore } from '@/app/auth/actions';
@@ -98,6 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
+        // メールアドレスが確認されていない場合はログインを拒否
+        if (!userCredential.user.emailVerified) {
+          toast({ 
+            title: 'メールアドレス未確認', 
+            description: 'メールアドレスの確認が完了していません。確認メールが見つからない場合は、ログイン画面の「パスワードをお忘れですか？」から再送信できます。', 
+            variant: 'destructive',
+            duration: 10000 // 10秒間表示
+          });
+          await firebaseSignOut(auth);
+          setIsLoading(false);
+          return false;
+        }
         toast({ title: 'ログインしました', description: 'Nukuneへようこそ！' });
         return true;
       }
@@ -144,13 +156,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
+        // メール確認を送信
+        try {
+          await sendEmailVerification(userCredential.user);
+          toast({ 
+            title: '確認メールを送信しました', 
+            description: 'メールアドレスに確認メールを送信しました。メール内のリンクをクリックして確認を完了してください。' 
+          });
+        } catch (verificationError: any) {
+          console.error("メール確認送信エラー:", verificationError);
+          toast({ 
+            title: '確認メール送信エラー', 
+            description: '確認メールの送信に失敗しました。後ほど再送信してください。', 
+            variant: 'destructive' 
+          });
+        }
+        
         const firestoreResult = await addUserToFirestore(userCredential.user.uid, data.username, data.email, data.birthDate, data.gender);
         if (!firestoreResult.success) {
             console.error("Firestoreへのユーザー追加に失敗:", firestoreResult.error);
             toast({ title: '登録処理エラー', description: `アカウントは作成されましたが、プロフィール情報の保存に失敗しました: ${firestoreResult.error}`, variant: 'destructive' });
         } else {
-            toast({ title: '登録完了！', description: 'Nukuneへようこそ！プロフィールを編集しましょう。' });
+            toast({ title: '登録完了！', description: 'メールアドレスの確認後、ログインできるようになります。' });
         }
+        
+        // サインアップ後は自動的にログアウト（メール確認が必要なため）
+        await firebaseSignOut(auth);
         return true;
       }
       return false;

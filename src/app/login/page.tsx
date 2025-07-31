@@ -91,7 +91,7 @@ export default function LoginPage() {
                 {/* <Checkbox id="remember-me" />
                 <Label htmlFor="remember-me" className="text-sm font-normal">ログイン状態を保持</Label> */}
               </div>
-              <Link href="#" className="text-sm text-primary hover:underline">
+              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                 パスワードをお忘れですか？
               </Link>
             </div>
