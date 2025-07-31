@@ -25,8 +25,8 @@ export default function LandingPage() {
     // Skip animations if authenticated (will redirect anyway)
     if (isAuthenticated) return;
 
-    // Add a small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
+    // モバイルでも確実に動作するように初期化
+    const initializeAnimations = () => {
       
       // Smooth scrolling for anchor links
       const handleAnchorClick = (e: Event) => {
@@ -73,7 +73,26 @@ export default function LandingPage() {
 
       // Observe all scroll animation elements
       const animatedElements = document.querySelectorAll(`.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}`);
-      animatedElements.forEach(el => observer.observe(el));
+      
+      // 初期状態を設定（リロード時の対応）
+      animatedElements.forEach((el, index) => {
+        // 要素が最初から画面内にある場合
+        const rect = el.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const isInViewport = rect.top < windowHeight && rect.bottom > 0;
+        
+        if (isInViewport) {
+          // 少し遅延させてアニメーションを開始（モバイル対応で遅延を増やす）
+          const delay = ('ontouchstart' in window) ? 200 + (index * 50) : 100 + (index * 30);
+          setTimeout(() => {
+            el.setAttribute('data-animated', 'true');
+          }, delay);
+        } else {
+          el.setAttribute('data-animated', 'false');
+        }
+        
+        observer.observe(el);
+      });
 
       // Stagger animation observer
       const staggerObserver = new IntersectionObserver((entries) => {
@@ -97,7 +116,28 @@ export default function LandingPage() {
 
       // Observe containers with stagger elements
       const staggerContainers = document.querySelectorAll(`.${styles.featuresGrid}, .${styles.reasonsGrid}, .${styles.stepsContainer}, .${styles.safetyGrid}, .${styles.faqContainer}, .${styles.pricingGrid}`);
-      staggerContainers.forEach(container => staggerObserver.observe(container));
+      
+      // スタッガーアニメーションの初期化
+      staggerContainers.forEach(container => {
+        const rect = container.getBoundingClientRect();
+        const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+        
+        if (isInViewport) {
+          const staggerElements = container.querySelectorAll(`.${styles.scrollStagger}`);
+          staggerElements.forEach((el, index) => {
+            setTimeout(() => {
+              el.setAttribute('data-animated', 'true');
+            }, 100 + (index * 80));
+          });
+        } else {
+          const staggerElements = container.querySelectorAll(`.${styles.scrollStagger}`);
+          staggerElements.forEach(el => {
+            el.setAttribute('data-animated', 'false');
+          });
+        }
+        
+        staggerObserver.observe(container);
+      });
 
       // Counter animation
       const counterObserver = new IntersectionObserver((entries) => {
@@ -138,10 +178,27 @@ export default function LandingPage() {
         staggerObserver.disconnect();
         counterObserver.disconnect();
       };
-    }, 100);
+    };
+    
+    // モバイルでの初期化を確実にする
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAnimations);
+    } else {
+      // すでにDOMが読み込まれている場合
+      initializeAnimations();
+    }
+    
+    // さらに確実にするため、少し遅延させて再実行
+    const timer = setTimeout(initializeAnimations, 500);
+    
+    // モバイルデバイスの場合は追加で遅延実行
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      setTimeout(initializeAnimations, 1000);
+    }
 
     return () => {
       clearTimeout(timer);
+      document.removeEventListener('DOMContentLoaded', initializeAnimations);
     };
   }, [isAuthenticated]);
 
