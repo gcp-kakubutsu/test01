@@ -267,7 +267,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20 bg-white min-h-screen">
+    <div className="max-w-2xl mx-auto space-y-6 pb-20" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>

@@ -282,7 +282,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       {/* Banner Image */}
       <div className="w-full mb-4 px-1">
         <div className="relative">
