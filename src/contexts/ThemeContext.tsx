@@ -16,22 +16,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Set initial dark mode class
-    document.documentElement.classList.add('dark');
-    
-    // Check for saved theme preference or default to 'dark'
+    // Only run on client side after mounting
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     
-    if (savedTheme) {
+    if (savedTheme && savedTheme !== 'dark') {
+      // Only update if not dark (since dark is default)
       setTheme(savedTheme);
-      if (savedTheme === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-      }
-    } else {
-      // Default to dark mode
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add(savedTheme);
+    } else if (!savedTheme) {
+      // No saved theme, ensure dark mode is set
       localStorage.setItem('theme', 'dark');
     }
+    
     setMounted(true);
   }, []);
 

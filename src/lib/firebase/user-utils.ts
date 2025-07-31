@@ -64,9 +64,14 @@ export async function fetchAdminGirls(
     
     console.log('Returning users:', fetchedUsers.length);
     return fetchedUsers;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+      console.log('Permission denied when fetching users - returning empty array');
+      return [];
+    }
     console.error('Error fetching admin girls:', error);
-    throw error;
+    // Return empty array instead of throwing
+    return [];
   }
 }
 

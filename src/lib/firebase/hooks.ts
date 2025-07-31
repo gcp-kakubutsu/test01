@@ -50,21 +50,50 @@ export function useUserProfile(userId?: string) {
     if (!db) throw new Error('Firestore is not initialized');
     const userRef = doc(db, 'users', uid);
     
-    const unsubscribe = onSnapshot(
-      userRef,
-      (snapshot) => {
+    let unsubscribeFunction: (() => void) | null = null;
+    let isActive = true; // Track if this effect is still active
+    
+    // First try to get the document once
+    getDoc(userRef)
+      .then((snapshot) => {
+        if (!isActive || !currentUser) return; // Exit if logged out
+        
         if (snapshot.exists()) {
-          setProfile({ uid: snapshot.id, ...snapshot.data() } as UserProfile);
+          // Document exists, set up real-time listener
+          unsubscribeFunction = onSnapshot(
+            userRef,
+            (snapshot) => {
+              if (!isActive || !currentUser) return; // Exit if logged out
+              
+              if (snapshot.exists()) {
+                setProfile({ uid: snapshot.id, ...snapshot.data() } as UserProfile);
+              } else {
+                setProfile(null);
+              }
+              setLoading(false);
+            },
+            (err) => {
+              if (!isActive || !currentUser) return; // Exit if logged out
+              
+              console.error('Error in profile listener:', err);
+              setError('プロフィールの取得に失敗しました');
+              setLoading(false);
+            }
+          );
         } else {
-          setError('ユーザーが見つかりません');
+          // Document doesn't exist, return empty profile
+          setProfile(null);
+          setLoading(false);
+          setError(null); // No error, just no profile yet
         }
-        setLoading(false);
-      },
-      (err) => {
-        // Handle permission errors gracefully when user is logged out
+      })
+      .catch((err) => {
+        if (!isActive || !currentUser) return; // Exit if logged out
+        
+        // Handle permission errors
         const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied' && !currentUser) {
-          // User logged out, this is expected
+        if (firebaseError.code === 'permission-denied') {
+          console.log('Permission denied - user may not have access');
           setProfile(null);
           setLoading(false);
           return;
@@ -72,10 +101,15 @@ export function useUserProfile(userId?: string) {
         console.error('Error fetching user profile:', err);
         setError('プロフィールの取得に失敗しました');
         setLoading(false);
+      });
+    
+    // Return cleanup function
+    return () => {
+      isActive = false;
+      if (unsubscribeFunction) {
+        unsubscribeFunction();
       }
-    );
-
-    return () => unsubscribe();
+    };
   }, [uid, currentUser]);
 
   return { profile, loading, error };
@@ -128,9 +162,13 @@ export function useCommunities() {
     const communitiesRef = collection(db, 'communities');
     const q = query(communitiesRef, orderBy('memberCount', 'desc'), limit(20));
 
+    let isActive = true;
+    
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (!isActive || !currentUser) return;
+        
         const communitiesData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -139,9 +177,11 @@ export function useCommunities() {
         setLoading(false);
       },
       (err) => {
+        if (!isActive || !currentUser) return;
+        
         // Handle permission errors gracefully when user is logged out
         const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied' && !currentUser) {
+        if (firebaseError.code === 'permission-denied') {
           // User logged out, this is expected
           setCommunities([]);
           setLoading(false);
@@ -153,7 +193,10 @@ export function useCommunities() {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, [currentUser]);
 
   return { communities, loading, error };
@@ -278,9 +321,13 @@ export function useMatches() {
       where('users', 'array-contains', currentUser.uid)
     );
 
+    let isActive = true; // Track if this effect is still active
+    
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (!isActive || !currentUser) return; // Exit if logged out
+        
         const matchesData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -295,6 +342,8 @@ export function useMatches() {
         setLoading(false);
       },
       (err) => {
+        if (!isActive || !currentUser) return; // Exit if logged out
+        
         // Handle permission errors gracefully when user is logged out
         const firebaseError = err as any;
         if (firebaseError.code === 'permission-denied') {
@@ -309,7 +358,10 @@ export function useMatches() {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, [currentUser]);
 
   return { matches, loading, error };

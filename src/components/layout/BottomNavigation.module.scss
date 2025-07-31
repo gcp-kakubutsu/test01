@@ -10,6 +10,11 @@
   transition: transform 0.3s ease;
   z-index: 50;
 
+  :global(.light) & {
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid #E5E7EB;
+  }
+
   &.hidden {
     transform: translateY(100%);
   }
@@ -32,8 +37,16 @@
   color: #9CA3AF;
   text-decoration: none;
 
+  :global(.light) & {
+    color: #6B7280;
+  }
+
   &:hover {
     color: #D4AF37;
+
+    :global(.light) & {
+      color: #F0306A;
+    }
   }
 
   &.active {
@@ -76,4 +89,8 @@
   align-items: center;
   justify-content: center;
   border: 2px solid #111827;
+
+  :global(.light) & {
+    border: 2px solid #FFFFFF;
+  }
 }

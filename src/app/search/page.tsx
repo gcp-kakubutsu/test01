@@ -375,10 +375,10 @@ export default function SearchPage() {
               </div>
               
               <div className={styles.profileLocation}>
-                <MapPin className="h-4 w-4" />
-                <span>{currentProfile.location}</span>
+                <MapPin className="h-4 w-4" style={{ color: '#FFFFFF' }} />
+                <span style={{ color: '#FFFFFF' }}>{currentProfile.location}</span>
                 {currentProfile.distance !== undefined && currentProfile.distance !== Infinity && (
-                  <span className={styles.distanceBadge}>
+                  <span className={styles.distanceBadge} style={{ color: '#FFFFFF' }}>
                     約{Math.round(currentProfile.distance)}km
                   </span>
                 )}

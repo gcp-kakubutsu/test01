@@ -238,13 +238,13 @@ export default function HomePage() {
   }
 
   if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-white">読み込み中...</p></div>;
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
 
   if (!isAuthenticated) {
     // This case should ideally be handled by the redirect in useEffect,
     // but as a fallback or during transition:
-    return <div className="flex justify-center items-center h-screen bg-black"><p className="text-white">ログインページへリダイレクト中...</p></div>;
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><p className="text-gray-900 dark:text-white">ログインページへリダイレクト中...</p></div>;
   }
 
   // Show welcome page for first-time male users
@@ -258,7 +258,7 @@ export default function HomePage() {
   }
 
   if (users.length === 0) {
-    return <div className="text-center py-10 bg-black min-h-screen"><p className="text-white">現在表示できるプロフィールはありません。後でもう一度確認してください！</p></div>;
+    return <div className="text-center py-10 bg-white dark:bg-black min-h-screen"><p className="text-gray-900 dark:text-white">現在表示できるプロフィールはありません。後でもう一度確認してください！</p></div>;
   }
 
   // Calculate pagination
@@ -282,7 +282,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="w-full" style={{ backgroundColor: '#000000', minHeight: '100vh' }}>
+    <div className="w-full bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
       {/* Banner Image */}
       <div className="w-full mb-4 px-1">
         <div className="relative">
@@ -316,9 +316,9 @@ export default function HomePage() {
                 }}
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
-                <p className="text-white font-bold text-base sm:text-lg drop-shadow-lg">{user.name}, {user.age}</p>
+                <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{user.name}, {user.age}</p>
                 {user.location && (
-                  <p className="text-white/90 text-sm sm:text-base drop-shadow-lg">{user.location}</p>
+                  <p className="!text-white/90 text-sm sm:text-base drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{user.location}</p>
                 )}
               </div>
             </div>

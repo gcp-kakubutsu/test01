@@ -10,15 +10,30 @@ export async function updateUserProfile(userId: string, data: {
   occupation?: string;
   interests?: string[];
   profilePhotoUrl?: string;
+  additionalPhotos?: string[];
 }) {
   try {
     const db = getAdminFirestore();
     const userRef = db.collection('users').doc(userId);
     
-    await userRef.update({
-      ...data,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    // Check if document exists
+    const doc = await userRef.get();
+    
+    if (!doc.exists) {
+      // Create new document with all required fields
+      await userRef.set({
+        ...data,
+        userId,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Update existing document
+      await userRef.update({
+        ...data,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
     
     console.log('User profile updated: ', userId);
     return { success: true };

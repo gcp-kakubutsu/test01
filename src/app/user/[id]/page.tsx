@@ -267,7 +267,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
+    <div className="max-w-2xl mx-auto space-y-6 pb-20 bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -295,19 +295,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           
           {/* User Info Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 !text-white" style={{ color: '#FFFFFF' }}>
             <div className="mb-2">
               <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold">{displayName}</h1>
-                {age && <span className="text-xl sm:text-2xl">{age}歳</span>}
+                <h1 className="text-2xl sm:text-3xl font-bold !text-white" style={{ color: '#FFFFFF' }}>{displayName}</h1>
+                {age && <span className="text-xl sm:text-2xl !text-white" style={{ color: '#FFFFFF' }}>{age}歳</span>}
               </div>
               
               <div className="flex items-center gap-4 text-sm mb-2">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 !text-white" style={{ color: '#FFFFFF' }}>
                   <MapPin className="h-4 w-4" />
                   {location}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 !text-white" style={{ color: '#FFFFFF' }}>
                   <Briefcase className="h-4 w-4" />
                   {occupation}
                 </span>

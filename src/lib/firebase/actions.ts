@@ -16,21 +16,41 @@ import { db } from './client';
 export async function joinCommunity(communityId: string, userId: string) {
   if (!db) throw new Error('Firestore is not initialized');
   
-  const communityRef = doc(db, 'communities', communityId);
-  await updateDoc(communityRef, {
-    members: arrayUnion(userId),
-    memberCount: increment(1)
-  });
+  try {
+    const communityRef = doc(db, 'communities', communityId);
+    await updateDoc(communityRef, {
+      members: arrayUnion(userId),
+      memberCount: increment(1)
+    });
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+      throw new Error('コミュニティに参加する権限がありません。');
+    }
+    if (error.code === 'not-found') {
+      throw new Error('コミュニティが見つかりません。');
+    }
+    throw error;
+  }
 }
 
 export async function leaveCommunity(communityId: string, userId: string) {
   if (!db) throw new Error('Firestore is not initialized');
   
-  const communityRef = doc(db, 'communities', communityId);
-  await updateDoc(communityRef, {
-    members: arrayRemove(userId),
-    memberCount: increment(-1)
-  });
+  try {
+    const communityRef = doc(db, 'communities', communityId);
+    await updateDoc(communityRef, {
+      members: arrayRemove(userId),
+      memberCount: increment(-1)
+    });
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+      throw new Error('コミュニティから退会する権限がありません。');
+    }
+    if (error.code === 'not-found') {
+      throw new Error('コミュニティが見つかりません。');
+    }
+    throw error;
+  }
 }
 
 export async function createCommunityPost(
@@ -97,6 +117,11 @@ export async function sendMessage(
     return newMessage.id;
   } catch (error: any) {
     console.error('Error sending message:', error);
+    
+    // Permission errors
+    if (error.code === 'permission-denied') {
+      throw new Error('メッセージの送信権限がありません。');
+    }
     
     // ネットワークエラーの場合は適切なエラーメッセージを投げる
     if (error.code === 'unavailable' || error.message.includes('503')) {

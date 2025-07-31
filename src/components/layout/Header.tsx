@@ -32,6 +32,7 @@ export function Header() {
             isAuthenticated ? (
               <>
                 {/* Desktop Navigation */}
+                <ThemeToggle />
                 <Link href="/home" className={`${styles.navLink} ${styles.hideOnMobile}`}>ホーム</Link>
                 <Link href="/messages" className={`${styles.navLink} ${styles.hideOnMobile}`}>メッセージ</Link>
                 <Link href="/profile/edit" className={`${styles.navLink} ${styles.hideOnMobile}`}>プロフィール</Link>
