@@ -1,21 +1,34 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
+import { toast } from '@/hooks/use-toast';
+import { 
+  collection, 
+  query as firestoreQuery, 
+  where, 
+  getDocs, 
+  addDoc, 
+  Timestamp 
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 import '@/styles/blur.css';
 
 export default function GirlProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { isPremium } = useSubscription();
+  const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isProcessingLike, setIsProcessingLike] = useState(false);
 
   useEffect(() => {
     const fetchGirlDetails = async () => {
@@ -36,6 +49,69 @@ export default function GirlProfilePage() {
       fetchGirlDetails();
     }
   }, [params.id]);
+
+  const handleLike = useCallback(async () => {
+    if (!girl || isProcessingLike) return;
+    
+    if (!currentUser) {
+      toast({
+        title: "ログインが必要です",
+        description: "いいねを送るにはログインしてください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingLike(true);
+    try {
+      // Create a unique identifier for MySQL girls
+      const mysqlGirlId = `mysql_girl_${girl.id}`;
+      
+      // Check if like already exists
+      const likesRef = collection(db, 'likes');
+      const q = firestoreQuery(
+        likesRef,
+        where('from', '==', currentUser.uid),
+        where('to', '==', mysqlGirlId)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        toast({
+          title: "すでにいいねを送っています",
+          description: "この女性にはすでにいいねを送信済みです。",
+        });
+        return;
+      }
+
+      // Create the like document
+      await addDoc(likesRef, {
+        from: currentUser.uid,
+        to: mysqlGirlId,
+        toGirlName: girl.name,
+        toGirlId: girl.id,
+        isGirlProfile: true, // Flag to indicate this is a MySQL girl profile
+        createdAt: Timestamp.now(),
+        seen: false
+      });
+
+      toast({
+        title: "いいねを送りました！",
+        description: `${girl.name}さんにいいねを送信しました。`,
+      });
+      
+    } catch (error) {
+      console.error('Error sending like:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: "いいねの送信に失敗しました。もう一度お試しください。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingLike(false);
+    }
+  }, [currentUser, girl, isProcessingLike]);
 
   if (loading) {
     return (
@@ -219,9 +295,14 @@ export default function GirlProfilePage() {
 
               {/* Action Buttons */}
               <div className="flex gap-2">
-                <Button className="flex-1" variant="default">
+                <Button 
+                  className="flex-1" 
+                  variant="default"
+                  onClick={handleLike}
+                  disabled={isProcessingLike}
+                >
                   <Heart className="h-4 w-4 mr-2" />
-                  お気に入り
+                  {isProcessingLike ? "送信中..." : "いいね"}
                 </Button>
                 <Button className="flex-1" variant="outline">
                   予約する
