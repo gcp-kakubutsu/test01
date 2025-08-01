@@ -1,4 +1,4 @@
-/* Blur effect for non-premium users */
+/* Blur effect for non-premium users - Subtle blur */
 .blur-overlay {
   position: relative;
   overflow: hidden;
@@ -11,17 +11,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  background-color: rgba(255, 255, 255, 0.15);
+  /* Subtle blur effect */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  background-color: rgba(255, 255, 255, 0.07);
   z-index: 10;
   pointer-events: none;
 }
 
 .blur-image {
-  filter: blur(15px);
-  -webkit-filter: blur(15px);
-  transform: scale(1.1); /* Prevent edge artifacts on mobile */
+  /* Subtle blur effect */
+  filter: blur(5px);
+  -webkit-filter: blur(5px);
+  transform: scale(1.04); /* Slight scale to prevent edge artifacts */
 }
 
 .blur-content {
@@ -30,25 +32,29 @@
 }
 
 .blur-content > * {
-  filter: blur(10px);
-  -webkit-filter: blur(10px);
+  /* Subtle blur effect for text */
+  filter: blur(3.5px);
+  -webkit-filter: blur(3.5px);
 }
 
 /* Mobile-specific adjustments */
 @media (max-width: 768px) {
   .blur-overlay::before {
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    background-color: rgba(255, 255, 255, 0.2);
+    /* Slightly stronger blur on mobile */
+    backdrop-filter: blur(6.5px);
+    -webkit-backdrop-filter: blur(6.5px);
+    background-color: rgba(255, 255, 255, 0.09);
   }
   
   .blur-image {
-    filter: blur(18px);
-    -webkit-filter: blur(18px);
+    /* Slightly stronger blur on mobile */
+    filter: blur(6.5px);
+    -webkit-filter: blur(6.5px);
   }
   
   .blur-content > * {
-    filter: blur(12px);
-    -webkit-filter: blur(12px);
+    /* Slightly stronger blur for text on mobile */
+    filter: blur(4.5px);
+    -webkit-filter: blur(4.5px);
   }
 }
