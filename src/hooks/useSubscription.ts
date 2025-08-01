@@ -27,12 +27,18 @@ export function useSubscription() {
 
     const fetchSubscription = async () => {
       try {
+        if (!db) {
+          throw new Error('Firestore is not initialized');
+        }
+        
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         
         if (!userDoc.exists()) {
           // User document doesn't exist yet
-          setIsPremium(false);
-          setSubscriptionEndDate(null);
+          setSubscription({
+            isPremium: false,
+            subscriptionStatus: 'none'
+          });
           setLoading(false);
           return;
         }

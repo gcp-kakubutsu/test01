@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { fetchAdminGirls, type UserProfile } from '@/lib/firebase/user-utils';
+import { GirlWithDetails } from '@/types/database';
+import { sortGirlsByPreference } from '@/lib/utils/girlSorting';
 import { recordProfileView } from '@/lib/firebase/actions';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
@@ -34,12 +36,14 @@ export default function HomePage() {
     console.log('HomePage - subscriptionLoading:', subscriptionLoading);
   }, [currentUser, isPremium, subscriptionLoading]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingWelcome, setCheckingWelcome] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [useFirebaseData, setUseFirebaseData] = useState(false); // Toggle for data source - default to MySQL
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -176,26 +180,66 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
+  // MySQLからの女の子データ取得
+  const fetchGirlsFromMySQL = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      const params = new URLSearchParams({
+        limit: '100',
+        offset: '0'
+      });
+      
+      // Add location filter if available
+      // Note: UserProfile doesn't have prefecture_id, would need to extract from location string
+      // if (userProfile?.location) {
+      //   // TODO: Parse location to get prefecture_id
+      // }
+      
+      const response = await fetch(`/api/girls?${params}`);
+      const data = await response.json();
+      
+      if (data.girls) {
+        // Sort girls by user preferences
+        const sortedGirls = await sortGirlsByPreference(
+          data.girls,
+          currentUser.uid,
+          userLocation,
+          userProfile?.location
+        );
+        setGirlsFromDB(sortedGirls);
+      }
+    } catch (error) {
+      console.error('Error fetching girls from MySQL:', error);
+    }
+  }, [currentUser, userLocation, userProfile]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       if (!currentUser) return;
       
       try {
         setLoadingUsers(true);
-        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
-        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
         
-        // 新しい優先順位ソート機能を使用
-        // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
-        fetchedUsers = await sortUsersByPreference(
-          fetchedUsers,
-          currentUser.uid,
-          userLocation,
-          userProfile?.location
-        );
-        
-        // Firebaseから取得したデータを設定
-        setUsers(fetchedUsers);
+        if (useFirebaseData) {
+          // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
+          let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+          
+          // 新しい優先順位ソート機能を使用
+          // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
+          fetchedUsers = await sortUsersByPreference(
+            fetchedUsers,
+            currentUser.uid,
+            userLocation,
+            userProfile?.location
+          );
+          
+          // Firebaseから取得したデータを設定
+          setUsers(fetchedUsers);
+        } else {
+          // MySQLから女の子データを取得
+          await fetchGirlsFromMySQL();
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
         setUsers([]); // エラー時は空配列
@@ -208,36 +252,44 @@ export default function HomePage() {
     if (isAuthenticated && currentUser && !checkingWelcome) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUser, userLocation, userProfile, checkingWelcome]);
+  }, [isAuthenticated, currentUser, userLocation, userProfile, checkingWelcome, useFirebaseData, fetchGirlsFromMySQL]);
 
   const handleReset = async () => {
-    // Firebase から再度データを取得
     if (!currentUser) return;
     
     try {
       setLoadingUsers(true);
-      // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得
-      let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
       
-      // 新しい優先順位ソート機能を使用（リセット時も同じロジック）
-      fetchedUsers = await sortUsersByPreference(
-        fetchedUsers,
-        currentUser.uid,
-        userLocation,
-        userProfile?.location
-      );
+      if (useFirebaseData) {
+        // Firebase から再度データを取得
+        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得
+        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+        
+        // 新しい優先順位ソート機能を使用（リセット時も同じロジック）
+        fetchedUsers = await sortUsersByPreference(
+          fetchedUsers,
+          currentUser.uid,
+          userLocation,
+          userProfile?.location
+        );
+        
+        setUsers(fetchedUsers);
+      } else {
+        // MySQLから女の子データを再取得
+        await fetchGirlsFromMySQL();
+      }
       
-      setUsers(fetchedUsers);
       setCurrentPage(1); // リセット時は最初のページに戻る
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]); // エラー時は空配列
+      setGirlsFromDB([]);
     } finally {
       setLoadingUsers(false);
     }
   }
 
-  if (isLoading || (loadingUsers && !users.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
+  if (isLoading || (loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
 
@@ -257,15 +309,18 @@ export default function HomePage() {
     return <MaleOnboarding userId={currentUser.uid} userEmail={currentUser.email || undefined} onComplete={handleOnboardingComplete} />;
   }
 
-  if (users.length === 0) {
+  // Determine which data to display
+  const displayData = useFirebaseData ? users : girlsFromDB;
+  
+  if (displayData.length === 0) {
     return <div className="text-center py-10 bg-white dark:bg-black min-h-screen"><p className="text-gray-900 dark:text-white">現在表示できるプロフィールはありません。後でもう一度確認してください！</p></div>;
   }
 
   // Calculate pagination
-  const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
+  const totalPages = Math.ceil(displayData.length / USERS_PER_PAGE);
   const startIndex = (currentPage - 1) * USERS_PER_PAGE;
   const endIndex = startIndex + USERS_PER_PAGE;
-  const currentUsers = users.slice(startIndex, endIndex);
+  const currentDisplayData = displayData.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
@@ -295,38 +350,64 @@ export default function HomePage() {
       </div>
       
       <div className="px-4 py-6">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-        {currentUsers.map((user) => (
-          <div
-            key={user.id}
-            className="relative cursor-pointer transform transition-transform hover:scale-105"
-            onClick={() => {
-              router.push(`/user/${user.id}`);
-              recordProfileView(currentUser!.uid, user.id);
-            }}
+        {/* Toggle button for data source - for testing */}
+        <div className="mb-4 text-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setUseFirebaseData(!useFirebaseData)}
           >
-            <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-800">
-              <img
-                src={user.imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
-                alt={user.name}
-                className={`absolute inset-0 w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo';
-                }}
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
-                <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{user.name}, {user.age}</p>
-                {user.location && (
-                  <p className="!text-white/90 text-sm sm:text-base drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{user.location}</p>
-                )}
+            データソース: {useFirebaseData ? 'Firebase' : 'MySQL'}
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        {currentDisplayData.map((item: any) => {
+          // Handle both UserProfile and GirlWithDetails types
+          const isFirebaseData = 'imageUrl' in item;
+          const id = isFirebaseData ? item.id : `girl-${item.id}`;
+          const name = item.name;
+          const age = item.age;
+          const location = isFirebaseData ? item.location : item.location;
+          const imageUrl = isFirebaseData ? item.imageUrl : (item.images?.[0]?.image_url || item.images?.[0]?.real_image_url);
+          
+          return (
+            <div
+              key={id}
+              className="relative cursor-pointer transform transition-transform hover:scale-105"
+              onClick={() => {
+                if (isFirebaseData) {
+                  router.push(`/user/${item.id}`);
+                  recordProfileView(currentUser!.uid, item.id);
+                } else {
+                  // For MySQL data, we'll need to create a different route or handle differently
+                  router.push(`/girl/${item.id}`);
+                }
+              }}
+            >
+              <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-800">
+                <img
+                  src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
+                  alt={name}
+                  className={`absolute inset-0 w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo';
+                  }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
+                  <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}, {age}</p>
+                  {location && (
+                    <p className="!text-white/90 text-sm sm:text-base drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{location}</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
-      {users.length === 0 && (
+      {displayData.length === 0 && (
         <div className="text-center py-10 text-gray-300">
           <p className="text-xl mb-4 text-white">現在表示できるプロフィールはありません！</p>
           <Button onClick={handleReset} variant="outline">
@@ -336,7 +417,7 @@ export default function HomePage() {
       )}
       
       {/* Pagination */}
-      {users.length > 0 && (
+      {displayData.length > 0 && (
         <div className="flex justify-center items-center mt-8 gap-2 sm:gap-4">
           <Button
             variant="outline"
