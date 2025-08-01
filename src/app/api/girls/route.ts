@@ -69,11 +69,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ girls: [], total: 0 });
     }
     
-    // Fetch images for all girls
+    // Fetch images for all girls (image_type = 2 for non-thumbnail images)
+    // Get only the first image for each girl for the list view
     const imagesQuery = `
-      SELECT * FROM girl_image_urls 
-      WHERE girl_profile_id IN (${girlIds.map(() => '?').join(',')})
-      ORDER BY sort_order ASC
+      SELECT giu.* 
+      FROM girl_image_urls giu
+      INNER JOIN (
+        SELECT girl_profile_id, MIN(sort_order) as min_sort_order
+        FROM girl_image_urls
+        WHERE girl_profile_id IN (${girlIds.map(() => '?').join(',')}) 
+          AND image_type = 2
+        GROUP BY girl_profile_id
+      ) first_img ON giu.girl_profile_id = first_img.girl_profile_id 
+        AND giu.sort_order = first_img.min_sort_order
+        AND giu.image_type = 2
     `;
     
     const images = await query<GirlImageUrl>(imagesQuery, girlIds);

@@ -56,11 +56,12 @@ export async function GET(
     
     const girl = girls[0];
     
-    // Fetch images
+    // Fetch images (image_type = 2 for non-thumbnail images)
     const imagesQuery = `
       SELECT * FROM girl_image_urls 
-      WHERE girl_profile_id = ?
+      WHERE girl_profile_id = ? AND image_type = 2
       ORDER BY sort_order ASC
+      LIMIT 5
     `;
     
     const images = await query<GirlImageUrl>(imagesQuery, [girlId]);

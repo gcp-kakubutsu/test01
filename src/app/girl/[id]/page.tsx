@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Calendar, Ruler, Heart } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Ruler, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import '@/styles/blur.css';
 
@@ -14,6 +14,7 @@ export default function GirlProfilePage() {
   const { isPremium } = useSubscription();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchGirlDetails = async () => {
@@ -71,17 +72,84 @@ export default function GirlProfilePage() {
       {/* Image Gallery */}
       <div className="aspect-[3/4] relative">
         {girl.images.length > 0 ? (
-          <img
-            src={girl.images[0].image_url || girl.images[0].real_image_url}
-            alt={girl.name}
-            className={`w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
-          />
+          <>
+            <img
+              src={girl.images[currentImageIndex].image_url || girl.images[currentImageIndex].real_image_url}
+              alt={`${girl.name} - Photo ${currentImageIndex + 1}`}
+              className={`w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
+            />
+            
+            {/* Image Navigation */}
+            {girl.images.length > 1 && (
+              <>
+                {/* Previous Button */}
+                {currentImageIndex > 0 && (
+                  <button
+                    onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                )}
+                
+                {/* Next Button */}
+                {currentImageIndex < Math.min(girl.images.length - 1, 4) && (
+                  <button
+                    onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                )}
+                
+                {/* Image Indicators */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  {girl.images.slice(0, 5).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex
+                          ? 'bg-white'
+                          : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
             <p className="text-gray-500">No Photo</p>
           </div>
         )}
       </div>
+
+      {/* Thumbnail Gallery */}
+      {girl.images.length > 1 && (
+        <div className="px-4 py-2">
+          <div className="flex gap-2 overflow-x-auto">
+            {girl.images.slice(0, 5).map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                  index === currentImageIndex
+                    ? 'border-primary ring-2 ring-primary ring-offset-2'
+                    : 'border-transparent'
+                }`}
+              >
+                <img
+                  src={image.image_url || image.real_image_url || ''}
+                  alt={`${girl.name} - Thumbnail ${index + 1}`}
+                  className={`w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Profile Information */}
       <div className="p-4 space-y-4">
