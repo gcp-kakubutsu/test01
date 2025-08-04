@@ -264,7 +264,7 @@ export default function EditProfilePage() {
               <img 
                 src="/img/pandra.webp" 
                 alt="Profile Banner" 
-                className="w-full h-auto object-contain sm:max-h-40 md:max-h-48 lg:max-h-56"
+                className="w-full h-auto object-cover md:object-contain sm:max-h-40 md:max-h-64 lg:max-h-80 xl:max-h-96"
               />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
