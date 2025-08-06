@@ -243,6 +243,11 @@ export default function AdvancedSearchPage() {
           matchesSpecialTags = true
         }
         
+        // じっくり派: 身長151cm以上
+        if (selectedTags.includes('じっくり派') && user.height && user.height >= 151) {
+          matchesSpecialTags = true
+        }
+        
         // OR条件：通常タグまたは特殊タグのいずれかにマッチ
         return matchesNormalTags || matchesSpecialTags
       })
