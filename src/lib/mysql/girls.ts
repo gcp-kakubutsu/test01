@@ -19,6 +19,7 @@ export interface MySQLGirlProfile {
   isOnline?: boolean;
   lastActive?: string;
   is_sake?: boolean;
+  is_tobacco?: boolean;
   // Shop info
   shopName?: string;
   shopId?: number;
@@ -71,6 +72,7 @@ export async function fetchMySQLGirls(
         g.waist,
         g.hip,
         g.is_sake,
+        g.is_tobacco,
         IFNULL(g.catch_copy, '') as bio,
         IFNULL(g.hobby, '') as hobby,
         IFNULL(g.seikantai, '') as seikantai,
@@ -139,7 +141,8 @@ export async function fetchMySQLGirls(
         style: undefined,
         isOnline: false,
         lastActive: new Date().toISOString(),
-        is_sake: girl.is_sake === 1 || girl.is_sake === true
+        is_sake: girl.is_sake === 1 || girl.is_sake === true,
+        is_tobacco: girl.is_tobacco === 1 || girl.is_tobacco === true
       };
     });
   } catch (error) {
