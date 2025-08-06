@@ -26,6 +26,7 @@ interface UserProfile {
   age: number
   height?: number
   bust?: number
+  cup?: string
   waist?: number
   hip?: number
   location: string
@@ -175,6 +176,7 @@ export default function AdvancedSearchPage() {
         age: user.age,
         height: user.height,
         bust: user.bust,
+        cup: user.cup,
         waist: user.waist,
         hip: user.hip,
         location: user.location,
@@ -246,6 +248,16 @@ export default function AdvancedSearchPage() {
         // じっくり派: 身長151cm以上
         if (selectedTags.includes('じっくり派') && user.height && user.height >= 151) {
           matchesSpecialTags = true
+        }
+        
+        // 甘やかし系: Eカップ以上
+        if (selectedTags.includes('甘やかし系') && user.cup) {
+          const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
+          const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
+          const eCupIndex = cupOrder.indexOf('E')
+          if (userCupIndex >= eCupIndex) {
+            matchesSpecialTags = true
+          }
         }
         
         // OR条件：通常タグまたは特殊タグのいずれかにマッチ
@@ -693,7 +705,7 @@ export default function AdvancedSearchPage() {
                   {user.bust && user.waist && user.hip && (
                     <>
                       {user.height && <span>•</span>}
-                      <span>B{user.bust} W{user.waist} H{user.hip}</span>
+                      <span>B{user.bust}{user.cup ? `(${user.cup})` : ''} W{user.waist} H{user.hip}</span>
                     </>
                   )}
                 </div>

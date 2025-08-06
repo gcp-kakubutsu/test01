@@ -6,6 +6,7 @@ export interface MySQLGirlProfile {
   age: number;
   height?: number;
   bust?: number;
+  cup?: string;
   waist?: number;
   hip?: number;
   location: string;
@@ -65,6 +66,7 @@ export async function fetchMySQLGirls(
         g.age,
         g.height,
         g.bust,
+        g.cup,
         g.waist,
         g.hip,
         IFNULL(g.catch_copy, '') as bio,
@@ -121,6 +123,7 @@ export async function fetchMySQLGirls(
         age: girl.age || 20,
         height: girl.height || undefined,
         bust: girl.bust || undefined,
+        cup: girl.cup || undefined,
         waist: girl.waist || undefined,
         hip: girl.hip || undefined,
         location: girl.location,
