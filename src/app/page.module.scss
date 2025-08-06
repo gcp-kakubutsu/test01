@@ -635,20 +635,34 @@ $border-color-light: #E5E7EB;
 
 .stepsContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: 1200px) {
+    gap: 1rem;
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
 .stepCard {
   text-align: center;
-  padding: 1.5rem;
+  padding: 1.5rem 1rem;
   border-radius: 15px;
   transition: all 0.3s ease;
   background: transparent;
+  
+  @media (max-width: 1200px) {
+    padding: 1.2rem 0.8rem;
+  }
   
   :global(.light) & {
     background: #FFFFFF;
@@ -687,9 +701,13 @@ $border-color-light: #E5E7EB;
 }
 
 .stepTitle {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 0.8rem;
   color: $text-light;
+
+  @media (max-width: 1200px) {
+    font-size: 1rem;
+  }
 
   :global(.light) & {
     color: $text-dark;
@@ -698,8 +716,12 @@ $border-color-light: #E5E7EB;
 
 .stepDescription {
   color: $text-gray;
-  line-height: 1.6;
-  font-size: 15px;
+  line-height: 1.5;
+  font-size: 0.9rem;
+
+  @media (max-width: 1200px) {
+    font-size: 0.85rem;
+  }
 
   :global(.light) & {
     color: #4B5563;
