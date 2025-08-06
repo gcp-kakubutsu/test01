@@ -50,12 +50,9 @@ interface UserProfile {
 // 性癖・プレイスタイルのタグ
 const personalityTags = [
   'やさしめ', 'リード上手', 'じっくり派', '甘やかし系',
-  '濃密タイプ', 'スピード重視', '受け身好き', '主導タイプ',
-  'ソフト系', 'ハード系', '恋人プレイ', '奉仕好き'
+  '濃密タイプ', 'スピード重視'
 ]
 
-// 体型オプション
-const bodyTypes = ['スリム', '普通', 'グラマー', 'ぽっちゃり']
 
 // スタイルオプション
 const styleTypes = ['清楚系', 'ギャル系', 'お姉さん系', '妹系', '人妻系', 'モデル系']
@@ -64,10 +61,7 @@ const styleTypes = ['清楚系', 'ギャル系', 'お姉さん系', '妹系', '�
 const timeOptions = [
   { value: 'now', label: 'いまから' },
   { value: '1hour', label: '1時間以内' },
-  { value: 'tonight', label: '今夜' },
-  { value: 'tomorrow', label: '明日' },
-  { value: 'weekend', label: '週末' },
-  { value: 'anytime', label: 'いつでも' }
+  { value: 'tonight', label: '今夜' }
 ]
 
 interface AreaData {
@@ -144,7 +138,6 @@ export default function AdvancedSearchPage() {
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedTime, setSelectedTime] = useState('now')
   const [ageRange, setAgeRange] = useState([18, 50])
-  const [selectedBodyTypes, setSelectedBodyTypes] = useState<string[]>([])
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('recommend')
   const [filtersApplied, setFiltersApplied] = useState(false)
@@ -270,8 +263,7 @@ export default function AdvancedSearchPage() {
         hasSpecialFilters || 
         selectedTags.length > 0 || 
         searchQuery.trim() !== '' || 
-        selectedBodyTypes.length > 0 ||
-        selectedStyles.length > 0 ||
+          selectedStyles.length > 0 ||
         (selectedArea && selectedArea !== 'all') ||
         prioritizeQuickMeet
       
@@ -409,7 +401,7 @@ export default function AdvancedSearchPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedBodyTypes, selectedStyles, prioritizeQuickMeet, areas, toast])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, areas, toast])
 
   useEffect(() => {
     fetchFilteredUsers()
@@ -466,12 +458,6 @@ export default function AdvancedSearchPage() {
         })
       }
       
-      // 体型フィルター
-      if (selectedBodyTypes.length > 0) {
-        targetUsers = targetUsers.filter(user => 
-          user.bodyType && selectedBodyTypes.includes(user.bodyType)
-        )
-      }
       
       // スタイルフィルター  
       if (selectedStyles.length > 0) {
@@ -487,7 +473,7 @@ export default function AdvancedSearchPage() {
         setAvailableAgeRange([minAge, maxAge])
       }
     }
-  }, [users, searchQuery, selectedTags, selectedBodyTypes, selectedStyles])
+  }, [users, searchQuery, selectedTags, selectedStyles])
   */
 
   // クライアントサイドフィルタリング
@@ -574,12 +560,6 @@ export default function AdvancedSearchPage() {
       )
     }
 
-    // 体型フィルター
-    if (selectedBodyTypes.length > 0) {
-      filtered = filtered.filter(user => 
-        user.bodyType && selectedBodyTypes.includes(user.bodyType)
-      )
-    }
 
     // スタイルフィルター
     if (selectedStyles.length > 0) {
@@ -616,7 +596,7 @@ export default function AdvancedSearchPage() {
     console.log('Client-side filtering result:', filtered.length)
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedBodyTypes, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
+  }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*
@@ -656,7 +636,7 @@ export default function AdvancedSearchPage() {
   // フィルター変更時にページを1に戻す（年齢以外）
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedTags, selectedArea, selectedBodyTypes, selectedStyles, sortBy, prioritizeQuickMeet])
+  }, [searchQuery, selectedTags, selectedArea, selectedStyles, sortBy, prioritizeQuickMeet])
   
   // エリア変更時は即座にデータをクリア
   useEffect(() => {
@@ -728,7 +708,6 @@ export default function AdvancedSearchPage() {
     setSelectedArea('all')
     setSelectedTime('now')
     setAgeRange([18, 50])
-    setSelectedBodyTypes([])
     setSelectedStyles([])
     setPrioritizeQuickMeet(false)
     setSortBy('recommend')
@@ -1116,33 +1095,9 @@ export default function AdvancedSearchPage() {
           </div>
         </div>
 
-        {/* 体型 */}
-        <div className={styles.filterSection}>
-          <h3 className={styles.filterSectionTitle}>
-            体型
-          </h3>
-          <div className={styles.tagFilters}>
-            {bodyTypes.map(type => (
-              <label key={type} className={styles.tagFilter}>
-                <input
-                  type="checkbox"
-                  checked={selectedBodyTypes.includes(type)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedBodyTypes([...selectedBodyTypes, type])
-                    } else {
-                      setSelectedBodyTypes(selectedBodyTypes.filter(t => t !== type))
-                    }
-                  }}
-                />
-                <span>{type}</span>
-              </label>
-            ))}
-          </div>
-        </div>
 
-        {/* スタイル */}
-        <div className={styles.filterSection}>
+        {/* スタイル（一時的にコメントアウト） */}
+        {/* <div className={styles.filterSection}>
           <h3 className={styles.filterSectionTitle}>
             スタイル
           </h3>
@@ -1164,7 +1119,7 @@ export default function AdvancedSearchPage() {
               </label>
             ))}
           </div>
-        </div>
+        </div> */}
       </aside>
 
       {/* メインコンテンツ */}

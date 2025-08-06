@@ -27,16 +27,13 @@ export default function MatchingSearch() {
     'じっくり派',
     '甘やかし系',
     '濃密タイプ',
-    'スピード重視',
-    '受け身好き',
-    '主導タイプ'
+    'スピード重視'
   ]
 
   const timeTags = [
     'いまから',
     '1時間以内',
-    '今夜',
-    '日時を指定'
+    '今夜'
   ]
 
   const toggleTag = (tag: string) => {
@@ -90,8 +87,7 @@ export default function MatchingSearch() {
     const timeMap: { [key: string]: string } = {
       'いまから': 'now',
       '1時間以内': '1hour',
-      '今夜': 'tonight',
-      '日時を指定': 'anytime'
+      '今夜': 'tonight'
     }
 
     // Build URL parameters
@@ -212,7 +208,6 @@ export default function MatchingSearch() {
                 }}
               >
                 {tag === 'いまから' && <Clock className="inline w-3 h-3 mr-1" />}
-                {tag === '日時を指定' && <Calendar className="inline w-3 h-3 mr-1" />}
                 {tag}
               </button>
             ))}
