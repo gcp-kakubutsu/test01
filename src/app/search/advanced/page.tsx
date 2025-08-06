@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -110,7 +110,7 @@ const normalizeLocationName = (location: string): string => {
   return location
 }
 
-export default function AdvancedSearchPage() {
+function AdvancedSearchContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isAuthenticated, currentUser } = useAuth()
@@ -1422,5 +1422,20 @@ export default function AdvancedSearchPage() {
         絞り込み検索
       </button>
     </div>
+  )
+}
+
+// Suspense boundary wrapper
+export default function AdvancedSearchPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
+        </div>
+      }
+    >
+      <AdvancedSearchContent />
+    </Suspense>
   )
 }
