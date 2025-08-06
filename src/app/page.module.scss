@@ -96,24 +96,54 @@ $border-color-light: #E5E7EB;
 
 .heroTitle {
   font-family: 'Noto Serif JP', serif;
-  font-size: 3rem;
+  font-size: 3.75rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   background: linear-gradient(135deg, $text-light, $accent-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   @media (max-width: 768px) {
     font-size: 2rem;
+    line-height: 1.2;
+  }
+}
+
+.heroTitleLine1,
+.heroTitleLine2 {
+  display: block;
+  text-align: center;
+  width: 100%;
+}
+
+.heroTitleLine1 {
+  @media (max-width: 768px) {
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+  }
+}
+
+.heroTitleLine2 {
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+    margin-top: 0.5rem;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
   }
 }
 
 .heroSubtitle {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   margin-bottom: 2rem;
   color: #FFFFFF;
   font-weight: 300;
+  line-height: 1.6;
+  text-align: center;
 
   :global(.light) & {
     color: #FFFFFF;
@@ -121,6 +151,8 @@ $border-color-light: #E5E7EB;
 
   @media (max-width: 768px) {
     font-size: 1rem;
+    line-height: 1.5;
+    padding: 0 1rem;
   }
 }
 
@@ -272,15 +304,16 @@ $border-color-light: #E5E7EB;
 
 .aboutContent {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3rem;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column-reverse;
     gap: 2rem;
     padding: 0 1.5rem;
   }
@@ -303,6 +336,38 @@ $border-color-light: #E5E7EB;
   }
 }
 
+.aboutSubtitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: $accent-gold;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  
+  :global(.light) & {
+    color: $accent-burgundy;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+}
+
+.aboutProblem {
+  font-size: 1.15rem;
+  color: #F0306A;
+  font-weight: 500;
+  line-height: 1.8;
+  margin-bottom: 1rem;
+  
+  :global(.light) & {
+    color: $accent-burgundy;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.05rem;
+  }
+}
+
 .aboutImage {
   text-align: center;
 
@@ -311,7 +376,7 @@ $border-color-light: #E5E7EB;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     width: 100%;
     height: auto;
-    max-width: 500px;
+    max-width: 600px;
     
     @media (max-width: 768px) {
       max-width: 100%;

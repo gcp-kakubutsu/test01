@@ -283,10 +283,12 @@ export default function LandingPage() {
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            あなたの性癖に合う嬢と<br />秘密の出会いを。
+            <span className={styles.heroTitleLine1}>あなたの性癖に合う嬢と</span>
+            <span className={styles.heroTitleLine2}>出逢えるマッチングサイト</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            理想の相性を見つける、大人のための<br className={styles.sp} />プレミアムマッチングサイト
+            従来の風俗サイトでは実現できなかった<br />
+            革新的なマッチングシステム
           </p>
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
@@ -306,9 +308,14 @@ export default function LandingPage() {
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>Nukuneとは？</h2>
           <div className={styles.aboutContent}>
             <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
-              <p>Nukuneは、真の繋がりを求める大人のための革新的なプラットフォームです。私たちは、充実した親密な生活が全体的な幸福に大きく貢献すると信じています。</p>
+              <h3 className={styles.aboutSubtitle}>従来の風俗ポータルサイトの問題点</h3>
+              <p className={styles.aboutProblem}>「写真と実物が違った」「自分の好みを理解してもらえなかった」「プレイスタイルが合わなかった」</p>
+              <p>このような失敗経験はありませんか？従来のサイトでは、表面的な情報だけで選ぶしかなく、本当の相性は会ってみるまでわかりませんでした。</p>
               <br />
-              <p>当サービスは、あなたの願いを真に理解し共有するパートナーを見つけるための、安全で簡単、そして尊重に満ちた環境を提供します。完全匿名システムで、あなたのプライバシーを最優先に保護いたします。</p>
+              <h3 className={styles.aboutSubtitle}>Nukuneが提供する革新的な解決策</h3>
+              <p>AIマッチング技術により、あなたの性癖・好み・プレイスタイルを詳細に分析。本当に相性の良い女性だけを厳選してご紹介します。</p>
+              <br />
+              <p>もう「思っていたのと違った」という失敗はありません。事前に相性度がわかるから、安心して理想の出会いを実現できます。</p>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
               <Image src="/img/woman.jpeg" alt="高級感のある大人の出会い" width={600} height={400} />
@@ -474,7 +481,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className={styles.safetyTitle}>公的機関への届出済み</h3>
               </div>
-              <p className={styles.safetyDescription}>法令遵守とユーザー保護のため、関連当局に届出済みです。<br /></p>
+              <p className={styles.safetyDescription}>NUKUNEでは、法令遵守に基づきインターネット異性紹介事業の届出しております。(受理番号54250003000)<br /></p>
             </div>
           </div>
         </div>
