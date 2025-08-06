@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Brain, Calendar, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2 } from 'lucide-react';
+import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2 } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -366,25 +366,49 @@ export default function LandingPage() {
       {/* Reasons Section */}
       <section className={`${styles.section} ${styles.reasons}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>Nukuneが選ばれる理由</h2>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>従来の風俗サイトとの決定的な違い</h2>
           <div className={styles.reasonsGrid}>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>プレミアム機能も安心価格で。女性はほとんどの機能を無料で利用できます！</p>
+              <h3 className={styles.reasonTitle}>相性保証システム</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：写真とプロフィールだけで判断</span>
+                <span className={styles.reasonNew}>Nukune：AI分析により95%以上の相性マッチを保証</span>
+              </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>プライバシーは最優先。準備ができるまで本当の自分を明かさずに繋がれます。</p>
+              <h3 className={styles.reasonTitle}>詳細プレイ確認</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：会うまで対応内容が不明確</span>
+                <span className={styles.reasonNew}>Nukune：事前に全ての希望を確認・調整可能</span>
+              </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>LINEやTwitterなど外部アプリは不要。Nukune内で全てのやり取りが完結します。</p>
+              <h3 className={styles.reasonTitle}>リアルタイムマッチング</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：店舗の空き状況のみ確認</span>
+                <span className={styles.reasonNew}>Nukune：今すぐ会える相性の良い女性を即座に検索</span>
+              </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>会う前にコミュニティの評価を確認できるので、より安全な出会いが可能です。</p>
+              <h3 className={styles.reasonTitle}>性癖完全対応</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：一般的なサービスのみ</span>
+                <span className={styles.reasonNew}>Nukune：あなたの性癖に100%対応できる女性を厳選</span>
+              </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>電話番号で連絡先をブロックし、知り合いとの不要な出会いを避けられます。</p>
+              <h3 className={styles.reasonTitle}>安心安全なプレイ</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：女性とメッセージは不可</span>
+                <span className={styles.reasonNew}>Nukune：LINEなどのアプリは不要。Nukune内で全てのやり取りが完結します。</span>
+              </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <p className={styles.reasonText}>法令遵守とユーザー保護のため、関連当局に届出済みです。</p>
+              <h3 className={styles.reasonTitle}>匿名性の確保</h3>
+              <p className={styles.reasonText}>
+                <span className={styles.reasonOld}>従来：個人情報の登録が必須</span>
+                <span className={styles.reasonNew}>Nukune：完全匿名で安心して利用可能</span>
+              </p>
             </div>
           </div>
         </div>
