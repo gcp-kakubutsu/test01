@@ -337,11 +337,11 @@ export default function LandingPage() {
               <p className={styles.featureDescription}>AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={`${styles.featureIcon} ${styles.faCalendarHeart}`}>
-                <Calendar />
+              <div className={styles.featureIcon}>
+                <Shield />
               </div>
-              <h3 className={styles.featureTitle}>「会いたい」を投稿</h3>
-              <p className={styles.featureDescription}>あなたの希望や理想のデートを投稿して、特別な人との出会いのチャンスを広げましょう。</p>
+              <h3 className={styles.featureTitle}>事前確認システム</h3>
+              <p className={styles.featureDescription}>会う前に女性のプレイスタイル・対応可能な内容・性格の詳細。希望に100%応えられる女性だけと出会えます。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.featureIcon}>
