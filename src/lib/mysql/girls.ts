@@ -18,6 +18,7 @@ export interface MySQLGirlProfile {
   distance?: number;
   isOnline?: boolean;
   lastActive?: string;
+  is_sake?: boolean;
   // Shop info
   shopName?: string;
   shopId?: number;
@@ -69,6 +70,7 @@ export async function fetchMySQLGirls(
         g.cup,
         g.waist,
         g.hip,
+        g.is_sake,
         IFNULL(g.catch_copy, '') as bio,
         IFNULL(g.hobby, '') as hobby,
         IFNULL(g.seikantai, '') as seikantai,
@@ -89,6 +91,7 @@ export async function fetchMySQLGirls(
     `;
     
     const girls = await query<any>(sql);
+    
 
     // Fetch images for all girls
     const girlIds = girls.map((g: any) => g.id).join(',');
@@ -135,7 +138,8 @@ export async function fetchMySQLGirls(
         bodyType: undefined,
         style: undefined,
         isOnline: false,
-        lastActive: new Date().toISOString()
+        lastActive: new Date().toISOString(),
+        is_sake: girl.is_sake === 1 || girl.is_sake === true
       };
     });
   } catch (error) {

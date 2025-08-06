@@ -38,6 +38,7 @@ interface UserProfile {
   distance?: number
   isOnline?: boolean
   lastActive?: string
+  is_sake?: boolean
 }
 
 // 性癖・プレイスタイルのタグ
@@ -186,7 +187,8 @@ export default function AdvancedSearchPage() {
         bodyType: user.bodyType,
         style: user.style,
         isOnline: user.isOnline,
-        lastActive: user.lastActive
+        lastActive: user.lastActive,
+        is_sake: user.is_sake
       }))
       
       // Update total count
@@ -258,6 +260,11 @@ export default function AdvancedSearchPage() {
           if (userCupIndex >= eCupIndex) {
             matchesSpecialTags = true
           }
+        }
+        
+        // 濃密タイプ: お酒を飲む人（is_sake=true）
+        if (selectedTags.includes('濃密タイプ') && user.is_sake === true) {
+          matchesSpecialTags = true
         }
         
         // OR条件：通常タグまたは特殊タグのいずれかにマッチ
