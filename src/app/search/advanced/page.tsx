@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Heart, MessageCircle, MapPin, Clock, Filter, Grid3x3, List, Search } from 'lucide-react'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Heart, MessageCircle, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
 // Removed direct import - will fetch via API
 import { sendLike } from '@/lib/firebase/actions'
 import { useToast } from '@/hooks/use-toast'
@@ -74,6 +76,43 @@ interface AreaData {
   girl_count: number
 }
 
+// 都道府県名を正規化する関数
+const normalizeLocationName = (location: string): string => {
+  // 都道府県リスト
+  const prefectures = [
+    '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+    '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+    '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+    '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+    '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+    '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+    '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
+  ]
+  
+  // 完全一致をチェック
+  if (prefectures.includes(location)) {
+    return location
+  }
+  
+  // 部分一致をチェック（市区町村名が含まれている場合）
+  for (const prefecture of prefectures) {
+    if (location.includes(prefecture)) {
+      return prefecture
+    }
+  }
+  
+  // 都道府県の文字が含まれていない場合（例：「東京」→「東京都」）
+  for (const prefecture of prefectures) {
+    const prefectureBase = prefecture.replace(/[都道府県]$/, '')
+    if (location.includes(prefectureBase)) {
+      return prefecture
+    }
+  }
+  
+  // マッチしない場合はそのまま返す
+  return location
+}
+
 export default function AdvancedSearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -109,6 +148,8 @@ export default function AdvancedSearchPage() {
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [filteredTotalCount, setFilteredTotalCount] = useState(0)
+  const [openAreaPopover, setOpenAreaPopover] = useState(false)
+  const [areaInitialized, setAreaInitialized] = useState(false)
 
   // 動的に計算されるページ数（フィルタリング後のカウントを使用）
   const totalPages = Math.ceil(filteredTotalCount / LIMIT)
@@ -122,7 +163,11 @@ export default function AdvancedSearchPage() {
     const q = searchParams.get('q')
     
     if (tags) setSelectedTags(tags.split(','))
-    if (location) setSelectedArea(location)
+    if (location) {
+      // locationパラメータが来た場合、都道府県名を抽出して設定
+      const normalizedLocation = normalizeLocationName(location)
+      setSelectedArea(normalizedLocation)
+    }
     if (time) setSelectedTime(time)
     if (quick === 'true') setPrioritizeQuickMeet(true)
     if (q) setSearchQuery(q)
@@ -154,6 +199,37 @@ export default function AdvancedSearchPage() {
     }
     fetchAreas()
   }, [])
+  
+  // エリアデータ取得後、locationパラメータに対応するエリアを設定
+  useEffect(() => {
+    if (areas.prefectures.length > 0 && !areaInitialized) {
+      const location = searchParams.get('location')
+      if (location) {
+        const normalizedLocation = normalizeLocationName(location)
+        
+        // 都道府県から探す
+        const matchedPrefecture = areas.prefectures.find((p: AreaData) => 
+          p.prefecture_name === normalizedLocation
+        )
+        
+        if (matchedPrefecture) {
+          setSelectedArea(matchedPrefecture.prefecture_name)
+          setAreaInitialized(true)
+        } else {
+          // 市区町村から探す
+          const matchedMunicipality = areas.municipalities.find((m: AreaData) => 
+            m.full_name?.includes(normalizedLocation) || 
+            m.municipality_name?.includes(normalizedLocation)
+          )
+          
+          if (matchedMunicipality) {
+            setSelectedArea(matchedMunicipality.full_name || '')
+            setAreaInitialized(true)
+          }
+        }
+      }
+    }
+  }, [areas, searchParams, areaInitialized])
 
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
@@ -185,11 +261,41 @@ export default function AdvancedSearchPage() {
         apiUrl += `&area=${encodeURIComponent(selectedArea)}`
       }
       console.log('Fetching from:', apiUrl) // デバッグ用
-      const response = await fetch(apiUrl)
       
-      // Check if response is OK before parsing
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // リトライ機能付きでフェッチ
+      let response: Response | null = null
+      let retryCount = 0
+      const maxRetries = 2
+      
+      while (retryCount <= maxRetries) {
+        try {
+          response = await fetch(apiUrl)
+          if (response.ok) break
+          
+          if (response.status === 404 && retryCount < maxRetries) {
+            console.warn(`Retry ${retryCount + 1}/${maxRetries} for 404 error`)
+            await new Promise(resolve => setTimeout(resolve, 500)) // 500ms待機
+            retryCount++
+            continue
+          }
+          
+          // それ以外のエラーまたはリトライ上限
+          console.error('Response not OK:', response.status, response.statusText)
+          console.error('URL was:', apiUrl)
+          throw new Error(`HTTP error! status: ${response.status}`)
+        } catch (fetchError) {
+          if (retryCount < maxRetries) {
+            console.warn(`Retry ${retryCount + 1}/${maxRetries} for fetch error`)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            retryCount++
+            continue
+          }
+          throw fetchError
+        }
+      }
+      
+      if (!response) {
+        throw new Error('Failed to fetch after retries')
       }
       
       // Check content type
@@ -241,9 +347,18 @@ export default function AdvancedSearchPage() {
       }
       
       // ユーザーに分かりやすいエラーメッセージ
+      let errorMessage = 'ユーザー情報の取得に失敗しました。'
+      if (error instanceof Error) {
+        if (error.message.includes('404')) {
+          errorMessage = 'データが見つかりませんでした。'
+        } else if (error.message.includes('500')) {
+          errorMessage = 'サーバーエラーが発生しました。'
+        }
+      }
+      
       toast({
         title: 'エラー',
-        description: 'ユーザー情報の取得に失敗しました。ページを再読み込みしてください。',
+        description: `${errorMessage} ページを再読み込みしてください。`,
         variant: 'destructive'
       })
       
@@ -626,47 +741,132 @@ export default function AdvancedSearchPage() {
             <MapPin className="w-4 h-4" />
             エリア
           </h3>
-          <Select value={selectedArea} onValueChange={setSelectedArea}>
-            <SelectTrigger className={styles.filterSelect}>
-              <SelectValue placeholder="すべてのエリア" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべてのエリア</SelectItem>
-              
-              {/* 都道府県 */}
-              {areas.prefectures.length > 0 && (
-                <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">
-                  都道府県
-                </div>
-              )}
-              {areas.prefectures.map((prefecture) => (
-                <SelectItem 
-                  key={`pref-${prefecture.prefecture_id}`} 
-                  value={prefecture.prefecture_name}
-                >
-                  {prefecture.prefecture_name} ({prefecture.girl_count}名)
-                </SelectItem>
-              ))}
-              
-              {/* 人気エリア（市区町村） */}
-              {areas.municipalities.length > 0 && (
-                <>
-                  <div className="my-1 h-px bg-border" />
-                  <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">
-                    人気エリア
-                  </div>
-                </>
-              )}
-              {areas.municipalities.map((municipality) => (
-                <SelectItem 
-                  key={`muni-${municipality.municipality_id}`} 
-                  value={municipality.full_name || ''}
-                >
-                  {municipality.full_name} ({municipality.girl_count}名)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={openAreaPopover} onOpenChange={setOpenAreaPopover}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openAreaPopover}
+                className={`w-full justify-between ${styles.filterSelect}`}
+              >
+                {selectedArea === 'all' ? 'すべてのエリア' : selectedArea}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start" sideOffset={5}>
+              <Command>
+                <CommandInput placeholder="都道府県名や市区町村名で検索..." />
+                <CommandEmpty>該当するエリアが見つかりません</CommandEmpty>
+                <CommandList className="max-h-[400px] overflow-y-auto">
+                <CommandGroup>
+                  <CommandItem
+                    value="all"
+                    onSelect={() => {
+                      setSelectedArea('all')
+                      setOpenAreaPopover(false)
+                    }}
+                  >
+                    <Check
+                      className={`mr-2 h-4 w-4 ${
+                        selectedArea === 'all' ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                    すべてのエリア
+                  </CommandItem>
+                </CommandGroup>
+                
+                {/* 人気の都道府県（女の子がいるエリア） */}
+                {areas.prefectures.filter(p => p.girl_count > 0).length > 0 && (
+                  <CommandGroup heading="人気の都道府県">
+                    {areas.prefectures
+                      .filter(p => p.girl_count > 0)
+                      .slice(0, 10)
+                      .map((prefecture) => (
+                      <CommandItem
+                        key={`pref-${prefecture.prefecture_id}`}
+                        value={prefecture.prefecture_name}
+                        onSelect={(currentValue: string) => {
+                          setSelectedArea(currentValue)
+                          setOpenAreaPopover(false)
+                        }}
+                        className="font-medium"
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedArea === prefecture.prefecture_name ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        />
+                        <span className="flex-1">{prefecture.prefecture_name}</span>
+                        <span className="ml-auto text-sm font-semibold text-[#F0306A]">
+                          {prefecture.girl_count.toLocaleString()}名
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                
+                {/* すべての都道府県 */}
+                {areas.prefectures.length > 0 && (
+                  <CommandGroup heading="すべての都道府県">
+                    {areas.prefectures.map((prefecture) => (
+                      <CommandItem
+                        key={`all-pref-${prefecture.prefecture_id}`}
+                        value={prefecture.prefecture_name}
+                        onSelect={(currentValue: string) => {
+                          setSelectedArea(currentValue)
+                          setOpenAreaPopover(false)
+                        }}
+                        className={prefecture.girl_count === 0 ? "opacity-50" : ""}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedArea === prefecture.prefecture_name ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        />
+                        <span className="flex-1">{prefecture.prefecture_name}</span>
+                        <span className={`ml-auto text-sm ${
+                          prefecture.girl_count > 0 ? 'text-muted-foreground' : 'text-gray-400'
+                        }`}>
+                          {prefecture.girl_count > 0 ? `${prefecture.girl_count.toLocaleString()}名` : '対象なし'}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                
+                {/* 人気の市区町村（TOP 20） */}
+                {areas.municipalities.filter(m => m.girl_count > 0).length > 0 && (
+                  <CommandGroup heading="人気の市区町村">
+                    {areas.municipalities
+                      .filter(m => m.girl_count > 0)
+                      .slice(0, 20)
+                      .map((municipality) => (
+                      <CommandItem
+                        key={`muni-${municipality.municipality_id}`}
+                        value={municipality.full_name || ''}
+                        onSelect={(currentValue: string) => {
+                          setSelectedArea(currentValue)
+                          setOpenAreaPopover(false)
+                        }}
+                        className="font-medium"
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedArea === municipality.full_name ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        />
+                        <span className="flex-1">{municipality.full_name}</span>
+                        <span className="ml-auto text-sm font-semibold text-[#F0306A]">
+                          {municipality.girl_count.toLocaleString()}名
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* 時間帯 */}
