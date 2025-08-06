@@ -24,6 +24,10 @@ interface UserProfile {
   id: string
   name: string
   age: number
+  height?: number
+  bust?: number
+  waist?: number
+  hip?: number
   location: string
   bio: string
   interests: string[]
@@ -169,6 +173,10 @@ export default function AdvancedSearchPage() {
         id: user.id,
         name: user.name,
         age: user.age,
+        height: user.height,
+        bust: user.bust,
+        waist: user.waist,
+        hip: user.hip,
         location: user.location,
         bio: user.bio,
         interests: user.interests,
@@ -214,20 +222,30 @@ export default function AdvancedSearchPage() {
       )
     }
 
-    // タグフィルター（選択されたタグのいずれかを持つ）
-    // 「やさしめ」が選択されている場合は、タグフィルターをスキップ（年齢フィルターのみ適用）
-    if (selectedTags.length > 0 && !selectedTags.includes('やさしめ')) {
-      filtered = filtered.filter(user => 
-        selectedTags.some(tag => user.interests.includes(tag))
-      )
-    } else if (selectedTags.length > 0 && selectedTags.includes('やさしめ') && selectedTags.length > 1) {
-      // 「やさしめ」以外のタグも選択されている場合は、それらのタグでフィルター
-      const otherTags = selectedTags.filter(tag => tag !== 'やさしめ')
-      if (otherTags.length > 0) {
-        filtered = filtered.filter(user => 
-          otherTags.some(tag => user.interests.includes(tag))
+    // タグフィルター（特殊タグと通常タグのOR検索）
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(user => {
+        // 通常のタグマッチング
+        const matchesNormalTags = selectedTags.some(tag => 
+          user.interests.includes(tag)
         )
-      }
+        
+        // 特殊タグのマッチング
+        let matchesSpecialTags = false
+        
+        // やさしめ: 18-19歳
+        if (selectedTags.includes('やさしめ') && user.age >= 18 && user.age <= 19) {
+          matchesSpecialTags = true
+        }
+        
+        // リード上手: 身長150cm以下
+        if (selectedTags.includes('リード上手') && user.height && user.height <= 150) {
+          matchesSpecialTags = true
+        }
+        
+        // OR条件：通常タグまたは特殊タグのいずれかにマッチ
+        return matchesNormalTags || matchesSpecialTags
+      })
     }
 
     // エリアフィルター
@@ -237,13 +255,9 @@ export default function AdvancedSearchPage() {
       )
     }
 
-    // 年齢フィルター
-    // 「やさしめ」が選択されている場合は10代に限定
-    if (selectedTags.includes('やさしめ')) {
-      filtered = filtered.filter(user => 
-        user.age >= 18 && user.age <= 19
-      )
-    } else {
+    // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
+    const hasAgeSpecialTag = selectedTags.includes('やさしめ')
+    if (!hasAgeSpecialTag) {
       filtered = filtered.filter(user => 
         user.age >= ageRange[0] && user.age <= ageRange[1]
       )
@@ -665,6 +679,16 @@ export default function AdvancedSearchPage() {
                     <>
                       <span>•</span>
                       <span>{Math.round(user.distance)}km</span>
+                    </>
+                  )}
+                </div>
+                {/* 身体情報 */}
+                <div className={styles.profileDetails} style={{ marginTop: '4px' }}>
+                  {user.height && <span>T{user.height}cm</span>}
+                  {user.bust && user.waist && user.hip && (
+                    <>
+                      {user.height && <span>•</span>}
+                      <span>B{user.bust} W{user.waist} H{user.hip}</span>
                     </>
                   )}
                 </div>

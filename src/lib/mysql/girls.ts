@@ -4,6 +4,10 @@ export interface MySQLGirlProfile {
   id: string;
   name: string;
   age: number;
+  height?: number;
+  bust?: number;
+  waist?: number;
+  hip?: number;
   location: string;
   bio: string;
   interests: string[];
@@ -59,6 +63,10 @@ export async function fetchMySQLGirls(
         g.id,
         g.name,
         g.age,
+        g.height,
+        g.bust,
+        g.waist,
+        g.hip,
         IFNULL(g.catch_copy, '') as bio,
         IFNULL(g.hobby, '') as hobby,
         IFNULL(g.seikantai, '') as seikantai,
@@ -111,6 +119,10 @@ export async function fetchMySQLGirls(
         id: girl.id.toString(),
         name: girl.name || '名前なし',
         age: girl.age || 20,
+        height: girl.height || undefined,
+        bust: girl.bust || undefined,
+        waist: girl.waist || undefined,
+        hip: girl.hip || undefined,
         location: girl.location,
         bio: girl.bio || '',
         interests: interests.filter(Boolean),
