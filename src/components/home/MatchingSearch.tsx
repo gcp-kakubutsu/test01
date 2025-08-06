@@ -4,16 +4,17 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Clock, Calendar, Bot } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
 import { useToast } from '@/hooks/use-toast'
+import styles from './MatchingSearch.module.scss'
 
 export default function MatchingSearch() {
   const { toast } = useToast()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
-  const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(true)
+  const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
@@ -85,8 +86,8 @@ export default function MatchingSearch() {
   return (
     <div className="w-full">
       {/* Main search section */}
-      <div className="bg-[#0f1419] rounded-3xl p-8 md:p-10 shadow-2xl border border-[#1f2937]/30">
-        <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-8">
+      <div className={`${styles.searchContainer} rounded-3xl p-8 md:p-10 shadow-2xl border`}>
+        <h2 className={`text-2xl md:text-3xl font-bold ${styles.textPrimary} text-center mb-8`}>
           性癖が合う嬢を探す？
         </h2>
 
@@ -97,16 +98,14 @@ export default function MatchingSearch() {
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
-                className="btn-custom"
+                className={`btn-custom ${styles.tagButton} ${selectedTags.includes(tag) ? styles.selected : ''}`}
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: '9999px',
                   fontSize: '0.875rem',
                   fontWeight: selectedTags.includes(tag) ? '600' : '500',
                   transition: 'all 0.3s',
-                  backgroundColor: selectedTags.includes(tag) ? '#D4AF37' : 'transparent',
-                  color: selectedTags.includes(tag) ? '#0f1419' : '#9ca3af',
-                  border: selectedTags.includes(tag) ? '1px solid #D4AF37' : '1px solid #3f4852'
+                  border: '1px solid'
                 }}
               >
                 {tag}
@@ -124,7 +123,7 @@ export default function MatchingSearch() {
               placeholder="もっと詳しく検索"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-[#1f2937] border-[#3f4852] text-white placeholder-gray-500 h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all"
+              className={`pl-10 ${styles.inputField} h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all`}
             />
           </div>
         </div>
@@ -138,25 +137,14 @@ export default function MatchingSearch() {
                 placeholder="現在地または地域名を入力"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="bg-[#1f2937] border-[#3f4852] text-white placeholder-gray-500 h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all"
+                className={`${styles.inputField} h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all`}
               />
             </div>
             <Button
               onClick={handleGetCurrentLocation}
               variant="outline"
-              className="btn-custom"
-              style={{
-                backgroundColor: 'transparent',
-                color: '#D4AF37',
-                border: '2px solid #D4AF37',
-                fontWeight: 'bold',
-                padding: '0 1.5rem',
-                height: '3.5rem',
-                borderRadius: '1rem',
-                transition: 'all 0.3s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              className={`btn-custom ${styles.locationButton}`}
+              disabled={isLoadingLocation}
             >
               <MapPin className="w-4 h-4 mr-2" />
               現在地を使う
@@ -171,16 +159,14 @@ export default function MatchingSearch() {
               <button
                 key={tag}
                 onClick={() => setSelectedTime(tag)}
-                className="btn-custom"
+                className={`btn-custom ${styles.tagButton} ${selectedTime === tag ? styles.selected : ''}`}
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: '9999px',
                   fontSize: '0.875rem',
                   fontWeight: selectedTime === tag ? '600' : '500',
                   transition: 'all 0.3s',
-                  backgroundColor: selectedTime === tag ? '#D4AF37' : 'transparent',
-                  color: selectedTime === tag ? '#0f1419' : '#9ca3af',
-                  border: selectedTime === tag ? '1px solid #D4AF37' : '1px solid #3f4852',
+                  border: '1px solid',
                   display: 'inline-flex',
                   alignItems: 'center'
                 }}
@@ -196,13 +182,12 @@ export default function MatchingSearch() {
         {/* Priority toggle */}
         <div className="mb-6">
           <div className="flex items-center justify-center gap-3">
-            <Switch
+            <GoldSwitch
               id="quick-meet"
               checked={prioritizeQuickMeet}
               onCheckedChange={setPrioritizeQuickMeet}
-              className="data-[state=checked]:bg-[#8b7d47] data-[state=unchecked]:bg-[#3f4852]"
             />
-            <Label htmlFor="quick-meet" className="text-gray-300 cursor-pointer">
+            <Label htmlFor="quick-meet" className={`${styles.textSecondary} cursor-pointer`}>
               すぐ会える相手を優先
             </Label>
           </div>
@@ -211,52 +196,40 @@ export default function MatchingSearch() {
         {/* Search button */}
         <div className="text-center mb-3">
           <Button
-            className="btn-primary"
-            style={{
-              backgroundColor: '#c73b68',
-              color: 'white',
-              fontWeight: 'bold',
-              padding: '1.25rem 4rem',
-              borderRadius: '9999px',
-              fontSize: '1.125rem',
-              transition: 'all 0.3s',
-              border: 'none'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b02958'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#c73b68'}
+            className={`btn-primary ${styles.primaryButton}`}
           >
             候補を見る（無料）
           </Button>
         </div>
 
-        <p className="text-sm text-gray-400 text-center mt-6">
+        <p className={`text-sm ${styles.textSecondary} text-center mt-6`}>
           登録後、入力した性癖と条件を引き継いで候補を表示します。
         </p>
       </div>
 
       {/* AI Assistant section */}
-      <div className="bg-[#0f1419] rounded-3xl p-8 md:p-10 shadow-2xl border border-[#1f2937]/30 mt-8">
+      <div className={`${styles.searchContainer} rounded-3xl p-8 md:p-10 shadow-2xl border mt-8`}>
         <div className="flex items-center gap-3 mb-4">
           <div className="bg-[#D4AF37] p-3 rounded-full">
-            <Bot className="w-6 h-6 text-[#1a1f2e]" />
+            <Bot className="w-6 h-6 text-[#0f1419]" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className={`text-lg font-bold ${styles.textPrimary}`}>
               AIマッチングアシスタント
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className={`text-sm ${styles.textSecondary}`}>
               あなたの理想の相手を見つけるお手伝いをします
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="bg-[#1f2937] rounded-xl p-4 border border-[#3f4852]">
+          <div className={`${styles.inputField} rounded-xl p-4 border`}>
             <div className="flex gap-2">
               <Input
                 type="text"
                 placeholder="メッセージを入力..."
-                className="flex-1 bg-[#0f1419] border-[#3f4852] text-white placeholder-gray-500 rounded-xl"
+                className={`flex-1 ${styles.searchContainer} ${styles.inputField} rounded-xl border`}
               />
               <Button
                 variant="ghost"
@@ -281,26 +254,7 @@ export default function MatchingSearch() {
           </div>
 
           <Button
-            className="btn-custom"
-            style={{
-              backgroundColor: '#D4AF37',
-              color: '#0f1419',
-              fontWeight: 'bold',
-              padding: '0.75rem',
-              borderRadius: '0.75rem',
-              boxShadow: '0 10px 15px -3px rgba(212, 175, 55, 0.2)',
-              transition: 'all 0.3s',
-              border: 'none',
-              width: '100%'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.9)';
-              e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(212, 175, 55, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#D4AF37';
-              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(212, 175, 55, 0.2)';
-            }}
+            className={`btn-custom ${styles.aiButton}`}
           >
             <Bot className="w-4 h-4 mr-2" />
             AIと相談を開始する

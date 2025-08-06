@@ -1,0 +1,181 @@
+@use 'sass:color';
+
+// カラー変数
+$dark-bg: #0f1419;
+$dark-bg-secondary: #1f2937;
+$dark-border: #3f4852;
+$dark-text: #ffffff;
+$dark-text-secondary: #9ca3af;
+$dark-text-tertiary: #6b7280;
+
+$light-bg: #ffffff;
+$light-bg-secondary: #f3f4f6;
+$light-border: #e5e7eb;
+$light-text: #111827;
+$light-text-secondary: #6b7280;
+$light-text-tertiary: #9ca3af;
+
+$accent-gold: #D4AF37;
+$accent-pink: #c73b68;
+$accent-pink-hover: #b02958;
+
+// ダークモード用のmixin
+@mixin dark-mode {
+  :global(.dark) & {
+    @content;
+  }
+}
+
+// ライトモード用のmixin
+@mixin light-mode {
+  :global(.light) & {
+    @content;
+  }
+}
+
+// メインコンテナ
+.searchContainer {
+  background-color: $light-bg;
+  color: $light-text;
+  border-color: $light-border;
+  
+  @include dark-mode {
+    background-color: $dark-bg;
+    color: $dark-text;
+    border-color: rgba($dark-border, 0.3);
+  }
+}
+
+// 入力フィールド
+.inputField {
+  background-color: $light-bg-secondary;
+  border-color: $light-border;
+  color: $light-text;
+  
+  @include dark-mode {
+    background-color: $dark-bg-secondary;
+    border-color: $dark-border;
+    color: $dark-text;
+  }
+  
+  &::placeholder {
+    color: $light-text-secondary;
+    
+    @include dark-mode {
+      color: $dark-text-secondary;
+    }
+  }
+}
+
+// テキスト
+.textPrimary {
+  color: $light-text;
+  
+  @include dark-mode {
+    color: $dark-text;
+  }
+}
+
+.textSecondary {
+  color: $light-text-secondary;
+  
+  @include dark-mode {
+    color: $dark-text-tertiary;
+  }
+}
+
+// タグボタン
+.tagButton {
+  color: $light-text-secondary;
+  border-color: $light-border;
+  background-color: transparent;
+  
+  @include dark-mode {
+    color: $dark-text-secondary;
+    border-color: $dark-border;
+  }
+  
+  &.selected {
+    background-color: $accent-gold !important;
+    color: $dark-bg !important;
+    border-color: $accent-gold !important;
+  }
+}
+
+// スイッチ
+.switch {
+  // Radix UIのスイッチは実際にはdata-stateを使用
+  &[data-state="checked"] {
+    background-color: $accent-gold !important;
+  }
+  
+  &[data-state="unchecked"] {
+    background-color: $light-border !important;
+    
+    @include dark-mode {
+      background-color: $dark-border !important;
+    }
+  }
+  
+  // 追加の特定性のためのセレクタ
+  &:global(.peer) {
+    &[data-state="checked"] {
+      background-color: $accent-gold !important;
+    }
+  }
+}
+
+// 位置情報ボタン
+.locationButton {
+  background-color: transparent !important;
+  color: $accent-gold !important;
+  border: 2px solid $accent-gold !important;
+  font-weight: bold;
+  padding: 0 1.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  transition: all 0.3s;
+  
+  &:hover:not(:disabled) {
+    background-color: rgba($accent-gold, 0.1) !important;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// プライマリボタン（候補を見る）
+.primaryButton {
+  background-color: $accent-pink !important;
+  color: white !important;
+  font-weight: bold;
+  padding: 1.25rem 4rem;
+  border-radius: 9999px;
+  font-size: 1.125rem;
+  transition: all 0.3s;
+  border: none !important;
+  
+  &:hover {
+    background-color: $accent-pink-hover !important;
+  }
+}
+
+// AIボタン
+.aiButton {
+  background-color: $accent-gold !important;
+  color: white !important;
+  font-weight: bold;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba($accent-gold, 0.2);
+  transition: all 0.3s;
+  border: none !important;
+  width: 100%;
+  
+  &:hover {
+    background-color: rgba($accent-gold, 0.9) !important;
+    box-shadow: 0 20px 25px -5px rgba($accent-gold, 0.3);
+  }
+}
