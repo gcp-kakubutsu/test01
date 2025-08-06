@@ -45,6 +45,7 @@
     "firebase": "^11.8.1",
     "firebase-admin": "^12.3.0",
     "genkit": "^1.8.0",
+    "lru-cache": "^11.1.0",
     "lucide-react": "^0.475.0",
     "mysql2": "^3.14.3",
     "next": "^15.3.3",

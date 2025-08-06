@@ -181,79 +181,166 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  // MySQLからの女の子データ取得
+  // MySQLからの女の子データ取得（最適化版）
   const fetchGirlsFromMySQL = useCallback(async () => {
     if (!currentUser) return;
     
     try {
+      const startTime = performance.now();
+      
+      // First try without area filter to ensure we get data
       const params = new URLSearchParams({
         limit: '200',
         offset: '0'
       });
       
-      // Add location filter if available
-      // Note: UserProfile doesn't have prefecture_id, would need to extract from location string
-      // if (userProfile?.location) {
-      //   // TODO: Parse location to get prefecture_id
-      // }
+      // Don't filter by area initially - let client-side sorting handle location preference
+      // This prevents issues when the area doesn't match exactly
+      console.log('Fetching girls from MySQL with params:', params.toString());
       
-      const response = await fetch(`/api/girls?${params}`);
-      const data = await response.json();
+      // Try optimized API first
+      let data = null;
+      let apiUsed = 'optimized';
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      if (data.girls) {
-        // Sort girls by user preferences
+      while (retryCount <= maxRetries && !data?.girls?.length) {
+        try {
+          const response = await fetch(`/api/mysql-girls-fast?${params}`);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const responseData = await response.json();
+          
+          // Check if we got valid data
+          if (responseData && responseData.girls && Array.isArray(responseData.girls)) {
+            data = responseData;
+            break;
+          } else {
+            console.warn('Invalid response structure, retrying...');
+            retryCount++;
+          }
+        } catch (optimizedError) {
+          console.warn(`Optimized API attempt ${retryCount + 1} failed:`, optimizedError);
+          retryCount++;
+          
+          if (retryCount > maxRetries) {
+            // Final fallback to regular API
+            console.log('Falling back to regular API...');
+            apiUsed = 'regular';
+            
+            try {
+              const response = await fetch(`/api/girls?limit=200&offset=0`);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status} from regular API`);
+              }
+              data = await response.json();
+            } catch (fallbackError) {
+              console.error('Regular API also failed:', fallbackError);
+              throw fallbackError;
+            }
+          } else {
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+      
+      const fetchTime = performance.now() - startTime;
+      console.log(`⚡ Girls fetched from ${apiUsed} API in ${fetchTime.toFixed(0)}ms`);
+      
+      // Validate and process the data
+      if (data && data.girls && Array.isArray(data.girls) && data.girls.length > 0) {
+        console.log(`Received ${data.girls.length} girls from API`);
+        
+        // Sort girls by user preferences (including location preference)
         const sortedGirls = await sortGirlsByPreference(
           data.girls,
           currentUser.uid,
           userLocation,
           userProfile?.location
         );
+        
+        console.log(`Setting ${sortedGirls.length} sorted girls to state`);
         setGirlsFromDB(sortedGirls);
+        
+        // Show performance metrics
+        if (data.performance) {
+          console.log(`📊 Performance: Response ${data.performance.responseTime}ms, Cache Hit ${data.performance.cacheHitRate}%`);
+        }
+      } else {
+        console.warn('No valid girls data received from API after retries');
+        // Try once more without any filters as last resort
+        try {
+          const lastResortResponse = await fetch('/api/mysql-girls?limit=200&offset=0');
+          if (lastResortResponse.ok) {
+            const lastResortData = await lastResortResponse.json();
+            if (lastResortData?.girls?.length > 0) {
+              console.log('Last resort fetch succeeded with', lastResortData.girls.length, 'girls');
+              const sortedGirls = await sortGirlsByPreference(
+                lastResortData.girls,
+                currentUser.uid,
+                userLocation,
+                userProfile?.location
+              );
+              setGirlsFromDB(sortedGirls);
+            } else {
+              setGirlsFromDB([]);
+            }
+          } else {
+            setGirlsFromDB([]);
+          }
+        } catch (lastError) {
+          console.error('Last resort fetch also failed:', lastError);
+          setGirlsFromDB([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching girls from MySQL:', error);
+      setGirlsFromDB([]);
     }
   }, [currentUser, userLocation, userProfile]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!currentUser) return;
+  const fetchUsers = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoadingUsers(true);
       
-      try {
-        setLoadingUsers(true);
+      if (useFirebaseData) {
+        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
+        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 200);
         
-        if (useFirebaseData) {
-          // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
-          let fetchedUsers = await fetchAdminGirls(currentUser.uid, 200);
-          
-          // 新しい優先順位ソート機能を使用
-          // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
-          fetchedUsers = await sortUsersByPreference(
-            fetchedUsers,
-            currentUser.uid,
-            userLocation,
-            userProfile?.location
-          );
-          
-          // Firebaseから取得したデータを設定
-          setUsers(fetchedUsers);
-        } else {
-          // MySQLから女の子データを取得
-          await fetchGirlsFromMySQL();
-        }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setUsers([]); // エラー時は空配列
-      } finally {
-        setLoadingUsers(false);
+        // 新しい優先順位ソート機能を使用
+        // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
+        fetchedUsers = await sortUsersByPreference(
+          fetchedUsers,
+          currentUser.uid,
+          userLocation,
+          userProfile?.location
+        );
+        
+        // Firebaseから取得したデータを設定
+        setUsers(fetchedUsers);
+      } else {
+        // MySQLから女の子データを取得
+        await fetchGirlsFromMySQL();
       }
-    };
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]); // エラー時は空配列
+      setGirlsFromDB([]); // MySQLデータもクリア
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [currentUser, useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL]);
 
+  useEffect(() => {
     // Don't wait for userProfile if it's not a male user
     if (isAuthenticated && currentUser && !checkingWelcome) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUser, userLocation, userProfile, checkingWelcome, useFirebaseData, fetchGirlsFromMySQL]);
+  }, [isAuthenticated, currentUser, checkingWelcome, fetchUsers]);
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -313,8 +400,37 @@ export default function HomePage() {
   // Determine which data to display
   const displayData = useFirebaseData ? users : girlsFromDB;
   
+  // Show loading state while fetching users
+  if (loadingUsers) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p>
+      </div>
+    );
+  }
+  
   if (displayData.length === 0) {
-    return <div className="text-center py-10 bg-white dark:bg-black min-h-screen"><p className="text-gray-900 dark:text-white">現在表示できるプロフィールはありません。後でもう一度確認してください！</p></div>;
+    return (
+      <div className="w-full bg-white dark:bg-black min-h-screen">
+        <div className="text-center py-10">
+          <p className="text-gray-900 dark:text-white mb-4">
+            現在表示できるプロフィールはありません。
+          </p>
+          <Button 
+            onClick={() => {
+              console.log('Retrying to fetch data...');
+              setLoadingUsers(true);
+              fetchUsers();
+            }}
+            variant="outline"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            再読み込み
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Calculate pagination
@@ -340,19 +456,19 @@ export default function HomePage() {
   return (
     <div className="w-full bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
       {/* Banner Image */}
-      <div className="w-full mb-4 px-1">
-        <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+      <div className="w-full">
+        <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">
           <Image 
             src="/img/sod.webp" 
             alt="Nukune Banner" 
             fill
-            className="object-cover md:object-contain"
+            className="object-contain"
             priority
           />
         </div>
       </div>
       
-      <div className="px-4 py-6">
+      <div className="px-4 pb-6">
         {/* Toggle button for data source - for testing */}
         <div className="mb-4 text-center">
           <Button
@@ -452,12 +568,12 @@ export default function HomePage() {
       
       {/* Footer Logo */}
       <div className="w-full">
-        <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+        <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">
           <Image 
             src="/img/sodland.webp" 
             alt="Nukune Logo" 
             fill
-            className="object-cover md:object-contain"
+            className="object-contain"
           />
         </div>
       </div>

@@ -270,57 +270,63 @@ function AdvancedSearchContent() {
       const fetchLimit = hasAnyFilters ? 200 : LIMIT
       const offset = hasAnyFilters ? 0 : (currentPage - 1) * LIMIT
       
-      // Fetch data from server
-      let apiUrl = `/api/mysql-girls?limit=${fetchLimit}&offset=${offset}`
+      // Use optimized API endpoint
+      let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
       if (selectedArea && selectedArea !== 'all') {
         apiUrl += `&area=${encodeURIComponent(selectedArea)}`
       }
-      console.log('Fetching from:', apiUrl) // デバッグ用
-      console.log('Selected area state:', selectedArea) // 追加デバッグ
+      if (ageRange[0] !== 18 || ageRange[1] !== 50) {
+        apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
+      }
+      console.log('⚡ Fetching from optimized API:', apiUrl)
       
-      // リトライ機能付きでフェッチ
+      // Try optimized API first, fallback to regular API if it fails
       let response: Response | null = null
-      let retryCount = 0
-      const maxRetries = 2
+      let data: any = null
       
-      while (retryCount <= maxRetries) {
-        try {
-          response = await fetch(apiUrl)
-          if (response.ok) break
-          
-          if (response.status === 404 && retryCount < maxRetries) {
-            console.warn(`Retry ${retryCount + 1}/${maxRetries} for 404 error`)
-            await new Promise(resolve => setTimeout(resolve, 500)) // 500ms待機
-            retryCount++
-            continue
-          }
-          
-          // それ以外のエラーまたはリトライ上限
-          console.error('Response not OK:', response.status, response.statusText)
-          console.error('URL was:', apiUrl)
+      try {
+        // Try the optimized API endpoint first
+        response = await fetch(apiUrl)
+        
+        if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
-        } catch (fetchError) {
-          if (retryCount < maxRetries) {
-            console.warn(`Retry ${retryCount + 1}/${maxRetries} for fetch error`)
-            await new Promise(resolve => setTimeout(resolve, 500))
-            retryCount++
-            continue
+        }
+        
+        data = await response.json()
+      } catch (error) {
+        console.warn('Optimized API failed, falling back to regular API:', error)
+        
+        // Fallback to regular API endpoint
+        const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls')
+        console.log('Using fallback API:', fallbackUrl)
+        
+        try {
+          response = await fetch(fallbackUrl)
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
           }
-          throw fetchError
+          
+          data = await response.json()
+        } catch (fallbackError) {
+          console.error('Fallback API also failed:', fallbackError)
+          // Continue with empty data rather than throwing
+          data = { girls: [], total: 0 }
+          setFilteredUsers([])
+          setFilteredTotalCount(0)
+          setLoading(false)
+          return
         }
       }
       
-      if (!response) {
-        throw new Error('Failed to fetch after retries')
+      // Data is already parsed in the try-catch block above
+      if (!data) {
+        console.error('No data received')
+        setFilteredUsers([])
+        setFilteredTotalCount(0)
+        setLoading(false)
+        return
       }
-      
-      // Check content type
-      const contentType = response.headers.get("content-type")
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError("Response is not JSON")
-      }
-      
-      const data = await response.json()
       
       const mappedUsers: UserProfile[] = data.girls.map((user: any) => ({
         id: user.id,
