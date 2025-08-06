@@ -18,6 +18,7 @@ import MaleOnboarding from '@/components/MaleOnboarding';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
+import Image from 'next/image';
 import { useSubscription } from '@/hooks/useSubscription';
 import '@/styles/blur.css';
 
@@ -186,7 +187,7 @@ export default function HomePage() {
     
     try {
       const params = new URLSearchParams({
-        limit: '100',
+        limit: '200',
         offset: '0'
       });
       
@@ -223,7 +224,7 @@ export default function HomePage() {
         
         if (useFirebaseData) {
           // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
-          let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
+          let fetchedUsers = await fetchAdminGirls(currentUser.uid, 200);
           
           // 新しい優先順位ソート機能を使用
           // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
@@ -340,11 +341,13 @@ export default function HomePage() {
     <div className="w-full bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
       {/* Banner Image */}
       <div className="w-full mb-4 px-1">
-        <div className="relative">
-          <img 
+        <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+          <Image 
             src="/img/sod.webp" 
             alt="Nukune Banner" 
-            className="w-full h-auto object-cover md:object-contain sm:max-h-40 md:max-h-64 lg:max-h-80 xl:max-h-96"
+            fill
+            className="object-cover md:object-contain"
+            priority
           />
         </div>
       </div>
@@ -386,14 +389,12 @@ export default function HomePage() {
               }}
             >
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-800">
-                <img
+                <Image
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
-                  className={`absolute inset-0 w-full h-full object-cover ${!isPremium ? 'blur-image' : ''}`}
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo';
-                  }}
+                  fill
+                  className={`object-cover ${!isPremium ? 'blur-image' : ''}`}
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
                   <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}, {age}</p>
@@ -451,11 +452,14 @@ export default function HomePage() {
       
       {/* Footer Logo */}
       <div className="w-full">
-        <img 
-          src="/img/sodland.webp" 
-          alt="Nukune Logo" 
-          className="w-full h-auto object-cover md:object-contain sm:max-h-40 md:max-h-64 lg:max-h-80 xl:max-h-96"
-        />
+        <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+          <Image 
+            src="/img/sodland.webp" 
+            alt="Nukune Logo" 
+            fill
+            className="object-cover md:object-contain"
+          />
+        </div>
       </div>
       </div>
     </div>

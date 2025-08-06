@@ -9,6 +9,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { toast } from '@/hooks/use-toast';
+import Image from 'next/image';
 import { 
   collection, 
   query as firestoreQuery, 
@@ -153,10 +154,12 @@ export default function GirlProfilePage() {
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden">
                 {girl.images.length > 0 ? (
                   <>
-                    <img
+                    <Image
                       src={girl.images[currentImageIndex].image_url || girl.images[currentImageIndex].real_image_url}
                       alt={`${girl.name} - Photo ${currentImageIndex + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      priority
                     />
                     
                     {/* Image Navigation */}
@@ -213,16 +216,17 @@ export default function GirlProfilePage() {
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                         index === currentImageIndex
                           ? 'border-primary ring-2 ring-primary ring-offset-2'
                           : 'border-transparent'
                       }`}
                     >
-                      <img
+                      <Image
                         src={image.image_url || image.real_image_url || ''}
                         alt={`${girl.name} - Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </button>
                   ))}

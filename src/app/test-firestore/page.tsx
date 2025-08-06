@@ -76,7 +76,7 @@ export default function TestFirestorePage() {
     };
 
     testFirestore();
-  }, [isAuthenticated, currentUser]);
+  }, [isAuthenticated, currentUser, toast]);
 
   if (loading) {
     return <div className="p-8">読み込み中...</div>;

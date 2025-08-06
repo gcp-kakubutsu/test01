@@ -260,11 +260,13 @@ export default function EditProfilePage() {
       <Card className="overflow-hidden shadow-lg">
         <CardHeader className="pb-4">
           <div className="text-center">
-            <div>
-              <img 
+            <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+              <Image 
                 src="/img/pandra.webp" 
                 alt="Profile Banner" 
-                className="w-full h-auto object-cover md:object-contain sm:max-h-40 md:max-h-64 lg:max-h-80 xl:max-h-96"
+                fill
+                className="object-cover md:object-contain"
+                priority
               />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900 mb-2">

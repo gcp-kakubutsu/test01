@@ -85,7 +85,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       setProfileViews(0);
       setLoadingViews(false);
     }
-  }, [userId]);
+  }, [userId, currentUser]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {

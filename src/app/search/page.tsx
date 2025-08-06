@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,7 +53,7 @@ export default function SearchPage() {
   }, [isAuthenticated, isLoading, router]);
 
   // 位置情報を取得
-  const requestLocation = async () => {
+  const requestLocation = useCallback(async () => {
     setIsLoadingLocation(true);
     setLocationError(null); // Clear any existing errors
     try {
@@ -81,13 +81,13 @@ export default function SearchPage() {
     } finally {
       setIsLoadingLocation(false);
     }
-  };
+  }, [allUsers, toast]);
 
   useEffect(() => {
     if (isAuthenticated && !userLocation) {
       requestLocation();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, requestLocation, userLocation]);
 
   useEffect(() => {
     const fetchUsers = async () => {
