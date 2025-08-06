@@ -29,16 +29,32 @@ export interface MySQLGirlProfile {
  * Get total count of girls
  * @returns Total number of girls
  */
-export async function getTotalGirlsCount(): Promise<number> {
+export async function getTotalGirlsCount(area?: string | null, ageMin?: number, ageMax?: number): Promise<number> {
   try {
-    const result = await query<any>(`
-      SELECT COUNT(*) as total
-      FROM girl_profiles g
-      INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
+    let whereClause = `
       WHERE g.is_displayed = 1 
         AND g.deleted_at IS NULL
         AND s.is_active = 1
         AND s.deleted_at IS NULL
+    `;
+    
+    if (area && area !== 'all') {
+      // SQLインジェクション対策のためエスケープ
+      const escapedArea = area.replace(/'/g, "''");
+      whereClause += ` AND (p.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`;
+    }
+    
+    if (ageMin !== undefined && ageMax !== undefined) {
+      whereClause += ` AND g.age BETWEEN ${ageMin} AND ${ageMax}`;
+    }
+    
+    const result = await query<any>(`
+      SELECT COUNT(*) as total
+      FROM girl_profiles g
+      INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
+      LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
+      LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
+      ${whereClause}
     `);
     
     return result[0]?.total || 0;
@@ -56,7 +72,10 @@ export async function getTotalGirlsCount(): Promise<number> {
  */
 export async function fetchMySQLGirls(
   limitCount: number = 1000,
-  offset: number = 0
+  offset: number = 0,
+  area?: string | null,
+  ageMin?: number,
+  ageMax?: number
 ): Promise<MySQLGirlProfile[]> {
   let sql = '';
   try {
@@ -84,10 +103,13 @@ export async function fetchMySQLGirls(
       FROM girl_profiles g
       INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
       LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
+      LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
       WHERE g.is_displayed = 1 
         AND g.deleted_at IS NULL
         AND s.is_active = 1
         AND s.deleted_at IS NULL
+        ${area && area !== 'all' ? `AND (p.name = '${area.replace(/'/g, "''")}' OR CONCAT(p.name, ' ', m.name) = '${area.replace(/'/g, "''")}')` : ''}
+        ${ageMin !== undefined && ageMax !== undefined ? `AND g.age BETWEEN ${ageMin} AND ${ageMax}` : ''}
       ORDER BY g.id DESC
       LIMIT ${parseInt(limitCount.toString())} OFFSET ${parseInt(offset.toString())}
     `;

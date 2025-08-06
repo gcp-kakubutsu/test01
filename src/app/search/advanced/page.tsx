@@ -108,9 +108,10 @@ export default function AdvancedSearchPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
+  const [filteredTotalCount, setFilteredTotalCount] = useState(0)
 
-  // 動的に計算されるページ数
-  const totalPages = Math.ceil(totalCount / LIMIT)
+  // 動的に計算されるページ数（フィルタリング後のカウントを使用）
+  const totalPages = Math.ceil(filteredTotalCount / LIMIT)
 
   // 初期パラメータの読み込み
   useEffect(() => {
@@ -156,21 +157,48 @@ export default function AdvancedSearchPage() {
 
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
+  // 特殊フィルタリングタグかどうかをチェック
+  const specialFilterTags = ['やさしめ', 'リード上手', 'じっくり派', '甘やかし系', '濃密タイプ', 'スピード重視']
+  const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
+
   // ユーザーデータ取得とフィルタリング処理
   const fetchFilteredUsers = useCallback(async () => {
     try {
       setLoading(true)
       
-      // Calculate offset based on current page
-      const offset = (currentPage - 1) * LIMIT
+      // フィルターがある場合のみ多めにデータを取得（年齢は除外）
+      const hasAnyFilters = 
+        hasSpecialFilters || 
+        selectedTags.length > 0 || 
+        searchQuery.trim() !== '' || 
+        selectedBodyTypes.length > 0 ||
+        selectedStyles.length > 0 ||
+        (selectedArea && selectedArea !== 'all') ||
+        prioritizeQuickMeet
       
-      // Fetch data from server with pagination
-      const response = await fetch(`/api/mysql-girls?limit=${LIMIT}&offset=${offset}`)
-      const data = await response.json()
+      const fetchLimit = hasAnyFilters ? 200 : LIMIT
+      const offset = hasAnyFilters ? 0 : (currentPage - 1) * LIMIT
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch girls')
+      // Fetch data from server
+      let apiUrl = `/api/mysql-girls?limit=${fetchLimit}&offset=${offset}`
+      if (selectedArea && selectedArea !== 'all') {
+        apiUrl += `&area=${encodeURIComponent(selectedArea)}`
       }
+      console.log('Fetching from:', apiUrl) // デバッグ用
+      const response = await fetch(apiUrl)
+      
+      // Check if response is OK before parsing
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      // Check content type
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError("Response is not JSON")
+      }
+      
+      const data = await response.json()
       
       const mappedUsers: UserProfile[] = data.girls.map((user: any) => ({
         id: user.id,
@@ -197,22 +225,115 @@ export default function AdvancedSearchPage() {
       setTotalCount(data.total || 0)
       setUsers(mappedUsers)
       
-      setFilteredUsers(mappedUsers)
+      // 特殊フィルターがない場合は、そのまま使用
+      if (!hasSpecialFilters) {
+        setFilteredUsers(mappedUsers)
+        setFilteredTotalCount(data.total || 0)
+      }
     } catch (error) {
       console.error('Error fetching filtered users:', error)
+      
+      // エラーの詳細をログに出力
+      if (error instanceof TypeError) {
+        console.error('Response type error:', error.message)
+      } else if (error instanceof Error) {
+        console.error('Fetch error:', error.message)
+      }
+      
+      // ユーザーに分かりやすいエラーメッセージ
       toast({
         title: 'エラー',
-        description: 'ユーザー情報の取得に失敗しました',
+        description: 'ユーザー情報の取得に失敗しました。ページを再読み込みしてください。',
         variant: 'destructive'
       })
+      
+      // エラー時は空の配列を設定
+      setUsers([])
+      setFilteredUsers([])
+      setFilteredTotalCount(0)
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, toast])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedBodyTypes, selectedStyles, prioritizeQuickMeet, toast])
 
   useEffect(() => {
     fetchFilteredUsers()
   }, [fetchFilteredUsers])
+
+  // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
+  /*
+  useEffect(() => {
+    if (users.length > 0) {
+      // 年齢の特殊フィルタリングを考慮
+      let targetUsers = [...users]
+      
+      // 検索クエリでフィルタリング
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.toLowerCase()
+        targetUsers = targetUsers.filter(user => 
+          user.name.toLowerCase().includes(query) ||
+          user.bio.toLowerCase().includes(query) ||
+          user.interests.some(interest => interest.toLowerCase().includes(query))
+        )
+      }
+      
+      // 通常タグと特殊タグでフィルタリング（年齢関連の特殊タグは除く）
+      const nonAgeSpecialTags = selectedTags.filter(tag => tag !== 'やさしめ')
+      if (nonAgeSpecialTags.length > 0) {
+        targetUsers = targetUsers.filter(user => {
+          const matchesNormalTags = nonAgeSpecialTags.some(tag => 
+            user.interests.includes(tag)
+          )
+          
+          let matchesSpecialTags = false
+          if (nonAgeSpecialTags.includes('リード上手') && user.height && user.height <= 150) {
+            matchesSpecialTags = true
+          }
+          if (nonAgeSpecialTags.includes('じっくり派') && user.height && user.height >= 151) {
+            matchesSpecialTags = true
+          }
+          if (nonAgeSpecialTags.includes('甘やかし系') && user.cup) {
+            const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
+            const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
+            const eCupIndex = cupOrder.indexOf('E')
+            if (userCupIndex >= eCupIndex) {
+              matchesSpecialTags = true
+            }
+          }
+          if (nonAgeSpecialTags.includes('濃密タイプ') && user.is_sake === true) {
+            matchesSpecialTags = true
+          }
+          if (nonAgeSpecialTags.includes('スピード重視') && user.is_tobacco === false) {
+            matchesSpecialTags = true
+          }
+          
+          return matchesNormalTags || matchesSpecialTags
+        })
+      }
+      
+      // 体型フィルター
+      if (selectedBodyTypes.length > 0) {
+        targetUsers = targetUsers.filter(user => 
+          user.bodyType && selectedBodyTypes.includes(user.bodyType)
+        )
+      }
+      
+      // スタイルフィルター  
+      if (selectedStyles.length > 0) {
+        targetUsers = targetUsers.filter(user => 
+          user.style && selectedStyles.includes(user.style)
+        )
+      }
+      
+      if (targetUsers.length > 0) {
+        const ages = targetUsers.map(user => user.age)
+        const minAge = Math.min(...ages)
+        const maxAge = Math.max(...ages)
+        setAvailableAgeRange([minAge, maxAge])
+      }
+    }
+  }, [users, searchQuery, selectedTags, selectedBodyTypes, selectedStyles])
+  */
 
   // クライアントサイドフィルタリング
   useEffect(() => {
@@ -279,12 +400,7 @@ export default function AdvancedSearchPage() {
       })
     }
 
-    // エリアフィルター
-    if (selectedArea && selectedArea !== 'all') {
-      filtered = filtered.filter(user => 
-        user.location.includes(selectedArea)
-      )
-    }
+    // エリアフィルターはサーバーサイドで処理済み
 
     // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
     const hasAgeSpecialTag = selectedTags.includes('やさしめ')
@@ -334,12 +450,53 @@ export default function AdvancedSearchPage() {
     }
 
     setFilteredUsers(filtered)
+    setFilteredTotalCount(filtered.length)
   }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedBodyTypes, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
 
-  // フィルター変更時にページを1に戻す
+  // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
+  /*
+  useEffect(() => {
+    const [currentMin, currentMax] = ageRange
+    const [availableMin, availableMax] = availableAgeRange
+    
+    let needsUpdate = false
+    let newMin = currentMin
+    let newMax = currentMax
+    
+    if (currentMin < availableMin) {
+      newMin = availableMin
+      needsUpdate = true
+    }
+    if (currentMax > availableMax) {
+      newMax = availableMax
+      needsUpdate = true
+    }
+    if (currentMin > availableMax) {
+      newMin = availableMin
+      newMax = availableMax
+      needsUpdate = true
+    }
+    if (currentMax < availableMin) {
+      newMin = availableMin
+      newMax = availableMax
+      needsUpdate = true
+    }
+    
+    if (needsUpdate) {
+      setAgeRange([newMin, newMax])
+    }
+  }, [availableAgeRange]) // ageRangeを依存配列から削除して無限ループを防ぐ
+  */
+
+  // フィルター変更時にページを1に戻す（年齢以外）
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedTags, selectedArea, ageRange, selectedBodyTypes, selectedStyles, sortBy, prioritizeQuickMeet])
+  }, [searchQuery, selectedTags, selectedArea, selectedBodyTypes, selectedStyles, sortBy, prioritizeQuickMeet])
+  
+  // 年齢変更は別途処理（ページリセットしない）
+  useEffect(() => {
+    // 年齢が変更されても現在のページを維持
+  }, [ageRange])
 
   // いいね送信
   const handleLike = async (userId: string) => {
@@ -623,7 +780,7 @@ export default function AdvancedSearchPage() {
         <div className={styles.searchHeader}>
           <div>
             <div className={styles.searchResultsCount}>
-              <span>{filteredUsers.length}</span>名の候補が見つかりました
+              <span>{filteredTotalCount}</span>名の候補が見つかりました
               {totalPages > 1 && (
                 <span className="text-sm text-gray-500 ml-2">
                   （{currentPage} / {totalPages} ページ）
@@ -689,7 +846,10 @@ export default function AdvancedSearchPage() {
 
         {/* ユーザーカード */}
         <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
-          {filteredUsers.map(user => (
+          {(hasSpecialFilters 
+            ? filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
+            : filteredUsers
+          ).map(user => (
             <Card key={user.id} className={styles.profileCard}>
               <div className={styles.profileImage}>
                 <Image
@@ -767,7 +927,7 @@ export default function AdvancedSearchPage() {
         )}
 
         {/* ページネーション */}
-        {filteredUsers.length > 0 && totalPages > 1 && (
+        {filteredTotalCount > LIMIT && totalPages > 1 && (
           <div className={styles.pagination}>
             <Button
               variant="outline"
@@ -905,7 +1065,7 @@ export default function AdvancedSearchPage() {
           setFiltersApplied(true)
           toast({
             title: "フィルターを適用しました",
-            description: `${filteredUsers.length}名の候補が見つかりました`
+            description: `${filteredTotalCount}名の候補が見つかりました`
           })
         }}
       >

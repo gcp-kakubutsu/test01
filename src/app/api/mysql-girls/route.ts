@@ -6,10 +6,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const area = searchParams.get('area') || null
+    const ageMin = parseInt(searchParams.get('ageMin') || '18')
+    const ageMax = parseInt(searchParams.get('ageMax') || '50')
 
     const [girls, total] = await Promise.all([
-      fetchMySQLGirls(limit, offset),
-      getTotalGirlsCount()
+      fetchMySQLGirls(limit, offset, area, ageMin, ageMax),
+      getTotalGirlsCount(area, ageMin, ageMax)
     ])
     
     return NextResponse.json({
