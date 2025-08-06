@@ -12,6 +12,8 @@ import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { Heart, MessageCircle, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
 // Removed direct import - will fetch via API
 import { sendLike } from '@/lib/firebase/actions'
@@ -21,6 +23,7 @@ import { useUserProfile } from '@/lib/firebase/hooks'
 import { useSubscription } from '@/hooks/useSubscription'
 import Image from 'next/image'
 import styles from './search.module.scss'
+import './search-dialog.css'
 
 interface UserProfile {
   id: string
@@ -120,6 +123,7 @@ export default function AdvancedSearchPage() {
   const { profile: userProfile } = useUserProfile()
   const { isPremium } = useSubscription()
   const { toast } = useToast()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   // State
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -242,6 +246,25 @@ export default function AdvancedSearchPage() {
     try {
       setLoading(true)
       
+      // 新しいデータを取得する前に、既存のデータをクリア
+      setUsers([])
+      setFilteredUsers([])
+      setFilteredTotalCount(0)
+      
+      // エリアが選択されていて、そのエリアに女の子がいない場合は早期リターン
+      if (selectedArea && selectedArea !== 'all') {
+        // 選択されたエリアの女の子数を確認
+        const selectedAreaData = [...areas.prefectures, ...areas.municipalities].find(
+          area => area.prefecture_name === selectedArea || area.full_name === selectedArea
+        )
+        
+        if (selectedAreaData && selectedAreaData.girl_count === 0) {
+          console.log('Selected area has 0 girls, skipping API call')
+          setLoading(false)
+          return
+        }
+      }
+      
       // フィルターがある場合のみ多めにデータを取得（年齢は除外）
       const hasAnyFilters = 
         hasSpecialFilters || 
@@ -261,6 +284,7 @@ export default function AdvancedSearchPage() {
         apiUrl += `&area=${encodeURIComponent(selectedArea)}`
       }
       console.log('Fetching from:', apiUrl) // デバッグ用
+      console.log('Selected area state:', selectedArea) // 追加デバッグ
       
       // リトライ機能付きでフェッチ
       let response: Response | null = null
@@ -331,10 +355,26 @@ export default function AdvancedSearchPage() {
       setTotalCount(data.total || 0)
       setUsers(mappedUsers)
       
-      // 特殊フィルターがない場合は、そのまま使用
-      if (!hasSpecialFilters) {
-        setFilteredUsers(mappedUsers)
-        setFilteredTotalCount(data.total || 0)
+      // デバッグ: エリアフィルタリングの結果を確認
+      console.log('Fetched users count:', mappedUsers.length)
+      console.log('Total count from API:', data.total)
+      console.log('Selected area:', selectedArea)
+      
+      // APIから返されたデータが0件の場合は、確実に空の配列を設定
+      if (mappedUsers.length === 0 || data.total === 0) {
+        console.log('No users found for the selected area')
+        setUsers([])  // usersも空にする
+        setFilteredUsers([])
+        setFilteredTotalCount(0)
+      } else {
+        // データがある場合
+        if (!hasSpecialFilters) {
+          // 特殊フィルターがない場合は、そのまま使用
+          setFilteredUsers(mappedUsers)
+          setFilteredTotalCount(data.total || 0)
+        }
+        // 特殊フィルターがある場合は、クライアントサイドフィルタリングで処理
+        // ただし、usersは更新されているので、後続のuseEffectで処理される
       }
     } catch (error) {
       console.error('Error fetching filtered users:', error)
@@ -369,7 +409,7 @@ export default function AdvancedSearchPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedBodyTypes, selectedStyles, prioritizeQuickMeet, toast])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedBodyTypes, selectedStyles, prioritizeQuickMeet, areas, toast])
 
   useEffect(() => {
     fetchFilteredUsers()
@@ -452,6 +492,15 @@ export default function AdvancedSearchPage() {
 
   // クライアントサイドフィルタリング
   useEffect(() => {
+    console.log('Client-side filtering - users count:', users.length)
+    
+    // usersが空の場合は、filteredUsersも空にして早期リターン
+    if (users.length === 0) {
+      setFilteredUsers([])
+      setFilteredTotalCount(0)
+      return
+    }
+    
     let filtered = [...users]
 
     // 検索クエリフィルター（名前、プロフィール、興味で検索）
@@ -564,6 +613,7 @@ export default function AdvancedSearchPage() {
         break
     }
 
+    console.log('Client-side filtering result:', filtered.length)
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
   }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedBodyTypes, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
@@ -607,6 +657,15 @@ export default function AdvancedSearchPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, selectedTags, selectedArea, selectedBodyTypes, selectedStyles, sortBy, prioritizeQuickMeet])
+  
+  // エリア変更時は即座にデータをクリア
+  useEffect(() => {
+    console.log('Area changed to:', selectedArea)
+    // エリアが変更されたら、即座に表示をクリア
+    setUsers([])
+    setFilteredUsers([])
+    setFilteredTotalCount(0)
+  }, [selectedArea])
   
   // 年齢変更は別途処理（ページリセットしない）
   useEffect(() => {
@@ -694,70 +753,32 @@ export default function AdvancedSearchPage() {
           </button>
         </div>
 
-        {/* キーワード検索 */}
-        <div className={styles.filterSection}>
-          <h3 className={styles.filterSectionTitle}>
-            <Search className="w-4 h-4" />
-            キーワード検索
-          </h3>
-          <Input
-            type="text"
-            placeholder="名前・プロフィール・趣味で検索"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.filterInput}
-          />
-        </div>
-
-        {/* 性癖・プレイスタイル */}
-        <div className={styles.filterSection}>
-          <h3 className={styles.filterSectionTitle}>
-            <Heart className="w-4 h-4" />
-            性癖・プレイスタイル
-          </h3>
-          <div className={styles.tagFilters}>
-            {personalityTags.map(tag => (
-              <label key={tag} className={styles.tagFilter}>
-                <input
-                  type="checkbox"
-                  checked={selectedTags.includes(tag)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedTags([...selectedTags, tag])
-                    } else {
-                      setSelectedTags(selectedTags.filter(t => t !== tag))
-                    }
-                  }}
-                />
-                <span>{tag}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
         {/* エリア */}
         <div className={styles.filterSection}>
           <h3 className={styles.filterSectionTitle}>
             <MapPin className="w-4 h-4" />
             エリア
           </h3>
-          <Popover open={openAreaPopover} onOpenChange={setOpenAreaPopover}>
-            <PopoverTrigger asChild>
+          {/* モバイル用Dialog */}
+          {isMobile ? (
+            <>
               <Button
                 variant="outline"
-                role="combobox"
-                aria-expanded={openAreaPopover}
+                onClick={() => setOpenAreaPopover(true)}
                 className={`w-full justify-between ${styles.filterSelect}`}
               >
                 {selectedArea === 'all' ? 'すべてのエリア' : selectedArea}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start" sideOffset={5}>
-              <Command>
-                <CommandInput placeholder="都道府県名や市区町村名で検索..." />
-                <CommandEmpty>該当するエリアが見つかりません</CommandEmpty>
-                <CommandList className="max-h-[400px] overflow-y-auto">
+              <Dialog open={openAreaPopover} onOpenChange={setOpenAreaPopover}>
+                <DialogContent className="max-w-[90vw] max-h-[80vh] overflow-hidden dialog-content-mobile">
+                  <DialogHeader>
+                    <DialogTitle>エリアを選択</DialogTitle>
+                  </DialogHeader>
+                  <Command>
+                    <CommandInput placeholder="都道府県名や市区町村名で検索..." />
+                    <CommandEmpty>該当するエリアが見つかりません</CommandEmpty>
+                    <CommandList className="max-h-[50vh] overflow-y-auto">
                 <CommandGroup>
                   <CommandItem
                     value="all"
@@ -863,10 +884,181 @@ export default function AdvancedSearchPage() {
                     ))}
                   </CommandGroup>
                 )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+                    </CommandList>
+                  </Command>
+                </DialogContent>
+              </Dialog>
+            </>
+          ) : (
+            /* デスクトップ用Popover */
+            <Popover open={openAreaPopover} onOpenChange={setOpenAreaPopover}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openAreaPopover}
+                  className={`w-full justify-between ${styles.filterSelect}`}
+                >
+                  {selectedArea === 'all' ? 'すべてのエリア' : selectedArea}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[350px] p-0" align="start" side="bottom" sideOffset={5}>
+                <Command>
+                  <CommandInput placeholder="都道府県名や市区町村名で検索..." />
+                  <CommandEmpty>該当するエリアが見つかりません</CommandEmpty>
+                  <CommandList className="max-h-[400px] overflow-y-auto">
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setSelectedArea('all')
+                          setOpenAreaPopover(false)
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedArea === 'all' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        />
+                        すべてのエリア
+                      </CommandItem>
+                    </CommandGroup>
+                    
+                    {/* 人気の都道府県（女の子がいるエリア） */}
+                    {areas.prefectures.filter(p => p.girl_count > 0).length > 0 && (
+                      <CommandGroup heading="人気の都道府県">
+                        {areas.prefectures
+                          .filter(p => p.girl_count > 0)
+                          .slice(0, 10)
+                          .map((prefecture) => (
+                          <CommandItem
+                            key={`pref-${prefecture.prefecture_id}`}
+                            value={prefecture.prefecture_name}
+                            onSelect={(currentValue: string) => {
+                              setSelectedArea(currentValue)
+                              setOpenAreaPopover(false)
+                            }}
+                            className="font-medium"
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedArea === prefecture.prefecture_name ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            />
+                            <span className="flex-1">{prefecture.prefecture_name}</span>
+                            <span className="ml-auto text-sm font-semibold text-[#F0306A]">
+                              {prefecture.girl_count.toLocaleString()}名
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                    
+                    {/* すべての都道府県 */}
+                    {areas.prefectures.length > 0 && (
+                      <CommandGroup heading="すべての都道府県">
+                        {areas.prefectures.map((prefecture) => (
+                          <CommandItem
+                            key={`all-pref-${prefecture.prefecture_id}`}
+                            value={prefecture.prefecture_name}
+                            onSelect={(currentValue: string) => {
+                              setSelectedArea(currentValue)
+                              setOpenAreaPopover(false)
+                            }}
+                            className={prefecture.girl_count === 0 ? "opacity-50" : ""}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedArea === prefecture.prefecture_name ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            />
+                            <span className="flex-1">{prefecture.prefecture_name}</span>
+                            <span className={`ml-auto text-sm ${
+                              prefecture.girl_count > 0 ? 'text-muted-foreground' : 'text-gray-400'
+                            }`}>
+                              {prefecture.girl_count > 0 ? `${prefecture.girl_count.toLocaleString()}名` : '対象なし'}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                    
+                    {/* 人気の市区町村（TOP 20） */}
+                    {areas.municipalities.filter(m => m.girl_count > 0).length > 0 && (
+                      <CommandGroup heading="人気の市区町村">
+                        {areas.municipalities
+                          .filter(m => m.girl_count > 0)
+                          .slice(0, 20)
+                          .map((municipality) => (
+                          <CommandItem
+                            key={`muni-${municipality.municipality_id}`}
+                            value={municipality.full_name || ''}
+                            onSelect={(currentValue: string) => {
+                              setSelectedArea(currentValue)
+                              setOpenAreaPopover(false)
+                            }}
+                            className="font-medium"
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedArea === municipality.full_name ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            />
+                            <span className="flex-1">{municipality.full_name}</span>
+                            <span className="ml-auto text-sm font-semibold text-[#F0306A]">
+                              {municipality.girl_count.toLocaleString()}名
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+
+        {/* キーワード検索 */}
+        <div className={styles.filterSection}>
+          <h3 className={styles.filterSectionTitle}>
+            <Search className="w-4 h-4" />
+            キーワード検索
+          </h3>
+          <Input
+            type="text"
+            placeholder="名前・プロフィール・趣味で検索"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.filterInput}
+          />
+        </div>
+
+        {/* 性癖・プレイスタイル */}
+        <div className={styles.filterSection}>
+          <h3 className={styles.filterSectionTitle}>
+            <Heart className="w-4 h-4" />
+            性癖・プレイスタイル
+          </h3>
+          <div className={styles.tagFilters}>
+            {personalityTags.map(tag => (
+              <label key={tag} className={styles.tagFilter}>
+                <input
+                  type="checkbox"
+                  checked={selectedTags.includes(tag)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedTags([...selectedTags, tag])
+                    } else {
+                      setSelectedTags(selectedTags.filter(t => t !== tag))
+                    }
+                  }}
+                />
+                <span>{tag}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* 時間帯 */}
@@ -1045,11 +1237,12 @@ export default function AdvancedSearchPage() {
         </div>
 
         {/* ユーザーカード */}
-        <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
-          {(hasSpecialFilters 
-            ? filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
-            : filteredUsers
-          ).map(user => (
+        {filteredUsers.length > 0 && (
+          <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
+            {(hasSpecialFilters 
+              ? filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
+              : filteredUsers
+            ).map(user => (
             <Card key={user.id} className={styles.profileCard}>
               <div className={styles.profileImage}>
                 <Image
@@ -1110,8 +1303,9 @@ export default function AdvancedSearchPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {filteredUsers.length === 0 && (
           <div className={styles.emptyState}>

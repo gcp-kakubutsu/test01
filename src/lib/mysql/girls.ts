@@ -114,7 +114,12 @@ export async function fetchMySQLGirls(
       LIMIT ${parseInt(limitCount.toString())} OFFSET ${parseInt(offset.toString())}
     `;
     
+    console.log('Executing SQL query for area:', area);
+    console.log('SQL:', sql);
+    
     const girls = await query<any>(sql);
+    
+    console.log('Query returned', girls.length, 'girls');
     
 
     // Fetch images for all girls
