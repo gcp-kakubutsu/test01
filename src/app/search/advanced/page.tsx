@@ -215,10 +215,19 @@ export default function AdvancedSearchPage() {
     }
 
     // タグフィルター（選択されたタグのいずれかを持つ）
-    if (selectedTags.length > 0) {
+    // 「やさしめ」が選択されている場合は、タグフィルターをスキップ（年齢フィルターのみ適用）
+    if (selectedTags.length > 0 && !selectedTags.includes('やさしめ')) {
       filtered = filtered.filter(user => 
         selectedTags.some(tag => user.interests.includes(tag))
       )
+    } else if (selectedTags.length > 0 && selectedTags.includes('やさしめ') && selectedTags.length > 1) {
+      // 「やさしめ」以外のタグも選択されている場合は、それらのタグでフィルター
+      const otherTags = selectedTags.filter(tag => tag !== 'やさしめ')
+      if (otherTags.length > 0) {
+        filtered = filtered.filter(user => 
+          otherTags.some(tag => user.interests.includes(tag))
+        )
+      }
     }
 
     // エリアフィルター
@@ -229,9 +238,16 @@ export default function AdvancedSearchPage() {
     }
 
     // 年齢フィルター
-    filtered = filtered.filter(user => 
-      user.age >= ageRange[0] && user.age <= ageRange[1]
-    )
+    // 「やさしめ」が選択されている場合は10代に限定
+    if (selectedTags.includes('やさしめ')) {
+      filtered = filtered.filter(user => 
+        user.age >= 18 && user.age <= 19
+      )
+    } else {
+      filtered = filtered.filter(user => 
+        user.age >= ageRange[0] && user.age <= ageRange[1]
+      )
+    }
 
     // 体型フィルター
     if (selectedBodyTypes.length > 0) {
