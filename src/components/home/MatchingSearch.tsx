@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Clock, Calendar, Bot } from 'lucide-react'
@@ -11,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import styles from './MatchingSearch.module.scss'
 
 export default function MatchingSearch() {
+  const router = useRouter()
   const { toast } = useToast()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
@@ -83,6 +85,42 @@ export default function MatchingSearch() {
     }
   }
 
+  const handleSearch = () => {
+    // Map time options to search page format
+    const timeMap: { [key: string]: string } = {
+      'いまから': 'now',
+      '1時間以内': '1hour',
+      '今夜': 'tonight',
+      '日時を指定': 'anytime'
+    }
+
+    // Build URL parameters
+    const params = new URLSearchParams()
+    
+    if (selectedTags.length > 0) {
+      params.append('tags', selectedTags.join(','))
+    }
+    
+    if (location) {
+      params.append('location', location)
+    }
+    
+    if (selectedTime) {
+      params.append('time', timeMap[selectedTime] || 'now')
+    }
+
+    if (prioritizeQuickMeet) {
+      params.append('quick', 'true')
+    }
+
+    if (searchQuery) {
+      params.append('q', searchQuery)
+    }
+
+    // Navigate to advanced search page with parameters
+    router.push(`/search/advanced?${params.toString()}`)
+  }
+
   return (
     <div className="w-full">
       {/* Main search section */}
@@ -117,7 +155,9 @@ export default function MatchingSearch() {
         {/* Search input */}
         <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#D4AF37] w-5 h-5" />
+            <Search 
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#D4AF37] w-5 h-5" 
+            />
             <Input
               type="text"
               placeholder="もっと詳しく検索"
@@ -197,6 +237,7 @@ export default function MatchingSearch() {
         <div className="text-center mb-3">
           <Button
             className={`btn-primary ${styles.primaryButton}`}
+            onClick={handleSearch}
           >
             候補を見る（無料）
           </Button>

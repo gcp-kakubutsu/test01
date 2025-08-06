@@ -1,0 +1,781 @@
+// Variables
+$primary-dark: #111827;
+$accent-burgundy: #F0306A;
+$accent-gold: #D4AF37;
+$bg-dark: #0F131A;
+$text-light: #F9FAFB;
+$text-gray: #9CA3AF;
+$card-bg: rgba(17, 24, 39, 0.8);
+$border-color: rgba(212, 175, 55, 0.2);
+
+.searchContainer {
+  display: flex;
+  min-height: 100vh;
+  background-color: $bg-dark;
+  
+  :global(.light) & {
+    background-color: #ffffff;
+  }
+}
+
+// Filter Sidebar
+.filterSidebar {
+  width: 320px;
+  background: $card-bg;
+  border-right: 1px solid $border-color;
+  padding: 2rem;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  
+  :global(.light) & {
+    background: #f9fafb;
+    border-right-color: #e5e7eb;
+  }
+  
+  @media (max-width: 1024px) {
+    position: fixed;
+    left: -320px;
+    top: 0;
+    z-index: 1001;
+    transition: left 0.3s ease;
+    
+    &.active {
+      left: 0;
+    }
+  }
+}
+
+.filterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.filterTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $text-light;
+  
+  :global(.light) & {
+    color: $primary-dark;
+  }
+}
+
+.filterReset {
+  background: none;
+  border: none;
+  color: $accent-gold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity 0.3s ease;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.filterSection {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  
+  :global(.light) & {
+    border-bottom-color: #e5e7eb;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.filterSectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $text-light;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  :global(.light) & {
+    color: $primary-dark;
+  }
+  
+  svg {
+    color: $accent-gold;
+  }
+}
+
+// Tag Filters
+.tagFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tagFilter {
+  position: relative;
+  cursor: pointer;
+  
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+  }
+  
+  span {
+    display: block;
+    padding: 0.4rem 0.8rem;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: $text-gray;
+    transition: all 0.3s ease;
+    
+    :global(.light) & {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #6b7280;
+    }
+  }
+  
+  input[type="checkbox"]:checked + span {
+    background: $accent-gold;
+    color: $primary-dark;
+    border-color: $accent-gold;
+  }
+  
+  &:hover span {
+    border-color: $accent-gold;
+    color: $text-light;
+    
+    :global(.light) & {
+      color: $primary-dark;
+    }
+  }
+}
+
+// Time Filters
+.timeFilters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.timeFilter {
+  position: relative;
+  cursor: pointer;
+  
+  input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+  }
+  
+  span {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: $text-gray;
+    text-align: center;
+    transition: all 0.3s ease;
+    
+    :global(.light) & {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #6b7280;
+    }
+  }
+  
+  input[type="radio"]:checked + span {
+    background: $accent-gold;
+    color: $primary-dark;
+    border-color: $accent-gold;
+  }
+}
+
+// Range Container
+.rangeContainer {
+  margin-top: 1rem;
+}
+
+.rangeDisplay {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: $text-gray;
+}
+
+.rangeSlider {
+  width: 100%;
+}
+
+// Select
+.filterSelect {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: $text-light;
+  
+  :global(.light) & {
+    background: white;
+    border-color: #d1d5db;
+    color: $primary-dark;
+  }
+}
+
+// Input
+.filterInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: $text-light;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  
+  &::placeholder {
+    color: $text-gray;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: $accent-gold;
+    ring: 2px;
+    ring-color: rgba(212, 175, 55, 0.2);
+  }
+  
+  :global(.light) & {
+    background: white;
+    border-color: #d1d5db;
+    color: $primary-dark;
+    
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+}
+
+// Main Content
+.searchMain {
+  flex: 1;
+  padding: 2rem;
+  background: $bg-dark;
+  
+  :global(.light) & {
+    background: #f9fafb;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+.searchHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}
+
+.searchResultsCount {
+  font-size: 1.1rem;
+  color: $text-light;
+  
+  :global(.light) & {
+    color: $primary-dark;
+  }
+  
+  span {
+    color: $accent-gold;
+    font-weight: 600;
+  }
+}
+
+.searchControls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.sortSelect {
+  min-width: 150px;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewBtn {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  color: $text-gray;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  :global(.light) & {
+    background: white;
+    border-color: #d1d5db;
+  }
+  
+  &.active {
+    background: $accent-gold;
+    color: $primary-dark;
+    border-color: $accent-gold;
+  }
+}
+
+// Profile Grid/List
+.profilesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+}
+
+.profilesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profileCard {
+  background: $card-bg;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid $border-color;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  :global(.light) & {
+    background: white;
+    border-color: #e5e7eb;
+  }
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(212, 175, 55, 0.1);
+    border-color: $accent-gold;
+  }
+}
+
+.profileImage {
+  position: relative;
+  height: 350px;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    height: 200px;
+  }
+  
+  img {
+    filter: blur(8px);
+    transition: transform 0.3s ease, filter 0.3s ease;
+  }
+  
+  .profileCard:hover & img {
+    transform: scale(1.05);
+    filter: blur(8px);
+  }
+}
+
+.profileBlur {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  height: 100px;
+}
+
+.profileInfo {
+  padding: 1.5rem;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+.profileName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $text-light;
+  margin-bottom: 0.5rem;
+  
+  :global(.light) & {
+    color: $primary-dark;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+}
+
+.profileDetails {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: $text-gray;
+  margin-bottom: 1rem;
+}
+
+.profileTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.profileTag {
+  padding: 0.25rem 0.75rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 15px;
+  font-size: 0.8rem;
+  color: $accent-gold;
+}
+
+.profileBio {
+  font-size: 0.9rem;
+  color: $text-gray;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.profileActions {
+  display: flex;
+  gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.actionLike {
+  flex: 1;
+  background: rgba(139, 30, 63, 0.2);
+  color: $accent-burgundy;
+  border: 1px solid $accent-burgundy;
+  
+  &:hover {
+    background: $accent-burgundy;
+    color: white;
+    transform: translateY(-2px);
+  }
+}
+
+.actionMessage {
+  flex: 1;
+  background: linear-gradient(135deg, $accent-gold, #F59E0B);
+  color: $primary-dark;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+  }
+}
+
+// Mobile Filter Toggle
+.mobileFilterToggle {
+  display: none;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, $accent-burgundy, #A02141);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(139, 30, 63, 0.3);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  
+  @media (max-width: 1024px) {
+    display: flex;
+  }
+}
+
+// Mobile Overlay
+.mobileOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+// Filter Apply Button
+.applyFilterButton {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, $accent-gold, #F59E0B);
+  color: $primary-dark;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+  z-index: 99;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(212, 175, 55, 0.4);
+  }
+  
+  @media (max-width: 1024px) {
+    bottom: 6rem;
+    left: 1rem;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+// Pagination
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding: 2rem 1rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding: 1.5rem 0.5rem;
+  }
+}
+
+.paginationButton {
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: $accent-gold;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 4rem;
+  
+  &:hover:not(:disabled) {
+    background: $accent-gold;
+    color: $primary-dark;
+    border-color: $accent-gold;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  :global(.light) & {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #6b7280;
+    
+    &:hover:not(:disabled) {
+      background: $accent-gold;
+      color: white;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+    min-width: 3.5rem;
+  }
+}
+
+.paginationNumbers {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    gap: 0.25rem;
+  }
+}
+
+.paginationEllipsis {
+  color: $text-gray;
+  padding: 0 0.5rem;
+  user-select: none;
+  
+  :global(.light) & {
+    color: #9ca3af;
+  }
+}
+
+.paginationNumber {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: $text-gray;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(212, 175, 55, 0.1);
+    color: $accent-gold;
+    border-color: $accent-gold;
+  }
+  
+  &.active {
+    background: $accent-gold;
+    color: $primary-dark;
+    border-color: $accent-gold;
+  }
+  
+  :global(.light) & {
+    border-color: #e5e7eb;
+    color: #6b7280;
+    
+    &:hover {
+      background: #f3f4f6;
+      color: $primary-dark;
+    }
+    
+    &.active {
+      background: $accent-gold;
+      color: white;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.875rem;
+  }
+}
+
+// Page Jump
+.pageJump {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  
+  @media (max-width: 768px) {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
+
+.pageJumpInput {
+  width: 4rem;
+  height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: $text-light;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  
+  &:focus {
+    outline: none;
+    border-color: $accent-gold;
+  }
+  
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  :global(.light) & {
+    background: white;
+    border-color: #e5e7eb;
+    color: $primary-dark;
+  }
+  
+  @media (max-width: 768px) {
+    width: 3rem;
+    height: 2rem;
+    font-size: 0.875rem;
+  }
+}
+
+.pageJumpText {
+  color: $text-gray;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  
+  :global(.light) & {
+    color: #6b7280;
+  }
+}
+
+// Empty State
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  color: $accent-gold;
+  margin: 0 auto 1rem;
+  opacity: 0.5;
+  width: 4rem;
+  height: 4rem;
+}
+
+.emptyTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: $text-light;
+  margin-bottom: 0.5rem;
+  
+  :global(.light) & {
+    color: $primary-dark;
+  }
+}
+
+.emptyText {
+  color: $text-gray;
+  margin-bottom: 2rem;
+}
