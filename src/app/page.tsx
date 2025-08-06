@@ -8,6 +8,7 @@ import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import MatchingSearch from '@/components/home/MatchingSearch';
 
 export default function LandingPage() {
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -342,6 +343,15 @@ export default function LandingPage() {
               <h3 className={styles.featureTitle}>高度な検索機能</h3>
               <p className={styles.featureDescription}>詳細な条件や好みでプロフィールを絞り込み、理想の相手を見つけて直接つながりましょう。</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Matching Search Section */}
+      <section className={`${styles.section} ${styles.matchingSearch}`}>
+        <div className={styles.container}>
+          <div className={`${styles.scrollFadeIn} max-w-4xl mx-auto`}>
+            <MatchingSearch />
           </div>
         </div>
       </section>
