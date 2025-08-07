@@ -123,6 +123,7 @@ function AdvancedSearchContent() {
   const [sortBy, setSortBy] = useState('recommend')
   const [filtersApplied, setFiltersApplied] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchQueryInput, setSearchQueryInput] = useState('') // 入力値を別管理
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [filteredTotalCount, setFilteredTotalCount] = useState(0)
@@ -149,7 +150,10 @@ function AdvancedSearchContent() {
     }
     if (time) setSelectedTime(time)
     if (quick === 'true') setPrioritizeQuickMeet(true)
-    if (q) setSearchQuery(q)
+    if (q) {
+      setSearchQuery(q)
+      setSearchQueryInput(q)
+    }
   }, [searchParams, areas.prefectures])
 
   // 位置情報取得
@@ -705,6 +709,7 @@ function AdvancedSearchContent() {
   // フィルターリセット
   const resetFilters = () => {
     setSearchQuery('')
+    setSearchQueryInput('')
     setSelectedTags([])
     setSelectedArea('all')
     setSelectedTime('now')
@@ -1023,8 +1028,13 @@ function AdvancedSearchContent() {
           <Input
             type="text"
             placeholder="名前・プロフィール・趣味で検索"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchQueryInput}
+            onChange={(e) => setSearchQueryInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearchQuery(searchQueryInput)
+              }
+            }}
             className={styles.filterInput}
           />
         </div>
@@ -1426,6 +1436,7 @@ function AdvancedSearchContent() {
       <button
         className={styles.applyFilterButton}
         onClick={() => {
+          setSearchQuery(searchQueryInput) // 検索を実行
           setFiltersApplied(true)
           toast({
             title: "フィルターを適用しました",
