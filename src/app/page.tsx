@@ -275,7 +275,6 @@ export default function LandingPage() {
           playsInline 
           className={styles.heroVideo}
           preload="auto"
-          poster="/img/woman.jpeg"
         >
           <source src="/img/girl.mp4" type="video/mp4" />
           Your browser does not support the video tag.
