@@ -483,12 +483,13 @@ export default function HomePage() {
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
         {currentDisplayData.map((item: any) => {
           // Handle both UserProfile and GirlWithDetails types
-          const isFirebaseData = 'imageUrl' in item;
+          // Check if it's Firebase data by looking for unique Firebase fields
+          const isFirebaseData = 'uid' in item || ('email' in item && !('shopName' in item));
           const id = isFirebaseData ? item.id : `girl-${item.id}`;
           const name = item.name;
           const age = item.age;
-          const location = isFirebaseData ? item.location : item.location;
-          const imageUrl = isFirebaseData ? item.imageUrl : (item.images?.[0]?.image_url || item.images?.[0]?.real_image_url);
+          const location = item.location;
+          const imageUrl = item.imageUrl || (item.images?.[0]?.image_url || item.images?.[0]?.real_image_url);
           
           return (
             <div
@@ -499,7 +500,7 @@ export default function HomePage() {
                   router.push(`/user/${item.id}`);
                   recordProfileView(currentUser!.uid, item.id);
                 } else {
-                  // For MySQL data, we'll need to create a different route or handle differently
+                  // For MySQL data, use /girl route
                   router.push(`/girl/${item.id}`);
                 }
               }}
