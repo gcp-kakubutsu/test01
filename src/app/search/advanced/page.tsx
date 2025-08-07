@@ -245,16 +245,18 @@ function AdvancedSearchContent() {
         }
       }
       
-      // フィルターがある場合のみ多めにデータを取得（年齢は除外）
+      // キーワード検索がある場合は全件取得、それ以外はフィルターに応じて調整
+      const hasKeywordSearch = searchQuery.trim() !== ''
       const hasAnyFilters = 
         hasSpecialFilters || 
         selectedTags.length > 0 || 
-        searchQuery.trim() !== '' || 
+        hasKeywordSearch || 
           selectedStyles.length > 0 ||
         (selectedArea && selectedArea !== 'all') ||
         prioritizeQuickMeet
       
-      const fetchLimit = hasAnyFilters ? 200 : LIMIT
+      // キーワード検索時は全件（1000件まで）、その他フィルター時は200件
+      const fetchLimit = hasKeywordSearch ? 1000 : (hasAnyFilters ? 200 : LIMIT)
       const offset = hasAnyFilters ? 0 : (currentPage - 1) * LIMIT
       
       // Use optimized API endpoint
@@ -484,14 +486,92 @@ function AdvancedSearchContent() {
     
     let filtered = [...users]
 
-    // 検索クエリフィルター（名前、プロフィール、興味で検索）
+    // 検索クエリフィルター（拡張検索）
     if (searchQuery && searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(user => 
-        user.name.toLowerCase().includes(query) ||
-        user.bio.toLowerCase().includes(query) ||
-        user.interests.some(interest => interest.toLowerCase().includes(query))
-      )
+      const query = searchQuery.toLowerCase().trim()
+      
+      // スペースで分割して複数キーワード対応
+      const keywords = query.split(/\s+/).filter(k => k.length > 0)
+      
+      // 単一キーワードの場合は特殊検索も含む
+      if (keywords.length === 1) {
+        const singleQuery = keywords[0]
+        
+        // 特殊検索条件
+        if (singleQuery === '不明' || singleQuery === '年齢不明') {
+          // 年齢が不明な人のみを検索
+          filtered = filtered.filter(user => user.age === null || user.age === undefined)
+        } else if (!isNaN(parseInt(singleQuery)) && parseInt(singleQuery) >= 18 && parseInt(singleQuery) <= 99) {
+          // 数字のみの場合は年齢として検索
+          const targetAge = parseInt(singleQuery)
+          filtered = filtered.filter(user => user.age === targetAge)
+        } else if (singleQuery.includes('歳') || singleQuery.includes('才')) {
+          // 「○○歳」「○○才」の形式で年齢検索
+          const ageMatch = singleQuery.match(/(\d+)/)
+          if (ageMatch) {
+            const targetAge = parseInt(ageMatch[1])
+            filtered = filtered.filter(user => user.age === targetAge)
+          }
+        } else if (singleQuery.includes('cm')) {
+          // 身長検索（例：「160cm」「160cm以上」「160cm以下」）
+          const heightMatch = singleQuery.match(/(\d+)cm/)
+          if (heightMatch) {
+            const targetHeight = parseInt(heightMatch[1])
+            if (singleQuery.includes('以上')) {
+              filtered = filtered.filter(user => user.height && user.height >= targetHeight)
+            } else if (singleQuery.includes('以下')) {
+              filtered = filtered.filter(user => user.height && user.height <= targetHeight)
+            } else {
+              filtered = filtered.filter(user => user.height === targetHeight)
+            }
+          }
+        } else if (singleQuery.match(/[a-kA-K]カップ/)) {
+          // カップサイズ検索（例：「Dカップ」「Eカップ以上」）
+          const cupMatch = singleQuery.match(/([a-kA-K])カップ/)
+          if (cupMatch) {
+            const targetCup = cupMatch[1].toUpperCase()
+            const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
+            const targetIndex = cupOrder.indexOf(targetCup)
+            
+            if (singleQuery.includes('以上')) {
+              filtered = filtered.filter(user => {
+                if (!user.cup) return false
+                const userIndex = cupOrder.indexOf(user.cup.toUpperCase())
+                return userIndex >= targetIndex
+              })
+            } else {
+              filtered = filtered.filter(user => user.cup && user.cup.toUpperCase() === targetCup)
+            }
+          }
+        } else {
+          // 通常の検索（名前、プロフィール、興味、地域）
+          filtered = filtered.filter(user => 
+            user.name.toLowerCase().includes(singleQuery) ||
+            user.bio.toLowerCase().includes(singleQuery) ||
+            user.interests.some(interest => interest.toLowerCase().includes(singleQuery)) ||
+            user.location.toLowerCase().includes(singleQuery)
+          )
+        }
+      } else {
+        // 複数キーワードの場合はAND検索
+        filtered = filtered.filter(user => {
+          // すべてのキーワードがマッチする必要がある
+          return keywords.every(keyword => {
+            // 各キーワードは名前、プロフィール、興味、地域のいずれかにマッチすればOK
+            const userStr = [
+              user.name,
+              user.bio,
+              ...user.interests,
+              user.location,
+              user.age ? user.age.toString() : '不明',
+              user.height ? `${user.height}cm` : '',
+              user.cup ? `${user.cup}カップ` : ''
+            ].join(' ').toLowerCase()
+            
+            return userStr.includes(keyword)
+          })
+        })
+      }
     }
 
     // タグフィルター（特殊タグと通常タグのOR検索）
@@ -1027,7 +1107,7 @@ function AdvancedSearchContent() {
           </h3>
           <Input
             type="text"
-            placeholder="名前・プロフィール・趣味で検索"
+            placeholder="例: 渋谷区, 25歳, 160cm以上, Dカップ, 不明"
             value={searchQueryInput}
             onChange={(e) => setSearchQueryInput(e.target.value)}
             onKeyDown={(e) => {
@@ -1037,6 +1117,10 @@ function AdvancedSearchContent() {
             }}
             className={styles.filterInput}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            年齢(25, 25歳)、身長(160cm, 160cm以上)、カップ(Dカップ, Eカップ以上)、地域名、「不明」で年齢不明者<br/>
+            複数単語はスペース区切りでAND検索（例: 渋谷 160cm Dカップ）
+          </p>
         </div>
 
         {/* 性癖・プレイスタイル */}
