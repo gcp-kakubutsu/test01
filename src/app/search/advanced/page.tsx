@@ -45,6 +45,8 @@ interface UserProfile {
   lastActive?: string
   is_sake?: boolean
   is_tobacco?: boolean
+  createdAt?: string
+  matchScore?: number // おすすめ度スコア
 }
 
 // 性癖・プレイスタイルのタグ
@@ -544,33 +546,73 @@ function AdvancedSearchContent() {
             }
           }
         } else {
-          // 通常の検索（名前、プロフィール、興味、地域）
-          filtered = filtered.filter(user => 
-            user.name.toLowerCase().includes(singleQuery) ||
-            user.bio.toLowerCase().includes(singleQuery) ||
-            user.interests.some(interest => interest.toLowerCase().includes(singleQuery)) ||
-            user.location.toLowerCase().includes(singleQuery)
+          // 地域名かどうかをチェック
+          const isAreaName = areas.prefectures.some(p => 
+            p.prefecture_name.toLowerCase().includes(singleQuery)
+          ) || areas.municipalities.some(m => 
+            m.municipality_name?.toLowerCase().includes(singleQuery) ||
+            m.full_name?.toLowerCase().includes(singleQuery)
           )
+          
+          if (isAreaName) {
+            // 地域名の場合は、その地域のユーザーのみ表示
+            filtered = filtered.filter(user => 
+              user.location.toLowerCase().includes(singleQuery)
+            )
+            
+            // 該当地域にユーザーがいない場合は空配列を返す
+            if (filtered.length === 0) {
+              console.log(`No users found in area: ${singleQuery}`)
+            }
+          } else {
+            // 通常の検索（名前、プロフィール、興味）
+            filtered = filtered.filter(user => 
+              user.name.toLowerCase().includes(singleQuery) ||
+              user.bio.toLowerCase().includes(singleQuery) ||
+              user.interests.some(interest => interest.toLowerCase().includes(singleQuery))
+            )
+          }
         }
       } else {
         // 複数キーワードの場合はAND検索
-        filtered = filtered.filter(user => {
-          // すべてのキーワードがマッチする必要がある
-          return keywords.every(keyword => {
-            // 各キーワードは名前、プロフィール、興味、地域のいずれかにマッチすればOK
-            const userStr = [
-              user.name,
-              user.bio,
-              ...user.interests,
-              user.location,
-              user.age ? user.age.toString() : '不明',
-              user.height ? `${user.height}cm` : '',
-              user.cup ? `${user.cup}カップ` : ''
-            ].join(' ').toLowerCase()
-            
-            return userStr.includes(keyword)
+        // まず地域名キーワードをチェック
+        const areaKeywords = keywords.filter(keyword => 
+          areas.prefectures.some(p => 
+            p.prefecture_name.toLowerCase().includes(keyword)
+          ) || areas.municipalities.some(m => 
+            m.municipality_name?.toLowerCase().includes(keyword) ||
+            m.full_name?.toLowerCase().includes(keyword)
+          )
+        )
+        
+        // 地域名が含まれている場合、まずその地域でフィルタリング
+        if (areaKeywords.length > 0) {
+          filtered = filtered.filter(user => 
+            areaKeywords.every(areaKeyword => 
+              user.location.toLowerCase().includes(areaKeyword)
+            )
+          )
+        }
+        
+        // 残りのキーワードでフィルタリング
+        const nonAreaKeywords = keywords.filter(k => !areaKeywords.includes(k))
+        if (nonAreaKeywords.length > 0) {
+          filtered = filtered.filter(user => {
+            return nonAreaKeywords.every(keyword => {
+              // 各キーワードは名前、プロフィール、興味、身体情報のいずれかにマッチすればOK
+              const userStr = [
+                user.name,
+                user.bio,
+                ...user.interests,
+                user.age ? user.age.toString() : '不明',
+                user.height ? `${user.height}cm` : '',
+                user.cup ? `${user.cup}カップ` : ''
+              ].join(' ').toLowerCase()
+              
+              return userStr.includes(keyword)
+            })
           })
-        })
+        }
       }
     }
 
@@ -664,15 +706,62 @@ function AdvancedSearchContent() {
     // ソート処理
     switch (sortBy) {
       case 'new':
-        filtered.sort((a, b) => (b.lastActive || '').localeCompare(a.lastActive || ''))
+        // 新着順：IDが大きい（新しい）順に並べる
+        filtered.sort((a, b) => {
+          // IDを数値として比較（IDが数値文字列の場合）
+          const aId = parseInt(a.id) || 0
+          const bId = parseInt(b.id) || 0
+          return bId - aId
+        })
         break
       case 'distance':
+        // 距離順：userLocationがある場合のみ
         if (userLocation) {
           filtered = sortUsersByDistance(filtered, userLocation)
+        } else {
+          // 位置情報がない場合は地域名でソート
+          filtered.sort((a, b) => a.location.localeCompare(b.location))
         }
         break
+      case 'recommend':
       default:
-        // おすすめ順（デフォルト）
+        // おすすめ順：マッチングスコアを計算してソート
+        filtered = filtered.map(user => {
+          let score = 0
+          
+          // 年齢が設定されている人を優先
+          if (user.age !== null && user.age !== undefined) {
+            score += 10
+          }
+          
+          // プロフィール充実度
+          if (user.bio && user.bio.length > 50) score += 5
+          if (user.height) score += 3
+          if (user.bust) score += 3
+          if (user.cup) score += 3
+          if (user.interests.length > 3) score += 5
+          
+          // オンライン状態
+          if (user.isOnline) score += 20
+          
+          // 検索クエリとのマッチ度
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            if (user.name.toLowerCase().includes(query)) score += 15
+            if (user.bio.toLowerCase().includes(query)) score += 10
+            if (user.location.toLowerCase().includes(query)) score += 8
+            if (user.interests.some(i => i.toLowerCase().includes(query))) score += 5
+          }
+          
+          // 選択されたタグとのマッチ
+          const matchedTags = selectedTags.filter(tag => user.interests.includes(tag))
+          score += matchedTags.length * 10
+          
+          return { ...user, matchScore: score }
+        })
+        
+        // スコアで降順ソート
+        filtered.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
         break
     }
 
