@@ -1,3 +1,14 @@
+# Firestore セキュリティルール更新
+
+## 更新日: 2025-08-07
+
+### 更新内容
+- コメント機能のためのセキュリティルールを追加
+- 管理者ユーザーによる投稿・コメント削除機能を追加（カスタムクレーム使用）
+
+### 完全なセキュリティルール
+
+```javascript
 rules_version = '2';
 
 service cloud.firestore {
@@ -85,7 +96,7 @@ service cloud.firestore {
       allow delete: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || isAdmin());
       
-      // Comments subcollection
+      // Comments subcollection - 新規追加
       match /comments/{commentId} {
         // 認証されたユーザーはコメントを読める
         allow read: if request.auth != null;
@@ -138,3 +149,23 @@ service cloud.firestore {
     }
   }
 }
+```
+
+## 更新手順
+
+1. [Firebase Console](https://console.firebase.google.com/) にアクセス
+2. プロジェクトを選択
+3. 左側メニューから「Firestore Database」をクリック
+4. 上部の「ルール」タブをクリック
+5. 上記のルールを全体をコピーして貼り付け
+6. 「公開」ボタンをクリック
+
+## 追加された機能
+
+### コメント機能のルール（posts/{postId}/comments/{commentId}）
+- ✅ 認証されたユーザーはコメントを読める
+- ✅ コメントの作成は認証されたユーザーのみ（自分のauthorIdで投稿）
+- ✅ コメントの更新は作成者のみ可能
+- ✅ コメントの削除は作成者のみ可能
+
+これにより、コミュニティの投稿にコメント機能が正常に動作するようになります。

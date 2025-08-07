@@ -3,6 +3,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { getFunctions, type Functions } from 'firebase/functions';
 
 // .envファイルから設定を読み込む
 const firebaseConfig = {
@@ -19,6 +20,7 @@ let app: FirebaseApp | undefined = undefined;
 let authInstance: Auth | undefined = undefined;
 let dbInstance: Firestore | undefined = undefined;
 let storageInstance: FirebaseStorage | undefined = undefined;
+let functionsInstance: Functions | undefined = undefined;
 let firebaseInitError: string | null = null;
 
 console.log('Firebase Client Config Loading Attempt...');
@@ -77,6 +79,8 @@ if (
       console.log("Firestore が正常に初期化されました。");
       storageInstance = getStorage(app);
       console.log("Firebase Storage が正常に初期化されました。");
+      functionsInstance = getFunctions(app);
+      console.log("Firebase Functions が正常に初期化されました。");
     } catch (error: any) {
       console.error('重大なエラー: Firebase アプリケーションの初期化に失敗しました:', error.message, error.code);
       firebaseInitError = `Firebase app could not be initialized. Original error: ${error.message}${error.code ? ` (${error.code})` : ''}. Check console for details and verify your .env file.`;
@@ -84,6 +88,7 @@ if (
       authInstance = undefined;
       dbInstance = undefined;
       storageInstance = undefined;
+      functionsInstance = undefined;
     }
   } else {
     console.log("Firebase アプリケーションは既に初期化されています。既存のインスタンスを使用します。");
@@ -107,6 +112,12 @@ if (
         console.error("既存の Firebase App で Storage の取得に失敗しました:", e.message, e.code);
         if (!firebaseInitError) firebaseInitError = `Failed to get Storage: ${e.message}`;
       }
+      try {
+        functionsInstance = getFunctions(app);
+      } catch (e: any) {
+        console.error("既存の Firebase App で Functions の取得に失敗しました:", e.message, e.code);
+        if (!firebaseInitError) firebaseInitError = `Failed to get Functions: ${e.message}`;
+      }
     }
   }
 }
@@ -119,5 +130,6 @@ const finalApp = app;
 const finalAuth = authInstance;
 const finalDb = dbInstance;
 const finalStorage = storageInstance;
+const finalFunctions = functionsInstance;
 
-export { finalApp as app, finalAuth as auth, finalDb as db, finalStorage as storage, firebaseInitError };
+export { finalApp as app, finalAuth as auth, finalDb as db, finalStorage as storage, finalFunctions as functions, firebaseInitError };

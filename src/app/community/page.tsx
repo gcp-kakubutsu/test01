@@ -1,22 +1,32 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, MessageSquare, Heart, Plus, Search, TrendingUp, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Users, MessageSquare, Heart, Plus, Search, TrendingUp, Loader2, Trash2, PlusCircle, Upload, Camera, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment, deleteDoc, getDoc } from 'firebase/firestore';
+import { db, functions, storage } from '@/lib/firebase/client';
+import { httpsCallable } from 'firebase/functions';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeCommunityCollections } from '@/lib/firebase/init-community';
 import { useSubscription } from '@/hooks/useSubscription';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { getPremiumMessage } from '@/config/premium-messages';
+import { useUserProfile } from '@/lib/firebase/hooks';
 
 interface Community {
   id: string;
@@ -28,6 +38,7 @@ interface Community {
   isJoined?: boolean;
   members?: string[];
   createdAt?: any;
+  createdBy?: string;
   latestPost?: {
     author: string;
     content: string;
@@ -47,6 +58,16 @@ interface Post {
   communityId: string;
   isLiked?: boolean;
   likedBy?: string[];
+  commentsList?: Comment[];
+}
+
+interface Comment {
+  id: string;
+  author: string;
+  authorId: string;
+  authorImage: string;
+  content: string;
+  timestamp: any;
 }
 
 // Helper function to format timestamp
@@ -80,11 +101,29 @@ export default function CommunityPage() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null);
+  const [postDestination, setPostDestination] = useState<string>('global');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
+  const [showCreateCommunity, setShowCreateCommunity] = useState(false);
+  const [newCommunityName, setNewCommunityName] = useState('');
+  const [newCommunityDescription, setNewCommunityDescription] = useState('');
+  const [newCommunityCategory, setNewCommunityCategory] = useState('');
+  const [newCommunityImage, setNewCommunityImage] = useState('');
+  const [newCommunityImageFile, setNewCommunityImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [isCommenting, setIsCommenting] = useState(false);
+  const { profile } = useUserProfile();
+  const postFormRef = useRef<HTMLDivElement>(null);
+  
+  // Check if current user is admin
+  const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -143,11 +182,6 @@ export default function CommunityPage() {
             });
             setCommunities(communitiesData);
             setLoadingCommunities(false);
-            
-            // Set first community as selected if none selected
-            if (!selectedCommunity && communitiesData.length > 0) {
-              setSelectedCommunity(communitiesData[0].id);
-            }
           },
           (error) => {
             // Check if component is still mounted
@@ -207,11 +241,11 @@ export default function CommunityPage() {
         unsubscribe();
       }
     };
-  }, [isAuthenticated, currentUser, selectedCommunity, toast, isPremium]);
+  }, [isAuthenticated, currentUser?.uid, toast, isPremium]);
 
-  // Fetch posts for selected community (Premium only)
+  // Fetch posts (Premium only) - either for selected community or global
   useEffect(() => {
-    if (!selectedCommunity || !currentUser || !isPremium) return;
+    if (!currentUser || !isPremium) return;
 
     let isMounted = true;
     let unsubscribe: (() => void) | undefined;
@@ -232,38 +266,71 @@ export default function CommunityPage() {
         // Try with compound query first, fall back to simple query if index not available
         let postsQuery;
         try {
-          postsQuery = query(
-            postsRef,
-            where('communityId', '==', selectedCommunity),
-            orderBy('timestamp', 'desc'),
-            limit(50)
-          );
+          if (selectedCommunity) {
+            // Fetch posts for specific community
+            postsQuery = query(
+              postsRef,
+              where('communityId', '==', selectedCommunity),
+              orderBy('timestamp', 'desc'),
+              limit(50)
+            );
+          } else {
+            // Fetch only global posts (not community-specific posts)
+            postsQuery = query(
+              postsRef,
+              where('communityId', '==', 'global'),
+              orderBy('timestamp', 'desc'),
+              limit(50)
+            );
+          }
         } catch (error) {
           console.log('Compound index not available, using simple query');
           // Fall back to simple query without ordering
-          postsQuery = query(
-            postsRef,
-            where('communityId', '==', selectedCommunity),
-            limit(50)
-          );
+          if (selectedCommunity) {
+            postsQuery = query(
+              postsRef,
+              where('communityId', '==', selectedCommunity),
+              limit(50)
+            );
+          } else {
+            postsQuery = query(
+              postsRef,
+              where('communityId', '==', 'global'),
+              limit(50)
+            );
+          }
         }
         
         unsubscribe = onSnapshot(postsQuery, 
-          (snapshot) => {
+          async (snapshot) => {
             // Check if component is still mounted
             if (!isMounted || !currentUser) {
               console.log('Component unmounted during posts snapshot');
               return;
             }
             
-            const postsData = snapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                ...data,
-                isLiked: data.likedBy?.includes(currentUser?.uid) || false
-              } as Post;
-            });
+            const postsData = await Promise.all(
+              snapshot.docs.map(async (doc) => {
+                const data = doc.data();
+                
+                // Fetch comments for each post
+                const commentsRef = collection(db, 'posts', doc.id, 'comments');
+                const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'), limit(10));
+                const commentsSnapshot = await getDocs(commentsQuery);
+                
+                const comments = commentsSnapshot.docs.map(commentDoc => ({
+                  id: commentDoc.id,
+                  ...commentDoc.data()
+                } as Comment));
+                
+                return {
+                  id: doc.id,
+                  ...data,
+                  isLiked: data.likedBy?.includes(currentUser?.uid) || false,
+                  commentsList: comments
+                } as Post;
+              })
+            );
             setPosts(postsData);
             setLoadingPosts(false);
           },
@@ -284,25 +351,45 @@ export default function CommunityPage() {
               console.log('Index not ready, retrying with simple query');
               
               // Try simple query without ordering
-              const simpleQuery = query(
-                collection(db, 'posts'),
-                where('communityId', '==', selectedCommunity),
-                limit(50)
-              );
+              const simpleQuery = selectedCommunity 
+                ? query(
+                    collection(db, 'posts'),
+                    where('communityId', '==', selectedCommunity),
+                    limit(50)
+                  )
+                : query(
+                    collection(db, 'posts'),
+                    where('communityId', '==', 'global'),
+                    limit(50)
+                  );
               
               // Re-subscribe with simple query
               const simpleUnsubscribe = onSnapshot(simpleQuery,
-                (snapshot) => {
+                async (snapshot) => {
                   if (!isMounted || !currentUser) return;
                   
-                  const postsData = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                      id: doc.id,
-                      ...data,
-                      isLiked: data.likedBy?.includes(currentUser?.uid) || false
-                    } as Post;
-                  });
+                  const postsData = await Promise.all(
+                    snapshot.docs.map(async (doc) => {
+                      const data = doc.data();
+                      
+                      // Fetch comments for each post
+                      const commentsRef = collection(db, 'posts', doc.id, 'comments');
+                      const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'), limit(10));
+                      const commentsSnapshot = await getDocs(commentsQuery);
+                      
+                      const comments = commentsSnapshot.docs.map(commentDoc => ({
+                        id: commentDoc.id,
+                        ...commentDoc.data()
+                      } as Comment));
+                      
+                      return {
+                        id: doc.id,
+                        ...data,
+                        isLiked: data.likedBy?.includes(currentUser?.uid) || false,
+                        commentsList: comments
+                      } as Post;
+                    })
+                  );
                   
                   // Sort posts by timestamp manually
                   postsData.sort((a, b) => {
@@ -370,7 +457,7 @@ export default function CommunityPage() {
         unsubscribe();
       }
     };
-  }, [selectedCommunity, currentUser, toast, isPremium]);
+  }, [selectedCommunity, currentUser?.uid, toast, isPremium]);
 
   const handleJoinCommunity = async (communityId: string) => {
     if (!currentUser) return;
@@ -462,8 +549,483 @@ export default function CommunityPage() {
     }
   };
 
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      
+      // Get comment to check author
+      const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+      const commentSnap = await getDoc(commentRef);
+      
+      if (!commentSnap.exists()) {
+        toast({
+          title: "エラー",
+          description: "コメントが見つかりません。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const commentData = commentSnap.data();
+      
+      // Check if user is author or admin
+      if (commentData.authorId === currentUser.uid) {
+        // Author can delete directly
+        await deleteDoc(commentRef);
+        
+        // Update comment count
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+          comments: increment(-1)
+        });
+        
+        // Update local state
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? {
+                  ...post,
+                  comments: Math.max(0, post.comments - 1),
+                  commentsList: post.commentsList?.filter(c => c.id !== commentId)
+                }
+              : post
+          )
+        );
+        
+        toast({
+          title: "コメントを削除しました",
+          description: "コメントが正常に削除されました。",
+        });
+      } else if (isAdmin) {
+        // Admin uses Cloud Function
+        if (!functions) {
+          toast({
+            title: "エラー",
+            description: "Firebase Functionsが初期化されていません。",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const deleteCommentAsAdmin = httpsCallable(functions, 'deleteCommentAsAdmin');
+        const result = await deleteCommentAsAdmin({ postId, commentId });
+        const data = result.data as any;
+        
+        if (data.success) {
+          // Update local state
+          setPosts(prevPosts => 
+            prevPosts.map(post => 
+              post.id === postId 
+                ? {
+                    ...post,
+                    comments: Math.max(0, post.comments - 1),
+                    commentsList: post.commentsList?.filter(c => c.id !== commentId)
+                  }
+                : post
+            )
+          );
+          
+          toast({
+            title: "管理者として削除しました",
+            description: data.message || "コメントが正常に削除されました。",
+          });
+        } else {
+          throw new Error(data.message || "削除に失敗しました");
+        }
+      } else {
+        toast({
+          title: "エラー",
+          description: "このコメントを削除する権限がありません。",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "エラー",
+        description: error.message || "コメントの削除に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddComment = async (postId: string) => {
+    if (!currentUser || !newComment.trim()) return;
+    
+    if (!isPremium) {
+      toast({
+        title: "プレミアム機能",
+        description: "コメント機能はプレミアム会員限定です。",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsCommenting(true);
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      const newCommentData = {
+        authorId: currentUser.uid,
+        author: profile?.username || currentUser.displayName || 'Anonymous',
+        authorImage: profile?.profilePhotoUrl || currentUser.photoURL || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+        content: newComment,
+        timestamp: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(commentsRef, newCommentData);
+      
+      // Update comment count
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
+        comments: increment(1)
+      });
+      
+      // Update local state with new comment
+      const newCommentWithId = {
+        id: docRef.id,
+        ...newCommentData,
+        timestamp: new Date()
+      };
+      
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? {
+                ...post,
+                comments: post.comments + 1,
+                commentsList: [newCommentWithId, ...(post.commentsList || [])]
+              }
+            : post
+        )
+      );
+      
+      setNewComment('');
+      
+      toast({
+        title: "コメントを投稿しました",
+        description: "コメントが正常に投稿されました。",
+      });
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "エラー",
+        description: "コメントの投稿に失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCommenting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      const post = posts.find(p => p.id === postId);
+      
+      if (!post) {
+        toast({
+          title: "エラー",
+          description: "投稿が見つかりません。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if user is the author
+      if (post.authorId === currentUser.uid) {
+        // Author can delete their own post directly
+        const postRef = doc(db, 'posts', postId);
+        await deleteDoc(postRef);
+        
+        toast({
+          title: "投稿を削除しました",
+          description: "投稿が正常に削除されました。",
+        });
+      } else if (isAdmin) {
+        // Admin uses Cloud Function to delete post
+        if (!functions) {
+          toast({
+            title: "エラー",
+            description: "Firebase Functionsが初期化されていません。",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const deletePostAsAdmin = httpsCallable(functions, 'deletePostAsAdmin');
+        const result = await deletePostAsAdmin({ postId });
+        const data = result.data as any;
+        
+        if (data.success) {
+          toast({
+            title: "管理者として削除しました",
+            description: data.message || "投稿が正常に削除されました。",
+          });
+        } else {
+          throw new Error(data.message || "削除に失敗しました");
+        }
+      } else {
+        toast({
+          title: "エラー",
+          description: "この投稿を削除する権限がありません。",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      
+      // Handle specific Cloud Function errors
+      if (error.code === 'functions/unauthenticated') {
+        toast({
+          title: "認証エラー",
+          description: "再度ログインしてください。",
+          variant: "destructive",
+        });
+      } else if (error.code === 'functions/permission-denied') {
+        toast({
+          title: "権限エラー",
+          description: "管理者権限が必要です。",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "エラー",
+          description: error.message || "投稿の削除に失敗しました。",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      const community = communities.find(c => c.id === communityId);
+      if (!community) {
+        toast({
+          title: "エラー",
+          description: "コミュニティが見つかりません。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if user is creator or admin
+      if (community.createdBy === currentUser.uid) {
+        // Creator can delete directly
+        if (!db) throw new Error('Firestore is not initialized');
+        const communityRef = doc(db, 'communities', communityId);
+        await deleteDoc(communityRef);
+        
+        toast({
+          title: "コミュニティを削除しました",
+          description: "コミュニティが正常に削除されました。",
+        });
+        
+        // Reset selected community if it was deleted
+        if (selectedCommunity === communityId) {
+          setSelectedCommunity(null);
+        }
+      } else if (isAdmin) {
+        // Admin uses Cloud Function
+        if (!functions) {
+          toast({
+            title: "エラー",
+            description: "Firebase Functionsが初期化されていません。",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const deleteCommunity = httpsCallable(functions, 'deleteCommunity');
+        const result = await deleteCommunity({ communityId });
+        const data = result.data as any;
+        
+        if (data.success) {
+          toast({
+            title: "管理者としてコミュニティを削除しました",
+            description: data.message || "コミュニティが正常に削除されました。",
+          });
+          
+          if (selectedCommunity === communityId) {
+            setSelectedCommunity(null);
+          }
+        } else {
+          throw new Error(data.message || "削除に失敗しました");
+        }
+      } else {
+        toast({
+          title: "エラー",
+          description: "このコミュニティを削除する権限がありません。",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error deleting community:', error);
+      toast({
+        title: "エラー",
+        description: error.message || "コミュニティの削除に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "エラー",
+          description: "画像サイズは5MB以下にしてください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "エラー",
+          description: "画像ファイルを選択してください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setNewCommunityImageFile(file);
+      
+      // Create preview without cropping
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadCommunityImage = async (file: File): Promise<string> => {
+    if (!storage) throw new Error('Storage is not initialized');
+    if (!currentUser) throw new Error('User not authenticated');
+    
+    const timestamp = Date.now();
+    const fileName = `communities/${currentUser.uid}/${timestamp}_${file.name}`;
+    const storageRef = ref(storage, fileName);
+    
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+  };
+
+  const handleCreateCommunity = async () => {
+    if (!currentUser || !newCommunityName.trim() || !newCommunityDescription.trim()) return;
+    
+    if (!isPremium) {
+      toast({
+        title: "プレミアム機能",
+        description: "コミュニティ作成はプレミアム会員限定です。",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsCreatingCommunity(true);
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      
+      let imageUrl = newCommunityImage;
+      
+      // Upload image if file is selected
+      if (newCommunityImageFile) {
+        setIsUploadingImage(true);
+        try {
+          imageUrl = await uploadCommunityImage(newCommunityImageFile);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast({
+            title: "画像アップロードエラー",
+            description: "画像のアップロードに失敗しました。URLを直接入力するか、別の画像をお試しください。",
+            variant: "destructive",
+          });
+          // Continue without image
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+      
+      // Use default image if no image provided
+      if (!imageUrl) {
+        imageUrl = 'https://placehold.co/400x200/FFB6C1/FFFFFF?text=' + encodeURIComponent(newCommunityName);
+      }
+      
+      const communitiesRef = collection(db, 'communities');
+      await addDoc(communitiesRef, {
+        name: newCommunityName,
+        description: newCommunityDescription,
+        category: newCommunityCategory || '一般',
+        imageUrl: imageUrl,
+        memberCount: 1,
+        members: [currentUser.uid],
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+      
+      setNewCommunityName('');
+      setNewCommunityDescription('');
+      setNewCommunityCategory('');
+      setNewCommunityImage('');
+      setNewCommunityImageFile(null);
+      setImagePreview('');
+      setShowCreateCommunity(false);
+      
+      toast({
+        title: "コミュニティを作成しました",
+        description: `${newCommunityName}が正常に作成されました。`,
+      });
+    } catch (error: any) {
+      console.error('Error creating community:', error);
+      toast({
+        title: "エラー",
+        description: "コミュニティの作成に失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingCommunity(false);
+    }
+  };
+
   const handleCreatePost = async () => {
-    if (!currentUser || !selectedCommunity || !newPostContent.trim()) return;
+    if (!currentUser || !newPostContent.trim()) return;
+    
+    // Check premium status before posting
+    if (!isPremium) {
+      toast({
+        title: "プレミアム機能",
+        description: "投稿機能はプレミアム会員限定です。",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if posting to a specific community
+    if (postDestination !== 'global') {
+      const community = communities.find(c => c.id === postDestination);
+      if (community && !community.isJoined && !isAdmin) {
+        toast({
+          title: "参加が必要",
+          description: "このコミュニティに投稿するには参加が必要です。",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     setIsPosting(true);
     try {
@@ -471,10 +1033,10 @@ export default function CommunityPage() {
       const postsRef = collection(db, 'posts');
       await addDoc(postsRef, {
         authorId: currentUser.uid,
-        author: currentUser.displayName || 'Anonymous',
-        authorImage: currentUser.photoURL || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+        author: profile?.username || currentUser.displayName || 'Anonymous',
+        authorImage: profile?.profilePhotoUrl || currentUser.photoURL || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
         content: newPostContent,
-        communityId: selectedCommunity,
+        communityId: postDestination,
         timestamp: serverTimestamp(),
         likes: 0,
         comments: 0,
@@ -482,6 +1044,7 @@ export default function CommunityPage() {
       });
       
       setNewPostContent('');
+      setPostDestination('global');
       setShowNewPost(false);
       
       toast({
@@ -536,15 +1099,189 @@ export default function CommunityPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">コミュニティ</h1>
-        <Button 
-          className="bg-[#F0306A] hover:bg-[#E02860]"
-          onClick={() => setShowNewPost(true)}
-          disabled={!selectedCommunity}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          投稿する
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setShowCreateCommunity(true)}
+            disabled={!isPremium}
+          >
+            <PlusCircle className="h-4 w-4 mr-1" />
+            コミュニティ作成
+          </Button>
+          <Button 
+            className="bg-[#F0306A] hover:bg-[#E02860]"
+            onClick={() => {
+              if (!isPremium) {
+                toast({
+                  title: "プレミアム機能",
+                  description: "投稾機能はプレミアム会員限定です。",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              // Check if user can post to selected community
+              if (selectedCommunity && selectedCommunity !== 'global') {
+                const community = communities.find(c => c.id === selectedCommunity);
+                if (community && !community.isJoined && !isAdmin) {
+                  toast({
+                    title: "参加が必要",
+                    description: "このコミュニティに投稿するには参加が必要です。",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+              }
+              
+              setShowNewPost(true);
+              // スクロールして投稿フォームを表示
+              setTimeout(() => {
+                postFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 100);
+            }}
+            disabled={!isPremium}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            投稿する
+          </Button>
+        </div>
       </div>
+
+      {/* Create Community Modal */}
+      {showCreateCommunity && (
+        <Card className="p-6">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle>新しいコミュニティを作成</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 space-y-4">
+            <div>
+              <label className="text-sm font-medium">コミュニティ名</label>
+              <Input
+                placeholder="例: 東京グルメ好きの会"
+                value={newCommunityName}
+                onChange={(e) => setNewCommunityName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">説明</label>
+              <Textarea
+                placeholder="コミュニティの説明を入力..."
+                value={newCommunityDescription}
+                onChange={(e) => setNewCommunityDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">カテゴリ</label>
+              <Input
+                placeholder="例: 趣味, グルメ, スポーツ"
+                value={newCommunityCategory}
+                onChange={(e) => setNewCommunityCategory(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">コミュニティ画像</label>
+              
+              <div className="w-full">
+                <div className="relative w-full">
+                  {imagePreview || newCommunityImage ? (
+                    <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={imagePreview || newCommunityImage}
+                        alt="Community preview"
+                        className="w-full h-auto"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2 z-10"
+                        onClick={() => {
+                          setImagePreview('');
+                          setNewCommunityImage('');
+                          setNewCommunityImageFile(null);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-48 w-full rounded-lg border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <Camera className="h-12 w-12 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-600">画像を追加</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        disabled={isUploadingImage}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+              
+              {!imagePreview && !newCommunityImage && (
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = prompt('画像URLを入力してください:');
+                      if (url) {
+                        setNewCommunityImage(url);
+                        setNewCommunityImageFile(null);
+                        setImagePreview('');
+                      }
+                    }}
+                  >
+                    URLから画像を追加
+                  </Button>
+                </div>
+              )}
+              
+              {isUploadingImage && (
+                <div className="flex items-center justify-center text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  画像をアップロード中...
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowCreateCommunity(false);
+                  // Reset form
+                  setNewCommunityName('');
+                  setNewCommunityDescription('');
+                  setNewCommunityCategory('');
+                  setNewCommunityImage('');
+                  setNewCommunityImageFile(null);
+                  setImagePreview('');
+                }}
+              >
+                キャンセル
+              </Button>
+              <Button 
+                className="bg-[#F0306A] hover:bg-[#E02860]"
+                onClick={handleCreateCommunity}
+                disabled={isCreatingCommunity || !newCommunityName.trim() || !newCommunityDescription.trim()}
+              >
+                {isCreatingCommunity ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    作成中...
+                  </>
+                ) : (
+                  '作成'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search Bar */}
       <div className="relative">
@@ -581,20 +1318,39 @@ export default function CommunityPage() {
               }`}
               onClick={() => setSelectedCommunity(community.id)}
             >
-              <div className="relative h-32">
-                <Image
+              <div className="relative w-full bg-gray-100 rounded-t-lg overflow-hidden">
+                <img
                   src={community.imageUrl}
                   alt={community.name}
-                  fill
-                  className="object-cover rounded-t-lg"
+                  className="w-full h-auto"
                 />
-                <Badge className="absolute top-2 right-2 bg-white/90 text-black">
+                <Badge className="absolute top-2 right-2 bg-white/90 text-black z-10">
                   {community.category}
                 </Badge>
               </div>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{community.name}</CardTitle>
-                <p className="text-sm text-gray-600">{community.description}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{community.name}</CardTitle>
+                    <p className="text-sm text-gray-600">{community.description}</p>
+                  </div>
+                  {(community.createdBy === currentUser?.uid || isAdmin) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`本当に「${community.name}」を削除しますか？`)) {
+                          handleDeleteCommunity(community.id);
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-600"
+                      title={isAdmin && community.createdBy !== currentUser?.uid ? "管理者として削除" : "削除"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
@@ -630,48 +1386,103 @@ export default function CommunityPage() {
         )}
       </div>
 
-      {/* Community Posts */}
-      {selectedCommunity && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-[#F0306A]" />
-            最新の投稿
-          </h2>
+      {/* Timeline Tabs */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-4 border-b">
+          <Button
+            variant="ghost"
+            className={`pb-2 border-b-2 rounded-none ${
+              !selectedCommunity ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
+            }`}
+            onClick={() => setSelectedCommunity(null)}
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            全体の投稿
+          </Button>
+          {communities.map(community => (
+            community.isJoined && (
+              <Button
+                key={community.id}
+                variant="ghost"
+                className={`pb-2 border-b-2 rounded-none ${
+                  selectedCommunity === community.id ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
+                }`}
+                onClick={() => setSelectedCommunity(community.id)}
+              >
+                {community.name}
+              </Button>
+            )
+          ))}
+        </div>
 
           {/* New Post Form */}
           {showNewPost && (
-            <Card className="p-4">
-              <Textarea
-                placeholder="何か投稿してみましょう..."
-                value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-                className="mb-3"
-                rows={3}
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowNewPost(false)}>
-                  キャンセル
-                </Button>
-                <Button 
-                  className="bg-[#F0306A] hover:bg-[#E02860]"
-                  onClick={handleCreatePost}
-                  disabled={isPosting || !newPostContent.trim()}
-                >
-                  {isPosting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      投稿中...
-                    </>
-                  ) : (
-                    '投稿'
-                  )}
-                </Button>
+            <Card className="p-4" ref={postFormRef}>
+              <div className="space-y-3">
+                {/* Post destination selector */}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">投稿先</label>
+                  <Select
+                    value={postDestination}
+                    onValueChange={setPostDestination}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="投稿先を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="global">全体の投稿</SelectItem>
+                      {communities
+                        .filter(c => c.isJoined || isAdmin)
+                        .map(community => (
+                          <SelectItem key={community.id} value={community.id}>
+                            {community.name}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Textarea
+                  placeholder={
+                    postDestination === 'global'
+                      ? "何か投稿してみましょう..."
+                      : `${communities.find(c => c.id === postDestination)?.name || 'コミュニティ'}に投稿...`
+                  }
+                  value={newPostContent}
+                  onChange={(e) => setNewPostContent(e.target.value)}
+                  className="mb-3"
+                  rows={3}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => {
+                    setShowNewPost(false);
+                    setNewPostContent('');
+                    setPostDestination('global');
+                  }}>
+                    キャンセル
+                  </Button>
+                  <Button 
+                    className="bg-[#F0306A] hover:bg-[#E02860]"
+                    onClick={handleCreatePost}
+                    disabled={isPosting || !newPostContent.trim() || !isPremium}
+                  >
+                    {isPosting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        投稿中...
+                      </>
+                    ) : (
+                      '投稿'
+                    )}
+                  </Button>
+                </div>
               </div>
             </Card>
           )}
 
-          {/* Posts List */}
-          {loadingPosts ? (
+        {/* Posts List */}
+        {loadingPosts ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <p className="ml-2">投稿を読み込み中...</p>
@@ -693,9 +1504,22 @@ export default function CommunityPage() {
                       className="rounded-full"
                     />
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{post.author}</span>
-                        <span className="text-sm text-gray-500">{formatTimestamp(post.timestamp)}</span>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{post.author}</span>
+                          <span className="text-sm text-gray-500">{formatTimestamp(post.timestamp)}</span>
+                        </div>
+                        {(post.authorId === currentUser?.uid || isAdmin) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePost(post.id)}
+                            className="text-red-500 hover:text-red-600"
+                            title={isAdmin && post.authorId !== currentUser?.uid ? "管理者として削除" : "削除"}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                       <p className="text-gray-700 mb-3">{post.content}</p>
                       <div className="flex items-center gap-4">
@@ -708,19 +1532,85 @@ export default function CommunityPage() {
                           <Heart className={`h-4 w-4 ${post.isLiked ? 'fill-current' : ''}`} />
                           <span>{post.likes}</span>
                         </Button>
-                        <Button variant="ghost" size="sm" className="gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="gap-1"
+                          onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                        >
                           <MessageSquare className="h-4 w-4" />
                           <span>{post.comments}</span>
                         </Button>
                       </div>
+                      
+                      {/* Comments Section */}
+                      {showComments === post.id && (
+                        <div className="mt-4 space-y-3 border-t pt-3">
+                          {/* Comment Input */}
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="コメントを入力..."
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              className="bg-[#F0306A] hover:bg-[#E02860]"
+                              onClick={() => handleAddComment(post.id)}
+                              disabled={isCommenting || !newComment.trim()}
+                            >
+                              {isCommenting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                '投稿'
+                              )}
+                            </Button>
+                          </div>
+                          
+                          {/* Comments List */}
+                          {post.commentsList && post.commentsList.length > 0 && (
+                            <div className="space-y-2">
+                              {post.commentsList.map((comment) => (
+                                <div key={comment.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
+                                  <Image
+                                    src={comment.authorImage}
+                                    alt={comment.author}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-semibold">{comment.author}</span>
+                                      <span className="text-xs text-gray-500">{formatTimestamp(comment.timestamp)}</span>
+                                      {(comment.authorId === currentUser?.uid || isAdmin) && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDeleteComment(post.id, comment.id)}
+                                          className="ml-auto text-red-500 hover:text-red-600 p-1 h-auto"
+                                          title={isAdmin && comment.authorId !== currentUser?.uid ? "管理者として削除" : "削除"}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-700">{comment.content}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
