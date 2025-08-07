@@ -73,35 +73,16 @@ interface AreaData {
   girl_count: number
 }
 
-// 都道府県名を正規化する関数
-const normalizeLocationName = (location: string): string => {
-  // 都道府県リスト
-  const prefectures = [
-    '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
-    '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
-    '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
-    '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
-    '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
-    '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
-    '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
-  ]
-  
+// 都道府県名を正規化する関数（DBから取得した都道府県名に基づいて処理）
+const normalizeLocationName = (location: string, prefecturesList: string[]): string => {
   // 完全一致をチェック
-  if (prefectures.includes(location)) {
+  if (prefecturesList.includes(location)) {
     return location
   }
   
   // 部分一致をチェック（市区町村名が含まれている場合）
-  for (const prefecture of prefectures) {
+  for (const prefecture of prefecturesList) {
     if (location.includes(prefecture)) {
-      return prefecture
-    }
-  }
-  
-  // 都道府県の文字が含まれていない場合（例：「東京」→「東京都」）
-  for (const prefecture of prefectures) {
-    const prefectureBase = prefecture.replace(/[都道府県]$/, '')
-    if (location.includes(prefectureBase)) {
       return prefecture
     }
   }
@@ -160,15 +141,16 @@ function AdvancedSearchContent() {
     const q = searchParams.get('q')
     
     if (tags) setSelectedTags(tags.split(','))
-    if (location) {
+    if (location && areas.prefectures.length > 0) {
       // locationパラメータが来た場合、都道府県名を抽出して設定
-      const normalizedLocation = normalizeLocationName(location)
+      const prefectureNames = areas.prefectures.map(p => p.prefecture_name)
+      const normalizedLocation = normalizeLocationName(location, prefectureNames)
       setSelectedArea(normalizedLocation)
     }
     if (time) setSelectedTime(time)
     if (quick === 'true') setPrioritizeQuickMeet(true)
     if (q) setSearchQuery(q)
-  }, [searchParams])
+  }, [searchParams, areas.prefectures])
 
   // 位置情報取得
   useEffect(() => {
@@ -202,7 +184,8 @@ function AdvancedSearchContent() {
     if (areas.prefectures.length > 0 && !areaInitialized) {
       const location = searchParams.get('location')
       if (location) {
-        const normalizedLocation = normalizeLocationName(location)
+        const prefectureNames = areas.prefectures.map(p => p.prefecture_name)
+        const normalizedLocation = normalizeLocationName(location, prefectureNames)
         
         // 都道府県から探す
         const matchedPrefecture = areas.prefectures.find((p: AreaData) => 
@@ -752,7 +735,13 @@ function AdvancedSearchContent() {
                 onClick={() => setOpenAreaPopover(true)}
                 className={`w-full justify-between ${styles.filterSelect}`}
               >
-                {selectedArea === 'all' ? 'すべてのエリア' : selectedArea}
+                {selectedArea === 'all' ? 'すべてのエリア' : 
+                  (() => {
+                    // 市区町村が選択されている場合は、フルネームで表示
+                    const municipality = areas.municipalities.find(m => m.municipality_name === selectedArea);
+                    return municipality ? municipality.full_name : selectedArea;
+                  })()
+                }
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
               <Dialog open={openAreaPopover} onOpenChange={setOpenAreaPopover}>
@@ -851,7 +840,8 @@ function AdvancedSearchContent() {
                         key={`muni-${municipality.municipality_id}`}
                         value={municipality.full_name || ''}
                         onSelect={(currentValue: string) => {
-                          setSelectedArea(currentValue)
+                          // 市区町村名だけを送信（"東京 渋谷区"の場合は"渋谷区"だけ）
+                          setSelectedArea(municipality.municipality_name || currentValue)
                           setOpenAreaPopover(false)
                         }}
                         className="font-medium"
@@ -884,7 +874,13 @@ function AdvancedSearchContent() {
                   aria-expanded={openAreaPopover}
                   className={`w-full justify-between ${styles.filterSelect}`}
                 >
-                  {selectedArea === 'all' ? 'すべてのエリア' : selectedArea}
+                  {selectedArea === 'all' ? 'すべてのエリア' : 
+                    (() => {
+                      // 市区町村が選択されている場合は、フルネームで表示
+                      const municipality = areas.municipalities.find(m => m.municipality_name === selectedArea);
+                      return municipality ? municipality.full_name : selectedArea;
+                    })()
+                  }
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -980,7 +976,8 @@ function AdvancedSearchContent() {
                             key={`muni-${municipality.municipality_id}`}
                             value={municipality.full_name || ''}
                             onSelect={(currentValue: string) => {
-                              setSelectedArea(currentValue)
+                              // 市区町村名だけを送信（"東京 渋谷区"の場合は"渋谷区"だけ）
+                              setSelectedArea(municipality.municipality_name || currentValue)
                               setOpenAreaPopover(false)
                             }}
                             className="font-medium"

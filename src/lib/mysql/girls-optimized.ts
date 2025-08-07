@@ -29,13 +29,14 @@ export async function fetchOptimizedGirls(
     'g.deleted_at IS NULL',
     's.is_active = 1',
     's.deleted_at IS NULL',
-    `g.age BETWEEN ${ageMin} AND ${ageMax}`
+    `(g.age BETWEEN ${ageMin} AND ${ageMax} OR g.age IS NULL)`
   ];
   
   if (area && area !== 'all') {
     const escapedArea = area.replace(/'/g, "''");
+    console.log('🔍 Searching for area:', area);
     whereConditions.push(
-      `(p.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`
+      `(p.name = '${escapedArea}' OR m.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`
     );
   }
   
@@ -89,6 +90,8 @@ export async function fetchOptimizedGirls(
     cachedQuery<any>(girlsQuery, [], cacheKey, 60000), // Cache for 1 minute
     cachedQuery<any>(countQuery, [], countCacheKey, 300000) // Cache count for 5 minutes
   ]);
+  
+  console.log(`📊 Area: ${area}, Found: ${girlsResult.length} girls, Total: ${countResult[0]?.total || 0}`);
   
   // Process results
   const girls: MySQLGirlProfile[] = girlsResult.map(row => ({
