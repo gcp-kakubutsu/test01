@@ -518,6 +518,13 @@ export default function HomePage() {
           const location = item.location;
           const imageUrl = item.imageUrl || (item.images?.[0]?.image_url || item.images?.[0]?.real_image_url);
           
+          // スタイル情報
+          const height = item.height;
+          const bust = item.bust;
+          const cup = item.cup;
+          const waist = item.waist;
+          const hip = item.hip;
+          
           return (
             <div
               key={id}
@@ -540,10 +547,22 @@ export default function HomePage() {
                   className={`object-cover ${!isPremium ? 'blur-image' : ''}`}
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
                   <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}{age ? `, ${age}` : ''}</p>
                   {location && (
-                    <p className="!text-white/90 text-sm sm:text-base drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{location}</p>
+                    <p className="!text-white/90 text-sm drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{location}</p>
+                  )}
+                  {/* スタイル情報の表示 - スマホでも見やすいサイズに */}
+                  {height && (
+                    <p className="!text-white text-sm sm:text-sm font-medium mt-1 drop-shadow-lg" style={{ color: '#FFFFFF' }}>
+                      {height}cm
+                      {bust && waist && hip && (
+                        <>
+                          <br />
+                          <span className="text-sm">B{bust}{cup && `(${cup})`} W{waist} H{hip}</span>
+                        </>
+                      )}
+                    </p>
                   )}
                 </div>
               </div>
