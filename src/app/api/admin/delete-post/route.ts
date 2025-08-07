@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initAdmin } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminFirestore, isAdminInitialized } from '@/lib/firebase/admin';
 
-// Initialize Firebase Admin
-initAdmin();
+// Check if Firebase Admin is initialized
+if (!isAdminInitialized()) {
+  console.error('Firebase Admin SDK is not initialized');
+}
 
 const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || [];
 
@@ -22,7 +22,7 @@ export async function DELETE(request: NextRequest) {
     const token = authHeader.split('Bearer ')[1];
     
     // Verify the Firebase ID token
-    const auth = getAuth();
+    const auth = getAdminAuth();
     let decodedToken;
     try {
       decodedToken = await auth.verifyIdToken(token);
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the post using admin SDK (bypasses security rules)
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const postRef = db.collection('posts').doc(postId);
     
     // Check if post exists
