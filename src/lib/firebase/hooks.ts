@@ -75,6 +75,16 @@ export function useUserProfile(userId?: string) {
             (err) => {
               if (!isActive || !currentUser) return; // Exit if logged out
               
+              // Handle permission errors silently during logout
+              const firebaseError = err as any;
+              if (firebaseError.code === 'permission-denied' || 
+                  firebaseError.message?.includes('Missing or insufficient permissions')) {
+                console.log('Permission denied - likely during logout');
+                setProfile(null);
+                setLoading(false);
+                return;
+              }
+              
               console.error('Error in profile listener:', err);
               setError('プロフィールの取得に失敗しました');
               setLoading(false);
@@ -92,8 +102,9 @@ export function useUserProfile(userId?: string) {
         
         // Handle permission errors
         const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied') {
-          console.log('Permission denied - user may not have access');
+        if (firebaseError.code === 'permission-denied' || 
+            firebaseError.message?.includes('Missing or insufficient permissions')) {
+          console.log('Permission denied - likely during logout');
           setProfile(null);
           setLoading(false);
           return;

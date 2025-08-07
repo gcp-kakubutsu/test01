@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { withAdminAuth } from '@/middleware/admin';
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     const data = await request.json();
     const { fromUserId, toUserId } = data;
@@ -73,4 +74,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  return withAdminAuth(request, handler);
 }

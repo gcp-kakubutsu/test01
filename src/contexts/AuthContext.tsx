@@ -215,8 +215,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear user state immediately to prevent any active listeners from trying to access Firestore
       setCurrentUser(null);
       
-      // Small delay to allow listeners to clean up
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Increase delay to ensure all async operations and listeners have time to clean up
+      // This prevents "Missing or insufficient permissions" errors
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Then sign out from Firebase
       await firebaseSignOut(auth);

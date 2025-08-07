@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Firebase Admin SDK doesn't have createUserWithEmailAndPassword - that's a client SDK method
 import { getAdminAuth } from '@/lib/firebase/admin'
 import { addGirlToFirestore } from '@/app/admin/actions'
+import { withAdminAuth } from '@/middleware/admin'
 
 interface GirlData {
   name: string
@@ -11,7 +12,7 @@ interface GirlData {
   profilePhotoUrl?: string
 }
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     const { apiEndpoint, apiKey, fetchCount } = await request.json()
     
@@ -75,4 +76,8 @@ return NextResponse.json({ success: true, registered })
 
 function generateRandomPassword(): string {
   return Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+}
+
+export async function POST(request: NextRequest) {
+  return withAdminAuth(request, handler)
 }

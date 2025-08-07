@@ -35,37 +35,8 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
   const db = await getDb();
   
   try {
-    // Use query method instead of execute to avoid parameter binding issues
-    if (!params || params.length === 0) {
-      const [rows] = await db.query(sql);
-      return rows as T[];
-    }
-    
-    // Replace ? placeholders with actual values for query method
-    let processedSql = sql;
-    let paramIndex = 0;
-    
-    processedSql = processedSql.replace(/\?/g, () => {
-      if (paramIndex < params.length) {
-        const value = params[paramIndex++];
-        // Escape and format the value
-        if (value === null || value === undefined) {
-          return 'NULL';
-        } else if (typeof value === 'number') {
-          return value.toString();
-        } else if (typeof value === 'string') {
-          // Escape single quotes in strings
-          return `'${value.replace(/'/g, "''")}'`;
-        } else {
-          return `'${value.toString()}'`;
-        }
-      }
-      return '?';
-    });
-    
-    console.log('Processed SQL:', processedSql);
-    
-    const [rows] = await db.query(processedSql);
+    // Use parameterized queries to prevent SQL injection
+    const [rows] = await db.execute(sql, params || []);
     return rows as T[];
   } catch (error) {
     console.error('Query error:', error);

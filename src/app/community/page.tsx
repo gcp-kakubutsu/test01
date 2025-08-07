@@ -13,6 +13,10 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
+import { initializeCommunityCollections } from '@/lib/firebase/init-community';
+import { useSubscription } from '@/hooks/useSubscription';
+import PremiumOnlyCard from '@/components/PremiumOnlyCard';
+import { getPremiumMessage } from '@/config/premium-messages';
 
 interface Community {
   id: string;
@@ -71,6 +75,7 @@ export default function CommunityPage() {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
@@ -87,19 +92,47 @@ export default function CommunityPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Fetch communities from Firebase
+  // Check premium status
   useEffect(() => {
-    if (!isAuthenticated || !currentUser) return;
+    if (!subscriptionLoading && isAuthenticated && !isPremium) {
+      // User is not premium, don't initialize or fetch community data
+      console.log('Community is premium-only feature');
+    }
+  }, [subscriptionLoading, isAuthenticated, isPremium]);
+
+  // Fetch communities from Firebase (Premium only)
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser || !isPremium) {
+      setLoadingCommunities(false);
+      setLoadingPosts(false);
+      return;
+    }
+
+    let isMounted = true;
+    let unsubscribe: (() => void) | undefined;
 
     const fetchCommunities = async () => {
       try {
         setLoadingCommunities(true);
-        if (!db) throw new Error('Firestore is not initialized');
+        
+        // Check if component is still mounted and user is authenticated
+        if (!isMounted || !currentUser || !db) {
+          console.log('Component unmounted or user not authenticated');
+          setLoadingCommunities(false);
+          return;
+        }
+        
         const communitiesRef = collection(db, 'communities');
         const communitiesQuery = query(communitiesRef, orderBy('memberCount', 'desc'));
         
-        const unsubscribe = onSnapshot(communitiesQuery, 
+        unsubscribe = onSnapshot(communitiesQuery, 
           (snapshot) => {
+            // Check if component is still mounted
+            if (!isMounted || !currentUser) {
+              console.log('Component unmounted during snapshot');
+              return;
+            }
+            
             const communitiesData = snapshot.docs.map(doc => {
               const data = doc.data();
               return {
@@ -117,15 +150,23 @@ export default function CommunityPage() {
             }
           },
           (error) => {
+            // Check if component is still mounted
+            if (!isMounted) {
+              console.log('Component unmounted, ignoring error');
+              return;
+            }
+            
             console.error('Error fetching communities:', error);
             setLoadingCommunities(false);
             
             // Handle permission errors specifically
             const firebaseError = error as any;
-            if (firebaseError.code === 'permission-denied') {
+            if (firebaseError.code === 'permission-denied' || 
+                firebaseError.message?.includes('Missing or insufficient permissions')) {
               // Check if user is still authenticated
               if (!currentUser) {
                 // User has logged out, this is expected - don't show error
+                console.log('Permission denied after logout - expected');
                 return;
               }
               toast({
@@ -143,9 +184,9 @@ export default function CommunityPage() {
             setCommunities([]);
           }
         );
-
-        return unsubscribe;
       } catch (error) {
+        if (!isMounted) return;
+        
         console.error('Error setting up communities listener:', error);
         setLoadingCommunities(false);
         setCommunities([]);
@@ -158,26 +199,63 @@ export default function CommunityPage() {
     };
 
     fetchCommunities();
-  }, [isAuthenticated, currentUser, selectedCommunity, toast]);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [isAuthenticated, currentUser, selectedCommunity, toast, isPremium]);
 
-  // Fetch posts for selected community
+  // Fetch posts for selected community (Premium only)
   useEffect(() => {
-    if (!selectedCommunity || !currentUser) return;
+    if (!selectedCommunity || !currentUser || !isPremium) return;
+
+    let isMounted = true;
+    let unsubscribe: (() => void) | undefined;
 
     const fetchPosts = async () => {
       try {
         setLoadingPosts(true);
-        if (!db) throw new Error('Firestore is not initialized');
-        const postsRef = collection(db, 'posts');
-        const postsQuery = query(
-          postsRef,
-          where('communityId', '==', selectedCommunity),
-          orderBy('timestamp', 'desc'),
-          limit(50)
-        );
         
-        const unsubscribe = onSnapshot(postsQuery, 
+        // Check if component is still mounted and user is authenticated
+        if (!isMounted || !currentUser || !db) {
+          console.log('Component unmounted or user not authenticated (posts)');
+          setLoadingPosts(false);
+          return;
+        }
+        
+        const postsRef = collection(db, 'posts');
+        
+        // Try with compound query first, fall back to simple query if index not available
+        let postsQuery;
+        try {
+          postsQuery = query(
+            postsRef,
+            where('communityId', '==', selectedCommunity),
+            orderBy('timestamp', 'desc'),
+            limit(50)
+          );
+        } catch (error) {
+          console.log('Compound index not available, using simple query');
+          // Fall back to simple query without ordering
+          postsQuery = query(
+            postsRef,
+            where('communityId', '==', selectedCommunity),
+            limit(50)
+          );
+        }
+        
+        unsubscribe = onSnapshot(postsQuery, 
           (snapshot) => {
+            // Check if component is still mounted
+            if (!isMounted || !currentUser) {
+              console.log('Component unmounted during posts snapshot');
+              return;
+            }
+            
             const postsData = snapshot.docs.map(doc => {
               const data = doc.data();
               return {
@@ -189,12 +267,71 @@ export default function CommunityPage() {
             setPosts(postsData);
             setLoadingPosts(false);
           },
-          (error) => {
+          (error: any) => {
+            // Check if component is still mounted
+            if (!isMounted) {
+              console.log('Component unmounted, ignoring posts error');
+              return;
+            }
+            
             console.error('Error fetching posts:', error);
             setLoadingPosts(false);
             
-            // Handle permission errors specifically
-            if (error.code === 'permission-denied') {
+            // Handle different types of errors
+            if (error.code === 'failed-precondition' || 
+                error.message?.includes('requires an index')) {
+              // Index not ready yet
+              console.log('Index not ready, retrying with simple query');
+              
+              // Try simple query without ordering
+              const simpleQuery = query(
+                collection(db, 'posts'),
+                where('communityId', '==', selectedCommunity),
+                limit(50)
+              );
+              
+              // Re-subscribe with simple query
+              const simpleUnsubscribe = onSnapshot(simpleQuery,
+                (snapshot) => {
+                  if (!isMounted || !currentUser) return;
+                  
+                  const postsData = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                      id: doc.id,
+                      ...data,
+                      isLiked: data.likedBy?.includes(currentUser?.uid) || false
+                    } as Post;
+                  });
+                  
+                  // Sort posts by timestamp manually
+                  postsData.sort((a, b) => {
+                    const aTime = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+                    const bTime = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+                    return bTime - aTime;
+                  });
+                  
+                  setPosts(postsData);
+                  setLoadingPosts(false);
+                },
+                (err) => {
+                  if (!isMounted) return;
+                  console.error('Simple query also failed:', err);
+                  setPosts([]);
+                  setLoadingPosts(false);
+                }
+              );
+              
+              // Update unsubscribe reference
+              unsubscribe = simpleUnsubscribe;
+              return;
+            } else if (error.code === 'permission-denied' || 
+                error.message?.includes('Missing or insufficient permissions')) {
+              // Check if user is still authenticated
+              if (!currentUser) {
+                console.log('Permission denied after logout (posts) - expected');
+                return;
+              }
               toast({
                 title: "投稿へのアクセス権限がありません",
                 description: "このコミュニティの投稿にアクセスする権限がありません。",
@@ -210,9 +347,9 @@ export default function CommunityPage() {
             setPosts([]);
           }
         );
-
-        return unsubscribe;
       } catch (error) {
+        if (!isMounted) return;
+        
         console.error('Error setting up posts listener:', error);
         setLoadingPosts(false);
         setPosts([]);
@@ -225,7 +362,15 @@ export default function CommunityPage() {
     };
 
     fetchPosts();
-  }, [selectedCommunity, currentUser, toast]);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [selectedCommunity, currentUser, toast, isPremium]);
 
   const handleJoinCommunity = async (communityId: string) => {
     if (!currentUser) return;
@@ -363,11 +508,26 @@ export default function CommunityPage() {
     }
   };
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated || subscriptionLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // Show premium-only message if not premium
+  if (!isPremium) {
+    const communityMessage = getPremiumMessage('community');
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <PremiumOnlyCard 
+          title={communityMessage.title}
+          description={communityMessage.description}
+          buttonText={communityMessage.buttonText}
+          features={communityMessage.features}
+        />
       </div>
     );
   }

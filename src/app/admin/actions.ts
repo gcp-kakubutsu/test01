@@ -46,6 +46,12 @@ export async function addGirlToFirestore(data: AddGirlData) {
 }
 
 export async function verifyApiPassword(password: string): Promise<boolean> {
-  const API_PASSWORD = process.env.API_REGISTER_PASSWORD || 'nukune-api-2024'
+  const API_PASSWORD = process.env.API_REGISTER_PASSWORD
+  
+  if (!API_PASSWORD) {
+    console.error('API_REGISTER_PASSWORD environment variable is not set')
+    return false
+  }
+  
   return password === API_PASSWORD
 }

@@ -54,6 +54,8 @@ export default function HomePage() {
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
+    let isMounted = true;
+    
     const checkWelcomeStatus = async () => {
       if (!currentUser || !userProfile || !db) {
         setCheckingWelcome(false);
@@ -67,9 +69,16 @@ export default function HomePage() {
       }
 
       try {
+        // Check if component is still mounted and user is still authenticated
+        if (!isMounted || !currentUser) return;
+        
         // Check if user has seen welcome
         const welcomeRef = doc(db, 'userSettings', currentUser.uid);
         const welcomeDoc = await getDoc(welcomeRef);
+        
+        // Check again after async operation
+        if (!isMounted || !currentUser) return;
+        
         const hasSeenWelcome = welcomeDoc.exists() && welcomeDoc.data()?.hasSeenWelcome;
 
         // Check if user has completed detailed preferences
@@ -84,10 +93,23 @@ export default function HomePage() {
           setShowOnboarding(true);
         }
         // If both are complete, show normal home page
-      } catch (error) {
+      } catch (error: any) {
+        // Check if still mounted before handling error
+        if (!isMounted) return;
+        
+        // Silently handle permission errors during logout
+        if (error?.code === 'permission-denied' || 
+            error?.message?.includes('Missing or insufficient permissions')) {
+          console.log('Permission denied in welcome check - likely during logout');
+          setCheckingWelcome(false);
+          return;
+        }
+        
         console.error('Error checking welcome status:', error);
       } finally {
-        setCheckingWelcome(false);
+        if (isMounted) {
+          setCheckingWelcome(false);
+        }
       }
     };
 
@@ -97,6 +119,11 @@ export default function HomePage() {
       // If authenticated but no profile yet, still stop checking
       setCheckingWelcome(false);
     }
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, currentUser, userProfile, isLoading]);
 
   // Handle welcome completion

@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase/client';
 import { doc, getDoc } from 'firebase/firestore';
+import { handleFirebaseError, isPermissionError } from '@/lib/firebase/error-handler';
 
 interface SubscriptionData {
   isPremium: boolean;
@@ -19,6 +20,8 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     if (!currentUser) {
       setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       setLoading(false);
@@ -27,11 +30,27 @@ export function useSubscription() {
 
     const fetchSubscription = async () => {
       try {
-        if (!db) {
-          throw new Error('Firestore is not initialized');
+        // Check if component is still mounted and db is initialized
+        if (!isMounted || !db) {
+          console.log('Component unmounted or Firestore not initialized');
+          return;
+        }
+        
+        // Check if currentUser still exists before making Firestore call
+        if (!currentUser?.uid) {
+          console.log('User logged out, skipping Firestore call');
+          setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+          setLoading(false);
+          return;
         }
         
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        
+        // Check if component is still mounted after async operation
+        if (!isMounted) {
+          console.log('Component unmounted during Firestore operation');
+          return;
+        }
         
         if (!userDoc.exists()) {
           // User document doesn't exist yet
@@ -76,19 +95,32 @@ export function useSubscription() {
           setSubscription({ isPremium: false, subscriptionStatus: 'none' });
         }
       } catch (error: any) {
-        if (error.code === 'permission-denied') {
-          // Permission denied - user might not have access yet
+        // Check if component is still mounted before setting state
+        if (!isMounted) {
+          console.log('Component unmounted, ignoring error');
+          return;
+        }
+        
+        if (isPermissionError(error)) {
+          // Permission denied - user might not have access yet or logged out
           console.log('Permission denied for subscription data - treating as non-premium');
         } else {
-          console.error('Error fetching subscription:', error);
+          handleFirebaseError(error, 'useSubscription');
         }
         setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchSubscription();
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser]);
 
   return { ...subscription, loading };

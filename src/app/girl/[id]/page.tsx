@@ -9,6 +9,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { toast } from '@/hooks/use-toast';
+import { getPremiumMessage } from '@/config/premium-messages';
 import Image from 'next/image';
 import { 
   collection, 
@@ -54,10 +55,21 @@ export default function GirlProfilePage() {
   const handleLike = useCallback(async () => {
     if (!girl || isProcessingLike) return;
     
-    if (!currentUser) {
+    if (!currentUser || !isAuthenticated) {
       toast({
         title: "ログインが必要です",
         description: "いいねを送るにはログインしてください。",
+        variant: "destructive",
+      });
+      router.push('/login');
+      return;
+    }
+
+    // Check if db is initialized
+    if (!db) {
+      toast({
+        title: "エラー",
+        description: "データベースに接続できません。",
         variant: "destructive",
       });
       return;
@@ -112,7 +124,7 @@ export default function GirlProfilePage() {
     } finally {
       setIsProcessingLike(false);
     }
-  }, [currentUser, girl, isProcessingLike]);
+  }, [currentUser, girl, isProcessingLike, isAuthenticated, router]);
 
   if (loading) {
     return (
@@ -147,7 +159,12 @@ export default function GirlProfilePage() {
         </div>
           
           {!isPremium ? (
-            <PremiumOnlyCard />
+            <PremiumOnlyCard 
+              title={getPremiumMessage('profile').title}
+              description={getPremiumMessage('profile').description}
+              buttonText={getPremiumMessage('profile').buttonText}
+              features={getPremiumMessage('profile').features}
+            />
           ) : (
             <div className="space-y-6">
               {/* Image Gallery */}
