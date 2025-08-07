@@ -356,6 +356,31 @@ $border-color: rgba(212, 175, 55, 0.2);
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  
+  // リスト表示時はカードを横長に
+  .profileCard {
+    display: flex;
+    flex-direction: row;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+  }
+  
+  .profileImage {
+    width: 300px;
+    height: 400px;
+    flex-shrink: 0;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+      height: 300px;
+    }
+  }
+  
+  .profileInfo {
+    flex: 1;
+  }
 }
 
 .profileCard {
@@ -385,6 +410,15 @@ $border-color: rgba(212, 175, 55, 0.2);
   
   @media (max-width: 768px) {
     height: 200px;
+  }
+  
+  // リスト表示時は画像を高くして全体を表示
+  .profilesList & {
+    height: 450px;
+    
+    @media (max-width: 768px) {
+      height: 300px;
+    }
   }
   
   img {
@@ -463,6 +497,16 @@ $border-color: rgba(212, 175, 55, 0.2);
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+// リスト表示時は全文表示
+.profileBioFull {
+  font-size: 0.9rem;
+  color: $text-gray;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .profileActions {

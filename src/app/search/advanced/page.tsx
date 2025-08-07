@@ -241,7 +241,6 @@ function AdvancedSearchContent() {
         )
         
         if (selectedAreaData && selectedAreaData.girl_count === 0) {
-          console.log('Selected area has 0 girls, skipping API call')
           setLoading(false)
           return
         }
@@ -475,9 +474,6 @@ function AdvancedSearchContent() {
 
   // クライアントサイドフィルタリング
   useEffect(() => {
-    console.log('Client-side filtering - users count:', users.length)
-    console.log('Selected area:', selectedArea)
-    console.log('First 3 users:', users.slice(0, 3).map(u => ({ name: u.name, age: u.age, location: u.location })))
     
     // usersが空の場合は、filteredUsersも空にして早期リターン
     if (users.length === 0) {
@@ -561,9 +557,6 @@ function AdvancedSearchContent() {
             )
             
             // 該当地域にユーザーがいない場合は空配列を返す
-            if (filtered.length === 0) {
-              console.log(`No users found in area: ${singleQuery}`)
-            }
           } else {
             // 通常の検索（名前、プロフィール、興味）
             filtered = filtered.filter(user => 
@@ -672,7 +665,6 @@ function AdvancedSearchContent() {
     // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
     const hasAgeSpecialTag = selectedTags.includes('10代')
     if (!hasAgeSpecialTag) {
-      const beforeCount = filtered.length
       // デフォルト範囲（18-50）の場合はNULL年齢も含める、それ以外は除外
       const isDefaultRange = ageRange[0] === 18 && ageRange[1] === 50
       filtered = filtered.filter(user => {
@@ -681,8 +673,6 @@ function AdvancedSearchContent() {
         }
         return user.age >= ageRange[0] && user.age <= ageRange[1]
       })
-      console.log(`Age filter applied: ${beforeCount} -> ${filtered.length} (Range: ${ageRange[0]}-${ageRange[1]}, Default: ${isDefaultRange})`)
-      console.log('Filtered users with null age:', filtered.filter(u => u.age === null || u.age === undefined).length)
     }
 
 
@@ -765,8 +755,6 @@ function AdvancedSearchContent() {
         break
     }
 
-    console.log('Client-side filtering result:', filtered.length)
-    console.log('Final filtered users (first 3):', filtered.slice(0, 3).map(u => ({ name: u.name, age: u.age, location: u.location })))
     
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
@@ -1402,7 +1390,8 @@ function AdvancedSearchContent() {
                   src={user.imageUrl}
                   alt={user.name}
                   fill
-                  className="object-cover"
+                  className={viewMode === 'list' ? "object-contain" : "object-cover"}
+                  style={{ filter: 'blur(8px)' }}
                 />
                 <div className={styles.profileBlur} />
               </div>
@@ -1436,7 +1425,9 @@ function AdvancedSearchContent() {
                     </Badge>
                   ))}
                 </div>
-                <p className={styles.profileBio}>{user.bio}</p>
+                <p className={viewMode === 'list' ? styles.profileBioFull : styles.profileBio}>
+                  {user.bio}
+                </p>
                 <div className={styles.profileActions}>
                   <Button
                     variant="outline"

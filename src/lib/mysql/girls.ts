@@ -94,7 +94,7 @@ export async function fetchMySQLGirls(
         g.hip,
         g.is_sake,
         g.is_tobacco,
-        IFNULL(g.catch_copy, '') as bio,
+        IFNULL(COALESCE(g.comment, g.catch_copy), '') as bio,
         IFNULL(g.hobby, '') as hobby,
         IFNULL(g.seikantai, '') as seikantai,
         s.id as shop_id,
