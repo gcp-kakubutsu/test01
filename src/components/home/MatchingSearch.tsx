@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock, Calendar, Bot } from 'lucide-react'
+import { Search, MapPin, Clock, Calendar } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
@@ -241,61 +241,6 @@ export default function MatchingSearch() {
         <p className={`text-sm ${styles.textSecondary} text-center mt-6`}>
           登録後、入力した性癖と条件を引き継いで候補を表示します。
         </p>
-      </div>
-
-      {/* AI Assistant section */}
-      <div className={`${styles.searchContainer} rounded-3xl p-8 md:p-10 shadow-2xl border mt-8`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-[#D4AF37] p-3 rounded-full">
-            <Bot className="w-6 h-6 text-[#0f1419]" />
-          </div>
-          <div>
-            <h3 className={`text-lg font-bold ${styles.textPrimary}`}>
-              AIマッチングアシスタント
-            </h3>
-            <p className={`text-sm ${styles.textSecondary}`}>
-              あなたの理想の相手を見つけるお手伝いをします
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className={`${styles.inputField} rounded-xl p-4 border`}>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="メッセージを入力..."
-                className={`flex-1 ${styles.searchContainer} ${styles.inputField} rounded-xl border`}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-[#d73a6a] hover:text-[#c02952] hover:bg-[#d73a6a]/10 rounded-xl"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-              </Button>
-            </div>
-          </div>
-
-          <Button
-            className={`btn-custom ${styles.aiButton}`}
-          >
-            <Bot className="w-4 h-4 mr-2" />
-            AIと相談を開始する
-          </Button>
-        </div>
       </div>
     </div>
   )
