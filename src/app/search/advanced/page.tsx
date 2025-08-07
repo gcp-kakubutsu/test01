@@ -468,6 +468,8 @@ function AdvancedSearchContent() {
   // クライアントサイドフィルタリング
   useEffect(() => {
     console.log('Client-side filtering - users count:', users.length)
+    console.log('Selected area:', selectedArea)
+    console.log('First 3 users:', users.slice(0, 3).map(u => ({ name: u.name, age: u.age, location: u.location })))
     
     // usersが空の場合は、filteredUsersも空にして早期リターン
     if (users.length === 0) {
@@ -544,9 +546,17 @@ function AdvancedSearchContent() {
     // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
     const hasAgeSpecialTag = selectedTags.includes('10代')
     if (!hasAgeSpecialTag) {
-      filtered = filtered.filter(user => 
-        user.age >= ageRange[0] && user.age <= ageRange[1]
-      )
+      const beforeCount = filtered.length
+      // デフォルト範囲（18-50）の場合はNULL年齢も含める、それ以外は除外
+      const isDefaultRange = ageRange[0] === 18 && ageRange[1] === 50
+      filtered = filtered.filter(user => {
+        if (user.age === null || user.age === undefined) {
+          return isDefaultRange // デフォルト範囲の時のみNULL年齢を表示
+        }
+        return user.age >= ageRange[0] && user.age <= ageRange[1]
+      })
+      console.log(`Age filter applied: ${beforeCount} -> ${filtered.length} (Range: ${ageRange[0]}-${ageRange[1]}, Default: ${isDefaultRange})`)
+      console.log('Filtered users with null age:', filtered.filter(u => u.age === null || u.age === undefined).length)
     }
 
 
@@ -583,6 +593,8 @@ function AdvancedSearchContent() {
     }
 
     console.log('Client-side filtering result:', filtered.length)
+    console.log('Final filtered users (first 3):', filtered.slice(0, 3).map(u => ({ name: u.name, age: u.age, location: u.location })))
+    
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
   }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
@@ -1214,7 +1226,7 @@ function AdvancedSearchContent() {
               <CardContent className={styles.profileInfo}>
                 <h3 className={styles.profileName}>{user.name}</h3>
                 <div className={styles.profileDetails}>
-                  <span>{user.age}歳</span>
+                  <span>{user.age ? `${user.age}歳` : '不明'}</span>
                   <span>•</span>
                   <span>{user.location}</span>
                   {user.distance && (

@@ -513,7 +513,7 @@ export default function HomePage() {
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
-                  <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}, {age}</p>
+                  <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}{age ? `, ${age}` : ''}</p>
                   {location && (
                     <p className="!text-white/90 text-sm sm:text-base drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{location}</p>
                   )}

@@ -29,14 +29,16 @@ export async function fetchOptimizedGirls(
     'g.deleted_at IS NULL',
     's.is_active = 1',
     's.deleted_at IS NULL',
-    `(g.age BETWEEN ${ageMin} AND ${ageMax} OR g.age IS NULL)`
+    `(g.age IS NULL OR g.age BETWEEN ${ageMin} AND ${ageMax})`
   ];
   
   if (area && area !== 'all') {
     const escapedArea = area.replace(/'/g, "''");
     console.log('🔍 Searching for area:', area);
+    console.log('🔍 Age range:', ageMin, '-', ageMax);
+    
     whereConditions.push(
-      `(p.name = '${escapedArea}' OR m.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`
+      `(p.name = '${escapedArea}' OR m.name = '${escapedArea}' OR CONCAT(IFNULL(p.name, ''), ' ', IFNULL(m.name, '')) = '${escapedArea}')`
     );
   }
   
@@ -71,7 +73,7 @@ export async function fetchOptimizedGirls(
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
     LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     ${whereClause}
-    ORDER BY g.created_at DESC
+    ORDER BY (g.age IS NULL), g.created_at DESC
     LIMIT ${limitCount} OFFSET ${offset}
   `;
   
@@ -85,6 +87,12 @@ export async function fetchOptimizedGirls(
     ${whereClause}
   `;
   
+  // Debug: Log the actual query
+  console.log('🔍 Executing query for area:', area);
+  console.log('📝 WHERE clause:', whereClause);
+  console.log('📝 Full girls query:', girlsQuery);
+  console.log('📝 Count query:', countQuery);
+  
   // Execute both queries in parallel with caching
   const [girlsResult, countResult] = await Promise.all([
     cachedQuery<any>(girlsQuery, [], cacheKey, 60000), // Cache for 1 minute
@@ -97,7 +105,7 @@ export async function fetchOptimizedGirls(
   const girls: MySQLGirlProfile[] = girlsResult.map(row => ({
     id: row.id.toString(),
     name: row.name || 'Unknown',
-    age: row.age || 20,
+    age: row.age || null,
     height: row.height || undefined,
     bust: row.bust || undefined,
     cup: row.cup || undefined,
@@ -187,7 +195,7 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
   return results.map(row => ({
     id: row.id.toString(),
     name: row.name || 'Unknown',
-    age: row.age || 20,
+    age: row.age || null,
     height: row.height || undefined,
     bust: row.bust || undefined,
     cup: row.cup || undefined,

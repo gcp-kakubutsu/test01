@@ -141,6 +141,24 @@ export async function batchQueries<T = any>(queries: Array<{
   return results;
 }
 
+// Clear cache for debugging
+export function clearCache(pattern?: string) {
+  if (pattern) {
+    // Clear specific cache entries matching pattern
+    const keys = cache.keys();
+    for (const key of keys) {
+      if (key.includes(pattern)) {
+        cache.delete(key);
+        console.log(`🗑️ Cleared cache for: ${key}`);
+      }
+    }
+  } else {
+    // Clear all cache
+    cache.clear();
+    console.log('🗑️ Cleared all cache');
+  }
+}
+
 // Record query metrics for monitoring
 function recordMetrics(query: string, duration: number, cached: boolean) {
   queryMetrics.push({
@@ -167,20 +185,6 @@ export function getPerformanceMetrics() {
     totalQueries: queryMetrics.length,
     recentQueries: queryMetrics.slice(-10)
   };
-}
-
-// Clear cache
-export function clearCache(pattern?: string) {
-  if (pattern) {
-    const keys = [...cache.keys()];
-    keys.forEach(key => {
-      if (key.includes(pattern)) {
-        cache.delete(key);
-      }
-    });
-  } else {
-    cache.clear();
-  }
 }
 
 // Optimized query with streaming for large datasets

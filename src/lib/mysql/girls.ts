@@ -41,11 +41,13 @@ export async function getTotalGirlsCount(area?: string | null, ageMin?: number, 
     if (area && area !== 'all') {
       // SQLインジェクション対策のためエスケープ
       const escapedArea = area.replace(/'/g, "''");
-      whereClause += ` AND (p.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`;
+      // p.name (都道府県), m.name (市区町村), または結合した名前でマッチ
+      whereClause += ` AND (p.name = '${escapedArea}' OR m.name = '${escapedArea}' OR CONCAT(p.name, ' ', m.name) = '${escapedArea}')`;
     }
     
     if (ageMin !== undefined && ageMax !== undefined) {
-      whereClause += ` AND g.age BETWEEN ${ageMin} AND ${ageMax}`;
+      // NULL年齢も含めるように修正
+      whereClause += ` AND (g.age IS NULL OR g.age BETWEEN ${ageMin} AND ${ageMax})`;
     }
     
     const result = await query<any>(`
@@ -108,8 +110,8 @@ export async function fetchMySQLGirls(
         AND g.deleted_at IS NULL
         AND s.is_active = 1
         AND s.deleted_at IS NULL
-        ${area && area !== 'all' ? `AND (p.name = '${area.replace(/'/g, "''")}' OR CONCAT(p.name, ' ', m.name) = '${area.replace(/'/g, "''")}')` : ''}
-        ${ageMin !== undefined && ageMax !== undefined ? `AND g.age BETWEEN ${ageMin} AND ${ageMax}` : ''}
+        ${area && area !== 'all' ? `AND (p.name = '${area.replace(/'/g, "''")}' OR m.name = '${area.replace(/'/g, "''")}' OR CONCAT(p.name, ' ', m.name) = '${area.replace(/'/g, "''")}')` : ''}
+        ${ageMin !== undefined && ageMax !== undefined ? `AND (g.age IS NULL OR g.age BETWEEN ${ageMin} AND ${ageMax})` : ''}
       ORDER BY g.id DESC
       LIMIT ${parseInt(limitCount.toString())} OFFSET ${parseInt(offset.toString())}
     `;
