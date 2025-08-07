@@ -22,12 +22,12 @@ export default function MatchingSearch() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
 
   const personalityTags = [
-    'やさしめ',
-    'リード上手',
-    'じっくり派',
-    '甘やかし系',
-    '濃密タイプ',
-    'スピード重視'
+    '10代',
+    '身長150cm以下',
+    '身長151cm以上',
+    'Eカップ以上',
+    'お酒を飲む人',
+    'タバコを吸わない人'
   ]
 
   const timeTags = [
