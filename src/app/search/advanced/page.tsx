@@ -231,7 +231,7 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
   // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['やさしめ', 'リード上手', 'じっくり派', '甘やかし系', '濃密タイプ', 'スピード重視']
+  const specialFilterTags = ['10代', '身長150cm以下', '身長151cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
 
   // ユーザーデータ取得とフィルタリング処理
@@ -431,7 +431,7 @@ function AdvancedSearchContent() {
       }
       
       // 通常タグと特殊タグでフィルタリング（年齢関連の特殊タグは除く）
-      const nonAgeSpecialTags = selectedTags.filter(tag => tag !== 'やさしめ')
+      const nonAgeSpecialTags = selectedTags.filter(tag => tag !== '10代')
       if (nonAgeSpecialTags.length > 0) {
         targetUsers = targetUsers.filter(user => {
           const matchesNormalTags = nonAgeSpecialTags.some(tag => 
@@ -439,13 +439,13 @@ function AdvancedSearchContent() {
           )
           
           let matchesSpecialTags = false
-          if (nonAgeSpecialTags.includes('リード上手') && user.height && user.height <= 150) {
+          if (nonAgeSpecialTags.includes('身長150cm以下') && user.height && user.height <= 150) {
             matchesSpecialTags = true
           }
-          if (nonAgeSpecialTags.includes('じっくり派') && user.height && user.height >= 151) {
+          if (nonAgeSpecialTags.includes('身長151cm以上') && user.height && user.height >= 151) {
             matchesSpecialTags = true
           }
-          if (nonAgeSpecialTags.includes('甘やかし系') && user.cup) {
+          if (nonAgeSpecialTags.includes('Eカップ以上') && user.cup) {
             const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
             const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
             const eCupIndex = cupOrder.indexOf('E')
@@ -453,10 +453,10 @@ function AdvancedSearchContent() {
               matchesSpecialTags = true
             }
           }
-          if (nonAgeSpecialTags.includes('濃密タイプ') && user.is_sake === true) {
+          if (nonAgeSpecialTags.includes('お酒を飲む人') && user.is_sake === true) {
             matchesSpecialTags = true
           }
-          if (nonAgeSpecialTags.includes('スピード重視') && user.is_tobacco === false) {
+          if (nonAgeSpecialTags.includes('タバコを吸わない人') && user.is_tobacco === false) {
             matchesSpecialTags = true
           }
           
@@ -516,23 +516,23 @@ function AdvancedSearchContent() {
         // 特殊タグのマッチング
         let matchesSpecialTags = false
         
-        // やさしめ: 18-19歳
-        if (selectedTags.includes('やさしめ') && user.age >= 18 && user.age <= 19) {
+        // 10代: 18-19歳
+        if (selectedTags.includes('10代') && user.age >= 18 && user.age <= 19) {
           matchesSpecialTags = true
         }
         
-        // リード上手: 身長150cm以下
-        if (selectedTags.includes('リード上手') && user.height && user.height <= 150) {
+        // 身長150cm以下
+        if (selectedTags.includes('身長150cm以下') && user.height && user.height <= 150) {
           matchesSpecialTags = true
         }
         
-        // じっくり派: 身長151cm以上
-        if (selectedTags.includes('じっくり派') && user.height && user.height >= 151) {
+        // 身長151cm以上
+        if (selectedTags.includes('身長151cm以上') && user.height && user.height >= 151) {
           matchesSpecialTags = true
         }
         
-        // 甘やかし系: Eカップ以上
-        if (selectedTags.includes('甘やかし系') && user.cup) {
+        // Eカップ以上
+        if (selectedTags.includes('Eカップ以上') && user.cup) {
           const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
           const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
           const eCupIndex = cupOrder.indexOf('E')
@@ -541,13 +541,13 @@ function AdvancedSearchContent() {
           }
         }
         
-        // 濃密タイプ: お酒を飲む人（is_sake=true）
-        if (selectedTags.includes('濃密タイプ') && user.is_sake === true) {
+        // お酒を飲む人（is_sake=true）
+        if (selectedTags.includes('お酒を飲む人') && user.is_sake === true) {
           matchesSpecialTags = true
         }
         
-        // スピード重視: タバコを吸わない人（is_tobacco=false）
-        if (selectedTags.includes('スピード重視') && user.is_tobacco === false) {
+        // タバコを吸わない人（is_tobacco=false）
+        if (selectedTags.includes('タバコを吸わない人') && user.is_tobacco === false) {
           matchesSpecialTags = true
         }
         
@@ -559,7 +559,7 @@ function AdvancedSearchContent() {
     // エリアフィルターはサーバーサイドで処理済み
 
     // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
-    const hasAgeSpecialTag = selectedTags.includes('やさしめ')
+    const hasAgeSpecialTag = selectedTags.includes('10代')
     if (!hasAgeSpecialTag) {
       filtered = filtered.filter(user => 
         user.age >= ageRange[0] && user.age <= ageRange[1]
