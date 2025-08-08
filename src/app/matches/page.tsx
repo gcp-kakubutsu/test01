@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin } from 'lucide-react';
+import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -262,13 +262,13 @@ export default function MatchesPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold">{match.name}</h3>
-              <span className="text-sm text-gray-500">{match.age}歳</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{match.age}歳</span>
             </div>
             
             {match.lastMessage ? (
-              <p className="text-sm text-gray-600 line-clamp-2">{match.lastMessage}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{match.lastMessage}</p>
             ) : (
-              <p className="text-sm text-gray-400">メッセージを送ってみましょう</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">メッセージを送ってみましょう</p>
             )}
             
             <div className="flex items-center gap-1 mt-1">
@@ -403,20 +403,23 @@ export default function MatchesPage() {
             </div>
             
             {like.location && (
-              <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
                 <MapPin className="h-3 w-3" />
                 <span>{like.location}</span>
               </div>
             )}
             
-            {like.isGirlProfile && (
-              <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mb-1">
-                店舗在籍
+            {like.bio && (
+              <div className="flex items-start gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                <MessageSquare className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">{like.bio}</span>
               </div>
             )}
             
-            {like.bio && (
-              <p className="text-sm text-gray-600 line-clamp-2">{like.bio}</p>
+            {like.isGirlProfile && (
+              <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300 mb-1">
+                店舗在籍
+              </div>
             )}
             
             <div className="flex items-center gap-1 mt-2">
@@ -490,9 +493,16 @@ export default function MatchesPage() {
         
         <TabsContent value="matches" className="space-y-3 mt-6">
           {displayMatches.length > 0 ? (
-            displayMatches.map(match => (
-              <MatchCard key={match.id} match={match} />
-            ))
+            <>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  マッチした人たちです。メッセージを送って会話を始めましょう！
+                </p>
+              </div>
+              {displayMatches.map(match => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </>
           ) : (
             <Card className="p-8 text-center">
               <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
@@ -505,9 +515,11 @@ export default function MatchesPage() {
         <TabsContent value="sent" className="space-y-3 mt-6">
           {sentLikes.length > 0 ? (
             <>
-              <p className="text-sm text-gray-600 mb-3">
-                あなたが「いいね」を送った人たちです。
-              </p>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  あなたが「いいね」を送った人たちです。
+                </p>
+              </div>
               {sentLikes.map(like => (
                 <LikeCard key={like.id} like={like} clickable={true} />
               ))}
@@ -524,9 +536,11 @@ export default function MatchesPage() {
         <TabsContent value="received" className="space-y-3 mt-6">
           {receivedLikes.length > 0 ? (
             <>
-              <p className="text-sm text-gray-600 mb-3">
-                あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
-              </p>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
+                </p>
+              </div>
               {receivedLikes.map(like => (
                 <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} />
               ))}
