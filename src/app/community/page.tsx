@@ -1210,7 +1210,7 @@ export default function CommunityPage() {
                   ) : (
                     <label className="flex flex-col items-center justify-center h-48 w-full rounded-lg border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 bg-gray-50 hover:bg-gray-100 transition-colors">
                       <Camera className="h-12 w-12 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">画像を追加</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">画像を追加</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1244,7 +1244,7 @@ export default function CommunityPage() {
               )}
               
               {isUploadingImage && (
-                <div className="flex items-center justify-center text-sm text-gray-500">
+                <div className="flex items-center justify-center text-sm text-gray-600 dark:text-gray-400">
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   画像をアップロード中...
                 </div>
@@ -1305,7 +1305,7 @@ export default function CommunityPage() {
             <p className="ml-2">コミュニティを読み込み中...</p>
           </div>
         ) : communities.length === 0 ? (
-          <div className="col-span-2 text-center py-12 text-gray-500">
+          <div className="col-span-2 text-center py-12 text-gray-600 dark:text-gray-400">
             <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold mb-2">コミュニティがありません</h3>
             <p className="text-sm">まだコミュニティが作成されていないか、アクセス権限がない可能性があります。</p>
@@ -1334,7 +1334,7 @@ export default function CommunityPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg">{community.name}</CardTitle>
-                    <p className="text-sm text-gray-600">{community.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{community.description}</p>
                   </div>
                   {(community.createdBy === currentUser?.uid || isAdmin) && (
                     <Button
@@ -1356,7 +1356,7 @@ export default function CommunityPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                     <Users className="h-4 w-4" />
                     <span>{community.memberCount}人</span>
                   </div>
@@ -1376,7 +1376,7 @@ export default function CommunityPage() {
                   )}
                 </div>
                 {community.latestPost && (
-                  <div className="text-xs text-gray-500 border-t pt-2">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 border-t pt-2">
                     <p className="font-medium">{community.latestPost.author}</p>
                     <p className="line-clamp-2">{community.latestPost.content}</p>
                     <p className="text-gray-400">{community.latestPost.timestamp}</p>
@@ -1492,7 +1492,7 @@ export default function CommunityPage() {
               <p className="ml-2">投稿を読み込み中...</p>
             </div>
           ) : posts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
               <p>まだ投稿がありません。最初の投稿をしてみましょう！</p>
             </div>
           ) : (
@@ -1511,7 +1511,7 @@ export default function CommunityPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{post.author}</span>
-                          <span className="text-sm text-gray-500">{formatTimestamp(post.timestamp)}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{formatTimestamp(post.timestamp)}</span>
                         </div>
                         {(post.authorId === currentUser?.uid || isAdmin) && (
                           <Button
@@ -1525,7 +1525,7 @@ export default function CommunityPage() {
                           </Button>
                         )}
                       </div>
-                      <p className="text-gray-700 mb-3">{post.content}</p>
+                      <p className="text-gray-700 dark:text-gray-300 mb-3">{post.content}</p>
                       <div className="flex items-center gap-4">
                         <Button
                           variant="ghost"
@@ -1587,7 +1587,7 @@ export default function CommunityPage() {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-semibold">{comment.author}</span>
-                                      <span className="text-xs text-gray-500">{formatTimestamp(comment.timestamp)}</span>
+                                      <span className="text-xs text-gray-600 dark:text-gray-400">{formatTimestamp(comment.timestamp)}</span>
                                       {(comment.authorId === currentUser?.uid || isAdmin) && (
                                         <Button
                                           variant="ghost"
@@ -1600,7 +1600,7 @@ export default function CommunityPage() {
                                         </Button>
                                       )}
                                     </div>
-                                    <p className="text-sm text-gray-700">{comment.content}</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
                                   </div>
                                 </div>
                               ))}

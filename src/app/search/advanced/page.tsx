@@ -1194,7 +1194,7 @@ function AdvancedSearchContent() {
             }}
             className={styles.filterInput}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
             年齢(25, 25歳)、身長(160cm, 160cm以上)、カップ(Dカップ, Eカップ以上)、地域名、「不明」で年齢不明者<br/>
             複数単語はスペース区切りでAND検索（例: 渋谷 160cm Dカップ）
           </p>
@@ -1315,7 +1315,7 @@ function AdvancedSearchContent() {
             <div className={styles.searchResultsCount}>
               <span>{filteredTotalCount}</span>名の候補が見つかりました
               {totalPages > 1 && (
-                <span className="text-sm text-gray-500 ml-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
                   （{currentPage} / {totalPages} ページ）
                 </span>
               )}
