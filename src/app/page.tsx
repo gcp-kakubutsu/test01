@@ -326,7 +326,10 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className={`${styles.section} ${styles.features}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>充実の機能で理想の出会い探し</h2>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
+            <span className={styles.titleLine1}>充実の機能で</span>
+            <span className={styles.titleLine2}>理想の出会い探し</span>
+          </h2>
           <div className={styles.featuresGrid}>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.featureIcon}>
@@ -365,7 +368,10 @@ export default function LandingPage() {
       {/* Reasons Section */}
       <section className={`${styles.section} ${styles.reasons}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>従来の風俗サイトとの決定的な違い</h2>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
+            <span className={styles.titleLine1}>従来の風俗サイトとの</span>
+            <span className={styles.titleLine2}>決定的な違い</span>
+          </h2>
           <div className={styles.reasonsGrid}>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <h3 className={styles.reasonTitle}>相性保証システム</h3>
