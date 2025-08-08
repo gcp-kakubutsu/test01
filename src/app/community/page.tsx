@@ -1096,20 +1096,22 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">コミュニティ</h1>
-        <div className="flex gap-2">
+    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">コミュニティ</h1>
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="outline"
             onClick={() => setShowCreateCommunity(true)}
             disabled={!isPremium}
+            className="flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
           >
-            <PlusCircle className="h-4 w-4 mr-1" />
-            コミュニティ作成
+            <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">コミュニティ作成</span>
+            <span className="sm:hidden">作成</span>
           </Button>
           <Button 
-            className="bg-[#F0306A] hover:bg-[#E02860]"
+            className="bg-[#F0306A] hover:bg-[#E02860] flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
             onClick={() => {
               if (!isPremium) {
                 toast({
@@ -1141,7 +1143,7 @@ export default function CommunityPage() {
             }}
             disabled={!isPremium}
           >
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             投稿する
           </Button>
         </div>
@@ -1296,7 +1298,7 @@ export default function CommunityPage() {
       </div>
 
       {/* Communities Grid */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-3 sm:gap-4">
         {loadingCommunities ? (
           <div className="col-span-2 flex justify-center items-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -1388,31 +1390,33 @@ export default function CommunityPage() {
 
       {/* Timeline Tabs */}
       <div className="space-y-4">
-        <div className="flex items-center gap-4 border-b">
-          <Button
-            variant="ghost"
-            className={`pb-2 border-b-2 rounded-none ${
-              !selectedCommunity ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
-            }`}
-            onClick={() => setSelectedCommunity(null)}
-          >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            全体の投稿
-          </Button>
-          {communities.map(community => (
-            community.isJoined && (
-              <Button
-                key={community.id}
-                variant="ghost"
-                className={`pb-2 border-b-2 rounded-none ${
-                  selectedCommunity === community.id ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
-                }`}
-                onClick={() => setSelectedCommunity(community.id)}
-              >
-                {community.name}
-              </Button>
-            )
-          ))}
+        <div className="border-b overflow-x-auto">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-max pb-1">
+            <Button
+              variant="ghost"
+              className={`pb-2 border-b-2 rounded-none whitespace-nowrap text-sm sm:text-base px-2 sm:px-4 ${
+                !selectedCommunity ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
+              }`}
+              onClick={() => setSelectedCommunity(null)}
+            >
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              全体の投稿
+            </Button>
+            {communities.map(community => (
+              community.isJoined && (
+                <Button
+                  key={community.id}
+                  variant="ghost"
+                  className={`pb-2 border-b-2 rounded-none whitespace-nowrap text-sm sm:text-base px-2 sm:px-4 ${
+                    selectedCommunity === community.id ? 'border-[#F0306A] text-[#F0306A]' : 'border-transparent'
+                  }`}
+                  onClick={() => setSelectedCommunity(community.id)}
+                >
+                  {community.name}
+                </Button>
+              )
+            ))}
+          </div>
         </div>
 
           {/* New Post Form */}
