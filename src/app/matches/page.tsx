@@ -36,6 +36,8 @@ interface Like {
   location?: string;
   createdAt: Date;
   type: 'sent' | 'received';
+  isGirlProfile?: boolean; // Flag for MySQL girl profiles
+  girlId?: string; // MySQL girl ID
 }
 
 export default function MatchesPage() {
@@ -113,23 +115,55 @@ export default function MatchesPage() {
         const allUserProfiles = await fetchUserProfiles(allUserIds);
         
         // Process sent likes
-        const sentLikesList: Like[] = sentLikesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          const targetUserId = data.to; // The user we sent the like to
-          const userProfile = allUserProfiles.get(targetUserId);
-          
-          return {
-            id: doc.id,
-            userId: targetUserId, // This should be the other user's ID
-            name: userProfile?.username || 'ユーザー',
-            age: userProfile?.age || 20,
-            imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
-            bio: userProfile?.bio,
-            location: userProfile?.location,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            type: 'sent' as const
-          };
-        }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Sort by date desc
+        const sentLikesList: Like[] = await Promise.all(
+          sentLikesSnapshot.docs.map(async (doc) => {
+            const data = doc.data();
+            const targetUserId = data.to; // The user we sent the like to
+            
+            // Check if this is a MySQL girl like
+            if (data.isGirlProfile && data.toGirlId) {
+              // Fetch MySQL girl data
+              try {
+                const response = await fetch(`/api/girls/${data.toGirlId}`);
+                if (response.ok) {
+                  const girlData = await response.json();
+                  return {
+                    id: doc.id,
+                    userId: targetUserId,
+                    name: data.toGirlName || girlData.name || 'ユーザー',
+                    age: girlData.age || 20,
+                    imageUrl: girlData.images?.[0]?.image_url || girlData.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                    bio: girlData.comment,
+                    location: girlData.location,
+                    createdAt: data.createdAt?.toDate() || new Date(),
+                    type: 'sent' as const,
+                    isGirlProfile: true,
+                    girlId: data.toGirlId
+                  };
+                }
+              } catch (error) {
+                console.error('Error fetching girl data:', error);
+              }
+            }
+            
+            // Regular Firebase user
+            const userProfile = allUserProfiles.get(targetUserId);
+            return {
+              id: doc.id,
+              userId: targetUserId,
+              name: userProfile?.username || 'ユーザー',
+              age: userProfile?.age || 20,
+              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+              bio: userProfile?.bio,
+              location: userProfile?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'sent' as const
+            };
+          })
+        );
+        
+        // Sort by date desc
+        sentLikesList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         
         // Process received likes
         const receivedLikesList: Like[] = receivedLikesSnapshot.docs.map(doc => {
@@ -314,8 +348,14 @@ export default function MatchesPage() {
 
   const LikeCard = ({ like, showLikeButton = false, clickable = false }: { like: Like; showLikeButton?: boolean; clickable?: boolean }) => {
     const handleCardClick = () => {
-      if (clickable && like.userId && like.userId !== currentUser?.uid) {
-        router.push(`/user/${like.userId}`);
+      if (clickable) {
+        if (like.isGirlProfile && like.girlId) {
+          // Navigate to MySQL girl profile
+          router.push(`/girl/${like.girlId}`);
+        } else if (like.userId && like.userId !== currentUser?.uid) {
+          // Navigate to Firebase user profile
+          router.push(`/user/${like.userId}`);
+        }
       }
     };
 
@@ -349,6 +389,12 @@ export default function MatchesPage() {
               </div>
             )}
             
+            {like.isGirlProfile && (
+              <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 mb-1">
+                店舗在籍
+              </div>
+            )}
+            
             {like.bio && (
               <p className="text-sm text-gray-600 line-clamp-2">{like.bio}</p>
             )}
@@ -359,7 +405,7 @@ export default function MatchesPage() {
             </div>
           </div>
           
-          {showLikeButton && (
+          {showLikeButton && !like.isGirlProfile && (
             <div>
               {likedBackUsers.has(like.userId) ? (
                 <Button

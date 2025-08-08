@@ -4,10 +4,11 @@ import { GirlImageUrl, GirlWithDetails } from '@/types/database';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const girlId = parseInt(params.id);
+    const { id } = await params;
+    const girlId = parseInt(id);
     
     if (isNaN(girlId)) {
       return NextResponse.json(
