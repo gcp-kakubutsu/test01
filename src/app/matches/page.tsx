@@ -114,53 +114,73 @@ export default function MatchesPage() {
         const allUserIds = [...new Set([...sentLikeUserIds, ...receivedLikeUserIds])];
         const allUserProfiles = await fetchUserProfiles(allUserIds);
         
-        // Process sent likes
-        const sentLikesList: Like[] = await Promise.all(
-          sentLikesSnapshot.docs.map(async (doc) => {
-            const data = doc.data();
-            const targetUserId = data.to; // The user we sent the like to
-            
-            // Check if this is a MySQL girl like
-            if (data.isGirlProfile && data.toGirlId) {
-              // Fetch MySQL girl data
-              try {
-                const response = await fetch(`/api/girls/${data.toGirlId}`);
-                if (response.ok) {
-                  const girlData = await response.json();
-                  return {
-                    id: doc.id,
-                    userId: targetUserId,
-                    name: data.toGirlName || girlData.name || 'ユーザー',
-                    age: girlData.age || 20,
-                    imageUrl: girlData.images?.[0]?.image_url || girlData.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
-                    bio: girlData.comment,
-                    location: girlData.location,
-                    createdAt: data.createdAt?.toDate() || new Date(),
-                    type: 'sent' as const,
-                    isGirlProfile: true,
-                    girlId: data.toGirlId
-                  };
-                }
-              } catch (error) {
-                console.error('Error fetching girl data:', error);
-              }
+        // Collect MySQL girl IDs from sent likes
+        const mysqlGirlIds: string[] = [];
+        const sentLikesData: Array<{ doc: any, data: any }> = [];
+        
+        sentLikesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          sentLikesData.push({ doc, data });
+          if (data.isGirlProfile && data.toGirlId) {
+            mysqlGirlIds.push(data.toGirlId);
+          }
+        });
+        
+        // Batch fetch MySQL girl data if needed
+        let mysqlGirlsData: Record<string, any> = {};
+        if (mysqlGirlIds.length > 0) {
+          try {
+            const response = await fetch('/api/girls/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: mysqlGirlIds })
+            });
+            if (response.ok) {
+              mysqlGirlsData = await response.json();
             }
-            
-            // Regular Firebase user
-            const userProfile = allUserProfiles.get(targetUserId);
-            return {
-              id: doc.id,
-              userId: targetUserId,
-              name: userProfile?.username || 'ユーザー',
-              age: userProfile?.age || 20,
-              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
-              bio: userProfile?.bio,
-              location: userProfile?.location,
-              createdAt: data.createdAt?.toDate() || new Date(),
-              type: 'sent' as const
-            };
-          })
-        );
+          } catch (error) {
+            console.error('Error fetching girls batch:', error);
+          }
+        }
+        
+        // Process sent likes with fetched data
+        const sentLikesList: Like[] = sentLikesData.map(({ doc, data }) => {
+          const targetUserId = data.to;
+          
+          // Check if this is a MySQL girl like
+          if (data.isGirlProfile && data.toGirlId) {
+            const girlData = mysqlGirlsData[data.toGirlId];
+            if (girlData) {
+              return {
+                id: doc.id,
+                userId: targetUserId,
+                name: data.toGirlName || girlData.name || 'ユーザー',
+                age: girlData.age || 20,
+                imageUrl: girlData.images?.[0]?.image_url || girlData.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                bio: girlData.comment,
+                location: girlData.location,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                type: 'sent' as const,
+                isGirlProfile: true,
+                girlId: data.toGirlId
+              };
+            }
+          }
+          
+          // Regular Firebase user
+          const userProfile = allUserProfiles.get(targetUserId);
+          return {
+            id: doc.id,
+            userId: targetUserId,
+            name: userProfile?.username || 'ユーザー',
+            age: userProfile?.age || 20,
+            imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+            bio: userProfile?.bio,
+            location: userProfile?.location,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            type: 'sent' as const
+          };
+        });
         
         // Sort by date desc
         sentLikesList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
