@@ -838,6 +838,11 @@ $border-color-light: #E5E7EB;
 .faqContainer {
   max-width: 800px;
   margin: 0 auto;
+  padding: 0 1rem;
+  
+  @media (max-width: 768px) {
+    padding: 0 0.5rem;
+  }
 }
 
 .faqItem {
@@ -848,12 +853,18 @@ $border-color-light: #E5E7EB;
   overflow: hidden;
   transition: all 0.3s ease;
   color: $text-light;
+  max-width: 100%;
+  box-sizing: border-box;
 
   :global(.light) & {
     background: #FFFFFF;
     border: 1px solid #E5E7EB;
     color: $text-dark;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (max-width: 768px) {
+    margin-bottom: 0.75rem;
   }
 
   &.active {
@@ -884,10 +895,23 @@ $border-color-light: #E5E7EB;
     font-size: 1.1rem;
     color: $text-light;
     margin: 0;
+    flex: 1;
+    padding-right: 1rem;
+    word-wrap: break-word;
+    word-break: break-word;
 
     :global(.light) & {
       color: $text-dark;
     }
+    
+    @media (max-width: 768px) {
+      font-size: 0.95rem;
+      padding-right: 0.5rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
   }
 }
 
@@ -903,8 +927,12 @@ $border-color-light: #E5E7EB;
 .faqAnswer {
   padding: 0 1.5rem 1.5rem;
   color: $text-gray;
-  line-height: 1.6;
+  line-height: 1.8;
   display: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
 
   :global(.light) & {
     color: #4B5563;
@@ -914,6 +942,17 @@ $border-color-light: #E5E7EB;
     :global(.light) & {
       color: #4B5563;
     }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0 1rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 }
 
