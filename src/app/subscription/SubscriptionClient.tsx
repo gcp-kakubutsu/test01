@@ -109,7 +109,6 @@ export default function SubscriptionClient() {
   const [cardDisplay, setCardDisplay] = useState('•••• •••• •••• ••••');
   const [cardBrand, setCardBrand] = useState('CARD');
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [addressError, setAddressError] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -118,10 +117,15 @@ export default function SubscriptionClient() {
   }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
-    const plan = searchParams.get('plan') || selectedPlan;
-    setSelectedPlan(plan);
-    updatePlanConfig(plan);
-  }, [searchParams, selectedPlan]);
+    const plan = searchParams.get('plan');
+    if (plan && PLAN_OPTIONS.some(p => p.id === plan)) {
+      setSelectedPlan(plan);
+      updatePlanConfig(plan);
+    } else if (!plan) {
+      // URLパラメータがない場合はselectedPlanの初期値（6month）を使用
+      updatePlanConfig(selectedPlan);
+    }
+  }, []); // 初回マウント時のみ実行
 
   const updatePlanConfig = (plan: string) => {
     switch(plan) {
@@ -209,7 +213,6 @@ export default function SubscriptionClient() {
     // Auto search address when complete
     if (cleaned.length === 7) {
       setIsLoadingAddress(true);
-      setAddressError(false);
       
       try {
         const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleaned}`);
@@ -224,7 +227,6 @@ export default function SubscriptionClient() {
             address: result.address3
           }));
         } else {
-          setAddressError(true);
           toast({
             title: "郵便番号エラー",
             description: "郵便番号が見つかりませんでした。",
@@ -233,7 +235,6 @@ export default function SubscriptionClient() {
         }
       } catch (error) {
         console.error('Address search error:', error);
-        setAddressError(true);
         toast({
           title: "エラー",
           description: "住所の検索中にエラーが発生しました。",
