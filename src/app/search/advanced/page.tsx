@@ -1380,10 +1380,7 @@ function AdvancedSearchContent() {
         {/* ユーザーカード */}
         {filteredUsers.length > 0 && (
           <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
-            {(hasSpecialFilters 
-              ? filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
-              : filteredUsers
-            ).map(user => (
+            {filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT).map(user => (
             <Card key={user.id} className={styles.profileCard}>
               <div className={styles.profileImage}>
                 <Image
