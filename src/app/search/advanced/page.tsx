@@ -295,14 +295,17 @@ function AdvancedSearchContent() {
       // 特殊フィルターや地域・キーワード検索がある場合は、クライアントサイドでフィルタリングするため多めに取得
       const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch || isLocationKeywordSearch
       
-      // 地域検索の場合は全データを取得する必要があるため、より多くのデータを取得
+      // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）を最優先
+      const effectiveArea = searchAreaName || (selectedArea !== 'all' ? selectedArea : null)
+      
+      // 地域フィルターがサーバーサイドで適用されているかを記録
+      setLocationFilteredServerSide(!!searchAreaName)
+      
+      // エリアが選択されている場合、または特殊フィルターがある場合は、より多くのデータを取得
       let fetchLimit = LIMIT
-      if (isLocationKeywordSearch) {
-        // 地域検索の場合、全データを取得（上限1000件）
+      if (effectiveArea || needsClientFiltering || isLocationKeywordSearch) {
+        // エリアフィルターまたは特殊フィルターの場合、全データを取得（上限1000件）
         fetchLimit = 1000
-      } else if (needsClientFiltering) {
-        // その他のクライアントフィルタリングの場合
-        fetchLimit = Math.min(LIMIT * 10 * Math.max(1, currentPage), 500)
       } else if (hasAnyFilters) {
         fetchLimit = LIMIT * 2
       }
@@ -312,14 +315,11 @@ function AdvancedSearchContent() {
       // Use optimized API endpoint
       let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
       
-      // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）
-      const effectiveArea = searchAreaName || (selectedArea !== 'all' ? selectedArea : null)
+      // エリアフィルターをAPIに追加（サーバーサイドで処理）
       if (effectiveArea) {
         apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
       }
       
-      // 地域フィルターがサーバーサイドで適用されているかを記録
-      setLocationFilteredServerSide(!!searchAreaName)
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
         apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
       }

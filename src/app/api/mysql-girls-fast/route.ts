@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
-    const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 500);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 1000); // 上限を1000に変更
     const offset = parseInt(searchParams.get('offset') || '0');
     const area = searchParams.get('area') || null;
     const ageMin = parseInt(searchParams.get('ageMin') || '18');
