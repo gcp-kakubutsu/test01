@@ -54,7 +54,7 @@ const personalityTags = [
   '10代', '20代', '30代', '40代', '50代',
   '身長150cm以下', '身長155cm以下', '身長160cm以下',
   '身長151cm以上', '身長165cm以上', '身長170cm以上',
-  'Bカップ未満', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上',
+  'Bカップ以下', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上',
   'Fカップ以上', 'Gカップ以上', 'Hカップ以上',
   'お酒を飲む人', 'タバコを吸わない人'
 ]
@@ -224,7 +224,7 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
   // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長151cm以上', '身長165cm以上', '身長170cm以上', 'Bカップ未満', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上', 'Fカップ以上', 'Gカップ以上', 'Hカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
+  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長151cm以上', '身長165cm以上', '身長170cm以上', 'Bカップ以下', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上', 'Fカップ以上', 'Gカップ以上', 'Hカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
 
   // ユーザーデータ取得とフィルタリング処理
@@ -666,7 +666,7 @@ function AdvancedSearchContent() {
           const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
           const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
           
-          if (selectedTags.includes('Bカップ未満') && userCupIndex < cupOrder.indexOf('B')) {
+          if (selectedTags.includes('Bカップ以下') && userCupIndex <= cupOrder.indexOf('B')) {
             matchesSpecialTags = true
           }
           if (selectedTags.includes('Cカップ以上') && userCupIndex >= cupOrder.indexOf('C')) {

@@ -33,7 +33,7 @@ export default function MatchingSearch() {
     '身長151cm以上',
     '身長165cm以上',
     '身長170cm以上',
-    'Bカップ未満',
+    'Bカップ以下',
     'Cカップ以上',
     'Dカップ以上',
     'Eカップ以上',
