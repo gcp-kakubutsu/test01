@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock, Calendar } from 'lucide-react'
+import { Search, MapPin, Clock } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
@@ -23,6 +23,10 @@ export default function MatchingSearch() {
 
   const personalityTags = [
     '10代',
+    '20代',
+    '30代',
+    '40代',
+    '50代',
     '身長150cm以下',
     '身長151cm以上',
     'Eカップ以上',

@@ -51,7 +51,8 @@ interface UserProfile {
 
 // 性癖・プレイスタイルのタグ
 const personalityTags = [
-  '10代', '身長150cm以下', '身長151cm以上', 'Eカップ以上',
+  '10代', '20代', '30代', '40代', '50代',
+  '身長150cm以下', '身長151cm以上', 'Eカップ以上',
   'お酒を飲む人', 'タバコを吸わない人'
 ]
 
@@ -220,7 +221,7 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
   // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['10代', '身長150cm以下', '身長151cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
+  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長151cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
 
   // ユーザーデータ取得とフィルタリング処理
@@ -620,8 +621,20 @@ function AdvancedSearchContent() {
         // 特殊タグのマッチング
         let matchesSpecialTags = false
         
-        // 10代: 18-19歳
+        // 年代フィルター
         if (selectedTags.includes('10代') && user.age >= 18 && user.age <= 19) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('20代') && user.age >= 20 && user.age <= 29) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('30代') && user.age >= 30 && user.age <= 39) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('40代') && user.age >= 40 && user.age <= 49) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('50代') && user.age >= 50 && user.age <= 59) {
           matchesSpecialTags = true
         }
         
@@ -663,7 +676,7 @@ function AdvancedSearchContent() {
     // エリアフィルターはサーバーサイドで処理済み
 
     // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
-    const hasAgeSpecialTag = selectedTags.includes('10代')
+    const hasAgeSpecialTag = selectedTags.some(tag => ['10代', '20代', '30代', '40代', '50代'].includes(tag))
     if (!hasAgeSpecialTag) {
       // デフォルト範囲（18-50）の場合はNULL年齢も含める、それ以外は除外
       const isDefaultRange = ageRange[0] === 18 && ageRange[1] === 50
@@ -1200,12 +1213,15 @@ function AdvancedSearchContent() {
           </p>
         </div>
 
-        {/* 性癖・プレイスタイル */}
+        {/* 性癖・プレイスタイル - 特殊フィルタリング */}
         <div className={styles.filterSection}>
           <h3 className={styles.filterSectionTitle}>
             <Heart className="w-4 h-4" />
             性癖・プレイスタイル
           </h3>
+          <div className="mb-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400">特殊フィルタリング</span>
+          </div>
           <div className={styles.tagFilters}>
             {personalityTags.map(tag => (
               <label key={tag} className={styles.tagFilter}>
