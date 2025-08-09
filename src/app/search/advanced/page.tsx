@@ -135,6 +135,7 @@ function AdvancedSearchContent() {
   const [filteredTotalCount, setFilteredTotalCount] = useState(0)
   const [openAreaPopover, setOpenAreaPopover] = useState(false)
   const [areaInitialized, setAreaInitialized] = useState(false)
+  const [locationFilteredServerSide, setLocationFilteredServerSide] = useState(false)
 
   // 動的に計算されるページ数（フィルタリング後のカウントを使用）
   const totalPages = Math.ceil(filteredTotalCount / LIMIT)
@@ -250,25 +251,75 @@ function AdvancedSearchContent() {
         }
       }
       
-      // キーワード検索がある場合は全件取得、それ以外はフィルターに応じて調整
+      // キーワード検索がある場合の処理
       const hasKeywordSearch = searchQuery.trim() !== ''
+      let searchAreaName: string | null = null
+      let nonLocationKeywords = searchQuery.trim()
+      
+      // キーワードが地域名の場合の処理
+      let isLocationKeywordSearch = false
+      if (hasKeywordSearch) {
+        const query = searchQuery.toLowerCase().trim()
+        
+        // 地域名パターンをチェック
+        const isLocationSearch = query.includes('区') || 
+                                 query.includes('市') || 
+                                 query.includes('町') || 
+                                 query.includes('村') ||
+                                 query.includes('都') ||
+                                 query.includes('道') ||
+                                 query.includes('府') ||
+                                 query.includes('県')
+        
+        if (isLocationSearch) {
+          // 地域検索の場合、全データから検索するためにフラグを設定
+          isLocationKeywordSearch = true
+          nonLocationKeywords = '' // 地域検索の場合はキーワードをクリア
+        } else {
+          // 地域検索でない場合のみ、通常のキーワード検索として扱う
+          nonLocationKeywords = query
+        }
+      }
+      
+      const hasNonLocationKeywordSearch = nonLocationKeywords.trim() !== ''
       const hasAnyFilters = 
         hasSpecialFilters || 
         selectedTags.length > 0 || 
-        hasKeywordSearch || 
+        hasNonLocationKeywordSearch || 
           selectedStyles.length > 0 ||
         (selectedArea && selectedArea !== 'all') ||
+        searchAreaName !== null ||
         prioritizeQuickMeet
       
-      // キーワード検索時は全件（1000件まで）、その他フィルター時は200件
-      const fetchLimit = hasKeywordSearch ? 1000 : (hasAnyFilters ? 200 : LIMIT)
-      const offset = hasAnyFilters ? 0 : (currentPage - 1) * LIMIT
+      // フィルターがある場合は、ページングを考慮して適切な量を取得
+      // 特殊フィルターや地域・キーワード検索がある場合は、クライアントサイドでフィルタリングするため多めに取得
+      const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch || isLocationKeywordSearch
+      
+      // 地域検索の場合は全データを取得する必要があるため、より多くのデータを取得
+      let fetchLimit = LIMIT
+      if (isLocationKeywordSearch) {
+        // 地域検索の場合、全データを取得（上限1000件）
+        fetchLimit = 1000
+      } else if (needsClientFiltering) {
+        // その他のクライアントフィルタリングの場合
+        fetchLimit = Math.min(LIMIT * 10 * Math.max(1, currentPage), 500)
+      } else if (hasAnyFilters) {
+        fetchLimit = LIMIT * 2
+      }
+      
+      const offset = needsClientFiltering ? 0 : (currentPage - 1) * LIMIT
       
       // Use optimized API endpoint
       let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
-      if (selectedArea && selectedArea !== 'all') {
-        apiUrl += `&area=${encodeURIComponent(selectedArea)}`
+      
+      // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）
+      const effectiveArea = searchAreaName || (selectedArea !== 'all' ? selectedArea : null)
+      if (effectiveArea) {
+        apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
       }
+      
+      // 地域フィルターがサーバーサイドで適用されているかを記録
+      setLocationFilteredServerSide(!!searchAreaName)
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
         apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
       }
@@ -404,6 +455,19 @@ function AdvancedSearchContent() {
   }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, areas, toast])
 
   useEffect(() => {
+    // Skip initial fetch if areas haven't loaded yet (unless no keyword search)
+    const hasLocationKeyword = searchQuery && (
+      searchQuery.includes('区') || 
+      searchQuery.includes('市') || 
+      searchQuery.includes('町') || 
+      searchQuery.includes('村')
+    )
+    
+    // Only wait for areas if we have a location keyword search
+    if (hasLocationKeyword && areas.prefectures.length === 0 && areas.municipalities.length === 0) {
+      return
+    }
+    
     fetchFilteredUsers()
   }, [fetchFilteredUsers])
 
@@ -546,70 +610,33 @@ function AdvancedSearchContent() {
             }
           }
         } else {
-          // 地域名かどうかをチェック
-          const isAreaName = areas.prefectures.some(p => 
-            p.prefecture_name.toLowerCase().includes(singleQuery)
-          ) || areas.municipalities.some(m => 
-            m.municipality_name?.toLowerCase().includes(singleQuery) ||
-            m.full_name?.toLowerCase().includes(singleQuery)
+          // 通常の検索（名前、プロフィール、興味、地域を含む）
+          // 地域検索も含めて全て同じロジックで処理
+          filtered = filtered.filter(user => 
+            (user.name && user.name.toLowerCase().includes(singleQuery)) ||
+            (user.bio && user.bio.toLowerCase().includes(singleQuery)) ||
+            (user.interests && user.interests.some(interest => interest && interest.toLowerCase().includes(singleQuery))) ||
+            (user.location && user.location.toLowerCase().includes(singleQuery))
           )
-          
-          if (isAreaName) {
-            // 地域名の場合は、その地域のユーザーのみ表示
-            filtered = filtered.filter(user => 
-              user.location.toLowerCase().includes(singleQuery)
-            )
-            
-            // 該当地域にユーザーがいない場合は空配列を返す
-          } else {
-            // 通常の検索（名前、プロフィール、興味）
-            filtered = filtered.filter(user => 
-              user.name.toLowerCase().includes(singleQuery) ||
-              user.bio.toLowerCase().includes(singleQuery) ||
-              user.interests.some(interest => interest.toLowerCase().includes(singleQuery))
-            )
-          }
         }
       } else {
         // 複数キーワードの場合はAND検索
-        // まず地域名キーワードをチェック
-        const areaKeywords = keywords.filter(keyword => 
-          areas.prefectures.some(p => 
-            p.prefecture_name.toLowerCase().includes(keyword)
-          ) || areas.municipalities.some(m => 
-            m.municipality_name?.toLowerCase().includes(keyword) ||
-            m.full_name?.toLowerCase().includes(keyword)
-          )
-        )
-        
-        // 地域名が含まれている場合、まずその地域でフィルタリング
-        if (areaKeywords.length > 0) {
-          filtered = filtered.filter(user => 
-            areaKeywords.every(areaKeyword => 
-              user.location.toLowerCase().includes(areaKeyword)
-            )
-          )
-        }
-        
-        // 残りのキーワードでフィルタリング
-        const nonAreaKeywords = keywords.filter(k => !areaKeywords.includes(k))
-        if (nonAreaKeywords.length > 0) {
-          filtered = filtered.filter(user => {
-            return nonAreaKeywords.every(keyword => {
-              // 各キーワードは名前、プロフィール、興味、身体情報のいずれかにマッチすればOK
-              const userStr = [
-                user.name,
-                user.bio,
-                ...user.interests,
-                user.age ? user.age.toString() : '不明',
-                user.height ? `${user.height}cm` : '',
-                user.cup ? `${user.cup}カップ` : ''
-              ].join(' ').toLowerCase()
-              
-              return userStr.includes(keyword)
-            })
+        filtered = filtered.filter(user => {
+          return keywords.every(keyword => {
+            // 各キーワードは名前、プロフィール、興味、身体情報、地域のいずれかにマッチすればOK
+            const userStr = [
+              user.name,
+              user.bio,
+              ...user.interests,
+              user.location,
+              user.age ? user.age.toString() : '不明',
+              user.height ? `${user.height}cm` : '',
+              user.cup ? `${user.cup}カップ` : ''
+            ].join(' ').toLowerCase()
+            
+            return userStr.includes(keyword)
           })
-        }
+        })
       }
     }
 
@@ -785,10 +812,10 @@ function AdvancedSearchContent() {
           // 検索クエリとのマッチ度
           if (searchQuery) {
             const query = searchQuery.toLowerCase()
-            if (user.name.toLowerCase().includes(query)) score += 15
-            if (user.bio.toLowerCase().includes(query)) score += 10
-            if (user.location.toLowerCase().includes(query)) score += 8
-            if (user.interests.some(i => i.toLowerCase().includes(query))) score += 5
+            if (user.name && user.name.toLowerCase().includes(query)) score += 15
+            if (user.bio && user.bio.toLowerCase().includes(query)) score += 10
+            if (user.location && user.location.toLowerCase().includes(query)) score += 8
+            if (user.interests && user.interests.some(i => i && i.toLowerCase().includes(query))) score += 5
           }
           
           // 選択されたタグとのマッチ
@@ -806,7 +833,7 @@ function AdvancedSearchContent() {
     
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet])
+  }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*

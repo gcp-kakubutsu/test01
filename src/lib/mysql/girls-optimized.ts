@@ -61,7 +61,8 @@ export async function fetchOptimizedGirls(
       IFNULL(g.hobby, '') as hobby,
       s.id as shop_id,
       s.name as shop_name,
-      COALESCE(p.name, '東京') as location,
+      p.name as location,
+      m.name as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 
@@ -111,7 +112,7 @@ export async function fetchOptimizedGirls(
     cup: row.cup || undefined,
     waist: row.waist || undefined,
     hip: row.hip || undefined,
-    location: row.location || '東京',
+    location: row.municipality ? `${row.location} ${row.municipality}` : row.location,
     bio: row.bio || '',
     interests: parseInterests(row.hobby || ''),
     imageUrl: row.imageUrl || '/img/noimage.jpg',
@@ -174,7 +175,8 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
       IFNULL(COALESCE(g.comment, g.catch_copy), '') as bio,
       IFNULL(g.hobby, '') as hobby,
       s.name as shop_name,
-      COALESCE(p.name, '東京') as location,
+      p.name as location,
+      m.name as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 
@@ -184,6 +186,7 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
+    LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     WHERE g.id IN (${placeholders})
       AND g.is_displayed = 1
       AND g.deleted_at IS NULL
@@ -201,7 +204,7 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     cup: row.cup || undefined,
     waist: row.waist || undefined,
     hip: row.hip || undefined,
-    location: row.location || '東京',
+    location: row.municipality ? `${row.location} ${row.municipality}` : row.location,
     bio: row.bio || '',
     interests: parseInterests(row.hobby || ''),
     imageUrl: row.imageUrl || '/img/noimage.jpg',

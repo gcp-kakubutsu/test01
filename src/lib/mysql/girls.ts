@@ -99,7 +99,7 @@ export async function fetchMySQLGirls(
         IFNULL(g.seikantai, '') as seikantai,
         s.id as shop_id,
         s.name as shop_name,
-        COALESCE(p.name, '東京') as location,
+        p.name as location,
         s.latitude,
         s.longitude
       FROM girl_profiles g
