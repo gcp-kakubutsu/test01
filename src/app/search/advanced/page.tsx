@@ -54,7 +54,8 @@ const personalityTags = [
   '10代', '20代', '30代', '40代', '50代',
   '身長150cm以下', '身長155cm以下', '身長160cm以下',
   '身長151cm以上', '身長165cm以上', '身長170cm以上',
-  'Eカップ以上',
+  'Bカップ未満', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上',
+  'Fカップ以上', 'Gカップ以上', 'Hカップ以上',
   'お酒を飲む人', 'タバコを吸わない人'
 ]
 
@@ -223,7 +224,7 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
   // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長151cm以上', '身長165cm以上', '身長170cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
+  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長151cm以上', '身長165cm以上', '身長170cm以上', 'Bカップ未満', 'Cカップ以上', 'Dカップ以上', 'Eカップ以上', 'Fカップ以上', 'Gカップ以上', 'Hカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
 
   // ユーザーデータ取得とフィルタリング処理
@@ -660,12 +661,30 @@ function AdvancedSearchContent() {
           matchesSpecialTags = true
         }
         
-        // Eカップ以上
-        if (selectedTags.includes('Eカップ以上') && user.cup) {
+        // カップサイズフィルター
+        if (user.cup) {
           const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
           const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
-          const eCupIndex = cupOrder.indexOf('E')
-          if (userCupIndex >= eCupIndex) {
+          
+          if (selectedTags.includes('Bカップ未満') && userCupIndex < cupOrder.indexOf('B')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Cカップ以上') && userCupIndex >= cupOrder.indexOf('C')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Dカップ以上') && userCupIndex >= cupOrder.indexOf('D')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Eカップ以上') && userCupIndex >= cupOrder.indexOf('E')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Fカップ以上') && userCupIndex >= cupOrder.indexOf('F')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Gカップ以上') && userCupIndex >= cupOrder.indexOf('G')) {
+            matchesSpecialTags = true
+          }
+          if (selectedTags.includes('Hカップ以上') && userCupIndex >= cupOrder.indexOf('H')) {
             matchesSpecialTags = true
           }
         }
