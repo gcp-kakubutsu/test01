@@ -41,6 +41,8 @@ export default function MatchingSearch() {
     'Gカップ以上',
     'Hカップ以上',
     'お酒を飲む人',
+    'お酒を飲まない人',
+    'タバコを吸う人',
     'タバコを吸わない人'
   ]
 

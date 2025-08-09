@@ -119,8 +119,8 @@ export async function fetchOptimizedGirls(
     style: undefined,
     isOnline: Math.random() > 0.7,
     lastActive: new Date().toISOString(),
-    is_sake: row.is_sake || false,
-    is_tobacco: row.is_tobacco || false,
+    is_sake: row.is_sake === 1 || row.is_sake === true,
+    is_tobacco: row.is_tobacco === 1 || row.is_tobacco === true,
     shopName: row.shop_name,
     shopId: row.shop_id
   }));
@@ -209,8 +209,8 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     style: undefined,
     isOnline: Math.random() > 0.7,
     lastActive: new Date().toISOString(),
-    is_sake: row.is_sake || false,
-    is_tobacco: row.is_tobacco || false,
+    is_sake: row.is_sake === 1 || row.is_sake === true,
+    is_tobacco: row.is_tobacco === 1 || row.is_tobacco === true,
     shopName: row.shop_name
   }));
 }
