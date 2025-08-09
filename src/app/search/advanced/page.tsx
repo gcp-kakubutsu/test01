@@ -52,7 +52,9 @@ interface UserProfile {
 // 性癖・プレイスタイルのタグ
 const personalityTags = [
   '10代', '20代', '30代', '40代', '50代',
-  '身長150cm以下', '身長151cm以上', 'Eカップ以上',
+  '身長150cm以下', '身長155cm以下', '身長160cm以下',
+  '身長151cm以上', '身長165cm以上', '身長170cm以上',
+  'Eカップ以上',
   'お酒を飲む人', 'タバコを吸わない人'
 ]
 
@@ -221,7 +223,7 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
   // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長151cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
+  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長151cm以上', '身長165cm以上', '身長170cm以上', 'Eカップ以上', 'お酒を飲む人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
 
   // ユーザーデータ取得とフィルタリング処理
@@ -638,13 +640,23 @@ function AdvancedSearchContent() {
           matchesSpecialTags = true
         }
         
-        // 身長150cm以下
+        // 身長フィルター
         if (selectedTags.includes('身長150cm以下') && user.height && user.height <= 150) {
           matchesSpecialTags = true
         }
-        
-        // 身長151cm以上
+        if (selectedTags.includes('身長155cm以下') && user.height && user.height <= 155) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('身長160cm以下') && user.height && user.height <= 160) {
+          matchesSpecialTags = true
+        }
         if (selectedTags.includes('身長151cm以上') && user.height && user.height >= 151) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('身長165cm以上') && user.height && user.height >= 165) {
+          matchesSpecialTags = true
+        }
+        if (selectedTags.includes('身長170cm以上') && user.height && user.height >= 170) {
           matchesSpecialTags = true
         }
         
