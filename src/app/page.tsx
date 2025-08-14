@@ -308,9 +308,13 @@ export default function LandingPage() {
           <div className={styles.aboutContent}>
             <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
               <p className={styles.aboutLead}>
-                あなたの性癖や嗜好に寄り添い、最適なキャストをご案内する
+                あなたの性癖や嗜好に寄り添い、<br className={styles.mobileBreak} />
+                最適なキャストをご案内する
               </p>
-              <h3 className={styles.aboutBrand}>性癖マッチングコンシェルジュ「NUKUNE」</h3>
+              <h3 className={styles.aboutBrand}>
+                <span className={styles.brandLine1}>性癖マッチングコンシェルジュ</span>
+                <span className={styles.brandLine2}>「NUKUNE」</span>
+              </h3>
               
               <div className={styles.aboutSection}>
                 <p>
