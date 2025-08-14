@@ -1,8 +1,91 @@
 md
-# Nukune (Firebase Studio)
+# Nukune (ヌクネ)
 
-これはFirebase Studioで作成されたNext.jsスタータープロジェクトです。
-出会いをサポートするアプリ「Nukune」のプロトタイプです。
+安全で信頼性の高い出会いをサポートするマッチングアプリケーション。Instagram風のUIとAI機能を備えた、日本語対応のモバイルファーストアプリです。
+
+## 技術スタック
+
+### フロントエンド
+- **フレームワーク**: Next.js 15.3.3 (App Router + React Server Components)
+- **UI ライブラリ**: React 18.3.1 + React DOM 18.3.1
+- **スタイリング**: 
+  - Tailwind CSS 3.4.1
+  - shadcn/ui (Radix UI コンポーネント)
+  - Sass 1.89.2
+  - tailwindcss-animate 1.0.7
+- **フォーム管理**: 
+  - react-hook-form 7.54.2
+  - Zod 3.24.2 (バリデーション)
+- **状態管理**: 
+  - React Context API (認証状態)
+  - TanStack Query 5.66.0 (データフェッチング)
+
+### バックエンド & インフラ
+- **BaaS**: Firebase 11.8.1
+  - Firebase Auth (認証)
+  - Firestore (NoSQLデータベース)
+  - Firebase Storage (ファイルストレージ)
+  - Firebase Admin SDK 12.3.0
+- **データベース**: MySQL2 3.14.3 (追加データストア)
+- **ホスティング**: Firebase App Hosting (Cloud Run へのデプロイ)
+- **キャッシュ**: LRU Cache 11.1.0
+
+### AI & 機械学習
+- **AIフレームワーク**: Google Genkit 1.8.0
+- **AI プロバイダー**: Google AI (@genkit-ai/googleai 1.8.0)
+- **Next.js 統合**: @genkit-ai/next 1.8.0
+
+### 開発ツール
+- **言語**: TypeScript 5.x
+- **ビルドツール**: 
+  - Next.js Turbopack (開発サーバー)
+  - PostCSS 8.x
+- **コード品質**:
+  - ESLint 9.30.0 (Next.js設定込み)
+  - TypeScript Compiler (型チェック)
+- **パッケージ管理**: npm
+- **パッチ管理**: patch-package 8.0.0
+
+### UIコンポーネント
+- **Radix UI Components**:
+  - アコーディオン、アラートダイアログ、アバター
+  - チェックボックス、ダイアログ、ドロップダウンメニュー
+  - ラベル、メニューバー、ポップオーバー
+  - プログレスバー、ラジオグループ、スクロールエリア
+  - セレクト、セパレーター、スライダー
+  - スイッチ、タブ、トースト、ツールチップ
+- **アイコン**: Lucide React 0.475.0
+- **チャート**: Recharts 2.15.1
+- **コマンドパレット**: cmdk 1.1.1
+- **カレンダー**: react-day-picker 8.10.1
+
+### ユーティリティ
+- **日付処理**: date-fns 3.6.0
+- **クラス名管理**: 
+  - clsx 2.1.1
+  - class-variance-authority 0.7.1
+  - tailwind-merge 3.0.1
+- **JWT処理**: jsonwebtoken 9.0.2
+- **環境変数管理**: dotenv 16.6.1
+
+### セキュリティ & パフォーマンス
+- **セキュリティヘッダー**: 
+  - Content Security Policy
+  - Strict Transport Security
+  - X-Frame-Options, X-Content-Type-Options
+- **画像最適化**: Next.js Image Optimization
+- **キャッシング戦略**: 
+  - CDN キャッシング
+  - Stale-While-Revalidate
+- **バンドル最適化**: optimizePackageImports
+
+### 開発環境
+- **Node.js**: 推奨バージョン 18.x 以上
+- **開発ポート**: 9002 (デフォルトの3000ではなく)
+- **TypeScript設定**: 
+  - ES2017 ターゲット
+  - Strict モード有効
+  - パスエイリアス: @/* → src/*
 
 ## はじめに
 
