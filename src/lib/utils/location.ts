@@ -1,4 +1,5 @@
 // 位置情報関連のユーティリティ関数
+import { clientGeocodeCache } from '@/lib/client-geocode-cache';
 
 export interface LocationCoordinates {
   lat: number;
@@ -50,8 +51,8 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 
     const options = {
       enableHighAccuracy: true, // 高精度モードを有効化
-      timeout: 30000, // 30秒に延長（モバイルでより正確な位置取得のため）
-      maximumAge: 0 // キャッシュを使用せず、常に最新の位置情報を取得
+      timeout: 10000, // 10秒のタイムアウト（速度重視）
+      maximumAge: 60000 // 1分間のキャッシュを許可（速度向上のため）
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -109,6 +110,17 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 // リバースジオコーディング（APIルート経由）
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
+    // Check client-side cache first
+    const cached = clientGeocodeCache.get(lat, lng);
+    if (cached && cached.address) {
+      console.log('Using client-side cached geocode');
+      return cached.address;
+    }
+    
+    // AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒タイムアウト
+    
     // Next.js APIルートを経由してジオコーディング
     const response = await fetch('/api/geocode', {
       method: 'POST',
@@ -116,7 +128,10 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ lat, lng }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error('Geocoding API failed');
@@ -124,13 +139,25 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
     const data = await response.json();
     
-    
     if (data.error) {
       throw new Error(data.error);
     }
+    
+    // Cache the result on client-side
+    if (data.address) {
+      clientGeocodeCache.set(lat, lng, data);
+    }
 
     return data.address || '詳細な住所を取得できませんでした';
-  } catch (error) {
+  } catch (error: any) {
+    // タイムアウトの場合は即座にフォールバック
+    if (error.name === 'AbortError') {
+      console.log('Geocoding timeout, using fallback');
+      const fallbackAddress = getNearestLocationName(lat, lng);
+      // Cache the fallback result
+      clientGeocodeCache.set(lat, lng, { address: fallbackAddress, fallback: true });
+      return fallbackAddress;
+    }
     throw error;
   }
 }
