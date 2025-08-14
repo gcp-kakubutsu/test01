@@ -123,6 +123,7 @@ function AdvancedSearchContent() {
 
   // Filters
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([])
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedTime, setSelectedTime] = useState('now')
   const [ageRange, setAgeRange] = useState([18, 50])
@@ -152,12 +153,14 @@ function AdvancedSearchContent() {
     if (!isInitialLoad) return;
     
     const tags = searchParams.get('tags')
+    const girlTypes = searchParams.get('girlTypes')
     const location = searchParams.get('location')
     const time = searchParams.get('time')
     const quick = searchParams.get('quick')
     const q = searchParams.get('q')
     
     if (tags) setSelectedTags(tags.split(','))
+    if (girlTypes) setSelectedGirlTypes(girlTypes.split(','))
     if (location) {
       setLocationFromParam(location)
       // locationパラメータが来た場合、検索クエリとして設定
@@ -319,6 +322,10 @@ function AdvancedSearchContent() {
       
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
         apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
+      }
+      
+      if (selectedGirlTypes.length > 0) {
+        apiUrl += `&girlTypes=${encodeURIComponent(selectedGirlTypes.join(','))}`
       }
       
       // Try optimized API first, fallback to regular API if it fails

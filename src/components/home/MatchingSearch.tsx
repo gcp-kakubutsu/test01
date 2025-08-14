@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock, User, Ruler, Heart } from 'lucide-react'
+import { Search, MapPin, Clock, User, Ruler, Heart, Sparkles } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { MultiSelect, type Option } from '@/components/ui/multi-select'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
 import { useToast } from '@/hooks/use-toast'
 import styles from './MatchingSearch.module.scss'
@@ -26,6 +27,8 @@ export default function MatchingSearch() {
   const [selectedBust, setSelectedBust] = useState<string>('')
   const [selectedDrinking, setSelectedDrinking] = useState<string>('')
   const [selectedSmoking, setSelectedSmoking] = useState<string>('')
+  const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([])
+  const [girlTypeOptions, setGirlTypeOptions] = useState<Option[]>([])
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -43,6 +46,28 @@ export default function MatchingSearch() {
     '1時間以内',
     '今夜'
   ]
+
+  // Fetch girl types on component mount
+  useEffect(() => {
+    const fetchGirlTypes = async () => {
+      try {
+        const response = await fetch('/api/girl-types')
+        const data = await response.json()
+        
+        // Convert to options format for multi-select
+        const options: Option[] = data.allTypes.map((type: any) => ({
+          value: type.id.toString(),
+          label: type.name
+        }))
+        
+        setGirlTypeOptions(options)
+      } catch (error) {
+        console.error('Failed to fetch girl types:', error)
+      }
+    }
+    
+    fetchGirlTypes()
+  }, [])
 
 
   const handleGetCurrentLocation = async () => {
@@ -103,6 +128,10 @@ export default function MatchingSearch() {
     
     if (selectedTags.length > 0) {
       params.append('tags', selectedTags.join(','))
+    }
+    
+    if (selectedGirlTypes.length > 0) {
+      params.append('girlTypes', selectedGirlTypes.join(','))
     }
     
     if (location) {
@@ -259,6 +288,22 @@ export default function MatchingSearch() {
               </Select>
             </div>
           </div>
+        </div>
+
+        {/* Girl types multi-select */}
+        <div className="mb-6">
+          <Label className="flex items-center gap-1 text-sm font-medium mb-2">
+            <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+            <span>タイプで絞り込み（複数選択可）</span>
+          </Label>
+          <MultiSelect
+            options={girlTypeOptions}
+            selected={selectedGirlTypes}
+            onChange={setSelectedGirlTypes}
+            placeholder="明るい、癒し系、巨乳など..."
+            className="rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50"
+            maxDisplay={5}
+          />
         </div>
 
         {/* Search input */}

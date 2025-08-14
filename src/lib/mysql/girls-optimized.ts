@@ -17,11 +17,13 @@ export async function fetchOptimizedGirls(
   offset: number = 0,
   area?: string | null,
   ageMin: number = 18,
-  ageMax: number = 50
+  ageMax: number = 50,
+  girlTypes?: string[] | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // Generate cache key based on parameters
-  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}`;
-  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}`;
+  const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
+  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
+  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
   
   // Build optimized WHERE clause
   let whereConditions = [
@@ -71,6 +73,21 @@ export async function fetchOptimizedGirls(
     );
   }
   
+  // Add girl types filtering if specified
+  let girlTypesJoin = '';
+  if (girlTypes && girlTypes.length > 0) {
+    const girlTypeIds = girlTypes.map(id => parseInt(id)).filter(id => !isNaN(id));
+    if (girlTypeIds.length > 0) {
+      girlTypesJoin = `
+        INNER JOIN (
+          SELECT DISTINCT girl_profile_id 
+          FROM girl_status 
+          WHERE girl_types_id IN (${girlTypeIds.join(',')})
+        ) gs ON g.id = gs.girl_profile_id
+      `;
+    }
+  }
+  
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
   
   // Optimized query with reduced columns and better joins
@@ -102,6 +119,7 @@ export async function fetchOptimizedGirls(
       ) as imageUrl
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
+    ${girlTypesJoin}
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
     LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     ${whereClause}
@@ -114,6 +132,7 @@ export async function fetchOptimizedGirls(
     SELECT COUNT(*) as total
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
+    ${girlTypesJoin}
     ${area && area !== 'all' ? 'LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id' : ''}
     ${area && area !== 'all' ? 'LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id' : ''}
     ${whereClause}
@@ -183,16 +202,18 @@ export async function prefetchNextPage(
   limitCount: number = 200,
   area?: string | null,
   ageMin: number = 18,
-  ageMax: number = 50
+  ageMax: number = 50,
+  girlTypes?: string[] | null
 ): Promise<void> {
   const nextOffset = currentOffset + limitCount;
-  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}`;
+  const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
+  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes);
     }, 100);
   }
 }
