@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // Variables - Dark theme
 $primary-dark: #111827;
 $accent-burgundy: #F0306A;
@@ -334,16 +336,154 @@ $border-color-light: #E5E7EB;
 .aboutText {
   p {
     line-height: 1.8;
-    color: #e5e5e5;
+    color: $text-gray;
     margin-bottom: 1rem;
     font-size: 1.1rem;
+    
+    :global(.light) & {
+      color: #4B5563;
+    }
+    
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+  
+  strong {
+    color: $accent-burgundy;
+    font-weight: 600;
+    
+    :global(.light) & {
+      color: $accent-burgundy;
+    }
+  }
+  
+}
+
+.aboutLead {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: rgba($text-gray, 0.9);
+  margin-bottom: 0.5rem;
+  
+  :global(.light) & {
+    color: rgba(#4B5563, 0.9);
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+}
+
+.aboutBrand {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, $accent-gold, color.adjust($accent-gold, $lightness: 15%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 2.5rem;
+  letter-spacing: 0.05em;
+  
+  :global(.light) & {
+    background: linear-gradient(135deg, color.adjust($accent-gold, $lightness: -10%), $accent-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+  }
+}
+
+.aboutSection {
+  margin-bottom: 2rem;
+  
+  p {
+    line-height: 1.8;
+    color: $text-gray;
+    margin-bottom: 1rem;
+    
+    :global(.light) & {
+      color: #4B5563;
+    }
+  }
+}
+
+.aboutFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 2.5rem 0;
+  
+  .featureItem {
+    padding-left: 1.5rem;
+    border-left: 2px solid rgba($accent-gold, 0.3);
+    
+    p {
+      line-height: 1.7;
+      color: $text-light;
+      margin: 0;
+      
+      :global(.light) & {
+        color: $text-dark;
+      }
+    }
+  }
+}
+
+.ageNotice {
+  background: rgba($accent-burgundy, 0.1);
+  border: 1px solid rgba($accent-burgundy, 0.3);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+  
+  p {
+    color: $accent-burgundy;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+    
+    :global(.light) & {
+      color: $accent-burgundy;
+    }
+  }
+}
+
+.aboutTagline {
+  margin-top: 3rem;
+  text-align: center;
+  
+  p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: $text-light;
+    margin-bottom: 0.5rem;
     
     :global(.light) & {
       color: $text-dark;
     }
     
     @media (max-width: 768px) {
-      font-size: 1rem;
+      font-size: 1.05rem;
+    }
+  }
+  
+  .brandStatement {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: $accent-gold;
+    letter-spacing: 0.1em;
+    
+    :global(.light) & {
+      color: color.adjust($accent-gold, $lightness: -10%);
+    }
+    
+    @media (max-width: 768px) {
+      font-size: 1.2rem;
     }
   }
 }
@@ -366,13 +506,13 @@ $border-color-light: #E5E7EB;
 
 .aboutProblem {
   font-size: 1.15rem;
-  color: #F0306A;
+  color: $text-gray;
   font-weight: 500;
   line-height: 1.8;
   margin-bottom: 1rem;
   
   :global(.light) & {
-    color: $accent-burgundy;
+    color: #4B5563;
   }
   
   @media (max-width: 768px) {

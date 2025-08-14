@@ -304,17 +304,40 @@ export default function LandingPage() {
       {/* About Section */}
       <section className={`${styles.section} ${styles.about}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>Nukuneとは？</h2>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>NUKUNEとは</h2>
           <div className={styles.aboutContent}>
             <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
-              <h3 className={styles.aboutSubtitle}>従来の風俗ポータルサイトの問題点</h3>
-              <p className={styles.aboutProblem}>「写真と実物が違った」「自分の好みを理解してもらえなかった」「プレイスタイルが合わなかった」</p>
-              <p>このような失敗経験はありませんか？従来のサイトでは、表面的な情報だけで選ぶしかなく、本当の相性は会ってみるまでわかりませんでした。</p>
-              <br />
-              <h3 className={styles.aboutSubtitle}>Nukuneが提供する革新的な解決策</h3>
-              <p>AIマッチング技術により、あなたの性癖・好み・プレイスタイルを詳細に分析。本当に相性の良い女性だけを厳選してご紹介します。</p>
-              <br />
-              <p>もう「思っていたのと違った」という失敗はありません。事前に相性度がわかるから、安心して理想の出会いを実現できます。</p>
+              <p className={styles.aboutLead}>
+                あなたの性癖や嗜好に寄り添い、最適なキャストをご案内する
+              </p>
+              <h3 className={styles.aboutBrand}>性癖マッチングコンシェルジュ「NUKUNE」</h3>
+              
+              <div className={styles.aboutSection}>
+                <p>
+                  インターネット異性紹介事業（届出受理番号 54250003000）として、法令を遵守し、安全・安心な出会いの場を提供しています。
+                </p>
+                <p>
+                  大手風俗情報サイトと提携し、当日案内可能なキャスト情報をリアルタイムでお届けします。
+                </p>
+              </div>
+              
+              <div className={styles.aboutFeatures}>
+                <div className={styles.featureItem}>
+                  <p>現在地からのGPS検索で、近くの相性ぴったりなキャストをご提案</p>
+                </div>
+                <div className={styles.featureItem}>
+                  <p>気になるキャストがいれば、ニックネームでリクエストするだけで、提携先経由で予約まで完結</p>
+                </div>
+              </div>
+              
+              <div className={styles.ageNotice}>
+                <p>NUKUNEは18歳未満の方はご利用いただけません。</p>
+              </div>
+              
+              <div className={styles.aboutTagline}>
+                <p>あなたの特別な時間を演出する、信頼できるパートナー。</p>
+                <p className={styles.brandStatement}>それがNUKUNEです。</p>
+              </div>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
               <Image src="/img/woman.jpeg" alt="高級感のある大人の出会い" width={600} height={400} />
