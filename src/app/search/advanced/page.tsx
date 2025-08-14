@@ -19,6 +19,7 @@ import { Heart, MessageCircle, MapPin, Clock, Filter, Grid3x3, List, Search, Che
 import { sendLike } from '@/lib/firebase/actions'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location'
+import { getLocationCoordinates } from '@/lib/utils/japanLocations'
 import { useUserProfile } from '@/lib/firebase/hooks'
 import { useSubscription } from '@/hooks/useSubscription'
 import Image from 'next/image'
@@ -143,9 +144,13 @@ function AdvancedSearchContent() {
   // locationパラメータから座標を取得
   const [locationFromParam, setLocationFromParam] = useState<string>('')
   const [locationCoordinates, setLocationCoordinates] = useState<LocationCoordinates | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [userSelectedArea, setUserSelectedArea] = useState(false) // ユーザーが手動でエリアを選択したか
   
-  // 初期パラメータの読み込み
+  // 初期パラメータの読み込み（初回のみ）
   useEffect(() => {
+    if (!isInitialLoad) return;
+    
     const tags = searchParams.get('tags')
     const location = searchParams.get('location')
     const time = searchParams.get('time')
@@ -155,41 +160,35 @@ function AdvancedSearchContent() {
     if (tags) setSelectedTags(tags.split(','))
     if (location) {
       setLocationFromParam(location)
-      // locationパラメータが来た場合、座標を取得
-      // まずはキーワードとして検索クエリに設定
+      // locationパラメータが来た場合、検索クエリとして設定
       setSearchQuery(location)
       setSearchQueryInput(location)
-      
-      // 座標を取得するためにジオコーディングAPIを呼び出す
-      fetch('/api/geocode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: location })
-      }).then(res => res.json()).then(data => {
-        if (data.coordinates) {
-          setLocationCoordinates(data.coordinates)
-          setUserLocation(data.coordinates) // ユーザーの位置として設定
-        }
-      }).catch(err => console.error('座標取得エラー:', err))
+      // エリア選択をallにリセット（キーワード検索で処理）
+      setSelectedArea('all')
     }
     if (time) setSelectedTime(time)
     if (quick === 'true') setPrioritizeQuickMeet(true)
-    if (q && !location) { // locationがある場合はqを上書きしない
+    if (q && !location) {
       setSearchQuery(q)
       setSearchQueryInput(q)
     }
-  }, [searchParams])
+    
+    setIsInitialLoad(false)
+  }, [searchParams, isInitialLoad])
 
-  // 位置情報取得
+  // 位置情報取得（初回のみ）
   useEffect(() => {
     const getLocation = async () => {
+      // locationパラメータがある場合はGPS取得をスキップ
+      if (locationFromParam) return;
+      
       const locationInfo = await getCurrentLocation()
       if (locationInfo.coordinates) {
         setUserLocation(locationInfo.coordinates)
       }
     }
     getLocation()
-  }, [])
+  }, [locationFromParam])
 
   // エリアデータ取得
   useEffect(() => {
@@ -207,45 +206,7 @@ function AdvancedSearchContent() {
     fetchAreas()
   }, [])
   
-  // エリアデータ取得後、locationパラメータに対応するエリアを設定
-  useEffect(() => {
-    // locationパラメータがある場合はエリアフィルターを使わない（キーワード検索で処理）
-    if (locationFromParam) {
-      // エリアフィルターを'all'に設定して、キーワード検索で地域を絞り込む
-      setSelectedArea('all')
-      setAreaInitialized(true)
-      return
-    }
-    
-    if (areas.prefectures.length > 0 && !areaInitialized) {
-      const location = searchParams.get('location')
-      if (location && !locationFromParam) {
-        const prefectureNames = areas.prefectures.map(p => p.prefecture_name)
-        const normalizedLocation = normalizeLocationName(location, prefectureNames)
-        
-        // 都道府県から探す
-        const matchedPrefecture = areas.prefectures.find((p: AreaData) => 
-          p.prefecture_name === normalizedLocation
-        )
-        
-        if (matchedPrefecture) {
-          setSelectedArea(matchedPrefecture.prefecture_name)
-          setAreaInitialized(true)
-        } else {
-          // 市区町村から探す
-          const matchedMunicipality = areas.municipalities.find((m: AreaData) => 
-            m.full_name?.includes(normalizedLocation) || 
-            m.municipality_name?.includes(normalizedLocation)
-          )
-          
-          if (matchedMunicipality) {
-            setSelectedArea(matchedMunicipality.full_name || '')
-            setAreaInitialized(true)
-          }
-        }
-      }
-    }
-  }, [areas, searchParams, areaInitialized, locationFromParam])
+  // エリアデータ取得後の初期化（削除）
 
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
@@ -257,11 +218,6 @@ function AdvancedSearchContent() {
   const fetchFilteredUsers = useCallback(async () => {
     try {
       setLoading(true)
-      
-      // 新しいデータを取得する前に、既存のデータをクリア
-      setUsers([])
-      setFilteredUsers([])
-      setFilteredTotalCount(0)
       
       // locationパラメータがある場合はエリアフィルターをスキップ
       if (!locationFromParam && selectedArea && selectedArea !== 'all') {
@@ -321,7 +277,8 @@ function AdvancedSearchContent() {
       const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch || isLocationKeywordSearch
       
       // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）を最優先
-      const effectiveArea = searchAreaName || (selectedArea !== 'all' ? selectedArea : null)
+      // ユーザーがエリアを選択した場合はそちらを優先
+      const effectiveArea = userSelectedArea && selectedArea !== 'all' ? selectedArea : searchAreaName
       
       // 地域フィルターがサーバーサイドで適用されているかを記録
       setLocationFilteredServerSide(!!searchAreaName)
@@ -340,15 +297,14 @@ function AdvancedSearchContent() {
       // Use optimized API endpoint
       let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
       
-      // locationパラメータがある場合はエリアフィルターを使わない
-      if (!locationFromParam && effectiveArea) {
+      // エリアフィルターを適用（ユーザーが選択した場合はそちらを優先）
+      if (effectiveArea) {
         apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
       }
       
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
         apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
       }
-      console.log('⚡ Fetching from optimized API:', apiUrl)
       
       // Try optimized API first, fallback to regular API if it fails
       let response: Response | null = null
@@ -364,11 +320,9 @@ function AdvancedSearchContent() {
         
         data = await response.json()
       } catch (error) {
-        console.warn('Optimized API failed, falling back to regular API:', error)
         
         // Fallback to regular API endpoint
         const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls')
-        console.log('Using fallback API:', fallbackUrl)
         
         try {
           response = await fetch(fallbackUrl)
@@ -379,7 +333,6 @@ function AdvancedSearchContent() {
           
           data = await response.json()
         } catch (fallbackError) {
-          console.error('Fallback API also failed:', fallbackError)
           // Continue with empty data rather than throwing
           data = { girls: [], total: 0 }
           setFilteredUsers([])
@@ -391,7 +344,6 @@ function AdvancedSearchContent() {
       
       // Data is already parsed in the try-catch block above
       if (!data) {
-        console.error('No data received')
         setFilteredUsers([])
         setFilteredTotalCount(0)
         setLoading(false)
@@ -401,17 +353,44 @@ function AdvancedSearchContent() {
       const mappedUsers: UserProfile[] = data.girls.map((user: any) => {
         // ユーザーの位置情報があり、店舗の位置情報がある場合は距離を計算
         let distance: number | undefined;
-        if (userLocation && user.latitude && user.longitude) {
-          // Haversine formulaで距離を計算
-          const R = 6371; // 地球の半径（km）
-          const dLat = (user.latitude - userLocation.lat) * Math.PI / 180;
-          const dLng = (user.longitude - userLocation.lng) * Math.PI / 180;
-          const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.latitude * Math.PI / 180) * 
-            Math.sin(dLng/2) * Math.sin(dLng/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          distance = R * c;
+        if (userLocation) {
+          // 店舗の座標がある場合
+          if (user.shop?.latitude && user.shop?.longitude) {
+            const R = 6371; // 地球の半径（km）
+            const dLat = (user.shop.latitude - userLocation.lat) * Math.PI / 180;
+            const dLng = (user.shop.longitude - userLocation.lng) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.shop.latitude * Math.PI / 180) * 
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distance = R * c;
+          } else if (user.latitude && user.longitude) {
+            // 互換性のために直接座標もチェック
+            const R = 6371;
+            const dLat = (user.latitude - userLocation.lat) * Math.PI / 180;
+            const dLng = (user.longitude - userLocation.lng) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.latitude * Math.PI / 180) * 
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distance = R * c;
+          } else if (user.location) {
+            // 座標がない場合、地域名から概算座標を取得
+            const coords = getLocationCoordinates(user.location);
+            if (coords) {
+              const R = 6371;
+              const dLat = (coords.lat - userLocation.lat) * Math.PI / 180;
+              const dLng = (coords.lng - userLocation.lng) * Math.PI / 180;
+              const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(coords.lat * Math.PI / 180) * 
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              distance = R * c;
+            }
+          }
         }
         
         return {
@@ -441,15 +420,9 @@ function AdvancedSearchContent() {
       setTotalCount(data.total || 0)
       setUsers(mappedUsers)
       
-      // デバッグ: エリアフィルタリングの結果を確認
-      console.log('Fetched users count:', mappedUsers.length)
-      console.log('Total count from API:', data.total)
-      console.log('Selected area:', selectedArea)
-      
       // APIから返されたデータが0件の場合は、確実に空の配列を設定
       if (mappedUsers.length === 0 || data.total === 0) {
-        console.log('No users found for the selected area')
-        setUsers([])  // usersも空にする
+        setUsers([])
         setFilteredUsers([])
         setFilteredTotalCount(0)
       } else {
@@ -495,24 +468,23 @@ function AdvancedSearchContent() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, areas, toast, locationFromParam, userLocation])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam])
 
+  // データ取得のタイミングを制御
   useEffect(() => {
-    // Skip initial fetch if areas haven't loaded yet (unless no keyword search)
-    const hasLocationKeyword = searchQuery && (
-      searchQuery.includes('区') || 
-      searchQuery.includes('市') || 
-      searchQuery.includes('町') || 
-      searchQuery.includes('村')
-    )
+    // 初回ロードが完了していない場合はスキップ
+    if (isInitialLoad) return;
     
-    // Only wait for areas if we have a location keyword search
-    if (hasLocationKeyword && areas.prefectures.length === 0 && areas.municipalities.length === 0) {
-      return
-    }
+    // エリアデータが読み込まれていない場合はスキップ
+    if (areas.prefectures.length === 0) return;
     
-    fetchFilteredUsers()
-  }, [fetchFilteredUsers])
+    // デバウンスしてデータ取得
+    const timer = setTimeout(() => {
+      fetchFilteredUsers();
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [currentPage, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*
@@ -909,14 +881,7 @@ function AdvancedSearchContent() {
     setCurrentPage(1)
   }, [searchQuery, selectedTags, selectedArea, selectedStyles, sortBy, prioritizeQuickMeet])
   
-  // エリア変更時は即座にデータをクリア
-  useEffect(() => {
-    console.log('Area changed to:', selectedArea)
-    // エリアが変更されたら、即座に表示をクリア
-    setUsers([])
-    setFilteredUsers([])
-    setFilteredTotalCount(0)
-  }, [selectedArea])
+  // エリア変更時の処理（削除）
   
   // 年齢変更は別途処理（ページリセットしない）
   useEffect(() => {
@@ -1092,6 +1057,12 @@ function AdvancedSearchContent() {
                         value={prefecture.prefecture_name}
                         onSelect={(currentValue: string) => {
                           setSelectedArea(currentValue)
+                          setUserSelectedArea(true) // ユーザーが手動で選択
+                          // エリアを選択したら検索クエリをクリア
+                          if (locationFromParam) {
+                            setSearchQuery('')
+                            setSearchQueryInput('')
+                          }
                           setOpenAreaPopover(false)
                         }}
                         className={prefecture.girl_count === 0 ? "opacity-50" : ""}
@@ -1125,6 +1096,12 @@ function AdvancedSearchContent() {
                         onSelect={(currentValue: string) => {
                           // 市区町村名だけを送信（"東京 渋谷区"の場合は"渋谷区"だけ）
                           setSelectedArea(municipality.municipality_name || currentValue)
+                          setUserSelectedArea(true) // ユーザーが手動で選択
+                          // エリアを選択したら検索クエリをクリア
+                          if (locationFromParam) {
+                            setSearchQuery('')
+                            setSearchQueryInput('')
+                          }
                           setOpenAreaPopover(false)
                         }}
                         className="font-medium"
@@ -1177,6 +1154,12 @@ function AdvancedSearchContent() {
                         value="all"
                         onSelect={() => {
                           setSelectedArea('all')
+                          setUserSelectedArea(false) // 全エリアに戻した場合
+                          // locationパラメータがある場合は検索クエリに戻す
+                          if (locationFromParam) {
+                            setSearchQuery(locationFromParam)
+                            setSearchQueryInput(locationFromParam)
+                          }
                           setOpenAreaPopover(false)
                         }}
                       >
@@ -1201,6 +1184,12 @@ function AdvancedSearchContent() {
                             value={prefecture.prefecture_name}
                             onSelect={(currentValue: string) => {
                               setSelectedArea(currentValue)
+                              setUserSelectedArea(true) // ユーザーが手動で選択
+                              // エリアを選択したら検索クエリをクリア
+                              if (locationFromParam) {
+                                setSearchQuery('')
+                                setSearchQueryInput('')
+                              }
                               setOpenAreaPopover(false)
                             }}
                             className="font-medium"
@@ -1228,6 +1217,12 @@ function AdvancedSearchContent() {
                             value={prefecture.prefecture_name}
                             onSelect={(currentValue: string) => {
                               setSelectedArea(currentValue)
+                              setUserSelectedArea(true) // ユーザーが手動で選択
+                              // エリアを選択したら検索クエリをクリア
+                              if (locationFromParam) {
+                                setSearchQuery('')
+                                setSearchQueryInput('')
+                              }
                               setOpenAreaPopover(false)
                             }}
                             className={prefecture.girl_count === 0 ? "opacity-50" : ""}
@@ -1261,6 +1256,12 @@ function AdvancedSearchContent() {
                             onSelect={(currentValue: string) => {
                               // 市区町村名だけを送信（"東京 渋谷区"の場合は"渋谷区"だけ）
                               setSelectedArea(municipality.municipality_name || currentValue)
+                              setUserSelectedArea(true) // ユーザーが手動で選択
+                              // エリアを選択したら検索クエリをクリア
+                              if (locationFromParam) {
+                                setSearchQuery('')
+                                setSearchQueryInput('')
+                              }
                               setOpenAreaPopover(false)
                             }}
                             className="font-medium"
