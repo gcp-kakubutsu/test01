@@ -49,9 +49,9 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
     }
 
     const options = {
-      enableHighAccuracy: true,
-      timeout: 15000, // 15秒に延長
-      maximumAge: 300000 // 5分間キャッシュ
+      enableHighAccuracy: true, // 高精度モードを有効化
+      timeout: 20000, // 20秒に延長（より正確な位置取得のため）
+      maximumAge: 60000 // 1分間キャッシュ（より新鮮な位置情報を取得）
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -70,13 +70,19 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
         // リバースジオコーディングで住所を取得
         try {
           const address = await reverseGeocode(coordinates.lat, coordinates.lng);
+          console.log('取得した住所:', address);
           resolve({
             coordinates,
             address
           });
         } catch (error) {
-          // ジオコーディングが失敗しても座標は返す
-          resolve({ coordinates });
+          console.error('住所取得エラー:', error);
+          // ジオコーディングが失敗しても座標と最寄りの地域名は返す
+          const nearestLocation = getNearestLocationName(coordinates.lat, coordinates.lng);
+          resolve({ 
+            coordinates,
+            address: nearestLocation
+          });
         }
       },
       (error) => {
@@ -107,61 +113,34 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
   });
 }
 
-// リバースジオコーディング（無料のNominatim APIを使用）
+// リバースジオコーディング（APIルート経由）
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja&zoom=18`,
-      {
-        headers: {
-          'User-Agent': 'Nukune Dating App'
-        }
-      }
-    );
+    // Next.js APIルートを経由してジオコーディング
+    const response = await fetch('/api/geocode', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ lat, lng }),
+    });
 
     if (!response.ok) {
-      throw new Error('Geocoding failed');
+      throw new Error('Geocoding API failed');
     }
 
     const data = await response.json();
+    
+    // デバッグ用に生データをログ出力
+    if (data.raw) {
+      console.log('ジオコーディング結果:', data.raw);
+    }
     
     if (data.error) {
       throw new Error(data.error);
     }
 
-    // 住所の詳細度を調整
-    const addressParts = [];
-    
-    // 地域レベルの情報を優先的に表示
-    if (data.address) {
-      if (data.address.city || data.address.town || data.address.village) {
-        addressParts.push(data.address.city || data.address.town || data.address.village);
-      } else if (data.address.suburb || data.address.neighbourhood) {
-        addressParts.push(data.address.suburb || data.address.neighbourhood);
-      }
-      
-      if (data.address.county) {
-        addressParts.push(data.address.county);
-      }
-      
-      if (data.address.state || data.address.province) {
-        addressParts.push(data.address.state || data.address.province);
-      }
-    }
-
-    // 何も取得できない場合は表示名を使用
-    if (addressParts.length === 0 && data.display_name) {
-      // 表示名から最初の2つの要素を取得
-      const displayParts = data.display_name.split(',');
-      if (displayParts.length > 0) {
-        addressParts.push(displayParts[0].trim());
-        if (displayParts.length > 1) {
-          addressParts.push(displayParts[1].trim());
-        }
-      }
-    }
-
-    return addressParts.join(', ') || '詳細な住所を取得できませんでした';
+    return data.address || '詳細な住所を取得できませんでした';
   } catch (error) {
     console.warn('リバースジオコーディングエラー:', error);
     throw error;
