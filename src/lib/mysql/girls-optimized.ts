@@ -36,9 +36,38 @@ export async function fetchOptimizedGirls(
     const escapedArea = area.replace(/'/g, "''");
     console.log('🔍 Searching for area:', area);
     console.log('🔍 Age range:', ageMin, '-', ageMax);
+    console.log('🔍 Limit:', limitCount, 'Offset:', offset);
+    
+    // エリア名の正規化（都道府県名のみの場合と市区町村を含む場合に対応）
+    const areaConditions = [];
+    
+    // 都道府県名の完全一致
+    areaConditions.push(`p.name = '${escapedArea}'`);
+    
+    // 市区町村名の完全一致
+    areaConditions.push(`m.name = '${escapedArea}'`);
+    
+    // 都道府県+市区町村の組み合わせ
+    areaConditions.push(`CONCAT(IFNULL(p.name, ''), ' ', IFNULL(m.name, '')) = '${escapedArea}'`);
+    
+    // 都府県の接尾辞を柔軟に処理
+    const suffixPattern = /[都府県]$/;
+    if (suffixPattern.test(escapedArea)) {
+      // 接尾辞を除いた形でも検索
+      const withoutSuffix = escapedArea.replace(suffixPattern, '');
+      areaConditions.push(`p.name LIKE '${withoutSuffix}%'`);
+      // 接尾辞なしの完全一致も追加
+      areaConditions.push(`p.name = '${withoutSuffix}'`);
+    } else {
+      // 接尾辞がない場合は、接尾辞付きの形も検索
+      areaConditions.push(`p.name LIKE '${escapedArea}%'`);
+      areaConditions.push(`p.name = '${escapedArea}都'`);
+      areaConditions.push(`p.name = '${escapedArea}府'`);
+      areaConditions.push(`p.name = '${escapedArea}県'`);
+    }
     
     whereConditions.push(
-      `(p.name = '${escapedArea}' OR m.name = '${escapedArea}' OR CONCAT(IFNULL(p.name, ''), ' ', IFNULL(m.name, '')) = '${escapedArea}')`
+      `(${areaConditions.join(' OR ')})`
     );
   }
   
@@ -90,16 +119,22 @@ export async function fetchOptimizedGirls(
     ${whereClause}
   `;
   
-  // Debug: Log the actual query
-  console.log('🔍 Executing query for area:', area);
-  console.log('📝 WHERE clause:', whereClause);
-  console.log('📝 Full girls query:', girlsQuery);
-  console.log('📝 Count query:', countQuery);
+  // Debug: Log the actual query (詳細なログ出力)
+  if (area && area !== 'all') {
+    console.log('🔍 Executing query for area:', area);
+    console.log('📝 WHERE clause:', whereClause);
+    console.log('📊 Query parameters:', { limitCount, offset, ageMin, ageMax });
+  }
   
   // Execute both queries in parallel with caching
+  // モバイルの場合はキャッシュTTLを短くする
+  const isMobileRequest = limitCount === 1000 && area && area.includes('都');
+  const girlsCacheTTL = isMobileRequest ? 30000 : 60000; // モバイルは30秒、PCは1分
+  const countCacheTTL = isMobileRequest ? 60000 : 300000; // モバイルは1分、PCは5分
+  
   const [girlsResult, countResult] = await Promise.all([
-    cachedQuery<any>(girlsQuery, [], cacheKey, 60000), // Cache for 1 minute
-    cachedQuery<any>(countQuery, [], countCacheKey, 300000) // Cache count for 5 minutes
+    cachedQuery<any>(girlsQuery, [], cacheKey, girlsCacheTTL),
+    cachedQuery<any>(countQuery, [], countCacheKey, countCacheTTL)
   ]);
   
   console.log(`📊 Area: ${area}, Found: ${girlsResult.length} girls, Total: ${countResult[0]?.total || 0}`);

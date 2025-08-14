@@ -50,8 +50,8 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 
     const options = {
       enableHighAccuracy: true, // 高精度モードを有効化
-      timeout: 20000, // 20秒に延長（より正確な位置取得のため）
-      maximumAge: 60000 // 1分間キャッシュ（より新鮮な位置情報を取得）
+      timeout: 30000, // 30秒に延長（モバイルでより正確な位置取得のため）
+      maximumAge: 0 // キャッシュを使用せず、常に最新の位置情報を取得
     };
 
     navigator.geolocation.getCurrentPosition(

@@ -86,7 +86,8 @@ export async function cachedQuery<T = any>(
     if (cached) {
       const duration = performance.now() - startTime;
       recordMetrics(sql, duration, true);
-      console.log(`Cache hit for ${cacheKey}: ${duration.toFixed(2)}ms`);
+      const resultCount = Array.isArray(cached) ? cached.length : 0;
+      console.log(`Cache hit for ${cacheKey}: ${duration.toFixed(2)}ms (${resultCount} results)`);
       return cached as T[];
     }
   }
@@ -112,7 +113,8 @@ export async function cachedQuery<T = any>(
     
     const duration = performance.now() - startTime;
     recordMetrics(sql, duration, false);
-    console.log(`Query executed in ${duration.toFixed(2)}ms`);
+    const resultCount = Array.isArray(result) ? result.length : 0;
+    console.log(`Query executed in ${duration.toFixed(2)}ms (${resultCount} results)`);
     
     return result;
   } catch (error) {

@@ -278,7 +278,17 @@ function AdvancedSearchContent() {
       
       // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）を最優先
       // ユーザーがエリアを選択した場合はそちらを優先
-      const effectiveArea = userSelectedArea && selectedArea !== 'all' ? selectedArea : searchAreaName
+      let effectiveArea = null;
+      if (userSelectedArea && selectedArea !== 'all') {
+        // ユーザーが手動で選択した場合
+        effectiveArea = selectedArea;
+      } else if (!userSelectedArea && selectedArea !== 'all' && !locationFromParam) {
+        // URLパラメータがない場合の通常のエリア選択
+        effectiveArea = selectedArea;
+      } else if (searchAreaName) {
+        // 検索キーワードから抽出されたエリア
+        effectiveArea = searchAreaName;
+      }
       
       // 地域フィルターがサーバーサイドで適用されているかを記録
       setLocationFilteredServerSide(!!searchAreaName)
@@ -300,6 +310,11 @@ function AdvancedSearchContent() {
       // エリアフィルターを適用（ユーザーが選択した場合はそちらを優先）
       if (effectiveArea) {
         apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
+        // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
+        const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+        if (isMobile && effectiveArea.includes('東京')) {
+          apiUrl += `&_t=${Date.now()}`
+        }
       }
       
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
@@ -349,6 +364,19 @@ function AdvancedSearchContent() {
         setLoading(false)
         return
       }
+      
+      // モバイルでのデータ取得結果の確認（デバッグ用、通常はコメントアウト）
+      // if (typeof window !== 'undefined' && effectiveArea && effectiveArea.includes('東京')) {
+      //   const isMobile = window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      //   if (isMobile) {
+      //     console.log(`Mobile API response for ${effectiveArea}:`, {
+      //       totalGirls: data.girls.length,
+      //       expectedTotal: data.total,
+      //       fetchLimit: fetchLimit,
+      //       apiUrl: apiUrl
+      //     });
+      //   }
+      // }
       
       const mappedUsers: UserProfile[] = data.girls.map((user: any) => {
         // ユーザーの位置情報があり、店舗の位置情報がある場合は距離を計算
@@ -1006,6 +1034,12 @@ function AdvancedSearchContent() {
                     value="all"
                     onSelect={() => {
                       setSelectedArea('all')
+                      setUserSelectedArea(false) // 全エリアに戻した場合
+                      // locationパラメータがある場合は検索クエリに戻す
+                      if (locationFromParam) {
+                        setSearchQuery(locationFromParam)
+                        setSearchQueryInput(locationFromParam)
+                      }
                       setOpenAreaPopover(false)
                     }}
                   >
@@ -1030,6 +1064,12 @@ function AdvancedSearchContent() {
                         value={prefecture.prefecture_name}
                         onSelect={(currentValue: string) => {
                           setSelectedArea(currentValue)
+                          setUserSelectedArea(true) // ユーザーが手動で選択
+                          // エリアを選択したら検索クエリをクリア
+                          if (locationFromParam) {
+                            setSearchQuery('')
+                            setSearchQueryInput('')
+                          }
                           setOpenAreaPopover(false)
                         }}
                         className="font-medium"
