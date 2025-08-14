@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/mysql/db';
 import { GirlProfile, ShopProfile, AreaPrefecture, AreaPrefecturalMunicipality, GirlImageUrl, GirlWithDetails } from '@/types/database';
+import { queryCache } from '@/lib/cache/queryCache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +10,15 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const prefectureId = searchParams.get('prefecture_id');
     const municipalityId = searchParams.get('municipality_id');
+    
+    // Create cache key from request parameters
+    const cacheKey = `girls:${limit}:${offset}:${prefectureId || 'all'}:${municipalityId || 'all'}`;
+    
+    // Check cache first
+    const cachedData = queryCache.get(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
     
     // Build the WHERE clause based on filters
     let whereConditions = ['g.is_displayed = 1', 'g.deleted_at IS NULL', 's.is_active = 1', 's.deleted_at IS NULL'];
@@ -54,11 +64,10 @@ export async function GET(request: NextRequest) {
       LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
       WHERE ${whereClause}
       ORDER BY g.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit.toString())} OFFSET ${parseInt(offset.toString())}
     `;
     
-    // Ensure limit and offset are numbers
-    params.push(Number(limit), Number(offset));
+    // Note: LIMIT and OFFSET are now embedded in the SQL string
     
     const girls = await query<any>(girlsQuery, params);
     
@@ -194,15 +203,19 @@ export async function GET(request: NextRequest) {
     const countResult = await query<{ total: number }>(countQuery, params.slice(0, -2));
     const total = countResult[0]?.total || 0;
     
-    return NextResponse.json({
+    const responseData = {
       girls: girlsWithDetails,
       total,
       limit,
       offset
-    });
+    };
+    
+    // Cache the result for 2 minutes
+    queryCache.set(cacheKey, responseData, 120000);
+    
+    return NextResponse.json(responseData);
     
   } catch (error) {
-    console.error('Error fetching girls:', error);
     return NextResponse.json(
       { error: 'Failed to fetch girls data' },
       { status: 500 }

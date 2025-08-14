@@ -61,6 +61,8 @@ export async function fetchOptimizedGirls(
       IFNULL(g.hobby, '') as hobby,
       s.id as shop_id,
       s.name as shop_name,
+      s.latitude,
+      s.longitude,
       p.name as location,
       m.name as municipality,
       (
@@ -123,7 +125,14 @@ export async function fetchOptimizedGirls(
     is_sake: row.is_sake === 1 || row.is_sake === true,
     is_tobacco: row.is_tobacco === 1 || row.is_tobacco === true,
     shopName: row.shop_name,
-    shopId: row.shop_id
+    shopId: row.shop_id,
+    // Shop object for distance calculation
+    shop: {
+      id: row.shop_id,
+      name: row.shop_name,
+      latitude: row.latitude,
+      longitude: row.longitude
+    }
   }));
   
   const total = countResult[0]?.total || 0;

@@ -64,17 +64,11 @@ export function useSubscription() {
         
         const userData = userDoc.data();
         
-        console.log('User subscription data:', userData);
         
         if (userData?.isPremium && userData?.subscriptionEndDate) {
           const endDate = userData.subscriptionEndDate.toDate();
           const isActive = endDate > new Date();
           
-          console.log('Premium user detected:', {
-            isPremium: userData.isPremium,
-            endDate: endDate.toISOString(),
-            isActive
-          });
           
           setSubscription({
             isPremium: isActive,

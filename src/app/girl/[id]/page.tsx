@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
@@ -21,6 +21,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import '@/styles/blur.css';
+import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
+import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 
 export default function GirlProfilePage() {
   const params = useParams();
@@ -31,6 +33,8 @@ export default function GirlProfilePage() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchGirlDetails = async () => {
@@ -39,9 +43,14 @@ export default function GirlProfilePage() {
         if (response.ok) {
           const data = await response.json();
           setGirl(data);
+          
+          // Calculate distance if user location is available
+          if (userLocation && data) {
+            calculateDistance(data, userLocation);
+          }
         }
       } catch (error) {
-        console.error('Error fetching girl details:', error);
+        // Silently handle errors
       } finally {
         setLoading(false);
       }
@@ -50,7 +59,56 @@ export default function GirlProfilePage() {
     if (params.id) {
       fetchGirlDetails();
     }
-  }, [params.id]);
+  }, [params.id, userLocation]);
+  
+  // Get user location on mount
+  useEffect(() => {
+    const getLocation = async () => {
+      try {
+        const locationInfo = await getCurrentLocation();
+        if (locationInfo.coordinates) {
+          setUserLocation(locationInfo.coordinates);
+        }
+      } catch (error) {
+        // Silently handle location errors
+      }
+    };
+    
+    getLocation();
+  }, []);
+  
+  // Calculate distance function
+  const calculateDistance = (girlData: GirlWithDetails, userLoc: LocationCoordinates) => {
+    let shopLat: number | null = null;
+    let shopLng: number | null = null;
+    
+    // Try to get coordinates from shop
+    if (girlData.shop?.latitude && girlData.shop?.longitude) {
+      shopLat = girlData.shop.latitude;
+      shopLng = girlData.shop.longitude;
+    } else if (girlData.location) {
+      // Use approximate coordinates based on location
+      const coords = getLocationCoordinates(girlData.location);
+      if (coords) {
+        shopLat = coords.lat;
+        shopLng = coords.lng;
+      }
+    }
+    
+    if (shopLat && shopLng) {
+      // Calculate distance using Haversine formula
+      const R = 6371; // Earth radius in km
+      const dLat = (shopLat - userLoc.lat) * Math.PI / 180;
+      const dLon = (shopLng - userLoc.lng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(userLoc.lat * Math.PI / 180) * Math.cos(shopLat * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const calculatedDistance = R * c;
+      setDistance(calculatedDistance);
+    }
+  };
 
   const handleLike = useCallback(async () => {
     if (!girl || isProcessingLike) return;
@@ -115,7 +173,6 @@ export default function GirlProfilePage() {
       });
       
     } catch (error) {
-      console.error('Error sending like:', error);
       toast({
         title: "エラーが発生しました",
         description: "いいねの送信に失敗しました。もう一度お試しください。",
@@ -260,6 +317,12 @@ export default function GirlProfilePage() {
                     <div className="flex items-center text-gray-600 dark:text-gray-400 mt-2">
                       <MapPin className="h-4 w-4 mr-1" />
                       <span>{girl.location}</span>
+                      {distance !== null && (
+                        <span className="ml-2 flex items-center">
+                          <Navigation className="h-4 w-4 mr-1" />
+                          {distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -298,8 +361,16 @@ export default function GirlProfilePage() {
                 <div className="border-t pt-4">
                   <h3 className="font-bold mb-2">店舗情報</h3>
                   <p>{girl.shop.name}</p>
+                  {distance !== null && (
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <Navigation className="h-4 w-4 mr-1" />
+                      <span>
+                        現在地から約{distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
+                      </span>
+                    </div>
+                  )}
                   {girl.shop.tel && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       TEL: {girl.shop.tel}
                     </p>
                   )}

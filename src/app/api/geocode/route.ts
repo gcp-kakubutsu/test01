@@ -2,8 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { lat, lng } = await request.json();
+    const { lat, lng, address: inputAddress } = await request.json();
     
+    // 住所から座標を取得する場合（フォワードジオコーディング）
+    if (inputAddress && !lat && !lng) {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputAddress)}&accept-language=ja&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'Nukune Dating App'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Geocoding API failed');
+      }
+
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        return NextResponse.json({
+          coordinates: {
+            lat: parseFloat(result.lat),
+            lng: parseFloat(result.lon)
+          },
+          address: inputAddress,
+          raw: result
+        });
+      } else {
+        return NextResponse.json({
+          error: '住所から座標を取得できませんでした',
+          address: inputAddress
+        });
+      }
+    }
+    
+    // 座標から住所を取得する場合（リバースジオコーディング）
     if (!lat || !lng) {
       return NextResponse.json(
         { error: '緯度と経度が必要です' },
@@ -73,7 +109,7 @@ export async function POST(request: NextRequest) {
       const parts = data.display_name.split(',').map((s: string) => s.trim());
       
       // 日本の住所を抽出（数字と国名を除外）
-      const filteredParts = parts.filter(part => 
+      const filteredParts = parts.filter((part: string) => 
         !part.match(/^\d/) && 
         part !== '日本' && 
         part !== 'Japan' &&

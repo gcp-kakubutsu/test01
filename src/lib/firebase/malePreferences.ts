@@ -153,13 +153,11 @@ async function updateUserProfileWithPreferences(userId: string, preferences: Par
 // 設定が完了しているかチェック
 export function isMalePreferencesComplete(preferences: MalePreferences | null): boolean {
   if (!preferences) {
-    console.log('Preferences check: No preferences found');
     return false;
   }
   
   // isCompleteフラグが既にtrueの場合は、常にtrueを返す（既存完了済みユーザー対応）
   if (preferences.isComplete === true) {
-    console.log('Preferences check: isComplete is true, returning true (completed user)');
     return true;
   }
   

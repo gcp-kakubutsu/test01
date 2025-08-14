@@ -23,6 +23,15 @@ export interface MySQLGirlProfile {
   // Shop info
   shopName?: string;
   shopId?: number;
+  latitude?: number;
+  longitude?: number;
+  // Shop object for distance calculation
+  shop?: {
+    id: number;
+    name?: string;
+    latitude?: number;
+    longitude?: number;
+  };
 }
 
 /**
@@ -171,7 +180,14 @@ export async function fetchMySQLGirls(
         isOnline: false,
         lastActive: new Date().toISOString(),
         is_sake: girl.is_sake === 1 || girl.is_sake === true,
-        is_tobacco: girl.is_tobacco === 1 || girl.is_tobacco === true
+        is_tobacco: girl.is_tobacco === 1 || girl.is_tobacco === true,
+        // Shop object for distance calculation
+        shop: {
+          id: girl.shop_id,
+          name: girl.shop_name,
+          latitude: girl.latitude,
+          longitude: girl.longitude
+        }
       };
     });
   } catch (error) {

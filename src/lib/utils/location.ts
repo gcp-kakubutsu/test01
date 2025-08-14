@@ -56,11 +56,6 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        console.log('位置情報取得成功:', {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        });
         
         const coordinates = {
           lat: position.coords.latitude,
@@ -70,13 +65,11 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
         // リバースジオコーディングで住所を取得
         try {
           const address = await reverseGeocode(coordinates.lat, coordinates.lng);
-          console.log('取得した住所:', address);
           resolve({
             coordinates,
             address
           });
         } catch (error) {
-          console.error('住所取得エラー:', error);
           // ジオコーディングが失敗しても座標と最寄りの地域名は返す
           const nearestLocation = getNearestLocationName(coordinates.lat, coordinates.lng);
           resolve({ 
@@ -131,10 +124,6 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
     const data = await response.json();
     
-    // デバッグ用に生データをログ出力
-    if (data.raw) {
-      console.log('ジオコーディング結果:', data.raw);
-    }
     
     if (data.error) {
       throw new Error(data.error);
@@ -142,7 +131,6 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
     return data.address || '詳細な住所を取得できませんでした';
   } catch (error) {
-    console.warn('リバースジオコーディングエラー:', error);
     throw error;
   }
 }

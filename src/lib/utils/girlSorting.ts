@@ -26,23 +26,9 @@ export async function sortGirlsByPreference(
     const preferences = await getMalePreferences(userId);
     
     if (!preferences) {
-      console.log('No preferences found for user, using default sorting');
       return girls;
     }
     
-    console.log('User preferences loaded:', {
-      partnerAgeRange: `${preferences.partnerAgeMin}-${preferences.partnerAgeMax}`,
-      partnerHeight: preferences.partnerHeight,
-      partnerBodyTypes: preferences.partnerBodyTypes,
-      isSadist: preferences.isSadist,
-      isMasochist: preferences.isMasochist,
-      sexualPreferences: {
-        spanking: preferences.spanking,
-        cosplay: preferences.cosplay,
-        toyPlay: preferences.toyPlay
-      }
-    });
-
     // Score each girl based on preferences
     const scoredGirls = girls.map(girl => {
       let score = 0;
@@ -170,7 +156,7 @@ export async function sortGirlsByPreference(
 
       // Location scoring (weight: 50) - 位置情報の重要度を高める
       let distanceValue = Infinity;
-      if (userLocation && girl.shop.latitude && girl.shop.longitude) {
+      if (userLocation && girl.shop?.latitude && girl.shop?.longitude) {
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lng,
@@ -277,21 +263,8 @@ export async function sortGirlsByPreference(
       return a.distance - b.distance;
     });
 
-    // Log top matches for debugging with more details
-    console.log('🎯 Top 5 Matches (based on user preferences):', scoredGirls.slice(0, 5).map((sg, index) => ({
-      rank: index + 1,
-      name: sg.girl.name,
-      age: sg.girl.age,
-      location: sg.girl.location,
-      score: sg.score,
-      distance: sg.distance !== Infinity ? `${sg.distance.toFixed(1)}km` : 'Unknown',
-      reasons: sg.reasons,
-      physique: sg.girl.height ? `${sg.girl.height}cm, B${sg.girl.bust}(${sg.girl.cup}) W${sg.girl.waist} H${sg.girl.hip}` : 'N/A'
-    })));
-
     return scoredGirls.map(sg => sg.girl);
   } catch (error) {
-    console.error('Error sorting girls by preference:', error);
     return girls;
   }
 }

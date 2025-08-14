@@ -140,6 +140,10 @@ function AdvancedSearchContent() {
   // 動的に計算されるページ数（フィルタリング後のカウントを使用）
   const totalPages = Math.ceil(filteredTotalCount / LIMIT)
 
+  // locationパラメータから座標を取得
+  const [locationFromParam, setLocationFromParam] = useState<string>('')
+  const [locationCoordinates, setLocationCoordinates] = useState<LocationCoordinates | null>(null)
+  
   // 初期パラメータの読み込み
   useEffect(() => {
     const tags = searchParams.get('tags')
@@ -149,19 +153,32 @@ function AdvancedSearchContent() {
     const q = searchParams.get('q')
     
     if (tags) setSelectedTags(tags.split(','))
-    if (location && areas.prefectures.length > 0) {
-      // locationパラメータが来た場合、都道府県名を抽出して設定
-      const prefectureNames = areas.prefectures.map(p => p.prefecture_name)
-      const normalizedLocation = normalizeLocationName(location, prefectureNames)
-      setSelectedArea(normalizedLocation)
+    if (location) {
+      setLocationFromParam(location)
+      // locationパラメータが来た場合、座標を取得
+      // まずはキーワードとして検索クエリに設定
+      setSearchQuery(location)
+      setSearchQueryInput(location)
+      
+      // 座標を取得するためにジオコーディングAPIを呼び出す
+      fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: location })
+      }).then(res => res.json()).then(data => {
+        if (data.coordinates) {
+          setLocationCoordinates(data.coordinates)
+          setUserLocation(data.coordinates) // ユーザーの位置として設定
+        }
+      }).catch(err => console.error('座標取得エラー:', err))
     }
     if (time) setSelectedTime(time)
     if (quick === 'true') setPrioritizeQuickMeet(true)
-    if (q) {
+    if (q && !location) { // locationがある場合はqを上書きしない
       setSearchQuery(q)
       setSearchQueryInput(q)
     }
-  }, [searchParams, areas.prefectures])
+  }, [searchParams])
 
   // 位置情報取得
   useEffect(() => {
@@ -192,9 +209,17 @@ function AdvancedSearchContent() {
   
   // エリアデータ取得後、locationパラメータに対応するエリアを設定
   useEffect(() => {
+    // locationパラメータがある場合はエリアフィルターを使わない（キーワード検索で処理）
+    if (locationFromParam) {
+      // エリアフィルターを'all'に設定して、キーワード検索で地域を絞り込む
+      setSelectedArea('all')
+      setAreaInitialized(true)
+      return
+    }
+    
     if (areas.prefectures.length > 0 && !areaInitialized) {
       const location = searchParams.get('location')
-      if (location) {
+      if (location && !locationFromParam) {
         const prefectureNames = areas.prefectures.map(p => p.prefecture_name)
         const normalizedLocation = normalizeLocationName(location, prefectureNames)
         
@@ -220,7 +245,7 @@ function AdvancedSearchContent() {
         }
       }
     }
-  }, [areas, searchParams, areaInitialized])
+  }, [areas, searchParams, areaInitialized, locationFromParam])
 
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
@@ -238,8 +263,8 @@ function AdvancedSearchContent() {
       setFilteredUsers([])
       setFilteredTotalCount(0)
       
-      // エリアが選択されていて、そのエリアに女の子がいない場合は早期リターン
-      if (selectedArea && selectedArea !== 'all') {
+      // locationパラメータがある場合はエリアフィルターをスキップ
+      if (!locationFromParam && selectedArea && selectedArea !== 'all') {
         // 選択されたエリアの女の子数を確認
         const selectedAreaData = [...areas.prefectures, ...areas.municipalities].find(
           area => area.prefecture_name === selectedArea || area.full_name === selectedArea
@@ -315,8 +340,8 @@ function AdvancedSearchContent() {
       // Use optimized API endpoint
       let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
       
-      // エリアフィルターをAPIに追加（サーバーサイドで処理）
-      if (effectiveArea) {
+      // locationパラメータがある場合はエリアフィルターを使わない
+      if (!locationFromParam && effectiveArea) {
         apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
       }
       
@@ -373,26 +398,44 @@ function AdvancedSearchContent() {
         return
       }
       
-      const mappedUsers: UserProfile[] = data.girls.map((user: any) => ({
-        id: user.id,
-        name: user.name,
-        age: user.age,
-        height: user.height,
-        bust: user.bust,
-        cup: user.cup,
-        waist: user.waist,
-        hip: user.hip,
-        location: user.location,
-        bio: user.bio,
-        interests: user.interests,
-        imageUrl: user.imageUrl,
-        bodyType: user.bodyType,
-        style: user.style,
-        isOnline: user.isOnline,
-        lastActive: user.lastActive,
-        is_sake: user.is_sake,
-        is_tobacco: user.is_tobacco
-      }))
+      const mappedUsers: UserProfile[] = data.girls.map((user: any) => {
+        // ユーザーの位置情報があり、店舗の位置情報がある場合は距離を計算
+        let distance: number | undefined;
+        if (userLocation && user.latitude && user.longitude) {
+          // Haversine formulaで距離を計算
+          const R = 6371; // 地球の半径（km）
+          const dLat = (user.latitude - userLocation.lat) * Math.PI / 180;
+          const dLng = (user.longitude - userLocation.lng) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.latitude * Math.PI / 180) * 
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          distance = R * c;
+        }
+        
+        return {
+          id: user.id,
+          name: user.name,
+          age: user.age,
+          height: user.height,
+          bust: user.bust,
+          cup: user.cup,
+          waist: user.waist,
+          hip: user.hip,
+          location: user.location,
+          bio: user.bio,
+          interests: user.interests,
+          imageUrl: user.imageUrl,
+          bodyType: user.bodyType,
+          style: user.style,
+          isOnline: user.isOnline,
+          lastActive: user.lastActive,
+          is_sake: user.is_sake,
+          is_tobacco: user.is_tobacco,
+          distance: distance
+        };
+      })
       
       // Update total count
       setTotalCount(data.total || 0)
@@ -452,7 +495,7 @@ function AdvancedSearchContent() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, areas, toast])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, areas, toast, locationFromParam, userLocation])
 
   useEffect(() => {
     // Skip initial fetch if areas haven't loaded yet (unless no keyword search)
@@ -1467,10 +1510,14 @@ function AdvancedSearchContent() {
                   <span>{user.age ? `${user.age}歳` : '不明'}</span>
                   <span>•</span>
                   <span>{user.location}</span>
-                  {user.distance && (
+                  {user.distance !== undefined && (
                     <>
                       <span>•</span>
-                      <span>{Math.round(user.distance)}km</span>
+                      <span className="text-gold-500 font-semibold">
+                        {user.distance < 1 
+                          ? `${Math.round(user.distance * 1000)}m先` 
+                          : `${user.distance.toFixed(1)}km先`}
+                      </span>
                     </>
                   )}
                 </div>
@@ -1520,9 +1567,20 @@ function AdvancedSearchContent() {
         {filteredUsers.length === 0 && (
           <div className={styles.emptyState}>
             <Search className={styles.emptyIcon} />
-            <h3 className={styles.emptyTitle}>該当するユーザーが見つかりません</h3>
+            <h3 className={styles.emptyTitle}>
+              {selectedArea && selectedArea !== 'all' 
+                ? `${selectedArea}には現在女性がいません`
+                : '該当する女性が見つかりません'}
+            </h3>
             <p className={styles.emptyText}>
-              フィルター条件を変更してもう一度お試しください
+              {selectedArea && selectedArea !== 'all' ? (
+                <>
+                  近隣のエリアを探してみてください。<br />
+                  またはフィルター条件を変更してお試しください。
+                </>
+              ) : (
+                'フィルター条件を変更してもう一度お試しください'
+              )}
             </p>
             <Button onClick={resetFilters}>
               フィルターをリセット

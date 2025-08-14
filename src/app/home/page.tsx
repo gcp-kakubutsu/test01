@@ -11,6 +11,7 @@ import { GirlWithDetails } from '@/types/database';
 import { sortGirlsByPreference } from '@/lib/utils/girlSorting';
 import { recordProfileView } from '@/lib/firebase/actions';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
+import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import WelcomePage from '@/components/WelcomePage';
@@ -30,12 +31,6 @@ export default function HomePage() {
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
   
-  // デバッグ用ログ
-  useEffect(() => {
-    console.log('HomePage - Current user:', currentUser?.email);
-    console.log('HomePage - isPremium:', isPremium);
-    console.log('HomePage - subscriptionLoading:', subscriptionLoading);
-  }, [currentUser, isPremium, subscriptionLoading]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -44,7 +39,7 @@ export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingWelcome, setCheckingWelcome] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [useFirebaseData, setUseFirebaseData] = useState(false); // Toggle for data source - default to MySQL
+  const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -208,6 +203,13 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
+  // 位置情報が更新されたらデータを再取得
+  useEffect(() => {
+    if (userLocation && girlsFromDB.length > 0 && !loadingUsers && currentUser) {
+      fetchGirlsFromMySQL();
+    }
+  }, [userLocation]);
+
   // MySQLからの女の子データ取得（最適化版）
   const fetchGirlsFromMySQL = useCallback(async () => {
     if (!currentUser) return;
@@ -223,7 +225,6 @@ export default function HomePage() {
       
       // Don't filter by area initially - let client-side sorting handle location preference
       // This prevents issues when the area doesn't match exactly
-      console.log('Fetching girls from MySQL with params:', params.toString());
       
       // Try optimized API first
       let data = null;
@@ -244,16 +245,13 @@ export default function HomePage() {
             data = responseData;
             break;
           } else {
-            console.warn('Invalid response structure, retrying...');
             retryCount++;
           }
         } catch (optimizedError) {
-          console.warn(`Optimized API attempt ${retryCount + 1} failed:`, optimizedError);
           retryCount++;
           
           if (retryCount > maxRetries) {
             // Final fallback to regular API
-            console.log('Falling back to regular API...');
             apiUsed = 'regular';
             
             try {
@@ -273,39 +271,84 @@ export default function HomePage() {
         }
       }
       
-      const fetchTime = performance.now() - startTime;
-      console.log(`⚡ Girls fetched from ${apiUsed} API in ${fetchTime.toFixed(0)}ms`);
       
       // Validate and process the data
       if (data && data.girls && Array.isArray(data.girls) && data.girls.length > 0) {
-        console.log(`Received ${data.girls.length} girls from API`);
+        
+        // Convert MySQLGirlProfile to GirlWithDetails format for sorting
+        const girlsWithDetails = data.girls.map((girl: any) => {
+          let shop = girl.shop || {
+            id: girl.shopId,
+            name: girl.shopName,
+            latitude: girl.latitude,
+            longitude: girl.longitude
+          };
+          
+          // If shop doesn't have coordinates but has location, use approximate coordinates
+          if ((!shop.latitude || !shop.longitude) && girl.location) {
+            const coords = getLocationCoordinates(girl.location);
+            if (coords) {
+              shop = {
+                ...shop,
+                latitude: coords.lat,
+                longitude: coords.lng
+              };
+            }
+          }
+          
+          return {
+            ...girl,
+            id: parseInt(girl.id),
+            shop
+          };
+        });
         
         // Sort girls by user preferences (including location preference)
         const sortedGirls = await sortGirlsByPreference(
-          data.girls,
+          girlsWithDetails,
           currentUser.uid,
           userLocation,
           userProfile?.location
         );
         
-        console.log(`Setting ${sortedGirls.length} sorted girls to state`);
         setGirlsFromDB(sortedGirls);
         
-        // Show performance metrics
-        if (data.performance) {
-          console.log(`📊 Performance: Response ${data.performance.responseTime}ms, Cache Hit ${data.performance.cacheHitRate}%`);
-        }
       } else {
-        console.warn('No valid girls data received from API after retries');
         // Try once more without any filters as last resort
         try {
           const lastResortResponse = await fetch('/api/mysql-girls?limit=200&offset=0');
           if (lastResortResponse.ok) {
             const lastResortData = await lastResortResponse.json();
             if (lastResortData?.girls?.length > 0) {
-              console.log('Last resort fetch succeeded with', lastResortData.girls.length, 'girls');
+              // Convert MySQLGirlProfile to GirlWithDetails format
+              const girlsWithDetails = lastResortData.girls.map((girl: any) => {
+                let shop = girl.shop || {
+                  id: girl.shopId,
+                  name: girl.shopName,
+                  latitude: girl.latitude,
+                  longitude: girl.longitude
+                };
+                
+                // Use approximate coordinates if needed
+                if ((!shop.latitude || !shop.longitude) && girl.location) {
+                  const coords = getLocationCoordinates(girl.location);
+                  if (coords) {
+                    shop = {
+                      ...shop,
+                      latitude: coords.lat,
+                      longitude: coords.lng
+                    };
+                  }
+                }
+                
+                return {
+                  ...girl,
+                  id: parseInt(girl.id),
+                  shop
+                };
+              });
               const sortedGirls = await sortGirlsByPreference(
-                lastResortData.girls,
+                girlsWithDetails,
                 currentUser.uid,
                 userLocation,
                 userProfile?.location
@@ -364,8 +407,14 @@ export default function HomePage() {
 
   useEffect(() => {
     // Don't wait for userProfile if it's not a male user
+    // Wait for location to be fetched before loading users for better distance calculation
     if (isAuthenticated && currentUser && !checkingWelcome) {
-      fetchUsers();
+      // Delay fetch to allow location to be obtained first
+      const timer = setTimeout(() => {
+        fetchUsers();
+      }, 1000); // Give 1 second for location to be obtained
+      
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, currentUser, checkingWelcome, fetchUsers]);
 
@@ -375,24 +424,18 @@ export default function HomePage() {
     try {
       setLoadingUsers(true);
       
-      if (useFirebaseData) {
-        // Firebase から再度データを取得
-        // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得
-        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 100);
-        
-        // 新しい優先順位ソート機能を使用（リセット時も同じロジック）
-        fetchedUsers = await sortUsersByPreference(
-          fetchedUsers,
-          currentUser.uid,
-          userLocation,
-          userProfile?.location
-        );
-        
-        setUsers(fetchedUsers);
-      } else {
-        // MySQLから女の子データを再取得
-        await fetchGirlsFromMySQL();
+      // 位置情報を再取得
+      try {
+        const locationInfo = await getCurrentLocation();
+        if (locationInfo.coordinates) {
+          setUserLocation(locationInfo.coordinates);
+        }
+      } catch (error) {
+        // Silently handle location errors
       }
+      
+      // MySQLから女の子データを再取得
+      await fetchGirlsFromMySQL();
       
       setCurrentPage(1); // リセット時は最初のページに戻る
     } catch (error) {
@@ -446,7 +489,6 @@ export default function HomePage() {
           </p>
           <Button 
             onClick={() => {
-              console.log('Retrying to fetch data...');
               setLoadingUsers(true);
               fetchUsers();
             }}
@@ -496,16 +538,6 @@ export default function HomePage() {
       </div>
       
       <div className="px-4 pb-6">
-        {/* Toggle button for data source - for testing */}
-        <div className="mb-4 text-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setUseFirebaseData(!useFirebaseData)}
-          >
-            データソース: {useFirebaseData ? 'Firebase' : 'MySQL'}
-          </Button>
-        </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
         {currentDisplayData.map((item: any) => {
@@ -524,6 +556,20 @@ export default function HomePage() {
           const cup = item.cup;
           const waist = item.waist;
           const hip = item.hip;
+          
+          // Calculate distance if user location and shop coordinates exist
+          let distance: number | null = null;
+          if (userLocation && item.shop?.latitude && item.shop?.longitude) {
+            const R = 6371; // Earth radius in km
+            const dLat = (item.shop.latitude - userLocation.lat) * Math.PI / 180;
+            const dLon = (item.shop.longitude - userLocation.lng) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(item.shop.latitude * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distance = R * c;
+          }
           
           return (
             <div
@@ -550,7 +596,12 @@ export default function HomePage() {
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
                   <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}{age ? `, ${age}` : ''}</p>
                   {location && (
-                    <p className="!text-white/90 text-sm drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{location}</p>
+                    <p className="!text-white/90 text-sm drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                      {location}
+                      {distance !== null && (
+                        <span className="ml-1">({distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`})</span>
+                      )}
+                    </p>
                   )}
                   {/* スタイル情報の表示 - スマホでも見やすいサイズに */}
                   {height && (
