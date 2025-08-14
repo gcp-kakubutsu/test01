@@ -4,9 +4,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock } from 'lucide-react'
+import { Search, MapPin, Clock, User, Ruler, Heart } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
 import { useToast } from '@/hooks/use-toast'
 import styles from './MatchingSearch.module.scss'
@@ -14,34 +21,22 @@ import styles from './MatchingSearch.module.scss'
 export default function MatchingSearch() {
   const router = useRouter()
   const { toast } = useToast()
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedAge, setSelectedAge] = useState<string>('')
+  const [selectedHeight, setSelectedHeight] = useState<string>('')
+  const [selectedBust, setSelectedBust] = useState<string>('')
+  const [selectedDrinking, setSelectedDrinking] = useState<string>('')
+  const [selectedSmoking, setSelectedSmoking] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
 
-  const personalityTags = [
-    '10代',
-    '20代',
-    '30代',
-    '40代',
-    '50代',
-    '身長150cm以下',
-    '身長155cm以下',
-    '身長160cm以下',
-    '身長165cm以上',
-    'Bカップ以下',
-    'Cカップ',
-    'Dカップ',
-    'Eカップ',
-    'Fカップ',
-    'Gカップ以上',
-    'お酒を飲む人',
-    'お酒を飲まない人',
-    'タバコを吸う人',
-    'タバコを吸わない人'
-  ]
+  const ageOptions = ['10代', '20代', '30代', '40代', '50代']
+  const heightOptions = ['身長150cm以下', '身長155cm以下', '身長160cm以下', '身長165cm以上']
+  const bustOptions = ['Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ', 'Fカップ', 'Gカップ以上']
+  const drinkingOptions = ['お酒を飲む人', 'お酒を飲まない人']
+  const smokingOptions = ['タバコを吸う人', 'タバコを吸わない人']
 
   const timeTags = [
     'いまから',
@@ -49,13 +44,6 @@ export default function MatchingSearch() {
     '今夜'
   ]
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    )
-  }
 
   const handleGetCurrentLocation = async () => {
     setIsLoadingLocation(true)
@@ -106,6 +94,13 @@ export default function MatchingSearch() {
     // Build URL parameters
     const params = new URLSearchParams()
     
+    const selectedTags = []
+    if (selectedAge) selectedTags.push(selectedAge)
+    if (selectedHeight) selectedTags.push(selectedHeight)
+    if (selectedBust) selectedTags.push(selectedBust)
+    if (selectedDrinking) selectedTags.push(selectedDrinking)
+    if (selectedSmoking) selectedTags.push(selectedSmoking)
+    
     if (selectedTags.length > 0) {
       params.append('tags', selectedTags.join(','))
     }
@@ -135,29 +130,134 @@ export default function MatchingSearch() {
       {/* Main search section */}
       <div className={`${styles.searchContainer} rounded-3xl p-8 md:p-10 shadow-2xl border`}>
         <h2 className={`text-2xl md:text-3xl font-bold ${styles.textPrimary} text-center mb-8`}>
-          性癖が合う嬢を探す？
+          理想の嬢を詳細検索
         </h2>
 
-        {/* Personality tags */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {personalityTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
-                className={`btn-custom ${styles.tagButton} ${selectedTags.includes(tag) ? styles.selected : ''}`}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.875rem',
-                  fontWeight: selectedTags.includes(tag) ? '600' : '500',
-                  transition: 'all 0.3s',
-                  border: '1px solid'
-                }}
-              >
-                {tag}
-              </button>
-            ))}
+        {/* Preference selectors */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Age selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1 text-sm font-medium">
+                <User className="w-4 h-4 text-[#D4AF37]" />
+                <span>年齢</span>
+              </Label>
+              <Select value={selectedAge} onValueChange={setSelectedAge}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue placeholder="下限なし 〜 上限なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clear">下限なし 〜 上限なし</SelectItem>
+                  {ageOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Height selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1 text-sm font-medium">
+                <Ruler className="w-4 h-4 text-[#D4AF37]" />
+                <span>身長</span>
+              </Label>
+              <Select value={selectedHeight} onValueChange={setSelectedHeight}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue placeholder="下限なし 〜 上限なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clear">下限なし 〜 上限なし</SelectItem>
+                  {heightOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Bust selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1 text-sm font-medium">
+                <Heart className="w-4 h-4 text-[#D4AF37]" />
+                <span>バスト</span>
+              </Label>
+              <Select value={selectedBust} onValueChange={setSelectedBust}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue placeholder="指定なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clear">指定なし</SelectItem>
+                  {bustOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Drinking preference selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium">
+                🍺 お酒
+              </Label>
+              <Select value={selectedDrinking} onValueChange={setSelectedDrinking}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue placeholder="指定なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clear">指定なし</SelectItem>
+                  {drinkingOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Smoking preference selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium">
+                🚬 タバコ
+              </Label>
+              <Select value={selectedSmoking} onValueChange={setSelectedSmoking}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue placeholder="指定なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clear">指定なし</SelectItem>
+                  {smokingOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Time selector moved to grid */}
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1 text-sm font-medium">
+                <Clock className="w-4 h-4 text-[#D4AF37]" />
+                <span>希望日時</span>
+              </Label>
+              <Select value={selectedTime} onValueChange={setSelectedTime}>
+                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeTags.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -201,31 +301,6 @@ export default function MatchingSearch() {
           </div>
         </div>
 
-        {/* Time selection */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {timeTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTime(tag)}
-                className={`btn-custom ${styles.tagButton} ${selectedTime === tag ? styles.selected : ''}`}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.875rem',
-                  fontWeight: selectedTime === tag ? '600' : '500',
-                  transition: 'all 0.3s',
-                  border: '1px solid',
-                  display: 'inline-flex',
-                  alignItems: 'center'
-                }}
-              >
-                {tag === 'いまから' && <Clock className="inline w-3 h-3 mr-1" />}
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Priority toggle */}
         <div className="mb-6">
