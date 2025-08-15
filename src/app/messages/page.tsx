@@ -30,6 +30,13 @@ export default function MemosPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+
+  // 認証チェック
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
   const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
@@ -64,6 +71,11 @@ export default function MemosPage() {
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
+  // 認証前は何も表示しない
+  if (!isAuthenticated) {
+    return null;
+  }
+
   if (memosLoading || subscriptionLoading) {
     return (
       <div className="flex justify-center items-center h-screen">

@@ -48,14 +48,10 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
-  // 認証チェック（search/advancedと同じ方式）
+  // 認証チェック（即座にリダイレクト）
   useEffect(() => {
     if (!isAuthenticated) {
-      // 認証状態が確定したらリダイレクト
-      const timer = setTimeout(() => {
-        router.push('/login');
-      }, 2000); // 2秒待ってからリダイレクト
-      return () => clearTimeout(timer);
+      router.push('/login');
     }
   }, [isAuthenticated, router]);
 
@@ -468,14 +464,13 @@ export default function HomePage() {
     }
   }
 
-  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
+  // 認証前は何も表示しない（すぐにリダイレクトされる）
+  if (!isAuthenticated) {
+    return null;
   }
 
-  if (!isAuthenticated) {
-    // This case should ideally be handled by the redirect in useEffect,
-    // but as a fallback or during transition:
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><p className="text-gray-900 dark:text-white">ログインページへリダイレクト中...</p></div>;
+  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
 
   // Show welcome page for first-time male users

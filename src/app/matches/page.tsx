@@ -44,6 +44,13 @@ export default function MatchesPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  // 認証チェック
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
   const { matches, loading: matchesLoading } = useMatches();
   const [activeTab, setActiveTab] = useState('matches');
   const [displayMatches, setDisplayMatches] = useState<Match[]>([]);
@@ -275,6 +282,11 @@ export default function MatchesPage() {
     
     loadMatchesAndLikes();
   }, [matches, matchesLoading, currentUser]);
+
+  // 認証前は何も表示しない
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (isLoadingData) {
     return (

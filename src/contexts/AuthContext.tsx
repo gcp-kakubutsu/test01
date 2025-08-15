@@ -27,39 +27,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // デフォルトをfalseに変更
+  const [isLoading, setIsLoading] = useState(false); // 常にfalse - 廃止予定
+  const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  // セッションチェック（高速化）
+  // セッションチェック（初回のみ）
   useEffect(() => {
-    let isCompleted = false;
+    let mounted = true;
     
+    // 非同期でセッション確認（UIをブロックしない）
     const checkSession = async () => {
+      if (!mounted) return;
+      
       try {
-        console.log('🔐 Checking session...');
-        
-        // タイムアウト付きfetch（5秒）
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-          if (!isCompleted) {
-            console.warn('⚠️ Session check timeout');
-            setIsLoading(false);
-            isCompleted = true;
-          }
-        }, 5000);
+        console.log('🔐 Initial session check...');
         
         const response = await fetch('/api/auth/session', {
           method: 'GET',
           credentials: 'include',
-          signal: controller.signal,
         });
         
-        clearTimeout(timeoutId);
+        if (!mounted) return;
         
-        if (isCompleted) return;
-
         const data = await response.json();
         
         if (data.authenticated && data.user) {
@@ -69,74 +59,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('❌ No valid session');
           setCurrentUser(null);
         }
-      } catch (error: any) {
-        if (isCompleted) return;
         
-        if (error.name === 'AbortError') {
-          console.warn('⚠️ Session check aborted');
-        } else {
-          console.error('❌ Session check failed:', error);
-        }
+        setHasCheckedSession(true);
+      } catch (error: any) {
+        if (!mounted) return;
+        console.error('❌ Session check failed:', error);
         setCurrentUser(null);
-      } finally {
-        if (!isCompleted) {
-          setIsLoading(false);
-          isCompleted = true;
-        }
-      }
-      
-      // Firebase Auth同期は完全に非同期で実行
-      if (currentUser) {
-        setTimeout(async () => {
-          try {
-            const tokenResponse = await fetch('/api/auth/custom-token', {
-              method: 'GET',
-              credentials: 'include',
-            });
-            
-            if (tokenResponse.ok) {
-              const tokenData = await tokenResponse.json();
-              if (tokenData.customToken && tokenData.uid) {
-                const { getFirebaseAuth } = await import('@/lib/firebase/client');
-                const { signInWithCustomToken } = await import('firebase/auth');
-                const auth = getFirebaseAuth();
-                if (auth) {
-                  try {
-                    await signInWithCustomToken(auth, tokenData.customToken);
-                    console.log('✅ Firebase Auth synced');
-                  } catch (error) {
-                    console.warn('⚠️ Firebase sync failed, but session is valid');
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('⚠️ Background sync failed, but session is valid');
-          }
-        }, 100);
+        setHasCheckedSession(true);
       }
     };
     
-    // 最悪のケースでも3秒後には必ずローディングを解除
-    const fallbackTimeout = setTimeout(() => {
-      if (!isCompleted) {
-        console.warn('⚠️ Fallback timeout - forcing loading complete');
-        setIsLoading(false);
-        isCompleted = true;
-      }
-    }, 3000);
-
+    // 初回のみセッションチェック
     checkSession();
     
-    return () => {
-      clearTimeout(fallbackTimeout);
-    };
-
     // 定期的にセッションをチェック（5分ごと）
-    const interval = setInterval(checkSession, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      if (mounted) checkSession();
+    }, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []); // 空の依存配列で初回のみ実行
+
+  // Firebase Auth同期（currentUserが設定された後）
+  useEffect(() => {
+    if (!currentUser || !hasCheckedSession) return;
+    
+    let mounted = true;
+    
+    const syncFirebase = async () => {
+      if (!mounted) return;
+      
+      try {
+        const tokenResponse = await fetch('/api/auth/custom-token', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        
+        if (!mounted) return;
+        
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          if (tokenData.customToken && tokenData.uid) {
+            const { getFirebaseAuth } = await import('@/lib/firebase/client');
+            const { signInWithCustomToken } = await import('firebase/auth');
+            const auth = getFirebaseAuth();
+            if (auth && mounted) {
+              try {
+                await signInWithCustomToken(auth, tokenData.customToken);
+                console.log('✅ Firebase Auth synced');
+              } catch (error) {
+                console.warn('⚠️ Firebase sync failed, but session is valid');
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Background sync failed, but session is valid');
+      }
+    };
+    
+    // 遅延実行でFirebase同期
+    const timer = setTimeout(syncFirebase, 100);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [currentUser?.uid, hasCheckedSession]); // currentUser.uidの変更時のみ実行
 
   // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {
@@ -351,8 +343,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     currentUser,
-    isAuthenticated: !isLoading && !!currentUser,
-    isLoading,
+    isAuthenticated: !!currentUser, // isLoadingを削除
+    isLoading: false, // 常にfalse（後方互換性のため残す）
     login,
     loginWithRedirect,
     signup,
