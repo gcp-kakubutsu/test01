@@ -16,7 +16,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
-import AuthGuard from '@/components/AuthGuard';
 
 interface MemoDisplay {
   id: string;
@@ -28,7 +27,7 @@ interface MemoDisplay {
 }
 
 export default function MemosPage() {
-  const { currentUser } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { memos, loading: memosLoading } = useMemos();
@@ -67,17 +66,14 @@ export default function MemosPage() {
   
   if (memosLoading || subscriptionLoading) {
     return (
-      <AuthGuard>
-        <div className="flex justify-center items-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2">読み込み中...</p>
-        </div>
-      </AuthGuard>
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
     );
   }
 
   return (
-    <AuthGuard>
     <div className="max-w-3xl mx-auto py-8">
       <Card className="shadow-lg">
         <CardHeader>
@@ -153,6 +149,5 @@ export default function MemosPage() {
         </CardContent>
       </Card>
     </div>
-    </AuthGuard>
   );
 }

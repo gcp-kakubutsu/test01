@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, currentUser } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -48,13 +48,16 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
-  // 認証チェック（高速化）
+  // 認証チェック（search/advancedと同じ方式）
   useEffect(() => {
-    // 認証状態が確定したら即座にリダイレクト
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+    if (!isAuthenticated) {
+      // 認証状態が確定したらリダイレクト
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 2000); // 2秒待ってからリダイレクト
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, router]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -122,7 +125,7 @@ export default function HomePage() {
 
     if (isAuthenticated && currentUser && userProfile) {
       checkWelcomeStatus();
-    } else if (isAuthenticated && currentUser && !isLoading) {
+    } else if (isAuthenticated && currentUser) {
       // If authenticated but no profile yet, still stop checking
       setCheckingWelcome(false);
     }
@@ -131,7 +134,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, currentUser, userProfile, isLoading]);
+  }, [isAuthenticated, currentUser, userProfile]);
 
   // Handle welcome completion
   const handleWelcomeComplete = async () => {
@@ -465,7 +468,7 @@ export default function HomePage() {
     }
   }
 
-  if (isLoading || (loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
+  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
 

@@ -25,11 +25,10 @@ import Link from 'next/link';
 import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
-import AuthGuard from '@/components/AuthGuard';
 
 
 export default function ProfilePage() {
-  const { currentUser } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
@@ -83,22 +82,18 @@ export default function ProfilePage() {
 
   if (profileLoading) {
     return (
-      <AuthGuard>
-        <div className="flex justify-center items-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2">読み込み中...</p>
-        </div>
-      </AuthGuard>
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
     );
   }
 
   if (!profile) {
     return (
-      <AuthGuard>
-        <div className="flex justify-center items-center h-screen">
-          <p>プロフィールを読み込み中...</p>
-        </div>
-      </AuthGuard>
+      <div className="flex justify-center items-center h-screen">
+        <p>プロフィールを読み込み中...</p>
+      </div>
     );
   }
 
@@ -111,8 +106,7 @@ export default function ProfilePage() {
   const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
-    <AuthGuard>
-      <div className="max-w-2xl mx-auto space-y-6 pb-20">
+    <div className="max-w-2xl mx-auto space-y-6 pb-20">
       {/* Profile Header */}
       <Card>
         <CardHeader className="pb-0">
@@ -443,6 +437,5 @@ export default function ProfilePage() {
         </Link>
       </div>
     </div>
-    </AuthGuard>
   );
 }

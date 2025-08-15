@@ -15,7 +15,6 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
-import AuthGuard from '@/components/AuthGuard';
 
 interface Match {
   id: string;
@@ -42,7 +41,7 @@ interface Like {
 }
 
 export default function MatchesPage() {
-  const { currentUser } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { matches, loading: matchesLoading } = useMatches();
@@ -279,12 +278,10 @@ export default function MatchesPage() {
 
   if (isLoadingData) {
     return (
-      <AuthGuard>
-        <div className="flex justify-center items-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2">読み込み中...</p>
-        </div>
-      </AuthGuard>
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
     );
   }
 
@@ -544,8 +541,7 @@ export default function MatchesPage() {
   };
 
   return (
-    <AuthGuard>
-      <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-2xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold text-center mb-6">マッチ</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -628,6 +624,5 @@ export default function MatchesPage() {
         </TabsContent>
       </Tabs>
     </div>
-    </AuthGuard>
   );
 }
