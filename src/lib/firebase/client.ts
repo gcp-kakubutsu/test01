@@ -120,38 +120,36 @@ function initializeFirebaseServices(): void {
 }
 
 /**
- * セッションから認証状態を復元
+ * セッションから認証状態を復元（非同期でブロックしない）
  */
-async function restoreAuthFromSession() {
-  try {
-    // セッション確認APIを呼び出し
-    const response = await fetch('/api/auth/token', {
-      method: 'GET',
-      credentials: 'include',
-    });
+function restoreAuthFromSession() {
+  // 非同期で実行し、ブロッキングを避ける
+  setTimeout(async () => {
+    try {
+      // セッション確認APIを呼び出し
+      const response = await fetch('/api/auth/token', {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.customToken) {
-        // IDトークンを使用して認証
-        const { signInWithIdToken } = await import('./auth-helper');
-        await signInWithIdToken(data.customToken);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.customToken) {
+          // IDトークンを使用して認証
+          const { signInWithIdToken } = await import('./auth-helper');
+          await signInWithIdToken(data.customToken);
+        }
       }
+    } catch (error) {
+      console.warn('⚠️ Could not restore auth state:', error);
     }
-  } catch (error) {
-    console.warn('⚠️ Could not restore auth state:', error);
-  }
+  }, 100);
 }
 
-// ブラウザ環境で自動初期化
+// ブラウザ環境で自動初期化（即座に実行）
 if (typeof window !== 'undefined') {
-  // DOMContentLoadedを待つ
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeFirebaseServices);
-  } else {
-    // 既にDOMが読み込まれている場合
-    initializeFirebaseServices();
-  }
+  // 即座に初期化を実行（DOMを待たない）
+  initializeFirebaseServices();
 }
 
 /**

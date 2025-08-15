@@ -5,7 +5,16 @@ export async function POST(request: NextRequest) {
   try {
     // セッションクッキーを削除
     const cookieStore = await cookies();
-    cookieStore.delete('session');
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // LINEブラウザ対応のため、明示的にクッキーを上書き
+    cookieStore.set('session', '', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 0, // 即座に削除
+      path: '/',
+    });
 
     return NextResponse.json({
       success: true,

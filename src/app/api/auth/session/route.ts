@@ -8,9 +8,16 @@ export async function GET(request: NextRequest) {
     const sessionCookie = cookieStore.get('session');
 
     if (!sessionCookie) {
+      // キャッシュを無効化して常に最新の状態を返す
       return NextResponse.json({
         authenticated: false,
         user: null,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -44,6 +51,12 @@ export async function GET(request: NextRequest) {
           emailVerified: payload.email_verified || payload.emailVerified || false,
           displayName: payload.name || null,
         },
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     } catch (error) {
       console.error('Failed to decode session token:', error);
@@ -54,6 +67,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         authenticated: false,
         user: null,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -63,6 +82,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       authenticated: false,
       user: null,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
     });
   }
 }

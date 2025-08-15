@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
 
-  // セッションチェック
+  // セッションチェック（高速化）
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -46,44 +46,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.authenticated && data.user) {
           console.log('✅ Session valid:', data.user.email);
           setCurrentUser(data.user);
+          setIsLoading(false);
           
-          // Firebase Authにも同期（Firestore権限のため）
-          const tokenResponse = await fetch('/api/auth/custom-token', {
-            method: 'GET',
-            credentials: 'include',
-          });
-          
-          if (tokenResponse.ok) {
-            const tokenData = await tokenResponse.json();
-            if (tokenData.customToken && tokenData.uid) {
-              // カスタムトークンでFirebase Authにサインイン
-              const { getFirebaseAuth } = await import('@/lib/firebase/client');
-              const { signInWithCustomToken } = await import('firebase/auth');
-              const auth = getFirebaseAuth();
-              if (auth) {
-                try {
-                  await signInWithCustomToken(auth, tokenData.customToken);
-                  console.log('✅ Firebase Auth synced with custom token');
-                } catch (error: any) {
-                  // カスタムトークンが失敗した場合、IDトークンを使用
-                  if (error.code === 'auth/invalid-custom-token') {
-                    const { signInWithIdToken } = await import('@/lib/firebase/auth-helper');
-                    await signInWithIdToken(tokenData.customToken);
-                  } else {
-                    console.warn('⚠️ Could not sync Firebase Auth:', error);
+          // Firebase Auth同期は非同期で実行（ブロックしない）
+          setTimeout(async () => {
+            try {
+              const tokenResponse = await fetch('/api/auth/custom-token', {
+                method: 'GET',
+                credentials: 'include',
+              });
+              
+              if (tokenResponse.ok) {
+                const tokenData = await tokenResponse.json();
+                if (tokenData.customToken && tokenData.uid) {
+                  const { getFirebaseAuth } = await import('@/lib/firebase/client');
+                  const { signInWithCustomToken } = await import('firebase/auth');
+                  const auth = getFirebaseAuth();
+                  if (auth) {
+                    try {
+                      await signInWithCustomToken(auth, tokenData.customToken);
+                      console.log('✅ Firebase Auth synced');
+                    } catch (error) {
+                      console.warn('⚠️ Firebase sync failed, but session is valid');
+                    }
                   }
                 }
               }
+            } catch (error) {
+              console.warn('⚠️ Background sync failed, but session is valid');
             }
-          }
+          }, 100);
         } else {
           console.log('❌ No valid session');
           setCurrentUser(null);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('❌ Session check failed:', error);
         setCurrentUser(null);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -127,38 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Login successful');
       setCurrentUser(result.user);
-      
-      // Firebase Authにもサインイン（Firestoreアクセス用）
-      if (result.customToken) {
-        // カスタムトークンAPIを呼び出して正しいトークンを取得
-        const tokenResponse = await fetch('/api/auth/custom-token', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          if (tokenData.customToken) {
-            const { getFirebaseAuth } = await import('@/lib/firebase/client');
-            const { signInWithCustomToken } = await import('firebase/auth');
-            const auth = getFirebaseAuth();
-            if (auth) {
-              try {
-                await signInWithCustomToken(auth, tokenData.customToken);
-                console.log('✅ Firebase Auth synced after login');
-              } catch (error: any) {
-                // カスタムトークンが失敗した場合、IDトークンを使用
-                if (error.code === 'auth/invalid-custom-token') {
-                  const { signInWithIdToken } = await import('@/lib/firebase/auth-helper');
-                  await signInWithIdToken(result.customToken);
-                } else {
-                  console.warn('⚠️ Could not sync Firebase Auth:', error);
-                }
-              }
-            }
-          }
-        }
-      }
+      setIsLoading(false);
       
       toast({ 
         title: 'ログインしました', 
@@ -168,7 +137,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ホームページにリダイレクト
       router.push('/');
       
-      setIsLoading(false);
+      // Firebase Auth同期は非同期で実行（ブロックしない）
+      if (result.customToken) {
+        setTimeout(async () => {
+          try {
+            const tokenResponse = await fetch('/api/auth/custom-token', {
+              method: 'GET',
+              credentials: 'include',
+            });
+            
+            if (tokenResponse.ok) {
+              const tokenData = await tokenResponse.json();
+              if (tokenData.customToken) {
+                const { getFirebaseAuth } = await import('@/lib/firebase/client');
+                const { signInWithCustomToken } = await import('firebase/auth');
+                const auth = getFirebaseAuth();
+                if (auth) {
+                  try {
+                    await signInWithCustomToken(auth, tokenData.customToken);
+                    console.log('✅ Firebase Auth synced after login');
+                  } catch (error) {
+                    console.warn('⚠️ Firebase sync failed, but login successful');
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ Background sync failed, but login successful');
+          }
+        }, 100);
+      }
+      
       return true;
       
     } catch (error: any) {

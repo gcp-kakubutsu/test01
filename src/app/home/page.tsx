@@ -48,7 +48,9 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
+  // 認証チェック（高速化）
   useEffect(() => {
+    // 認証状態が確定したら即座にリダイレクト
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
@@ -70,11 +72,14 @@ export default function HomePage() {
         return;
       }
 
+      // Set checking to false immediately to show content faster
+      setCheckingWelcome(false);
+
       try {
         // Check if component is still mounted and user is still authenticated
         if (!isMounted || !currentUser) return;
         
-        // Check if user has seen welcome
+        // Check if user has seen welcome (non-blocking)
         const welcomeRef = doc(db, 'userSettings', currentUser.uid);
         const welcomeDoc = await getDoc(welcomeRef);
         

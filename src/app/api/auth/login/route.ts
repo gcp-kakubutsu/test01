@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Firebase AuthのREST APIを使用してユーザー認証（高速）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+    
     const response = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
       {
@@ -25,8 +28,9 @@ export async function POST(request: NextRequest) {
           password,
           returnSecureToken: true,
         }),
+        signal: controller.signal,
       }
-    );
+    ).finally(() => clearTimeout(timeoutId));
 
     const data = await response.json();
 
@@ -61,10 +65,13 @@ export async function POST(request: NextRequest) {
 
     // IDトークンを直接セッションクッキーとして保存（高速化）
     const cookieStore = await cookies();
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // LINEブラウザを含むすべてのブラウザで動作するよう設定
     cookieStore.set('session', data.idToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax', // 本番環境ではnoneでLINEブラウザ対応
       maxAge: parseInt(data.expiresIn) || 3600, // expiresInの値を使用（デフォルト1時間）
       path: '/',
     });
@@ -82,6 +89,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Login API error:', error);
+    
+    // タイムアウトエラーの場合
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'ログインがタイムアウトしました。再度お試しください。' },
+        { status: 408 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'サーバーエラーが発生しました' },
       { status: 500 }

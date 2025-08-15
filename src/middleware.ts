@@ -4,10 +4,15 @@ import { apiRateLimit, strictRateLimit, uploadRateLimit } from '@/lib/rate-limit
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   
+  // Skip rate limiting for session checks (high frequency, low risk)
+  if (path === '/api/auth/session' || path === '/api/auth/custom-token') {
+    return NextResponse.next()
+  }
+  
   // Apply rate limiting based on the path
   let rateLimitResult
   
-  // Strict rate limiting for auth endpoints
+  // Strict rate limiting for auth endpoints (except session checks)
   if (path.startsWith('/api/auth/') || path === '/api/login' || path === '/api/signup') {
     rateLimitResult = await strictRateLimit(request, `auth-${path}`)
   }
