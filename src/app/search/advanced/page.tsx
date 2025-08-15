@@ -103,9 +103,12 @@ function AdvancedSearchContent() {
   const searchParams = useSearchParams()
   const { isAuthenticated, currentUser } = useAuth()
   const { profile: userProfile } = useUserProfile()
-  const { isPremium } = useSubscription()
+  const { isPremium, loading: subscriptionLoading } = useSubscription()
   const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
+  
+  // 有料会員状態を直接使用
+  // subscriptionLoadingがfalseでisPremiumがfalseの場合のみモザイクを適用
 
   // State
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -1547,10 +1550,11 @@ function AdvancedSearchContent() {
                   src={user.imageUrl}
                   alt={user.name}
                   fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   className={viewMode === 'list' ? "object-contain" : "object-cover"}
-                  style={{ filter: 'blur(8px)' }}
+                  style={!subscriptionLoading && !isPremium ? { filter: 'blur(8px)' } : {}}
                 />
-                <div className={styles.profileBlur} />
+                {!subscriptionLoading && !isPremium && <div className={styles.profileBlur} />}
               </div>
               <CardContent className={styles.profileInfo}>
                 <h3 className={styles.profileName}>{user.name}</h3>

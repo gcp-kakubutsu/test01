@@ -69,6 +69,7 @@ export function useSubscription() {
           const endDate = userData.subscriptionEndDate.toDate();
           const isActive = endDate > new Date();
           
+          console.log('[useSubscription] User has premium with end date:', endDate, 'isActive:', isActive)
           
           setSubscription({
             isPremium: isActive,
@@ -78,14 +79,14 @@ export function useSubscription() {
           });
         } else if (userData?.isPremium) {
           // isPremiumがtrueだが、subscriptionEndDateがない場合も有効とする
-          console.log('Premium user without end date');
+          console.log('[useSubscription] Premium user without end date - treating as premium');
           setSubscription({
             isPremium: true,
             subscriptionStatus: 'active',
             subscriptionPlan: userData.subscriptionPlan
           });
         } else {
-          console.log('Non-premium user');
+          console.log('[useSubscription] Non-premium user. userData:', userData);
           setSubscription({ isPremium: false, subscriptionStatus: 'none' });
         }
       } catch (error: any) {
