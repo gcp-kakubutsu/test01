@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -42,6 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!hasLocalStorage) {
       console.warn('localStorage is not available, some features may not work');
     }
+
+    // Set a timeout to force loading to false after 5 seconds
+    const timeout = setTimeout(() => {
+      console.log('Auth loading timeout reached, forcing loading to false');
+      setIsLoading(false);
+    }, isLine ? 3000 : 5000); // 3 seconds for LINE, 5 seconds for others
+    
+    setLoadingTimeout(timeout);
 
     if (firebaseInitError) {
       console.warn("AuthContext: Firebaseの初期化中にエラーが検出されたため、認証関連の処理をスキップします。", firebaseInitError);
@@ -64,6 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe = onAuthStateChanged(auth, (user) => {
         setCurrentUser(user);
         setIsLoading(false);
+        // Clear timeout when auth state is determined
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+        }
       }, (error) => {
         // 認証状態の監視でエラーが発生した場合のハンドリング
         console.error('Auth state change error:', error);
@@ -103,7 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
     }
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

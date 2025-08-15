@@ -7,6 +7,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.admin == true;
     }
+    
     // Users collection rules
     match /users/{userId} {
       // 認証されたユーザーは全てのユーザープロフィールを読める（マッチング用）
@@ -132,6 +133,12 @@ service cloud.firestore {
       
       // 管理者は全ての設定を読める（マッチング用）
       allow read: if request.auth != null;
+    }
+    
+    // Public stats collection - 統計情報は誰でも読める
+    match /publicStats/{document=**} {
+      allow read: if true;
+      allow write: if false;
     }
     
     // Default rule - deny all other access

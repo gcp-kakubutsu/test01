@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2 } from 'lucide-react';
@@ -9,11 +9,31 @@ import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import MatchingSearch from '@/components/home/MatchingSearch';
+import { isLineApp } from '@/lib/utils/browser';
 
 export default function LandingPage() {
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [forceShowContent, setForceShowContent] = useState(false);
+  const [isInLineApp, setIsInLineApp] = useState(false);
+
+  // Check if we're in LINE browser
+  useEffect(() => {
+    setIsInLineApp(isLineApp());
+  }, []);
+
+  // Timeout for loading state - especially for LINE browser
+  useEffect(() => {
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('Loading timeout reached, forcing content display');
+        setForceShowContent(true);
+      }
+    }, isInLineApp ? 3000 : 5000); // 3 seconds for LINE, 5 seconds for others
+
+    return () => clearTimeout(loadingTimeout);
+  }, [isLoading, isInLineApp]);
 
   // Redirect to home if already logged in
   useEffect(() => {
@@ -244,8 +264,8 @@ export default function LandingPage() {
     }
   };
 
-  // Show loading only during initial auth check
-  if (isLoading) {
+  // Show loading only during initial auth check (with timeout)
+  if (isLoading && !forceShowContent) {
     return (
       <div className="flex justify-center items-center h-screen bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

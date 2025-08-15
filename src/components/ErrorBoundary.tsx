@@ -21,8 +21,17 @@ export class ErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    // Firebase permission error
+    // Firebase permission error - don't show error for unauthenticated users
     if (error.message.includes('Missing or insufficient permissions')) {
+      // Check if we're in LINE browser
+      const inLineApp = typeof window !== 'undefined' && isLineApp();
+      
+      // In LINE browser or for permission errors, don't show error boundary
+      if (inLineApp) {
+        console.log('Permission error in LINE browser, suppressing error boundary');
+        return { hasError: false, error: null };
+      }
+      
       return {
         hasError: true,
         error: new Error('アクセス権限がありません。ログインし直すか、しばらくお待ちください。')
