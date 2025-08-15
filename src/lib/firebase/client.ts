@@ -4,7 +4,7 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
 
-// Firebase設定
+// Firebase設定 - 環境変数から取得
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,103 +15,138 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let firebaseApp: FirebaseApp | undefined = undefined;
-let authInstance: Auth | undefined = undefined;
-let dbInstance: Firestore | undefined = undefined;
-let storageInstance: FirebaseStorage | undefined = undefined;
-let functionsInstance: Functions | undefined = undefined;
+// シングルトンインスタンス
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
+let functions: Functions | undefined;
 
-// 初期化を遅延実行
-function initializeFirebase() {
-  if (firebaseApp) return { app: firebaseApp, auth: authInstance, db: dbInstance };
+// 初期化状態
+let initialized = false;
+let initializationError: Error | null = null;
+
+/**
+ * Firebaseを初期化する関数
+ * エラーが発生しても部分的に動作可能にする
+ */
+function initializeFirebaseServices(): void {
+  if (initialized) return;
   
-  // 既存のアプリがあるか確認
-  const existingApps = getApps();
-  if (existingApps.length > 0) {
-    firebaseApp = existingApps[0];
-  } else {
-    // 新規初期化
-    try {
-      firebaseApp = initializeApp(firebaseConfig);
-      console.log('Firebase initialized successfully');
-    } catch (error) {
-      console.error('Firebase initialization error:', error);
-      // エラーでも続行（部分的に機能する可能性）
+  try {
+    console.log('Starting Firebase initialization...');
+    console.log('Config:', {
+      apiKey: firebaseConfig.apiKey ? '***' : 'missing',
+      authDomain: firebaseConfig.authDomain || 'missing',
+      projectId: firebaseConfig.projectId || 'missing',
+      appId: firebaseConfig.appId ? '***' : 'missing',
+    });
+
+    // 必須設定の確認
+    if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || 
+        !firebaseConfig.projectId || !firebaseConfig.appId) {
+      throw new Error('Missing required Firebase configuration');
     }
+
+    // 既存のアプリを確認
+    const existingApps = getApps();
+    if (existingApps.length > 0) {
+      console.log('Using existing Firebase app');
+      app = existingApps[0];
+    } else {
+      console.log('Creating new Firebase app');
+      app = initializeApp(firebaseConfig);
+    }
+
+    // Auth初期化
+    if (app) {
+      try {
+        auth = getAuth(app);
+        console.log('Auth initialized successfully');
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      }
+    }
+
+    // Firestore初期化
+    if (app) {
+      try {
+        db = getFirestore(app);
+        console.log('Firestore initialized successfully');
+      } catch (error) {
+        console.error('Firestore initialization error:', error);
+      }
+    }
+
+    // Storage初期化
+    if (app) {
+      try {
+        storage = getStorage(app);
+        console.log('Storage initialized successfully');
+      } catch (error) {
+        console.error('Storage initialization error:', error);
+      }
+    }
+
+    // Functions初期化
+    if (app) {
+      try {
+        functions = getFunctions(app);
+        console.log('Functions initialized successfully');
+      } catch (error) {
+        console.error('Functions initialization error:', error);
+      }
+    }
+
+    initialized = true;
+    console.log('Firebase initialization completed');
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    initializationError = error as Error;
+    initialized = true; // エラーでも初期化済みとマーク
   }
-  
-  // 各サービスの初期化（エラーを無視）
-  if (firebaseApp) {
-    try {
-      authInstance = getAuth(firebaseApp);
-    } catch (e) {
-      console.warn('Auth initialization skipped:', e);
-    }
-    
-    try {
-      dbInstance = getFirestore(firebaseApp);
-    } catch (e) {
-      console.warn('Firestore initialization skipped:', e);
-    }
-    
-    try {
-      storageInstance = getStorage(firebaseApp);
-    } catch (e) {
-      console.warn('Storage initialization skipped:', e);
-    }
-    
-    try {
-      functionsInstance = getFunctions(firebaseApp);
-    } catch (e) {
-      console.warn('Functions initialization skipped:', e);
-    }
-  }
-  
-  return { app: firebaseApp, auth: authInstance, db: dbInstance, storage: storageInstance, functions: functionsInstance };
 }
 
-// 遅延初期化のゲッター
-const getFirebaseApp = () => {
-  if (!firebaseApp) {
-    initializeFirebase();
+// 即座に初期化を実行
+if (typeof window !== 'undefined') {
+  // ブラウザ環境では即座に初期化
+  initializeFirebaseServices();
+}
+
+/**
+ * Firebaseサービスを取得するゲッター関数
+ */
+export function getFirebaseAuth(): Auth | undefined {
+  if (!initialized) {
+    initializeFirebaseServices();
   }
-  return firebaseApp;
-};
+  return auth;
+}
 
-const getFirebaseAuth = () => {
-  if (!authInstance) {
-    initializeFirebase();
+export function getFirebaseDb(): Firestore | undefined {
+  if (!initialized) {
+    initializeFirebaseServices();
   }
-  return authInstance;
-};
+  return db;
+}
 
-const getFirebaseDb = () => {
-  if (!dbInstance) {
-    initializeFirebase();
+export function getFirebaseStorage(): FirebaseStorage | undefined {
+  if (!initialized) {
+    initializeFirebaseServices();
   }
-  return dbInstance;
-};
+  return storage;
+}
 
-const getFirebaseStorage = () => {
-  if (!storageInstance) {
-    initializeFirebase();
+export function getFirebaseFunctions(): Functions | undefined {
+  if (!initialized) {
+    initializeFirebaseServices();
   }
-  return storageInstance;
-};
+  return functions;
+}
 
-const getFirebaseFunctions = () => {
-  if (!functionsInstance) {
-    initializeFirebase();
-  }
-  return functionsInstance;
-};
+export function getInitializationError(): Error | null {
+  return initializationError;
+}
 
-// エクスポート（遅延初期化）
-export const app = getFirebaseApp();
-export const auth = getFirebaseAuth();
-export const db = getFirebaseDb();
-export const storage = getFirebaseStorage();
-export const functions = getFirebaseFunctions();
-
-// 動的インポート用の関数もエクスポート
-export { getFirebaseAuth, getFirebaseDb, getFirebaseStorage, getFirebaseFunctions };
+// 既存コードとの互換性のためのエクスポート
+export { app, auth, db, storage, functions };
