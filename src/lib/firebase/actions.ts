@@ -192,10 +192,18 @@ export async function createMatch(userId1: string, userId2: string) {
 }
 
 // Like Actions
-export async function sendLike(fromUserId: string, toUserId: string) {
+export async function sendLike(
+  fromUserId: string, 
+  toUserId: string, 
+  options?: {
+    toGirlName?: string;
+    toGirlId?: string;
+    isGirlProfile?: boolean;
+  }
+) {
   if (!db) throw new Error('Firestore is not initialized');
   
-  console.log('Sending like from:', fromUserId, 'to:', toUserId);
+  console.log('Sending like from:', fromUserId, 'to:', toUserId, 'options:', options);
   
   try {
     const { getDocs, query, where } = await import('firebase/firestore');
@@ -214,12 +222,21 @@ export async function sendLike(fromUserId: string, toUserId: string) {
       return { likeId: existingLikeSnapshot.docs[0].id, matchId: null, isMatch: false, alreadyLiked: true };
     }
     
-    const newLike = await addDoc(likesRef, {
+    const likeData: any = {
       from: fromUserId,
       to: toUserId,
       createdAt: serverTimestamp(),
       seen: false
-    });
+    };
+    
+    // Add MySQL girl-specific fields if provided
+    if (options?.isGirlProfile) {
+      likeData.isGirlProfile = true;
+      if (options.toGirlName) likeData.toGirlName = options.toGirlName;
+      if (options.toGirlId) likeData.toGirlId = options.toGirlId;
+    }
+    
+    const newLike = await addDoc(likesRef, likeData);
     
     console.log('Like created with ID:', newLike.id);
     
@@ -253,8 +270,11 @@ export async function sendLike(fromUserId: string, toUserId: string) {
     }
     
     // 認証エラーの場合
-    if (error.code === 'permission-denied') {
-      throw new Error('この操作を実行する権限がありません。');
+    if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+      console.error('Permission denied for like operation. User may not be premium.');
+      const permissionError = new Error('有料会員のみいいねを送ることができます。');
+      (permissionError as any).code = 'permission-denied';
+      throw permissionError;
     }
     
     throw error;

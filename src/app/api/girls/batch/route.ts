@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Limit to 50 IDs at once to prevent abuse
-    const girlIds = ids.slice(0, 50).map(id => parseInt(id)).filter(id => !isNaN(id));
+    console.log('Received IDs:', ids);
+    const girlIds = ids.slice(0, 50).map(id => {
+      const parsed = typeof id === 'string' ? parseInt(id) : id;
+      return parsed;
+    }).filter(id => !isNaN(id));
+    console.log('Parsed girl IDs:', girlIds);
     
     if (girlIds.length === 0) {
       return NextResponse.json(

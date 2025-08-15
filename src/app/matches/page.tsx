@@ -95,11 +95,13 @@ export default function MatchesPage() {
         }
         
         // Load sent likes (without orderBy to avoid index requirement initially)
+        // First try to get likes sent by the user
         const sentLikesQuery = query(
           collection(db, 'likes'),
           where('from', '==', currentUser.uid)
         );
         const sentLikesSnapshot = await getDocs(sentLikesQuery);
+        console.log('Sent likes count:', sentLikesSnapshot.size);
         const sentLikeUserIds = sentLikesSnapshot.docs.map(doc => doc.data().to);
         
         // Load received likes (without orderBy to avoid index requirement initially)
@@ -121,14 +123,39 @@ export default function MatchesPage() {
         sentLikesSnapshot.docs.forEach(doc => {
           const data = doc.data();
           sentLikesData.push({ doc, data });
+          
+          // Simplified debug log
+          // console.log('Like to:', data.to);
+          
+          // Check if it's a MySQL girl like by ID format or isGirlProfile flag
           if (data.isGirlProfile && data.toGirlId) {
+            // New format with explicit girl ID
+            // console.log('New format MySQL girl detected, ID:', data.toGirlId);
             mysqlGirlIds.push(data.toGirlId);
+          } else if (data.to && typeof data.to === 'string' && data.to.startsWith('mysql_girl_')) {
+            // Format with mysql_girl_ prefix
+            const girlId = data.to.replace('mysql_girl_', '');
+            // console.log('MySQL girl with prefix detected, extracted ID:', girlId);
+            mysqlGirlIds.push(girlId);
+            // Add flag to data for processing later
+            data.isOldMysqlFormat = true;
+            data.extractedGirlId = girlId;
+          } else if (data.to && typeof data.to === 'string' && /^\d+$/.test(data.to)) {
+            // Old format: numeric string (likely a MySQL girl ID)
+            // console.log('Old format numeric ID detected:', data.to);
+            mysqlGirlIds.push(data.to);
+            // Add flag to data for processing later
+            data.isOldMysqlFormat = true;
+            data.extractedGirlId = data.to;
+          } else {
+            // console.log('Regular Firebase user, to value:', data.to);
           }
         });
         
         // Batch fetch MySQL girl data if needed
         let mysqlGirlsData: Record<string, any> = {};
         if (mysqlGirlIds.length > 0) {
+          console.log('Fetching MySQL girl data for IDs:', mysqlGirlIds);
           try {
             const response = await fetch('/api/girls/batch', {
               method: 'POST',
@@ -137,34 +164,63 @@ export default function MatchesPage() {
             });
             if (response.ok) {
               mysqlGirlsData = await response.json();
+              console.log('Successfully fetched data for', Object.keys(mysqlGirlsData).length, 'girls');
+            } else {
+              console.error('Failed to fetch girls batch:', response.status);
             }
           } catch (error) {
             console.error('Error fetching girls batch:', error);
           }
+        } else {
+          console.log('No MySQL girl IDs to fetch');
         }
         
         // Process sent likes with fetched data
         const sentLikesList: Like[] = sentLikesData.map(({ doc, data }) => {
           const targetUserId = data.to;
           
-          // Check if this is a MySQL girl like
+          // Check if this is a MySQL girl like (new format)
           if (data.isGirlProfile && data.toGirlId) {
             const girlData = mysqlGirlsData[data.toGirlId];
-            if (girlData) {
-              return {
-                id: doc.id,
-                userId: targetUserId,
-                name: data.toGirlName || girlData.name || 'ユーザー',
-                age: girlData.age || 20,
-                imageUrl: girlData.images?.[0]?.image_url || girlData.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
-                bio: girlData.comment,
-                location: girlData.location,
-                createdAt: data.createdAt?.toDate() || new Date(),
-                type: 'sent' as const,
-                isGirlProfile: true,
-                girlId: data.toGirlId
-              };
-            }
+            // Use stored name first, then fetched data, then fallback
+            const girlName = data.toGirlName || girlData?.name || 'ユーザー';
+            
+            return {
+              id: doc.id,
+              userId: targetUserId,
+              name: girlName,
+              age: girlData?.age || 20,
+              imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+              bio: girlData?.comment,
+              location: girlData?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'sent' as const,
+              isGirlProfile: true,
+              girlId: data.toGirlId
+            };
+          }
+          
+          // Check if this is a MySQL girl like (old format with mysql_girl_ prefix)
+          if (data.isOldMysqlFormat && data.extractedGirlId) {
+            const girlData = mysqlGirlsData[data.extractedGirlId];
+            // console.log('Processing old format like, girlId:', data.extractedGirlId, 'girlData:', girlData);
+            
+            // Use fetched data or show loading state
+            const girlName = girlData?.name || '読み込み中...';
+            
+            return {
+              id: doc.id,
+              userId: targetUserId,
+              name: girlName,
+              age: girlData?.age || 20,
+              imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+              bio: girlData?.comment,
+              location: girlData?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'sent' as const,
+              isGirlProfile: true,
+              girlId: data.extractedGirlId
+            };
           }
           
           // Regular Firebase user
@@ -327,10 +383,27 @@ export default function MatchesPage() {
           ),
         });
         
-        // Reload to update matches list after a delay
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        // Add to matches list immediately
+        const newMatch: Match = {
+          id: result.matchId!,
+          name: like.name,
+          age: like.age,
+          imageUrl: like.imageUrl,
+          matchedAt: new Date(),
+          isNew: true
+        };
+        setDisplayMatches(prev => [newMatch, ...prev]);
+        
+        // Add to sent likes list as well
+        const newSentLike: Like = {
+          ...like,
+          type: 'sent' as const,
+          createdAt: new Date()
+        };
+        setSentLikes(prev => [newSentLike, ...prev]);
+        
+        // Remove from received likes since it's now a match
+        setReceivedLikes(prev => prev.filter(l => l.userId !== like.userId));
       } else {
         toast({
           title: "いいねを返しました！",

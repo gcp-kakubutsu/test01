@@ -48,6 +48,7 @@ interface UserProfile {
   is_tobacco?: boolean
   createdAt?: string
   matchScore?: number // おすすめ度スコア
+  isGirlProfile?: boolean // MySQLの女の子データかどうか
 }
 
 // 性癖・プレイスタイルのタグ
@@ -450,7 +451,8 @@ function AdvancedSearchContent() {
           lastActive: user.lastActive,
           is_sake: user.is_sake,
           is_tobacco: user.is_tobacco,
-          distance: distance
+          distance: distance,
+          isGirlProfile: true // MySQLの女の子データであることを示す
         };
       })
       
@@ -927,7 +929,7 @@ function AdvancedSearchContent() {
   }, [ageRange])
 
   // いいね送信
-  const handleLike = async (userId: string) => {
+  const handleLike = async (user: UserProfile) => {
     if (!currentUser) {
       toast({
         title: 'ログインが必要です',
@@ -937,18 +939,103 @@ function AdvancedSearchContent() {
       return
     }
 
+    // 有料会員チェック - subscriptionLoadingが完了してからチェック
+    if (!subscriptionLoading && !isPremium) {
+      toast({
+        title: '有料会員限定',
+        description: 'いいねを送るには有料会員登録が必要です',
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/subscription')}
+          >
+            有料会員になる
+          </Button>
+        ),
+      })
+      return
+    }
+
+    // subscriptionLoading中は何もしない
+    if (subscriptionLoading) {
+      console.log('Subscription status is still loading...')
+      return
+    }
+
     try {
-      await sendLike(currentUser.uid, userId)
-      toast({
-        title: 'いいねを送りました',
-        description: 'お相手に通知が送られます'
-      })
-    } catch (error) {
-      toast({
-        title: 'エラー',
-        description: 'いいねの送信に失敗しました',
-        variant: 'destructive'
-      })
+      console.log('Sending like from:', currentUser.uid, 'to:', user.id, 'isPremium:', isPremium)
+      
+      // MySQLの女の子データの場合は追加情報を送る
+      const options = user.isGirlProfile ? {
+        toGirlName: user.name,
+        toGirlId: user.id,
+        isGirlProfile: true
+      } : undefined;
+      
+      // MySQLの女の子の場合、特別なIDを使用
+      const targetId = user.isGirlProfile ? `mysql_girl_${user.id}` : user.id;
+      
+      const result = await sendLike(currentUser.uid, targetId, options)
+      
+      if (result.alreadyLiked) {
+        toast({
+          title: '既にいいねを送っています',
+          description: `${user.name}さんには既にいいねを送信済みです。`,
+        })
+      } else if (result.isMatch) {
+        toast({
+          title: 'マッチしました！🎉',
+          description: `${user.name}さんとマッチしました！メッセージを送ってみましょう。`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/messages/${result.matchId}`)}
+            >
+              メッセージを送る
+            </Button>
+          ),
+        })
+      } else {
+        toast({
+          title: 'いいねを送りました！',
+          description: `${user.name}さんにいいねを送りました。`
+        })
+      }
+    } catch (error: any) {
+      console.error('Like error:', error)
+      console.error('Error details:', error.message, error.code)
+      
+      // Firebaseの権限エラーの場合
+      if (error?.code === 'permission-denied' || 
+          error?.message?.includes('Missing or insufficient permissions') ||
+          error?.message?.includes('有料会員のみ')) {
+        
+        // サブスクリプション情報を再確認
+        console.log('Permission denied. Current premium status:', isPremium)
+        
+        toast({
+          title: '権限エラー',
+          description: '有料会員登録を確認してください。ページをリロードして再度お試しください。',
+          variant: 'destructive',
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              ページをリロード
+            </Button>
+          ),
+        })
+      } else {
+        toast({
+          title: 'エラー',
+          description: 'いいねの送信に失敗しました。しばらく時間をおいて再度お試しください。',
+          variant: 'destructive'
+        })
+      }
     }
   }
 
@@ -1597,7 +1684,7 @@ function AdvancedSearchContent() {
                   <Button
                     variant="outline"
                     className={styles.actionLike}
-                    onClick={() => handleLike(user.id)}
+                    onClick={() => handleLike(user)}
                   >
                     <Heart className="w-4 h-4" />
                     いいね

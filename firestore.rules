@@ -41,9 +41,11 @@ service cloud.firestore {
     // Likes collection rules
     match /likes/{likeId} {
       // ユーザーは自分が送信したいいね、または自分宛のいいねを読める
+      // また、mysql_girl_で始まるtoフィールドの場合も読める（MySQLの女の子データ）
       allow read: if request.auth != null && 
         (request.auth.uid == resource.data.from ||
-         request.auth.uid == resource.data.to);
+         request.auth.uid == resource.data.to ||
+         (resource.data.to is string && resource.data.to.matches('^mysql_girl_.*')));
       
       // ユーザーは自分からのいいねのみ作成できる
       allow create: if request.auth != null && 
