@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth, browserLocalPersistence, browserSessionPersistence, setPersistence } from 'firebase/auth';
+import { getFirestore, type Firestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
 
@@ -59,6 +59,18 @@ if (
     try {
       app = initializeApp(firebaseConfig);
       authInstance = getAuth(app);
+      
+      // LINE browser compatibility: Use session persistence instead of local
+      if (typeof window !== 'undefined') {
+        const ua = window.navigator.userAgent.toLowerCase();
+        if (ua.includes('line')) {
+          console.log('LINE browser detected, using session persistence');
+          setPersistence(authInstance, browserSessionPersistence).catch(e => {
+            console.warn('Failed to set session persistence:', e);
+          });
+        }
+      }
+      
       dbInstance = getFirestore(app);
       storageInstance = getStorage(app);
       functionsInstance = getFunctions(app);

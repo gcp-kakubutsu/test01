@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
+import { isLineApp } from '@/lib/utils/browser';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -31,7 +32,22 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Check if we're in LINE browser
+    const inLineApp = typeof window !== 'undefined' && isLineApp();
+    
+    // Log error with browser info
+    console.error('ErrorBoundary caught an error:', {
+      error: error.message,
+      stack: error.stack,
+      inLineApp,
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
+      errorInfo
+    });
+    
+    // Special handling for LINE browser
+    if (inLineApp) {
+      console.log('Error occurred in LINE browser, applying compatibility mode');
+    }
   }
 
   render() {

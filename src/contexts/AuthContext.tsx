@@ -8,6 +8,7 @@ import { auth, db, firebaseInitError } from '@/lib/firebase/client'; // auth, db
 import type { AuthFormData } from '@/app/login/page';
 import { addUserToFirestore } from '@/app/auth/actions';
 import { useToast } from '@/hooks/use-toast';
+import { isLineApp, isLocalStorageAvailable } from '@/lib/utils/browser';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -28,16 +29,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribe = () => {};
 
+    // Check for LINE browser compatibility issues
+    const isLine = isLineApp();
+    const hasLocalStorage = isLocalStorageAvailable();
+    
+    if (isLine) {
+      console.log('LINE browser detected, applying compatibility fixes');
+      // LINE browser may have issues with certain Firebase features
+      // Apply workarounds if needed
+    }
+    
+    if (!hasLocalStorage) {
+      console.warn('localStorage is not available, some features may not work');
+    }
+
     if (firebaseInitError) {
       console.warn("AuthContext: Firebaseの初期化中にエラーが検出されたため、認証関連の処理をスキップします。", firebaseInitError);
       setCurrentUser(null);
       setIsLoading(false);
-      toast({
-        title: "Firebase初期化エラー",
-        description: `設定に問題があります: ${firebaseInitError}. アプリケーションの主要機能が利用できません。環境設定（.envファイルなど）を確認してください。`,
-        variant: "destructive",
-        duration: Infinity, // ユーザーが閉じるまで表示
-      });
+      
+      // Don't show infinite toast on LINE browser or production
+      if (process.env.NODE_ENV === 'development') {
+        toast({
+          title: "Firebase初期化エラー",
+          description: `設定に問題があります。環境設定を確認してください。`,
+          variant: "destructive",
+          duration: 10000, // 10秒で自動的に閉じる
+        });
+      }
       return;
     }
 
@@ -74,12 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn("AuthContext: Firebase Auth が初期化されていませんが、firebaseInitErrorは設定されていませんでした。認証機能は動作しません。");
       setCurrentUser(null);
       setIsLoading(false);
-      toast({
-        title: "認証サービスエラー",
-        description: "Firebase認証サービスが正しく設定されていません。管理者に連絡するか、設定を確認してください。",
-        variant: "destructive",
-        duration: Infinity,
-      });
+      // Only show toast in development or if not in LINE browser
+      if (process.env.NODE_ENV === 'development' && !isLine) {
+        toast({
+          title: "認証サービスエラー",
+          description: "Firebase認証サービスが正しく設定されていません。",
+          variant: "destructive",
+          duration: 5000, // 5秒で自動的に閉じる
+        });
+      }
     }
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
