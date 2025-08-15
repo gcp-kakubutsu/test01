@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const ageMax = parseInt(searchParams.get('ageMax') || '50');
     const girlTypesParam = searchParams.get('girlTypes');
     const girlTypes = girlTypesParam ? girlTypesParam.split(',') : null;
+    const girlId = searchParams.get('girlId') || null;
     
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
@@ -36,12 +37,13 @@ export async function GET(request: NextRequest) {
       area,
       ageMin,
       ageMax,
-      girlTypes
+      girlTypes,
+      girlId
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId);
     }
     
     const responseTime = performance.now() - startTime;

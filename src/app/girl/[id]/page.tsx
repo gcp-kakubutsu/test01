@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation, StickyNote } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
@@ -396,6 +396,16 @@ export default function GirlProfilePage() {
                   <Heart className="h-4 w-4 mr-2" />
                   {isProcessingLike ? "送信中..." : "いいね"}
                 </Button>
+                {isPremium && (
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => router.push(`/messages/${girl.id}`)}
+                  >
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    メモ
+                  </Button>
+                )}
                 <Button className="flex-1" variant="outline">
                   予約する
                 </Button>

@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { Heart, MessageCircle, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
+import { Heart, StickyNote, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
 // Removed direct import - will fetch via API
 import { sendLike } from '@/lib/firebase/actions'
 import { useToast } from '@/hooks/use-toast'
@@ -49,6 +49,7 @@ interface UserProfile {
   createdAt?: string
   matchScore?: number // おすすめ度スコア
   isGirlProfile?: boolean // MySQLの女の子データかどうか
+  girlTypes?: string[] // Girl types from database
 }
 
 // 性癖・プレイスタイルのタグ
@@ -123,11 +124,12 @@ function AdvancedSearchContent() {
     municipalities: [] 
   })
   const [currentPage, setCurrentPage] = useState(1)
-  const LIMIT = 20
+  const LIMIT = 20 // 20 items per page for pagination
 
   // Filters
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([])
+  const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([]) // For girl types filter
+  const [availableGirlTypes, setAvailableGirlTypes] = useState<string[]>([]) // Available girl types from DB
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedTime, setSelectedTime] = useState('now')
   const [ageRange, setAgeRange] = useState([18, 50])
@@ -183,19 +185,23 @@ function AdvancedSearchContent() {
     setIsInitialLoad(false)
   }, [searchParams, isInitialLoad])
 
-  // 位置情報取得（初回のみ）
+  // 位置情報取得（ホームページと同じ方式）
   useEffect(() => {
     const getLocation = async () => {
-      // locationパラメータがある場合はGPS取得をスキップ
-      if (locationFromParam) return;
-      
-      const locationInfo = await getCurrentLocation()
-      if (locationInfo.coordinates) {
-        setUserLocation(locationInfo.coordinates)
+      try {
+        const locationInfo = await getCurrentLocation()
+        if (locationInfo.coordinates) {
+          setUserLocation(locationInfo.coordinates)
+        }
+      } catch (error) {
+        console.error('位置情報取得エラー:', error)
       }
     }
-    getLocation()
-  }, [locationFromParam])
+
+    if (isAuthenticated && !locationFromParam) {
+      getLocation()
+    }
+  }, [isAuthenticated, locationFromParam])
 
   // エリアデータ取得
   useEffect(() => {
@@ -211,6 +217,33 @@ function AdvancedSearchContent() {
       }
     }
     fetchAreas()
+  }, [])
+  
+  // Fetch available girl types
+  useEffect(() => {
+    const fetchGirlTypes = async () => {
+      try {
+        const response = await fetch('/api/girl-types')
+        if (response.ok) {
+          const data = await response.json()
+          // Extract unique girl types from all categories
+          const allTypes = new Set<string>()
+          if (data.personalityTypes) {
+            data.personalityTypes.forEach((type: any) => allTypes.add(type.name))
+          }
+          if (data.physicalTypes) {
+            data.physicalTypes.forEach((type: any) => allTypes.add(type.name))
+          }
+          if (data.playTypes) {
+            data.playTypes.forEach((type: any) => allTypes.add(type.name))
+          }
+          setAvailableGirlTypes(Array.from(allTypes))
+        }
+      } catch (error) {
+        console.error('Error fetching girl types:', error)
+      }
+    }
+    fetchGirlTypes()
   }, [])
   
   // エリアデータ取得後の初期化（削除）
@@ -300,16 +333,11 @@ function AdvancedSearchContent() {
       // 地域フィルターがサーバーサイドで適用されているかを記録
       setLocationFilteredServerSide(!!searchAreaName)
       
-      // エリアが選択されている場合、または特殊フィルターがある場合は、より多くのデータを取得
-      let fetchLimit = LIMIT
-      if (effectiveArea || needsClientFiltering || isLocationKeywordSearch) {
-        // エリアフィルターまたは特殊フィルターの場合、全データを取得（上限1000件）
-        fetchLimit = 1000
-      } else if (hasAnyFilters) {
-        fetchLimit = LIMIT * 2
-      }
+      // Always fetch 200 items for better filtering and sorting
+      let fetchLimit = 200
       
-      const offset = needsClientFiltering ? 0 : (currentPage - 1) * LIMIT
+      // Always fetch from offset 0 to get all data for client-side filtering
+      const offset = 0
       
       // Use optimized API endpoint
       let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
@@ -452,6 +480,7 @@ function AdvancedSearchContent() {
           is_sake: user.is_sake,
           is_tobacco: user.is_tobacco,
           distance: distance,
+          girlTypes: user.girlTypes || [], // Add girl types
           isGirlProfile: true // MySQLの女の子データであることを示す
         };
       })
@@ -508,7 +537,7 @@ function AdvancedSearchContent() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
+  }, [LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
 
   // データ取得のタイミングを制御
   useEffect(() => {
@@ -524,7 +553,7 @@ function AdvancedSearchContent() {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [currentPage, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers])
+  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*
@@ -695,6 +724,17 @@ function AdvancedSearchContent() {
       }
     }
 
+    // Girl type filter
+    if (selectedGirlTypes.length > 0) {
+      filtered = filtered.filter(user => {
+        if (!user.girlTypes || user.girlTypes.length === 0) return false
+        // Check if any selected type matches
+        return selectedGirlTypes.some(type => 
+          user.girlTypes.includes(type)
+        )
+      })
+    }
+    
     // タグフィルター（特殊タグと通常タグのOR検索）
     if (selectedTags.length > 0) {
       filtered = filtered.filter(user => {
@@ -840,6 +880,15 @@ function AdvancedSearchContent() {
         filtered = filtered.map(user => {
           let score = 0
           
+          // Girl types matching (highest priority)
+          if (user.girlTypes && user.girlTypes.length > 0) {
+            score += user.girlTypes.length * 15
+            // Bonus for popular types
+            if (user.girlTypes.some(type => type.includes('エロ'))) score += 20
+            if (user.girlTypes.some(type => type.includes('巨乳'))) score += 15
+            if (user.girlTypes.some(type => type.includes('癒し'))) score += 12
+          }
+          
           // 年齢が設定されている人を優先
           if (user.age !== null && user.age !== undefined) {
             score += 10
@@ -862,11 +911,19 @@ function AdvancedSearchContent() {
             if (user.bio && user.bio.toLowerCase().includes(query)) score += 10
             if (user.location && user.location.toLowerCase().includes(query)) score += 8
             if (user.interests && user.interests.some(i => i && i.toLowerCase().includes(query))) score += 5
+            // Check girl types for query match
+            if (user.girlTypes && user.girlTypes.some(type => type.toLowerCase().includes(query))) score += 25
           }
           
           // 選択されたタグとのマッチ
           const matchedTags = selectedTags.filter(tag => user.interests.includes(tag))
           score += matchedTags.length * 10
+          
+          // Selected girl types matching
+          if (selectedGirlTypes.length > 0 && user.girlTypes) {
+            const matchedTypes = selectedGirlTypes.filter(type => user.girlTypes.includes(type))
+            score += matchedTypes.length * 30
+          }
           
           return { ...user, matchScore: score }
         })
@@ -919,7 +976,7 @@ function AdvancedSearchContent() {
   // フィルター変更時にページを1に戻す（年齢以外）
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedTags, selectedArea, selectedStyles, sortBy, prioritizeQuickMeet])
+  }, [searchQuery, selectedTags, selectedGirlTypes, selectedArea, selectedStyles, sortBy, prioritizeQuickMeet])
   
   // エリア変更時の処理（削除）
   
@@ -986,14 +1043,14 @@ function AdvancedSearchContent() {
       } else if (result.isMatch) {
         toast({
           title: 'マッチしました！🎉',
-          description: `${user.name}さんとマッチしました！メッセージを送ってみましょう。`,
+          description: `${user.name}さんとマッチしました！メモを残してみましょう。`,
           action: (
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push(`/messages/${result.matchId}`)}
             >
-              メッセージを送る
+              メモを見る
             </Button>
           ),
         })
@@ -1039,12 +1096,12 @@ function AdvancedSearchContent() {
     }
   }
 
-  // メッセージ画面へ
+  // メモ画面へ
   const handleMessage = (userId: string) => {
     if (!currentUser) {
       toast({
         title: 'ログインが必要です',
-        description: 'メッセージを送るにはログインしてください'
+        description: 'メモを残すにはログインしてください'
       })
       router.push('/login')
       return
@@ -1053,7 +1110,7 @@ function AdvancedSearchContent() {
     if (!isPremium) {
       toast({
         title: 'プレミアム会員限定',
-        description: 'メッセージ機能は有料会員のみ利用可能です',
+        description: 'メモ機能は有料会員のみ利用可能です',
         variant: 'destructive'
       })
       return
@@ -1067,6 +1124,7 @@ function AdvancedSearchContent() {
     setSearchQuery('')
     setSearchQueryInput('')
     setSelectedTags([])
+    setSelectedGirlTypes([])
     setSelectedArea('all')
     setSelectedTime('now')
     setAgeRange([18, 50])
@@ -1423,6 +1481,32 @@ function AdvancedSearchContent() {
           )}
         </div>
 
+        {/* 女の子タイプフィルター */}
+        <div className={styles.filterSection}>
+          <h3 className={styles.filterSectionTitle}>
+            <Heart className="w-4 h-4" />
+            女の子タイプ
+          </h3>
+          <div className={styles.tagFilters}>
+            {availableGirlTypes.map(type => (
+              <label key={type} className={styles.tagFilter}>
+                <input
+                  type="checkbox"
+                  checked={selectedGirlTypes.includes(type)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedGirlTypes([...selectedGirlTypes, type])
+                    } else {
+                      setSelectedGirlTypes(selectedGirlTypes.filter(t => t !== type))
+                    }
+                  }}
+                />
+                <span>{type}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
         {/* キーワード検索 */}
         <div className={styles.filterSection}>
           <h3 className={styles.filterSectionTitle}>
@@ -1577,6 +1661,11 @@ function AdvancedSearchContent() {
                   検索: {searchQuery}
                 </Badge>
               )}
+              {selectedGirlTypes.map(type => (
+                <Badge key={`girl-type-${type}`} variant="secondary" className="bg-pink-500/10 text-pink-500 border-pink-500/30">
+                  ✨ {type}
+                </Badge>
+              ))}
               {selectedTags.map(tag => (
                 <Badge key={tag} variant="secondary" className="bg-gold-500/10 text-gold-500 border-gold-500/30">
                   {tag}
@@ -1719,7 +1808,18 @@ function AdvancedSearchContent() {
                   )}
                 </div>
                 <div className={styles.profileTags}>
-                  {user.interests.slice(0, 3).map(interest => (
+                  {/* Girl Types with special styling */}
+                  {user.girlTypes && user.girlTypes.slice(0, 2).map(type => (
+                    <Badge 
+                      key={`type-${type}`} 
+                      variant="secondary" 
+                      className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/40 text-pink-300"
+                    >
+                      ✨ {type}
+                    </Badge>
+                  ))}
+                  {/* Regular interests */}
+                  {user.interests.slice(0, user.girlTypes?.length ? 1 : 3).map(interest => (
                     <Badge key={interest} variant="secondary" className={styles.profileTag}>
                       {interest}
                     </Badge>
@@ -1741,8 +1841,8 @@ function AdvancedSearchContent() {
                     className={styles.actionMessage}
                     onClick={() => handleMessage(user.id)}
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    メッセージ
+                    <StickyNote className="w-4 h-4" />
+                    メモ
                   </Button>
                 </div>
               </CardContent>

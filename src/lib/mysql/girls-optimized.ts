@@ -18,8 +18,66 @@ export async function fetchOptimizedGirls(
   area?: string | null,
   ageMin: number = 18,
   ageMax: number = 50,
-  girlTypes?: string[] | null
+  girlTypes?: string[] | null,
+  girlId?: string | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
+  // If girlId is specified, fetch only that specific girl
+  if (girlId) {
+    const girlQuery = `
+      SELECT DISTINCT
+        g.id,
+        g.name,
+        g.age,
+        g.height,
+        g.bust,
+        g.waist,
+        g.hip,
+        g.cup,
+        g.hobby,
+        g.comment,
+        g.shop_profile_id,
+        g.is_displayed,
+        s.name as shop_name,
+        s.tel as shop_tel,
+        s.latitude as shop_latitude,
+        s.longitude as shop_longitude,
+        IFNULL(p.name, '') as location,
+        (
+          SELECT GROUP_CONCAT(gt.name SEPARATOR ',')
+          FROM girl_status gs
+          INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+          WHERE gs.girl_profile_id = g.id
+        ) as girl_types_names
+      FROM girl_profiles g
+      LEFT JOIN shop_profiles s ON g.shop_profile_id = s.id
+      LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
+      WHERE g.id = ?
+      LIMIT 1
+    `;
+    
+    const girlResult = await cachedQuery(girlQuery, [parseInt(girlId)], `girl:${girlId}`, 3600);
+    
+    if (girlResult.length === 0) {
+      return { girls: [], total: 0 };
+    }
+    
+    // Fetch images for this girl
+    const imageQuery = `
+      SELECT girl_profile_id, real_image_url, image_url
+      FROM girl_image_urls
+      WHERE girl_profile_id = ?
+      ORDER BY id ASC
+      LIMIT 10
+    `;
+    
+    const images = await cachedQuery(imageQuery, [parseInt(girlId)], `girl_images:${girlId}`, 3600);
+    
+    const girl = girlResult[0];
+    girl.images = images.filter((img: any) => img.girl_profile_id === girl.id);
+    
+    return { girls: [girl], total: 1 };
+  }
+  
   // Generate cache key based on parameters
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
@@ -46,11 +104,6 @@ export async function fetchOptimizedGirls(
     // 都道府県名の完全一致
     areaConditions.push(`p.name = '${escapedArea}'`);
     
-    // 市区町村名の完全一致
-    areaConditions.push(`m.name = '${escapedArea}'`);
-    
-    // 都道府県+市区町村の組み合わせ
-    areaConditions.push(`CONCAT(IFNULL(p.name, ''), ' ', IFNULL(m.name, '')) = '${escapedArea}'`);
     
     // 都府県の接尾辞を柔軟に処理
     const suffixPattern = /[都府県]$/;
@@ -109,8 +162,8 @@ export async function fetchOptimizedGirls(
       s.name as shop_name,
       s.latitude,
       s.longitude,
-      p.name as location,
-      m.name as municipality,
+      IFNULL(p.name, '') as location,
+      '' as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 
@@ -127,7 +180,6 @@ export async function fetchOptimizedGirls(
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
-    LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     ${whereClause}
     ORDER BY (g.age IS NULL), g.created_at DESC
     LIMIT ${limitCount} OFFSET ${offset}
@@ -140,7 +192,6 @@ export async function fetchOptimizedGirls(
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     ${area && area !== 'all' ? 'LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id' : ''}
-    ${area && area !== 'all' ? 'LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id' : ''}
     ${whereClause}
   `;
   
@@ -211,8 +262,11 @@ export async function prefetchNextPage(
   area?: string | null,
   ageMin: number = 18,
   ageMax: number = 50,
-  girlTypes?: string[] | null
+  girlTypes?: string[] | null,
+  girlId?: string | null
 ): Promise<void> {
+  // Don't prefetch if fetching specific girl
+  if (girlId) return;
   const nextOffset = currentOffset + limitCount;
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
@@ -248,8 +302,8 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
       IFNULL(COALESCE(g.comment, g.catch_copy), '') as bio,
       IFNULL(g.hobby, '') as hobby,
       s.name as shop_name,
-      p.name as location,
-      m.name as municipality,
+      IFNULL(p.name, '') as location,
+      '' as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 
@@ -265,7 +319,6 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
-    LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     WHERE g.id IN (${placeholders})
       AND g.is_displayed = 1
       AND g.deleted_at IS NULL

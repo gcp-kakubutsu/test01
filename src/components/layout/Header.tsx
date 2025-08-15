@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Home, MessageCircle, User, LogOut } from 'lucide-react';
+import { Home, StickyNote, User, LogOut } from 'lucide-react';
 import styles from './Header.module.scss';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Logo } from '@/components/ui/logo';
@@ -34,7 +34,7 @@ export function Header() {
                 {/* Desktop Navigation */}
                 <ThemeToggle />
                 <Link href="/home" className={`${styles.navLink} ${styles.hideOnMobile}`}>ホーム</Link>
-                <Link href="/messages" className={`${styles.navLink} ${styles.hideOnMobile}`}>メッセージ</Link>
+                <Link href="/messages" className={`${styles.navLink} ${styles.hideOnMobile}`}>メモ</Link>
                 <Link href="/profile/edit" className={`${styles.navLink} ${styles.hideOnMobile}`}>プロフィール</Link>
                 <button onClick={handleLogout} className={`${styles.navLink} ${styles.primary} ${styles.hideOnMobile}`}>
                   ログアウト
@@ -46,7 +46,7 @@ export function Header() {
                     <Home size={18} />
                   </Link>
                   <Link href="/messages" className={styles.iconLink}>
-                    <MessageCircle size={18} />
+                    <StickyNote size={18} />
                   </Link>
                   <Link href="/profile/edit" className={styles.iconLink}>
                     <User size={18} />

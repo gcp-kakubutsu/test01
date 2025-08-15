@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChevronLeft, ChevronRight, Loader2, RotateCcw, Heart, Grid3x3, Columns, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -893,12 +893,12 @@ export default function HomePage() {
                   </p>
                 )}
                 
-                {/* Action Button */}
-                <div className="flex mt-auto">
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-auto">
                   <Button
                     variant="outline"
-                    className={`w-full bg-pink-500/20 text-pink-500 border-pink-500 hover:bg-pink-500 hover:text-white transition-all ${
-                      viewMode === 'single' ? 'text-sm' : 'text-xs py-2'
+                    className={`flex-1 bg-pink-500/20 text-pink-500 border-pink-500 hover:bg-pink-500 hover:text-white transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                      viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
                     } sm:text-sm`}
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -962,9 +962,23 @@ export default function HomePage() {
                       }
                     }}
                   >
-                    <Heart className="w-4 h-4 mr-1" />
+                    <Heart className="w-4 h-4" />
                     いいね
                   </Button>
+                  {isPremium && (
+                    <Button
+                      className={`flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 hover:from-yellow-600 hover:to-amber-600 transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                        viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
+                      } sm:text-sm`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/messages/${item.id}`);
+                      }}
+                    >
+                      <StickyNote className="w-4 h-4" />
+                      メモ
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

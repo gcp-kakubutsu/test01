@@ -7,84 +7,65 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquareText, Search, Loader2 } from 'lucide-react';
+import { FileText, Search, Loader2, StickyNote } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { useMatches, fetchUserProfiles } from '@/lib/firebase/hooks';
+import { useMemos } from '@/hooks/useMemos';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Button } from '@/components/ui/button';
 
-interface ChatDisplay {
+interface MemoDisplay {
   id: string;
+  targetId: string;
   name: string;
-  lastMessage: string;
-  unreadCount: number;
+  content: string;
   avatarUrl: string;
-  lastMessageTime?: string | null;
+  lastUpdated?: string | null;
 }
 
-export default function MessagesPage() {
+export default function MemosPage() {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
-  const { matches, loading: matchesLoading } = useMatches();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
-  const [chats, setChats] = useState<ChatDisplay[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, authLoading, router]);
-
-  // Convert matches to chat display format
+  
+  // Check premium status
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUser || matchesLoading) return;
-      
-      setIsLoadingChats(true);
-      
-      // If no matches, set empty array
-      if (matches.length === 0) {
-        setChats([]);
-        setIsLoadingChats(false);
-        return;
-      }
-      
-      // Get all other user IDs from matches
-      const otherUserIds = matches.map(match => 
-        match.users.find(uid => uid !== currentUser.uid)
-      ).filter(Boolean) as string[];
-      
-      // Fetch user profiles
-      const userProfiles = await fetchUserProfiles(otherUserIds);
-      
-      // Convert to chat display format
-      const chatList: ChatDisplay[] = matches.map(match => {
-        const otherUserId = match.users.find(uid => uid !== currentUser.uid);
-        const otherUser = otherUserId ? userProfiles.get(otherUserId) : null;
-        
-        return {
-          id: match.id,
-          name: otherUser?.username || 'ユーザー',
-          lastMessage: match.lastMessage || 'メッセージを送ってみましょう',
-          unreadCount: match.unreadCount?.[currentUser.uid] || 0,
-          avatarUrl: otherUser?.profilePhotoUrl || 'https://placehold.co/100x100/F0306A/FFF.png?text=U',
-          lastMessageTime: match.lastMessageAt ? 
-            formatDistanceToNow(match.lastMessageAt.toDate(), { addSuffix: true, locale: ja }) : 
-            null
-        };
-      });
-      
-      setChats(chatList);
-      setIsLoadingChats(false);
-    };
-    
-    loadChats();
-  }, [matches, matchesLoading, currentUser]);
+    if (!subscriptionLoading && !isPremium && isAuthenticated) {
+      // Not a premium member
+    }
+  }, [subscriptionLoading, isPremium, isAuthenticated]);
 
-  if (authLoading || isLoadingChats) {
+  // Convert memos to display format
+  useEffect(() => {
+    if (!memos || memosLoading) return;
+    
+    const displays: MemoDisplay[] = memos.map(memo => ({
+      id: memo.id,
+      targetId: memo.targetId,
+      name: memo.targetName || '名前未設定',
+      content: memo.content || 'メモを追加してください',
+      avatarUrl: memo.targetImage || null,
+      lastUpdated: memo.updatedAt ? 
+        formatDistanceToNow(memo.updatedAt.toDate(), { addSuffix: true, locale: ja }) : 
+        null
+    }));
+    
+    setMemoDisplays(displays);
+  }, [memos, memosLoading]);
+
+  if (authLoading || memosLoading || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
   }
   
@@ -92,9 +73,9 @@ export default function MessagesPage() {
     return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
   }
 
-  const filteredChats = chats.filter(chat =>
-    chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMemos = memoDisplays.filter(memo =>
+    memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -102,53 +83,72 @@ export default function MessagesPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <MessageSquareText className="mr-3 h-7 w-7" /> あなたの会話
+            <StickyNote className="mr-3 h-7 w-7" /> あなたのメモ
           </CardTitle>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="メッセージを検索..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {!isPremium && (
+            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                メモ機能は有料会員限定です
+              </p>
+              <Button 
+                onClick={() => router.push('/subscription')}
+                className="mt-2"
+                size="sm"
+              >
+                有料会員になる
+              </Button>
+            </div>
+          )}
+          {isPremium && (
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="メモを検索..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          {filteredChats.length > 0 ? (
-            <ul className="space-y-4">
-              {filteredChats.map(chat => (
-                <li key={chat.id}>
-                  <Link href={`/messages/${chat.id}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={chat.avatarUrl} alt={chat.name} />
-                        <AvatarFallback>{chat.name.substring(0, 1).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-base font-semibold line-clamp-1">{chat.name}</p>
-                          {chat.lastMessageTime && (
-                            <span className="text-xs text-muted-foreground">{chat.lastMessageTime}</span>
-                          )}
+          {isPremium ? (
+            filteredMemos.length > 0 ? (
+              <ul className="space-y-4">
+                {filteredMemos.map(memo => (
+                  <li key={memo.id}>
+                    <Link href={`/messages/${memo.targetId}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={memo.avatarUrl} alt={memo.name} />
+                          <AvatarFallback>{memo.name.substring(0, 1).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-base font-semibold line-clamp-1">{memo.name}</p>
+                            {memo.lastUpdated && (
+                              <span className="text-xs text-muted-foreground">{memo.lastUpdated}</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{memo.content}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{chat.lastMessage}</p>
+                        <FileText className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      {chat.unreadCount > 0 && (
-                        <Badge variant="default" className="bg-red-500 text-white min-w-[24px] h-6 px-2 rounded-full flex items-center justify-center">
-                          {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-                        </Badge>
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center py-10">
+                <StickyNote className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">まだメモはありません。</p>
+                <p className="text-sm text-muted-foreground">女の子のプロフィールからメモを追加しましょう！</p>
+              </div>
+            )
           ) : (
             <div className="text-center py-10">
-              <MessageSquareText className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">まだメッセージはありません。</p>
-              <p className="text-sm text-muted-foreground">マッチングを開始して会話を始めましょう！</p>
+              <StickyNote className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">メモ機能を利用するには有料会員登録が必要です</p>
             </div>
           )}
         </CardContent>

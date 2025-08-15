@@ -135,6 +135,34 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
     
+    // Memos collection rules - Personal notes about girls
+    match /memos/{memoId} {
+      // Memo ID format: userId_targetId
+      // Allow read if:
+      // 1. User is authenticated AND
+      // 2. Either the resource doesn't exist (checking before create) OR
+      // 3. The memo belongs to the user (for list queries and single doc reads)
+      allow read: if request.auth != null && (
+        !exists(/databases/$(database)/documents/memos/$(memoId)) ||
+        resource.data.userId == request.auth.uid ||
+        memoId.matches(request.auth.uid + '_.*')
+      );
+      
+      // Users can only create memos for themselves
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        memoId == request.auth.uid + '_' + request.resource.data.targetId;
+      
+      // Users can only update their own memos
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+      
+      // Users can only delete their own memos
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
     // Public stats collection - 統計情報は誰でも読める
     match /publicStats/{document=**} {
       allow read: if true;

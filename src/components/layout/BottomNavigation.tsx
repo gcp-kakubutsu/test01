@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Heart, Users, MessageCircle, User, Home, LogOut } from 'lucide-react';
+import { Search, Heart, Users, StickyNote, User, Home, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMatches } from '@/lib/firebase/hooks';
 import { useRouter } from 'next/navigation';
@@ -38,7 +38,7 @@ export default function BottomNavigation() {
     { href: '/search', icon: Search, label: 'さがす' },
     { href: '/matches', icon: Heart, label: 'マッチ' },
     { href: '/community', icon: Users, label: 'コミュニティ' },
-    { href: '/messages', icon: MessageCircle, label: 'メッセージ' },
+    { href: '/messages', icon: StickyNote, label: 'メモ' },
     { href: '/profile', icon: User, label: 'マイページ' },
   ];
 

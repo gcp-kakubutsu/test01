@@ -62,12 +62,11 @@ tsconfig.tsbuildinfo
 .specstory/
 .cursorindexingignore
 
-*.json
-
 # Service Account Keys (CRITICAL - Never commit these!)
 nukune-*.json
 *-firebase-adminsdk-*.json
 serviceAccountKey.json
+*-service-account*.json
 
 # publicディレクトリ内のファイルを無視するが、imgディレクトリは除外する
 public/*
