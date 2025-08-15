@@ -60,48 +60,11 @@ if (
       app = initializeApp(firebaseConfig);
       authInstance = getAuth(app);
       
-      // LINE browser compatibility: Handle persistence carefully
+      // Simplified persistence setup
       if (typeof window !== 'undefined') {
-        const ua = window.navigator.userAgent.toLowerCase();
-        const isLine = ua.includes('line');
-        
-        if (isLine) {
-          console.log('LINE browser detected, configuring special handling');
-          
-          // Try different persistence strategies for LINE browser
-          const setPersistenceWithFallback = async () => {
-            if (!authInstance) return;
-            
-            try {
-              // First try: in-memory persistence (most compatible)
-              await setPersistence(authInstance, inMemoryPersistence);
-              console.log('Using in-memory persistence for LINE browser');
-            } catch (e1) {
-              console.warn('Failed to set in-memory persistence:', e1);
-              try {
-                // Second try: session persistence
-                await setPersistence(authInstance, browserSessionPersistence);
-                console.log('Using session persistence for LINE browser');
-              } catch (e2) {
-                console.warn('Failed to set session persistence:', e2);
-                try {
-                  // Last resort: local persistence
-                  await setPersistence(authInstance, browserLocalPersistence);
-                  console.log('Using local persistence for LINE browser');
-                } catch (e3) {
-                  console.error('All persistence methods failed for LINE browser:', e3);
-                }
-              }
-            }
-          };
-          
-          setPersistenceWithFallback();
-        } else {
-          // Use local persistence for standard browsers
-          setPersistence(authInstance, browserLocalPersistence).catch(e => {
-            console.warn('Failed to set local persistence:', e);
-          });
-        }
+        // Don't set persistence explicitly - use Firebase default
+        // This avoids issues with LINE browser and other restricted environments
+        console.log('Using default Firebase persistence');
       }
       
       dbInstance = getFirestore(app);

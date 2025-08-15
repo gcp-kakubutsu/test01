@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,10 +9,8 @@ import { useRouter } from 'next/navigation';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, AlertCircle, ExternalLink } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { isLineApp } from '@/lib/utils/browser';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -20,20 +18,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
-  const [isLine, setIsLine] = useState(false);
-  const [showLineWarning, setShowLineWarning] = useState(false);
-
-  useEffect(() => {
-    // Check if running in LINE browser
-    const lineApp = isLineApp();
-    setIsLine(lineApp);
-    if (lineApp) {
-      setShowLineWarning(true);
-      // Auto-hide warning after 10 seconds
-      const timer = setTimeout(() => setShowLineWarning(false), 10000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,26 +109,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9E4EB] flex flex-col items-center justify-center px-4">
-      {showLineWarning && isLine && (
-        <Alert className="mb-4 max-w-md w-full border-yellow-500 bg-yellow-50">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">LINEブラウザをご利用中です</AlertTitle>
-          <AlertDescription className="text-yellow-700">
-            より快適にご利用いただくため、Safari、Chrome等の標準ブラウザでの利用を推奨します。
-            <button
-              onClick={() => {
-                const currentUrl = window.location.href;
-                window.location.href = `https://line.me/R/msg/text/?${encodeURIComponent('Nukuneを開く\n' + currentUrl)}`;
-              }}
-              className="mt-2 text-blue-600 underline flex items-center gap-1"
-            >
-              <ExternalLink className="h-3 w-3" />
-              標準ブラウザで開く
-            </button>
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="min-h-screen bg-[#F9E4EB] flex items-center justify-center px-4">
       <Card className="max-w-md w-full">
         <CardHeader>
           <Link href="/login" className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">

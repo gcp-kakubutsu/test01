@@ -1,15 +1,12 @@
-
 "use client";
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { auth, db, firebaseInitError } from '@/lib/firebase/client'; // auth, db は undefined の可能性があり、firebaseInitError をインポート
+import { auth, db } from '@/lib/firebase/client';
 import type { AuthFormData } from '@/app/login/page';
 import { addUserToFirestore } from '@/app/auth/actions';
 import { useToast } from '@/hooks/use-toast';
-import { isLineApp, isLocalStorageAvailable } from '@/lib/utils/browser';
-import { lineCompatibleSignIn, lineCompatibleSignUp, initializeLineAuth } from '@/lib/firebase/line-auth-helper';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -26,193 +23,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    let unsubscribe = () => {};
-
-    // Check for LINE browser compatibility issues
-    const isLine = isLineApp();
-    const hasLocalStorage = isLocalStorageAvailable();
-    
-    // Initialize LINE-specific auth settings
-    if (isLine) {
-      initializeLineAuth();
-    }
-    
-    if (isLine) {
-      console.log('LINE browser detected, applying compatibility fixes');
-      
-      // LINE browser specific fixes
-      // 1. Disable offline persistence if enabled
-      // 2. Use simpler auth flow
-      // 3. Add retry logic for network errors
-      
-      // Force reload auth state after delay for LINE browser
-      setTimeout(() => {
-        if (auth && !currentUser && isLoading) {
-          console.log('Forcing auth state check for LINE browser');
-          auth.currentUser?.reload().catch(err => {
-            console.warn('Failed to reload auth state:', err);
-          });
-        }
-      }, 2000);
-    }
-    
-    if (!hasLocalStorage) {
-      console.warn('localStorage is not available, using fallback auth methods');
-    }
-
-    // Set a timeout to force loading to false
-    const timeout = setTimeout(() => {
-      console.log('Auth loading timeout reached, forcing loading to false');
+    // Quick check for auth availability
+    if (!auth) {
+      console.log('Auth not initialized');
       setIsLoading(false);
-      setIsInitialized(true);
-      
-      // For LINE browser, show specific message if still loading
-      if (isLine && !currentUser) {
-        console.warn('LINE browser auth timeout - user may need to retry login');
-      }
-    }, isLine ? 2000 : 5000); // 2 seconds for LINE, 5 seconds for others
-    
-    setLoadingTimeout(timeout);
-
-    if (firebaseInitError) {
-      console.warn("AuthContext: Firebaseの初期化中にエラーが検出されたため、認証関連の処理をスキップします。", firebaseInitError);
-      setCurrentUser(null);
-      setIsLoading(false);
-      
-      // Don't show infinite toast on LINE browser or production
-      if (process.env.NODE_ENV === 'development') {
-        toast({
-          title: "Firebase初期化エラー",
-          description: `設定に問題があります。環境設定を確認してください。`,
-          variant: "destructive",
-          duration: 10000, // 10秒で自動的に閉じる
-        });
-      }
       return;
     }
 
-    if (auth) {
-      // For LINE browser, add additional auth state handling
-      if (isLine) {
-        // Check current user immediately for LINE browser
-        const currentAuthUser = auth.currentUser;
-        if (currentAuthUser) {
-          console.log('Found existing auth user in LINE browser');
-          setCurrentUser(currentAuthUser);
-          setIsLoading(false);
-          setIsInitialized(true);
-        }
-      }
-      
-      unsubscribe = onAuthStateChanged(auth, (user) => {
-        console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
+    // Setup auth state listener
+    const unsubscribe = onAuthStateChanged(auth, 
+      (user) => {
         setCurrentUser(user);
         setIsLoading(false);
-        setIsInitialized(true);
-        // Clear timeout when auth state is determined
-        if (loadingTimeout) {
-          clearTimeout(loadingTimeout);
-        }
-      }, (error) => {
-        // 認証状態の監視でエラーが発生した場合のハンドリング
-        console.error('Auth state change error:', error);
-        
-        // 一時的なネットワークエラーの場合は現在のユーザー状態を保持
-        const firebaseError = error as any;
-        if (firebaseError.code === 'auth/network-request-failed' || 
-            firebaseError.code === 'auth/internal-error' ||
-            error.message.includes('503') ||
-            error.message.includes('Service Unavailable')) {
-          console.warn('一時的なネットワークエラーが発生しました。ユーザー状態を保持します。');
-          
-          // LINE browser specific handling
-          if (isLine) {
-            console.log('Retrying auth for LINE browser after network error');
-            setTimeout(() => {
-              if (auth) {
-                auth.currentUser?.reload().catch(e => console.warn('Retry failed:', e));
-              }
-            }, 1000);
-          }
-          
-          // ユーザー状態を変更せずにローディングだけ終了
-          setIsLoading(false);
-          setIsInitialized(true);
-          return;
-        }
-        
-        // その他のエラーの場合は通常通り処理
+      },
+      (error) => {
+        console.error('Auth state error:', error);
         setCurrentUser(null);
         setIsLoading(false);
-        setIsInitialized(true);
-        
-        // Don't show error toast on LINE browser for initial load
-        if (!isLine || isInitialized) {
-          toast({
-            title: "認証エラー",
-            description: "認証状態の確認中にエラーが発生しました。再度ログインしてください。",
-            variant: "destructive",
-          });
-        }
-      });
-    } else {
-      console.warn("AuthContext: Firebase Auth が初期化されていませんが、firebaseInitErrorは設定されていませんでした。認証機能は動作しません。");
-      setCurrentUser(null);
-      setIsLoading(false);
-      setIsInitialized(true);
-      // Only show toast in development or if not in LINE browser
-      if (process.env.NODE_ENV === 'development' && !isLine) {
-        toast({
-          title: "認証サービスエラー",
-          description: "Firebase認証サービスが正しく設定されていません。",
-          variant: "destructive",
-          duration: 5000, // 5秒で自動的に閉じる
-        });
       }
-    }
+    );
+
+    // Fallback timeout
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('Auth check timeout');
+        setIsLoading(false);
+      }
+    }, 2000);
+
     return () => {
       unsubscribe();
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
+      clearTimeout(timeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (data: AuthFormData): Promise<boolean> => {
-    if (firebaseInitError) {
-      toast({ title: 'ログインエラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。設定を確認してください。`, variant: 'destructive' });
-      return false;
-    }
     if (!auth) {
-      toast({ title: 'ログインエラー', description: 'Firebase認証が初期化されていません。設定を確認してください。', variant: 'destructive' });
+      toast({ title: 'ログインエラー', description: '認証サービスが利用できません。', variant: 'destructive' });
       return false;
     }
+    
     setIsLoading(true);
     
-    // LINE browser specific handling
-    const isLine = isLineApp();
-    
     try {
-      let userCredential;
-      
-      if (isLine) {
-        console.log('Using LINE-compatible login');
-        // Use LINE-compatible login with retry logic
-        const user = await lineCompatibleSignIn(data.email, data.password);
-        if (user) {
-          userCredential = { user };
-        } else {
-          throw new Error('Login failed');
-        }
-      } else {
-        // Standard login for non-LINE browsers
-        userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      }
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
         // メールアドレスが確認されていない場合はログインを拒否
         if (!userCredential.user.emailVerified) {
@@ -231,13 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error: any) {
-      // Don't log error to console to prevent error messages
-      
       let description = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。';
       
-      // Firebase v9以降では、多くのエラーがauth/invalid-credentialに統一されています
       if (error.code === 'auth/invalid-credential') {
-        description = 'メールアドレスまたはパスワードが正しくありません。新規登録がまだの場合は、先にアカウントを作成してください。';
+        description = 'メールアドレスまたはパスワードが正しくありません。';
       } else if (error.code === 'auth/user-not-found') {
         description = 'このメールアドレスは登録されていません。';
       } else if (error.code === 'auth/wrong-password') {
@@ -248,46 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description = 'このアカウントは無効になっています。';
       } else if (error.code === 'auth/too-many-requests') {
         description = 'ログイン試行回数が多すぎます。しばらくしてから再度お試しください。';
-      } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/configuration-not-found') {
-        description = 'Firebaseの設定が正しくありません。環境設定（.envファイル）を確認してください。';
       }
       
       toast({ title: 'ログインエラー', description, variant: 'destructive' });
       setIsLoading(false);
-      // Don't throw the error to prevent console errors
       return false;
     }
   };
 
   const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }): Promise<boolean> => {
-    if (firebaseInitError) {
-      toast({ title: '登録エラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。設定を確認してください。`, variant: 'destructive' });
-      return false;
-    }
     if (!auth || !db) {
-      toast({ title: '登録エラー', description: 'Firebase認証またはデータベースが初期化されていません。設定を確認してください。', variant: 'destructive' });
+      toast({ title: '登録エラー', description: '認証サービスが利用できません。', variant: 'destructive' });
       return false;
     }
+    
     setIsLoading(true);
     
-    const isLine = isLineApp();
-    
     try {
-      let userCredential;
-      
-      if (isLine) {
-        console.log('Using LINE-compatible signup');
-        // Use LINE-compatible signup with retry logic
-        const user = await lineCompatibleSignUp(data.email, data.password);
-        if (user) {
-          userCredential = { user };
-        } else {
-          throw new Error('Signup failed');
-        }
-      } else {
-        // Standard signup for non-LINE browsers
-        userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      }
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       if (userCredential.user) {
         // メール確認を送信
         try {
@@ -319,14 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error: any) {
-      // Don't log error to console to prevent error messages
       let description = '登録に失敗しました。';
       if (error.code === 'auth/email-already-in-use') {
         description = 'このメールアドレスは既に使用されています。';
       } else if (error.code === 'auth/weak-password') {
         description = 'パスワードは6文字以上で設定してください。';
-      } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/configuration-not-found') {
-        description = 'Firebaseの設定が正しくありません。環境設定（.envファイル）を確認してください。';
       }
       toast({ title: '登録エラー', description, variant: 'destructive' });
       setIsLoading(false);
@@ -335,31 +163,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (): Promise<boolean> => {
-    if (firebaseInitError) {
-      toast({ title: 'ログアウトエラー', description: `Firebaseの初期化に問題があります: ${firebaseInitError}。`, variant: 'destructive' });
-      return false;
-    }
     if (!auth) {
-      toast({ title: 'ログアウトエラー', description: 'Firebase認証が初期化されていません。', variant: 'destructive' });
+      toast({ title: 'ログアウトエラー', description: '認証サービスが利用できません。', variant: 'destructive' });
       return false;
     }
+    
     setIsLoading(true);
     try {
-      // Clear user state immediately to prevent any active listeners from trying to access Firestore
+      // Clear user state immediately
       setCurrentUser(null);
       
-      // Increase delay to ensure all async operations and listeners have time to clean up
-      // This prevents "Missing or insufficient permissions" errors
+      // Small delay to ensure cleanup
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Then sign out from Firebase
+      // Sign out from Firebase
       await firebaseSignOut(auth);
       
       toast({ title: 'ログアウトしました' });
       setIsLoading(false);
       return true;
     } catch (error: any) {
-      // Don't log error to console to prevent error messages
       toast({ title: 'ログアウトエラー', description: error.message || 'ログアウトに失敗しました。', variant: 'destructive' });
       setIsLoading(false);
       return false;

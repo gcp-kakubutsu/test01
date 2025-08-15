@@ -9,14 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { validatePassword } from '@/lib/password-validation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState, useEffect } from 'react';
-import { Loader2, Eye, EyeOff, AlertCircle, ExternalLink } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { isLineApp, isSessionStorageAvailable } from '@/lib/utils/browser';
+import { isSessionStorageAvailable } from '@/lib/utils/browser';
 
 export default function SignupPage() {
   const { signup, isAuthenticated, isLoading: authIsLoading } = useAuth();
@@ -35,20 +35,6 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { toast } = useToast();
-  const [isLine, setIsLine] = useState(false);
-  const [showLineWarning, setShowLineWarning] = useState(false);
-
-  useEffect(() => {
-    // Check if running in LINE browser
-    const lineApp = isLineApp();
-    setIsLine(lineApp);
-    if (lineApp) {
-      setShowLineWarning(true);
-      // Auto-hide warning after 10 seconds
-      const timer = setTimeout(() => setShowLineWarning(false), 10000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -132,25 +118,6 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4 bg-[#F9E4EB] min-h-screen">
-      {showLineWarning && isLine && (
-        <Alert className="mb-4 max-w-md w-full border-yellow-500 bg-yellow-50">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">LINEブラウザをご利用中です</AlertTitle>
-          <AlertDescription className="text-yellow-700">
-            より快適にご利用いただくため、Safari、Chrome等の標準ブラウザでの利用を推奨します。
-            <button
-              onClick={() => {
-                const currentUrl = window.location.href;
-                window.location.href = `https://line.me/R/msg/text/?${encodeURIComponent('Nukuneを開く\n' + currentUrl)}`;
-              }}
-              className="mt-2 text-blue-600 underline flex items-center gap-1"
-            >
-              <ExternalLink className="h-3 w-3" />
-              標準ブラウザで開く
-            </button>
-          </AlertDescription>
-        </Alert>
-      )}
       <Card className="w-full max-w-md shadow-lg bg-white">
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5 pt-8 pb-6">
