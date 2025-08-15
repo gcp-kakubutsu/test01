@@ -111,7 +111,8 @@ export default function ProfilePage() {
   const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20">
+    <AuthGuard>
+      <div className="max-w-2xl mx-auto space-y-6 pb-20">
       {/* Profile Header */}
       <Card>
         <CardHeader className="pb-0">
