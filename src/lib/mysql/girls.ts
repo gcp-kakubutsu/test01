@@ -32,6 +32,8 @@ export interface MySQLGirlProfile {
     latitude?: number;
     longitude?: number;
   };
+  // Girl types (personality, physical characteristics, etc.)
+  girlTypes?: string[];
 }
 
 /**

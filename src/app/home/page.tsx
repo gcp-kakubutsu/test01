@@ -3,7 +3,8 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RotateCcw, Heart, Grid3x3, Columns, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { fetchAdminGirls, type UserProfile } from '@/lib/firebase/user-utils';
@@ -22,6 +23,8 @@ import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/ma
 import Image from 'next/image';
 import { useSubscription } from '@/hooks/useSubscription';
 import '@/styles/blur.css';
+import { sendLike } from '@/lib/firebase/actions';
+import { useToast } from '@/hooks/use-toast';
 
 const USERS_PER_PAGE = 20;
 
@@ -30,6 +33,7 @@ export default function HomePage() {
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
@@ -40,6 +44,9 @@ export default function HomePage() {
   const [checkingWelcome, setCheckingWelcome] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
+  const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [showSearchInput, setShowSearchInput] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -184,6 +191,11 @@ export default function HomePage() {
       setCheckingWelcome(false);
     }
   };
+
+  // Reset page to 1 when search keyword changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword]);
 
   // 位置情報を取得
   useEffect(() => {
@@ -503,11 +515,66 @@ export default function HomePage() {
     );
   }
 
-  // Calculate pagination
-  const totalPages = Math.ceil(displayData.length / USERS_PER_PAGE);
+  // Apply search filter and sort to all data first
+  const filteredAndSortedData = displayData
+    .filter((item: any) => {
+      // Apply keyword filter
+      if (!searchKeyword) return true;
+      
+      const keyword = searchKeyword.toLowerCase();
+      const name = item.name?.toLowerCase() || '';
+      const bio = (item.bio || item.pr_message || '').toLowerCase();
+      const interests = (item.interests || []).join(' ').toLowerCase();
+      const girlTypes = (item.girlTypes || []).join(' ').toLowerCase();
+      const playTypes = (item.play_types || []).join(' ').toLowerCase();
+      const options = (item.options || []).join(' ').toLowerCase();
+      const tags = (item.tags || []).join(' ').toLowerCase();
+      
+      // Check all fields for keyword
+      return name.includes(keyword) ||
+             bio.includes(keyword) ||
+             interests.includes(keyword) ||
+             girlTypes.includes(keyword) ||
+             playTypes.includes(keyword) ||
+             options.includes(keyword) ||
+             tags.includes(keyword);
+    })
+    .sort((a: any, b: any) => {
+      // Sort by keyword relevance if keyword exists
+      if (!searchKeyword) return 0;
+      
+      const keyword = searchKeyword.toLowerCase();
+      
+      // Calculate relevance score for each item
+      const getRelevanceScore = (item: any) => {
+        let score = 0;
+        const name = item.name?.toLowerCase() || '';
+        const girlTypes = (item.girlTypes || []).join(' ').toLowerCase();
+        const playTypes = (item.play_types || []).join(' ').toLowerCase();
+        
+        // Higher score for exact matches in important fields
+        if (name.includes(keyword)) score += 10;
+        if (girlTypes.includes(keyword)) score += 8;
+        if (playTypes.includes(keyword)) score += 6;
+        
+        // Bonus for exact type match
+        if (item.girlTypes?.some((type: string) => type.toLowerCase() === keyword)) score += 15;
+        if (item.play_types?.some((type: string) => type.toLowerCase() === keyword)) score += 12;
+        
+        return score;
+      };
+      
+      const scoreA = getRelevanceScore(a);
+      const scoreB = getRelevanceScore(b);
+      
+      return scoreB - scoreA; // Sort by descending score
+    });
+
+  // Calculate pagination based on filtered data
+  const totalPages = Math.ceil(filteredAndSortedData.length / USERS_PER_PAGE);
   const startIndex = (currentPage - 1) * USERS_PER_PAGE;
   const endIndex = startIndex + USERS_PER_PAGE;
-  const currentDisplayData = displayData.slice(startIndex, endIndex);
+  const currentDisplayData = filteredAndSortedData.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
@@ -539,8 +606,95 @@ export default function HomePage() {
       </div>
       
       <div className="px-4 pb-6">
+        {/* Search and View mode controls */}
+        <div className="flex justify-between items-center mb-4">
+          {/* Search input or button */}
+          <div className="flex-1 mr-2">
+            {showSearchInput ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="キーワード検索（エロい、巨乳、癒し系など）"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      // Apply search on Enter
+                      setShowSearchInput(false);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchKeyword('');
+                    setShowSearchInput(false);
+                  }}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSearchInput(true)}
+                  className="flex-1 bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  {searchKeyword || 'キーワード検索'}
+                </Button>
+                {searchKeyword && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSearchKeyword('')}
+                    className="text-gray-400 hover:text-white"
+                    title="検索をクリア"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* View mode toggle for mobile */}
+          <div className="inline-flex bg-gray-800 rounded-lg p-1 border border-gray-700 sm:hidden">
+            <button
+              onClick={() => setViewMode('single')}
+              className={`px-3 py-2 rounded-md transition-all ${
+                viewMode === 'single' 
+                  ? 'bg-pink-500 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              aria-label="1列表示"
+            >
+              <Columns className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('double')}
+              className={`px-3 py-2 rounded-md transition-all ${
+                viewMode === 'double' 
+                  ? 'bg-pink-500 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              aria-label="2列表示"
+            >
+              <Grid3x3 className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className={`grid ${
+          viewMode === 'single' 
+            ? 'grid-cols-1' 
+            : 'grid-cols-2'
+        } sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6`}>
         {currentDisplayData.map((item: any) => {
           // Handle both UserProfile and GirlWithDetails types
           // Check if it's Firebase data by looking for unique Firebase fields
@@ -550,6 +704,14 @@ export default function HomePage() {
           const age = item.age;
           const location = item.location;
           const imageUrl = item.imageUrl || (item.images?.[0]?.image_url || item.images?.[0]?.real_image_url);
+          const bio = item.bio || item.pr_message || '';
+          const interests = item.interests || [];
+          const play_types = item.play_types || [];
+          const options = item.options || [];
+          const tags = item.tags || [];
+          const is_sake = item.is_sake;
+          const is_tobacco = item.is_tobacco;
+          const girlTypes = item.girlTypes || [];
           
           // スタイル情報
           const height = item.height;
@@ -575,47 +737,234 @@ export default function HomePage() {
           return (
             <div
               key={id}
-              className="relative cursor-pointer transform transition-transform hover:scale-105"
-              onClick={() => {
-                if (isFirebaseData) {
-                  router.push(`/user/${item.id}`);
-                  recordProfileView(currentUser!.uid, item.id);
-                } else {
-                  // For MySQL data, use /girl route
-                  router.push(`/girl/${item.id}`);
-                }
-              }}
+              className="bg-gray-800/80 dark:bg-gray-800/80 rounded-2xl overflow-hidden border border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-xl hover:border-pink-500/50 flex flex-col h-full"
             >
-              <div className="aspect-[3/4] relative rounded-lg overflow-hidden shadow-md bg-gray-800">
+              {/* Image Section */}
+              <div 
+                className="relative aspect-[3/4] overflow-hidden cursor-pointer"
+                onClick={() => {
+                  if (isFirebaseData) {
+                    router.push(`/user/${item.id}`);
+                    recordProfileView(currentUser!.uid, item.id);
+                  } else {
+                    // For MySQL data, use /girl route
+                    router.push(`/girl/${item.id}`);
+                  }
+                }}
+              >
                 <Image
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-cover ${!isPremium ? 'blur-image' : ''}`}
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium ? 'blur-image' : ''}`}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
-                  <p className="!text-white font-bold text-base sm:text-lg drop-shadow-lg" style={{ color: '#FFFFFF' }}>{name}{age ? `, ${age}` : ''}</p>
-                  {location && (
-                    <p className="!text-white/90 text-sm drop-shadow-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                      {location}
-                      {distance !== null && (
-                        <span className="ml-1">({distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`})</span>
-                      )}
-                    </p>
+                {!isPremium && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                )}
+              </div>
+              
+              {/* Content Section */}
+              <div className={`${
+                viewMode === 'single' ? 'p-4' : 'p-3'
+              } sm:p-6 flex-1 flex flex-col`}>
+                {/* Name */}
+                <h3 
+                  className={`${
+                    viewMode === 'single' ? 'text-xl' : 'text-base'
+                  } sm:text-xl font-semibold text-white mb-2 cursor-pointer hover:text-pink-500 transition-colors`}
+                  onClick={() => {
+                    if (isFirebaseData) {
+                      router.push(`/user/${item.id}`);
+                      recordProfileView(currentUser!.uid, item.id);
+                    } else {
+                      router.push(`/girl/${item.id}`);
+                    }
+                  }}
+                >
+                  {name}
+                </h3>
+                
+                {/* Details */}
+                <div className={`flex flex-wrap gap-2 ${
+                  viewMode === 'single' ? 'text-sm' : 'text-xs'
+                } sm:text-sm text-gray-400 mb-2`}>
+                  <span>{age ? `${age}歳` : '不明'}</span>
+                  <span>•</span>
+                  <span>{location}</span>
+                  {distance !== null && (
+                    <>
+                      <span>•</span>
+                      <span className="text-yellow-500 font-semibold">
+                        {distance < 1 
+                          ? `${Math.round(distance * 1000)}m先` 
+                          : `${distance.toFixed(1)}km先`}
+                      </span>
+                    </>
                   )}
-                  {/* スタイル情報の表示 - スマホでも見やすいサイズに */}
-                  {height && (
-                    <p className="!text-white text-sm sm:text-sm font-medium mt-1 drop-shadow-lg" style={{ color: '#FFFFFF' }}>
-                      {height}cm
-                      {bust && waist && hip && (
-                        <>
-                          <br />
-                          <span className="text-sm">B{bust}{cup && `(${cup})`} W{waist} H{hip}</span>
-                        </>
-                      )}
-                    </p>
+                </div>
+                
+                {/* Body Info */}
+                {height && (
+                  <div className={`${
+                    viewMode === 'single' ? 'text-sm' : 'text-xs'
+                  } sm:text-sm text-gray-400 mb-3`}>
+                    {height && <span>T{height}cm</span>}
+                    {bust && waist && hip && (
+                      <>
+                        {height && <span> • </span>}
+                        <span>B{bust}{cup ? `(${cup})` : ''} W{waist} H{hip}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* Tags & Play Types */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {/* Girl Types (明るい、癒し系、巨乳など) */}
+                  {girlTypes.slice(0, 3).map((type: string) => (
+                    <span 
+                      key={`type-${type}`} 
+                      className="px-3 py-1 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/40 rounded-full text-xs text-pink-300 font-medium"
+                    >
+                      ✨ {type}
+                    </span>
+                  ))}
+                  
+                  {/* Interests */}
+                  {interests.slice(0, 2).map((interest: string) => (
+                    <span 
+                      key={`interest-${interest}`} 
+                      className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-xs text-yellow-500"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                  
+                  {/* Play Types (エロい要素) */}
+                  {play_types.slice(0, 2).map((play: string) => (
+                    <span 
+                      key={`play-${play}`} 
+                      className="px-3 py-1 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs text-pink-400"
+                    >
+                      {play}
+                    </span>
+                  ))}
+                  
+                  {/* Options */}
+                  {options.slice(0, 1).map((option: string) => (
+                    <span 
+                      key={`option-${option}`} 
+                      className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs text-purple-400"
+                    >
+                      {option}
+                    </span>
+                  ))}
+                  
+                  {/* Additional tags */}
+                  {tags.slice(0, 1).map((tag: string) => (
+                    <span 
+                      key={`tag-${tag}`} 
+                      className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs text-blue-400"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  
+                  {/* お酒・タバコ */}
+                  {is_sake !== undefined && (
+                    <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs text-amber-400">
+                      {is_sake ? '🍺 お酒OK' : '🚫 お酒NG'}
+                    </span>
                   )}
+                  {is_tobacco !== undefined && (
+                    <span className="px-3 py-1 bg-gray-500/10 border border-gray-500/30 rounded-full text-xs text-gray-400">
+                      {is_tobacco ? '🚬 タバコOK' : '🚫 タバコNG'}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Bio */}
+                {bio && (
+                  <p className={`${
+                    viewMode === 'single' ? 'text-sm line-clamp-3' : 'text-xs line-clamp-2'
+                  } sm:text-sm text-gray-400 mb-4 flex-1`}>
+                    {bio}
+                  </p>
+                )}
+                
+                {/* Action Button */}
+                <div className="flex mt-auto">
+                  <Button
+                    variant="outline"
+                    className={`w-full bg-pink-500/20 text-pink-500 border-pink-500 hover:bg-pink-500 hover:text-white transition-all ${
+                      viewMode === 'single' ? 'text-sm' : 'text-xs py-2'
+                    } sm:text-sm`}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      
+                      // ログインチェック
+                      if (!currentUser) {
+                        toast({
+                          title: 'ログインが必要です',
+                          description: 'いいねを送るにはログインしてください',
+                          variant: 'destructive'
+                        });
+                        router.push('/login');
+                        return;
+                      }
+                      
+                      // 有料会員チェック
+                      if (!isPremium) {
+                        toast({
+                          title: '有料会員限定',
+                          description: 'いいねを送るには有料会員登録が必要です',
+                          action: (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push('/subscription')}
+                            >
+                              有料会員になる
+                            </Button>
+                          ),
+                        });
+                        return;
+                      }
+                      
+                      // いいねを送信
+                      try {
+                        const targetId = `mysql_girl_${item.id}`;
+                        const result = await sendLike(currentUser.uid, targetId, {
+                          toGirlName: name,
+                          toGirlId: item.id,
+                          isGirlProfile: true
+                        });
+                        
+                        if (result.alreadyLiked) {
+                          toast({
+                            title: '既にいいねを送っています',
+                            description: `${name}さんには既にいいねを送信済みです。`,
+                          });
+                        } else {
+                          toast({
+                            title: 'いいねを送りました！',
+                            description: `${name}さんにいいねを送りました。`
+                          });
+                        }
+                      } catch (error) {
+                        console.error('Like error:', error);
+                        toast({
+                          title: 'エラー',
+                          description: 'いいねの送信に失敗しました。',
+                          variant: 'destructive'
+                        });
+                      }
+                    }}
+                  >
+                    <Heart className="w-4 h-4 mr-1" />
+                    いいね
+                  </Button>
                 </div>
               </div>
             </div>
@@ -623,7 +972,16 @@ export default function HomePage() {
         })}
       </div>
       
-      {displayData.length === 0 && (
+      {filteredAndSortedData.length === 0 && searchKeyword && (
+        <div className="text-center py-10 text-gray-300">
+          <p className="text-xl mb-4 text-white">「{searchKeyword}」に一致する女の子が見つかりません</p>
+          <Button onClick={() => setSearchKeyword('')} variant="outline">
+            <RotateCcw className="mr-2 h-4 w-4" /> 検索をクリア
+          </Button>
+        </div>
+      )}
+      
+      {displayData.length === 0 && !searchKeyword && (
         <div className="text-center py-10 text-gray-300">
           <p className="text-xl mb-4 text-white">現在表示できるプロフィールはありません！</p>
           <Button onClick={handleReset} variant="outline">
@@ -633,7 +991,7 @@ export default function HomePage() {
       )}
       
       {/* Pagination */}
-      {displayData.length > 0 && (
+      {filteredAndSortedData.length > 0 && (
         <div className="flex justify-center items-center mt-8 gap-2 sm:gap-4">
           <Button
             variant="outline"
@@ -662,6 +1020,13 @@ export default function HomePage() {
             <span>次へ</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
+        </div>
+      )}
+      
+      {/* Search results info */}
+      {searchKeyword && filteredAndSortedData.length > 0 && (
+        <div className="text-center mt-4 text-gray-400">
+          <p>「{searchKeyword}」の検索結果: {filteredAndSortedData.length}名</p>
         </div>
       )}
       

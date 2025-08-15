@@ -116,7 +116,13 @@ export async function fetchOptimizedGirls(
         FROM girl_image_urls gi 
         WHERE gi.girl_profile_id = g.id 
         LIMIT 1
-      ) as imageUrl
+      ) as imageUrl,
+      (
+        SELECT GROUP_CONCAT(gt.name SEPARATOR ',')
+        FROM girl_status gs
+        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+        WHERE gs.girl_profile_id = g.id
+      ) as girl_types_names
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
@@ -186,7 +192,9 @@ export async function fetchOptimizedGirls(
       name: row.shop_name,
       latitude: row.latitude,
       longitude: row.longitude
-    }
+    },
+    // Girl types from girl_status table
+    girlTypes: row.girl_types_names ? row.girl_types_names.split(',') : []
   }));
   
   const total = countResult[0]?.total || 0;
@@ -247,7 +255,13 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
         FROM girl_image_urls gi 
         WHERE gi.girl_profile_id = g.id 
         LIMIT 1
-      ) as imageUrl
+      ) as imageUrl,
+      (
+        SELECT GROUP_CONCAT(gt.name SEPARATOR ',')
+        FROM girl_status gs
+        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+        WHERE gs.girl_profile_id = g.id
+      ) as girl_types_names
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
@@ -279,7 +293,9 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     lastActive: new Date().toISOString(),
     is_sake: row.is_sake === 1 || row.is_sake === true,
     is_tobacco: row.is_tobacco === 1 || row.is_tobacco === true,
-    shopName: row.shop_name
+    shopName: row.shop_name,
+    // Girl types from girl_status table
+    girlTypes: row.girl_types_names ? row.girl_types_names.split(',') : []
   }));
 }
 
