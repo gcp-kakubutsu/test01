@@ -3,21 +3,26 @@ import { cookies } from 'next/headers';
 import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
+  // LINEブラウザ対策：レスポンスヘッダーを設定
+  const responseHeaders = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'X-Content-Type-Options': 'nosniff',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+  
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session');
 
-    if (!sessionCookie) {
-      // キャッシュを無効化して常に最新の状態を返す
+    if (!sessionCookie || !sessionCookie.value) {
+      console.log('🔑 No session cookie found');
       return NextResponse.json({
         authenticated: false,
         user: null,
       }, {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
+        headers: responseHeaders,
       });
     }
 
@@ -52,11 +57,7 @@ export async function GET(request: NextRequest) {
           displayName: payload.name || null,
         },
       }, {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
+        headers: responseHeaders,
       });
     } catch (error) {
       console.error('Failed to decode session token:', error);
@@ -68,11 +69,7 @@ export async function GET(request: NextRequest) {
         authenticated: false,
         user: null,
       }, {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
+        headers: responseHeaders,
       });
     }
 
@@ -83,11 +80,7 @@ export async function GET(request: NextRequest) {
       authenticated: false,
       user: null,
     }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
+      headers: responseHeaders,
     });
   }
 }

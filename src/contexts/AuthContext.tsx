@@ -33,62 +33,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // セッションチェック（高速化）
   useEffect(() => {
+    let isCompleted = false;
+    
     const checkSession = async () => {
       try {
         console.log('🔐 Checking session...');
+        
+        // タイムアウト付きfetch（5秒）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+          if (!isCompleted) {
+            console.warn('⚠️ Session check timeout');
+            setIsLoading(false);
+            isCompleted = true;
+          }
+        }, 5000);
+        
         const response = await fetch('/api/auth/session', {
           method: 'GET',
           credentials: 'include',
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
+        
+        if (isCompleted) return;
 
         const data = await response.json();
         
         if (data.authenticated && data.user) {
           console.log('✅ Session valid:', data.user.email);
           setCurrentUser(data.user);
-          setIsLoading(false);
-          
-          // Firebase Auth同期は非同期で実行（ブロックしない）
-          setTimeout(async () => {
-            try {
-              const tokenResponse = await fetch('/api/auth/custom-token', {
-                method: 'GET',
-                credentials: 'include',
-              });
-              
-              if (tokenResponse.ok) {
-                const tokenData = await tokenResponse.json();
-                if (tokenData.customToken && tokenData.uid) {
-                  const { getFirebaseAuth } = await import('@/lib/firebase/client');
-                  const { signInWithCustomToken } = await import('firebase/auth');
-                  const auth = getFirebaseAuth();
-                  if (auth) {
-                    try {
-                      await signInWithCustomToken(auth, tokenData.customToken);
-                      console.log('✅ Firebase Auth synced');
-                    } catch (error) {
-                      console.warn('⚠️ Firebase sync failed, but session is valid');
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              console.warn('⚠️ Background sync failed, but session is valid');
-            }
-          }, 100);
         } else {
           console.log('❌ No valid session');
           setCurrentUser(null);
-          setIsLoading(false);
         }
-      } catch (error) {
-        console.error('❌ Session check failed:', error);
+      } catch (error: any) {
+        if (isCompleted) return;
+        
+        if (error.name === 'AbortError') {
+          console.warn('⚠️ Session check aborted');
+        } else {
+          console.error('❌ Session check failed:', error);
+        }
         setCurrentUser(null);
-        setIsLoading(false);
+      } finally {
+        if (!isCompleted) {
+          setIsLoading(false);
+          isCompleted = true;
+        }
+      }
+      
+      // Firebase Auth同期は完全に非同期で実行
+      if (currentUser) {
+        setTimeout(async () => {
+          try {
+            const tokenResponse = await fetch('/api/auth/custom-token', {
+              method: 'GET',
+              credentials: 'include',
+            });
+            
+            if (tokenResponse.ok) {
+              const tokenData = await tokenResponse.json();
+              if (tokenData.customToken && tokenData.uid) {
+                const { getFirebaseAuth } = await import('@/lib/firebase/client');
+                const { signInWithCustomToken } = await import('firebase/auth');
+                const auth = getFirebaseAuth();
+                if (auth) {
+                  try {
+                    await signInWithCustomToken(auth, tokenData.customToken);
+                    console.log('✅ Firebase Auth synced');
+                  } catch (error) {
+                    console.warn('⚠️ Firebase sync failed, but session is valid');
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ Background sync failed, but session is valid');
+          }
+        }, 100);
       }
     };
+    
+    // 最悪のケースでも3秒後には必ずローディングを解除
+    const fallbackTimeout = setTimeout(() => {
+      if (!isCompleted) {
+        console.warn('⚠️ Fallback timeout - forcing loading complete');
+        setIsLoading(false);
+        isCompleted = true;
+      }
+    }, 3000);
 
     checkSession();
+    
+    return () => {
+      clearTimeout(fallbackTimeout);
+    };
 
     // 定期的にセッションをチェック（5分ごと）
     const interval = setInterval(checkSession, 5 * 60 * 1000);

@@ -68,10 +68,11 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production';
     
     // LINEブラウザを含むすべてのブラウザで動作するよう設定
+    // sameSiteをlaxに設定してLINEブラウザでも動作するように
     cookieStore.set('session', data.idToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax', // 本番環境ではnoneでLINEブラウザ対応
+      sameSite: 'lax', // LINEブラウザでも動作するようlaxに統一
       maxAge: parseInt(data.expiresIn) || 3600, // expiresInの値を使用（デフォルト1時間）
       path: '/',
     });

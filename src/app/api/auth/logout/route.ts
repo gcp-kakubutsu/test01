@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     cookieStore.set('session', '', {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'lax', // LINEブラウザでも動作するようlaxに統一
       maxAge: 0, // 即座に削除
       path: '/',
     });
