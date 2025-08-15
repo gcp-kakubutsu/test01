@@ -53,20 +53,10 @@ export async function POST(request: NextRequest) {
     if (!emailVerified) {
       console.warn('⚠️ Email not verified for user:', data.email);
       // メール未確認でもログインは許可（警告のみ）
-      // 後でバックグラウンドでメール確認リンクを再送信
-      fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requestType: 'VERIFY_EMAIL',
-            idToken: data.idToken,
-          }),
-        }
-      ).catch(err => console.log('Background email verification send:', err));
+      // メール確認リンクの再送信はしない（ユーザーが不快に感じるため）
+      // 必要な場合はユーザーが手動でリクエストできるようにする
+    } else {
+      console.log('✅ Email already verified for user:', data.email);
     }
 
     // IDトークンを直接セッションクッキーとして保存（高速化）
