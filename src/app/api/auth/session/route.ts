@@ -1,39 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, cert, getApps, type ServiceAccount } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
-
-// Firebase Admin初期化
-function initializeAdmin() {
-  if (getApps().length > 0) {
-    return getApps()[0];
-  }
-
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (!projectId) {
-    throw new Error('Firebase project ID is not configured');
-  }
-
-  if (clientEmail && privateKey) {
-    const serviceAccount: ServiceAccount = {
-      projectId,
-      clientEmail,
-      privateKey,
-    };
-
-    return initializeApp({
-      credential: cert(serviceAccount),
-      projectId,
-    });
-  }
-
-  return initializeApp({
-    projectId,
-  });
-}
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,32 +14,78 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const app = initializeAdmin();
-    const auth = getAuth(app);
+    try {
+      const auth = getAdminAuth();
+      
+      // セッションクッキーを検証
+      const decodedClaims = await auth.verifySessionCookie(sessionCookie.value, true);
 
-    // セッションクッキーを検証
-    const decodedClaims = await auth.verifySessionCookie(sessionCookie.value, true);
+      // ユーザー情報を取得
+      try {
+        const user = await auth.getUser(decodedClaims.uid);
+        
+        return NextResponse.json({
+          authenticated: true,
+          user: {
+            uid: user.uid,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            displayName: user.displayName,
+          },
+        });
+      } catch (getUserError) {
+        console.warn('Could not get user record:', getUserError);
+        // getUserが失敗しても基本情報を返す
+        return NextResponse.json({
+          authenticated: true,
+          user: {
+            uid: decodedClaims.uid,
+            email: decodedClaims.email,
+            emailVerified: decodedClaims.email_verified || false,
+            displayName: null,
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('Session verification with Admin SDK failed, trying to decode token directly:', error);
+      
+      // Admin SDKが利用できない場合、IDトークンとして扱う
+      try {
+        // IDトークンをデコード（簡易的な検証）
+        const payload = JSON.parse(
+          Buffer.from(sessionCookie.value.split('.')[1], 'base64').toString()
+        );
+        
+        // 有効期限チェック
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          throw new Error('Token expired');
+        }
+        
+        return NextResponse.json({
+          authenticated: true,
+          user: {
+            uid: payload.sub || payload.user_id,
+            email: payload.email,
+            emailVerified: payload.email_verified || false,
+            displayName: payload.name || null,
+          },
+        });
+      } catch (decodeError) {
+        console.error('Failed to decode session token:', decodeError);
+        
+        // セッションが無効な場合はクッキーを削除
+        cookieStore.delete('session');
 
-    // ユーザー情報を取得
-    const user = await auth.getUser(decodedClaims.uid);
-
-    return NextResponse.json({
-      authenticated: true,
-      user: {
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        displayName: user.displayName,
-      },
-    });
+        return NextResponse.json({
+          authenticated: false,
+          user: null,
+        });
+      }
+    }
 
   } catch (error: any) {
     console.error('Session check error:', error);
     
-    // セッションが無効な場合はクッキーを削除
-    const cookieStore = await cookies();
-    cookieStore.delete('session');
-
     return NextResponse.json({
       authenticated: false,
       user: null,

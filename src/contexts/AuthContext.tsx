@@ -46,6 +46,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.authenticated && data.user) {
           console.log('✅ Session valid:', data.user.email);
           setCurrentUser(data.user);
+          
+          // Firebase Authにも同期（Firestore権限のため）
+          const tokenResponse = await fetch('/api/auth/token', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            if (tokenData.customToken) {
+              const { getFirebaseAuth } = await import('@/lib/firebase/client');
+              const { signInWithCustomToken } = await import('firebase/auth');
+              const auth = getFirebaseAuth();
+              if (auth) {
+                try {
+                  await signInWithCustomToken(auth, tokenData.customToken);
+                  console.log('✅ Firebase Auth synced on session check');
+                } catch (error) {
+                  console.warn('⚠️ Could not sync Firebase Auth:', error);
+                }
+              }
+            }
+          }
         } else {
           console.log('❌ No valid session');
           setCurrentUser(null);
@@ -106,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (auth) {
           try {
             await signInWithCustomToken(auth, result.customToken);
-            console.log('✅ Firebase Auth synced');
+            console.log('✅ Firebase Auth synced with custom token');
           } catch (error) {
             console.warn('⚠️ Could not sync Firebase Auth:', error);
           }

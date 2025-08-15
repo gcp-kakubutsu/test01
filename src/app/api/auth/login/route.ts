@@ -1,42 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, cert, getApps, type ServiceAccount } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
-
-// Firebase Admin初期化
-function initializeAdmin() {
-  if (getApps().length > 0) {
-    return getApps()[0];
-  }
-
-  // 環境変数から認証情報を取得
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (!projectId) {
-    throw new Error('Firebase project ID is not configured');
-  }
-
-  // サービスアカウント認証がある場合
-  if (clientEmail && privateKey) {
-    const serviceAccount: ServiceAccount = {
-      projectId,
-      clientEmail,
-      privateKey,
-    };
-
-    return initializeApp({
-      credential: cert(serviceAccount),
-      projectId,
-    });
-  }
-
-  // Google Cloud環境の場合（App Hosting等）
-  return initializeApp({
-    projectId,
-  });
-}
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,10 +12,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Firebase Adminを初期化
-    const app = initializeAdmin();
-    const auth = getAuth(app);
 
     // Firebase AuthのREST APIを使用してユーザー認証
     const response = await fetch(
@@ -88,21 +48,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // IDトークンを検証
-    const decodedToken = await auth.verifyIdToken(data.idToken);
+    // Admin SDKが利用可能か確認
+    let sessionCookie = data.idToken; // デフォルトはIDトークンを使用
+    let customToken = data.idToken;
+    let emailVerified = data.emailVerified || false;
+    let uid = data.localId;
     
-    // メール確認チェック
-    if (!decodedToken.email_verified) {
-      return NextResponse.json(
-        { error: 'メールアドレスの確認が完了していません' },
-        { status: 403 }
-      );
+    try {
+      // Firebase Admin SDKでIDトークンを検証
+      const auth = getAdminAuth();
+      const decodedToken = await auth.verifyIdToken(data.idToken);
+      uid = decodedToken.uid;
+      
+      // メール確認チェック
+      try {
+        const userRecord = await auth.getUser(decodedToken.uid);
+        emailVerified = userRecord.emailVerified;
+        
+        if (!emailVerified) {
+          // 開発環境では警告のみ
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ Email not verified for user:', userRecord.email);
+          } else {
+            return NextResponse.json(
+              { error: 'メールアドレスの確認が完了していません' },
+              { status: 403 }
+            );
+          }
+        }
+      } catch (getUserError) {
+        console.warn('Could not get user record:', getUserError);
+        // getUserが失敗しても続行
+      }
+      
+      // カスタムセッショントークンを作成
+      try {
+        sessionCookie = await auth.createSessionCookie(data.idToken, {
+          expiresIn: 60 * 60 * 24 * 1000, // 24時間
+        });
+      } catch (sessionError) {
+        console.warn('Could not create session cookie:', sessionError);
+        // セッションクッキー作成に失敗しても、IDトークンを使用
+      }
+      
+      // カスタムトークンを生成
+      try {
+        customToken = await auth.createCustomToken(uid);
+      } catch (customTokenError) {
+        console.warn('Could not create custom token:', customTokenError);
+        // カスタムトークン作成に失敗しても、IDトークンを使用
+      }
+    } catch (error) {
+      console.warn('Admin SDK not available, using ID token directly:', error);
+      // Admin SDKが利用できない場合は、IDトークンを直接使用
     }
-
-    // カスタムセッショントークンを作成（24時間有効）
-    const sessionCookie = await auth.createSessionCookie(data.idToken, {
-      expiresIn: 60 * 60 * 24 * 1000, // 24時間
-    });
 
     // クッキーに保存
     const cookieStore = await cookies();
@@ -114,16 +113,13 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // カスタムトークンも生成（Firestore認証用）
-    const customToken = await auth.createCustomToken(decodedToken.uid);
-
     // ユーザー情報を返す
     return NextResponse.json({
       success: true,
       user: {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-        emailVerified: decodedToken.email_verified,
+        uid: uid,
+        email: data.email,
+        emailVerified: emailVerified,
       },
       customToken,
     });

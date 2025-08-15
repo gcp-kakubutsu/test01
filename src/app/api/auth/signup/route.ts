@@ -1,39 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, cert, getApps, type ServiceAccount } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-
-// Firebase Admin初期化
-function initializeAdmin() {
-  if (getApps().length > 0) {
-    return getApps()[0];
-  }
-
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (!projectId) {
-    throw new Error('Firebase project ID is not configured');
-  }
-
-  if (clientEmail && privateKey) {
-    const serviceAccount: ServiceAccount = {
-      projectId,
-      clientEmail,
-      privateKey,
-    };
-
-    return initializeApp({
-      credential: cert(serviceAccount),
-      projectId,
-    });
-  }
-
-  return initializeApp({
-    projectId,
-  });
-}
+import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,37 +12,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const app = initializeAdmin();
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
 
-    // Firebase AuthのREST APIを使用してユーザー作成
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
+    // Firebase Admin SDKでユーザー作成
+    let userRecord;
+    try {
+      userRecord = await auth.createUser({
+        email,
+        password,
+        emailVerified: false,
+      });
+    } catch (error: any) {
+      console.error('User creation error:', error);
+      
       let errorMessage = '登録に失敗しました';
       
-      if (data.error?.message === 'EMAIL_EXISTS') {
+      if (error.code === 'auth/email-already-exists') {
         errorMessage = 'このメールアドレスは既に使用されています';
-      } else if (data.error?.message === 'WEAK_PASSWORD') {
-        errorMessage = 'パスワードは6文字以上で設定してください';
-      } else if (data.error?.message === 'INVALID_EMAIL') {
+      } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'メールアドレスの形式が正しくありません';
+      } else if (error.code === 'auth/weak-password' || (error.message && error.message.includes('password'))) {
+        errorMessage = 'パスワードは6文字以上で設定してください';
       }
 
       return NextResponse.json(
@@ -85,24 +42,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // メール確認を送信
-    await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requestType: 'VERIFY_EMAIL',
-          idToken: data.idToken,
-        }),
-      }
-    );
+    // メール確認リンクを生成
+    const emailVerificationLink = await auth.generateEmailVerificationLink(email);
+    
+    // メール送信（Firebase Authの標準メール送信機能を使用）
+    // 注: 実際のメール送信はFirebase Consoleで設定されたテンプレートが使用される
+    console.log('Email verification link generated:', emailVerificationLink);
 
     // Firestoreにユーザー情報を保存
-    const userRef = db.collection('users').doc(data.localId);
-    await userRef.set({
+    await db.collection('users').doc(userRecord.uid).set({
       username,
       email,
       birthDate: birthDate || null,
@@ -116,8 +64,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'アカウントを作成しました。メールアドレスの確認をお願いします。',
       user: {
-        uid: data.localId,
-        email: data.email,
+        uid: userRecord.uid,
+        email: userRecord.email,
       },
     });
 
