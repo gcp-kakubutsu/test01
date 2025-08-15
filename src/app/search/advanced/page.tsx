@@ -1632,7 +1632,30 @@ function AdvancedSearchContent() {
           <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
             {filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT).map(user => (
             <Card key={user.id} className={styles.profileCard}>
-              <div className={styles.profileImage}>
+              <div 
+                className={styles.profileImage}
+                onClick={() => {
+                  // 有料ユーザーかつMySQLの女の子データの場合のみ詳細ページへ遷移
+                  if (isPremium && user.isGirlProfile) {
+                    router.push(`/girl/${user.id}`)
+                  } else if (!isPremium) {
+                    toast({
+                      title: '有料会員限定',
+                      description: 'プロフィール詳細を見るには有料会員登録が必要です',
+                      action: (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push('/subscription')}
+                        >
+                          有料会員になる
+                        </Button>
+                      ),
+                    })
+                  }
+                }}
+                style={{ cursor: user.isGirlProfile ? 'pointer' : 'default' }}
+              >
                 <Image
                   src={user.imageUrl}
                   alt={user.name}
@@ -1644,7 +1667,32 @@ function AdvancedSearchContent() {
                 {!subscriptionLoading && !isPremium && <div className={styles.profileBlur} />}
               </div>
               <CardContent className={styles.profileInfo}>
-                <h3 className={styles.profileName}>{user.name}</h3>
+                <h3 
+                  className={styles.profileName}
+                  onClick={() => {
+                    // 有料ユーザーかつMySQLの女の子データの場合のみ詳細ページへ遷移
+                    if (isPremium && user.isGirlProfile) {
+                      router.push(`/girl/${user.id}`)
+                    } else if (!isPremium) {
+                      toast({
+                        title: '有料会員限定',
+                        description: 'プロフィール詳細を見るには有料会員登録が必要です',
+                        action: (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/subscription')}
+                          >
+                            有料会員になる
+                          </Button>
+                        ),
+                      })
+                    }
+                  }}
+                  style={{ cursor: user.isGirlProfile ? 'pointer' : 'default' }}
+                >
+                  {user.name}
+                </h3>
                 <div className={styles.profileDetails}>
                   <span>{user.age ? `${user.age}歳` : '不明'}</span>
                   <span>•</span>

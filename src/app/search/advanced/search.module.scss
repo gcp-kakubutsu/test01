@@ -411,6 +411,12 @@ $border-color: rgba(212, 175, 55, 0.2);
   height: 350px;
   overflow: hidden;
   flex-shrink: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.02);
+    opacity: 0.95;
+  }
   
   @media (max-width: 768px) {
     height: 240px;
@@ -459,9 +465,18 @@ $border-color: rgba(212, 175, 55, 0.2);
   font-weight: 600;
   color: $text-light;
   margin-bottom: 0.5rem;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: $accent-burgundy;
+  }
   
   :global(.light) & {
     color: $primary-dark;
+    
+    &:hover {
+      color: $accent-burgundy;
+    }
   }
   
   @media (max-width: 768px) {
