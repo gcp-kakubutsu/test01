@@ -676,7 +676,7 @@ export default function CommunityPage() {
       const newCommentData = {
         authorId: currentUser.uid,
         author: profile?.username || currentUser.displayName || 'Anonymous',
-        authorImage: profile?.profilePhotoUrl || currentUser.photoURL || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+        authorImage: profile?.profilePhotoUrl || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
         content: newComment,
         timestamp: serverTimestamp()
       };
@@ -1040,7 +1040,7 @@ export default function CommunityPage() {
       await addDoc(postsRef, {
         authorId: currentUser.uid,
         author: profile?.username || currentUser.displayName || 'Anonymous',
-        authorImage: profile?.profilePhotoUrl || currentUser.photoURL || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+        authorImage: profile?.profilePhotoUrl || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
         content: newPostContent,
         communityId: postDestination,
         timestamp: serverTimestamp(),

@@ -3,8 +3,8 @@ import {
   getAuth, 
   type Auth,
   connectAuthEmulator,
-  browserLocalPersistence,
-  setPersistence
+  onAuthStateChanged,
+  signInWithCustomToken
 } from 'firebase/auth';
 import { getFirestore, type Firestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
@@ -60,22 +60,16 @@ function initializeFirebaseServices(): void {
       console.log('✅ Firebase app initialized');
     }
 
-    // Auth初期化（CORS対応）
+    // Auth初期化
     if (app) {
       try {
         auth = getAuth(app);
-        
-        // ブラウザ環境での設定
-        if (typeof window !== 'undefined') {
-          // デフォルトの永続化設定（全ブラウザ対応）
-          setPersistence(auth, browserLocalPersistence).then(() => {
-            console.log('✅ Auth persistence set to LOCAL');
-          }).catch((error) => {
-            console.warn('⚠️ Could not set persistence, using default:', error.message);
-          });
-        }
-        
         console.log('✅ Auth initialized');
+        
+        // セッションから認証状態を復元
+        if (typeof window !== 'undefined') {
+          restoreAuthFromSession();
+        }
       } catch (error: any) {
         console.error('❌ Auth initialization failed:', error);
         auth = undefined;
@@ -122,6 +116,30 @@ function initializeFirebaseServices(): void {
     console.error('💥 Firebase initialization failed:', error);
     initializationError = error;
     initialized = true; // エラーでも初期化済みとマーク
+  }
+}
+
+/**
+ * セッションから認証状態を復元
+ */
+async function restoreAuthFromSession() {
+  try {
+    // セッション確認APIを呼び出し
+    const response = await fetch('/api/auth/token', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.customToken && auth) {
+        // カスタムトークンでFirebase Authにサインイン
+        await signInWithCustomToken(auth, data.customToken);
+        console.log('✅ Auth state restored from session');
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not restore auth state:', error);
   }
 }
 

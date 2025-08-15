@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -34,16 +32,24 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
     
     try {
-      if (!auth) {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
         toast({ 
           title: "エラー", 
-          description: "認証サービスが利用できません。", 
+          description: result.error || "パスワードリセットメールの送信に失敗しました", 
           variant: "destructive" 
         });
         return;
       }
-
-      await sendPasswordResetEmail(auth, email);
       
       setIsEmailSent(true);
       toast({ 
@@ -51,19 +57,9 @@ export default function ForgotPasswordPage() {
         description: "パスワードリセットメールを送信しました。メールをご確認ください。" 
       });
     } catch (error: any) {
-      let description = "パスワードリセットメールの送信に失敗しました。";
-      
-      if (error.code === 'auth/user-not-found') {
-        description = "このメールアドレスは登録されていません。";
-      } else if (error.code === 'auth/invalid-email') {
-        description = "メールアドレスの形式が正しくありません。";
-      } else if (error.code === 'auth/too-many-requests') {
-        description = "リクエストが多すぎます。しばらくしてから再度お試しください。";
-      }
-      
       toast({ 
         title: "エラー", 
-        description, 
+        description: "ネットワークエラーが発生しました。", 
         variant: "destructive" 
       });
     } finally {

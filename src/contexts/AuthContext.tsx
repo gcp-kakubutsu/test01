@@ -2,21 +2,16 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  type User, 
-  onAuthStateChanged, 
-  signOut as firebaseSignOut, 
-  signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword, 
-  sendEmailVerification 
-} from 'firebase/auth';
-import { getFirebaseAuth, getFirebaseDb, getInitializationError } from '@/lib/firebase/client';
 import type { AuthFormData } from '@/app/login/page';
-import { addUserToFirestore } from '@/app/auth/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+
+interface User {
+  uid: string;
+  email: string | null;
+  emailVerified: boolean;
+  displayName?: string | null;
+}
 
 interface AuthContextType {
   currentUser: User | null;
@@ -30,191 +25,92 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ブラウザ判定
-function isLineApp(): boolean {
-  if (typeof window === 'undefined') return false;
-  const ua = window.navigator.userAgent.toLowerCase();
-  return ua.includes('line');
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingCredentials, setPendingCredentials] = useState<AuthFormData | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
+  // セッションチェック
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-    
-    const setupAuth = async () => {
+    const checkSession = async () => {
       try {
-        const auth = getFirebaseAuth();
-        const initError = getInitializationError();
-        
-        if (initError) {
-          console.error('📛 Firebase initialization error:', initError);
-        }
-        
-        if (!auth) {
-          console.error('❌ Firebase Auth not available');
-          setIsLoading(false);
-          return;
-        }
+        console.log('🔐 Checking session...');
+        const response = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+        });
 
-        console.log('🔐 Setting up auth state listener');
+        const data = await response.json();
         
-        // リダイレクト結果を確認（LINEブラウザ対応）
-        try {
-          const result = await getRedirectResult(auth);
-          if (result?.user) {
-            console.log('✅ Redirect login successful:', result.user.email);
-            
-            // メール確認チェック
-            if (!result.user.emailVerified && pendingCredentials) {
-              toast({ 
-                title: 'メールアドレス未確認', 
-                description: 'メールアドレスの確認が完了していません。', 
-                variant: 'destructive'
-              });
-              await firebaseSignOut(auth);
-            } else {
-              toast({ 
-                title: 'ログインしました', 
-                description: 'Nukuneへようこそ！' 
-              });
-            }
-            setPendingCredentials(null);
-          }
-        } catch (redirectError: any) {
-          console.error('❌ Redirect result error:', redirectError);
-          if (redirectError.code && redirectError.code !== 'auth/popup-blocked-by-browser') {
-            toast({
-              title: 'ログインエラー',
-              description: 'ログインに失敗しました。もう一度お試しください。',
-              variant: 'destructive'
-            });
-          }
+        if (data.authenticated && data.user) {
+          console.log('✅ Session valid:', data.user.email);
+          setCurrentUser(data.user);
+        } else {
+          console.log('❌ No valid session');
+          setCurrentUser(null);
         }
-        
-        // 認証状態の監視
-        unsubscribe = onAuthStateChanged(
-          auth,
-          (user) => {
-            console.log('👤 Auth state:', user ? `User: ${user.email}` : 'No user');
-            setCurrentUser(user);
-            setIsLoading(false);
-          },
-          (error) => {
-            console.error('❌ Auth listener error:', error);
-            setCurrentUser(null);
-            setIsLoading(false);
-          }
-        );
       } catch (error) {
-        console.error('❌ Auth setup failed:', error);
+        console.error('❌ Session check failed:', error);
+        setCurrentUser(null);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    setupAuth();
+    checkSession();
 
-    // タイムアウト
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        console.log('⏱️ Auth timeout - forcing ready');
-        setIsLoading(false);
-      }
-    }, 10000); // 10秒に延長
-
-    return () => {
-      clearTimeout(timeout);
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // リダイレクトログイン（LINE対応）
-  const loginWithRedirect = async (data: AuthFormData): Promise<void> => {
-    console.log('🔄 Attempting redirect login for:', data.email);
+    // 定期的にセッションをチェック（5分ごと）
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
     
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      toast({ 
-        title: 'ログインエラー', 
-        description: 'システムエラーが発生しました。', 
-        variant: 'destructive' 
-      });
-      return;
-    }
+    return () => clearInterval(interval);
+  }, []);
 
-    try {
-      // 資格情報を保存（リダイレクト後の確認用）
-      setPendingCredentials(data);
-      sessionStorage.setItem('pendingLogin', JSON.stringify(data));
-      
-      // Googleプロバイダーの例（メール/パスワードの代わりに）
-      // 注: メール/パスワードはリダイレクトをサポートしていないため、
-      // 実装を変更する必要があります
-      const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
-      
-    } catch (error: any) {
-      console.error('❌ Redirect login error:', error);
-      setPendingCredentials(null);
-      sessionStorage.removeItem('pendingLogin');
-      
-      toast({ 
-        title: 'ログインエラー', 
-        description: 'ログインに失敗しました。', 
-        variant: 'destructive' 
-      });
-    }
-  };
-
-  // 通常のログイン
+  // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {
     console.log('🔑 Login attempt for:', data.email);
     
-    // LINEブラウザの場合は別の方法を試す
-    const isLine = isLineApp();
-    if (isLine) {
-      console.log('📱 LINE browser detected - using special handling');
-    }
-    
     try {
-      const auth = getFirebaseAuth();
-      
-      if (!auth) {
-        console.error('❌ Auth not available');
-        toast({ 
-          title: 'ログインエラー', 
-          description: '認証システムが利用できません。', 
-          variant: 'destructive' 
-        });
-        return false;
-      }
-      
       setIsLoading(true);
       
-      // ログイン実行
-      console.log('🔐 Calling signInWithEmailAndPassword...');
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      
-      console.log('✅ Login successful');
-      
-      // メール確認チェック
-      if (!userCredential.user.emailVerified) {
-        console.warn('⚠️ Email not verified');
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Login failed:', result.error);
         toast({ 
-          title: 'メールアドレス未確認', 
-          description: 'メールアドレスの確認が完了していません。', 
-          variant: 'destructive',
-          duration: 10000
+          title: 'ログインエラー', 
+          description: result.error || 'ログインに失敗しました', 
+          variant: 'destructive' 
         });
-        await firebaseSignOut(auth);
         setIsLoading(false);
         return false;
+      }
+
+      console.log('✅ Login successful');
+      setCurrentUser(result.user);
+      
+      // Firebase Authにもサインイン（Firestoreアクセス用）
+      if (result.customToken) {
+        const { getFirebaseAuth } = await import('@/lib/firebase/client');
+        const { signInWithCustomToken } = await import('firebase/auth');
+        const auth = getFirebaseAuth();
+        if (auth) {
+          try {
+            await signInWithCustomToken(auth, result.customToken);
+            console.log('✅ Firebase Auth synced');
+          } catch (error) {
+            console.warn('⚠️ Could not sync Firebase Auth:', error);
+          }
+        }
       }
       
       toast({ 
@@ -222,38 +118,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: 'Nukuneへようこそ！' 
       });
       
+      // ホームページにリダイレクト
+      router.push('/');
+      
       setIsLoading(false);
       return true;
       
     } catch (error: any) {
-      console.error('❌ Login error:', {
-        code: error.code,
-        message: error.message,
-        fullError: error
-      });
-      
-      // エラーメッセージ
-      let description = 'ログインに失敗しました。';
-      
-      if (error.code === 'auth/network-request-failed') {
-        if (isLine) {
-          description = 'LINEブラウザでは認証に制限があります。Safari、Chrome等の標準ブラウザをご利用ください。';
-        } else {
-          description = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
-        }
-      } else if (error.code === 'auth/invalid-credential' || 
-                 error.code === 'auth/user-not-found' || 
-                 error.code === 'auth/wrong-password') {
-        description = 'メールアドレスまたはパスワードが正しくありません。';
-      } else if (error.code === 'auth/too-many-requests') {
-        description = 'ログイン試行回数が多すぎます。しばらくしてから再度お試しください。';
-      } else if (error.code === 'auth/internal-error') {
-        description = 'サーバーエラーが発生しました。しばらくしてから再度お試しください。';
-      }
+      console.error('❌ Login error:', error);
       
       toast({ 
         title: 'ログインエラー', 
-        description, 
+        description: 'ネットワークエラーが発生しました。インターネット接続を確認してください。', 
         variant: 'destructive' 
       });
       
@@ -262,86 +138,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // リダイレクトログイン（互換性のため残す）
+  const loginWithRedirect = async (data: AuthFormData): Promise<void> => {
+    // 通常のログインを使用
+    await login(data);
+  };
+
   // サインアップ
   const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }): Promise<boolean> => {
     console.log('📝 Signup attempt for:', data.email);
     
     try {
-      const auth = getFirebaseAuth();
-      const db = getFirebaseDb();
-      
-      if (!auth || !db) {
-        console.error('❌ Auth or DB not available');
-        toast({ 
-          title: '登録エラー', 
-          description: 'システムエラーが発生しました。', 
-          variant: 'destructive' 
-        });
-        return false;
-      }
-      
       setIsLoading(true);
       
-      // アカウント作成
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      
-      console.log('✅ Account created');
-      
-      // メール確認送信
-      try {
-        await sendEmailVerification(userCredential.user);
-        console.log('📧 Verification email sent');
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Signup failed:', result.error);
         toast({ 
-          title: '確認メールを送信しました', 
-          description: 'メールアドレスに確認メールを送信しました。' 
+          title: '登録エラー', 
+          description: result.error || '登録に失敗しました', 
+          variant: 'destructive' 
         });
-      } catch (verificationError) {
-        console.error('❌ Verification email failed:', verificationError);
+        setIsLoading(false);
+        return false;
       }
-      
-      // Firestoreに保存
-      const firestoreResult = await addUserToFirestore(
-        userCredential.user.uid, 
-        data.username, 
-        data.email, 
-        data.birthDate, 
-        data.gender
-      );
-      
-      if (!firestoreResult.success) {
-        console.error('❌ Firestore save failed');
-      }
+
+      console.log('✅ Signup successful');
       
       toast({ 
         title: '登録完了！', 
         description: 'メールアドレスの確認後、ログインできるようになります。' 
       });
       
-      await firebaseSignOut(auth);
+      // ログインページにリダイレクト
+      router.push('/login');
+      
       setIsLoading(false);
       return true;
       
     } catch (error: any) {
       console.error('❌ Signup error:', error);
       
-      let description = '登録に失敗しました。';
-      
-      if (error.code === 'auth/email-already-in-use') {
-        description = 'このメールアドレスは既に使用されています。';
-      } else if (error.code === 'auth/weak-password') {
-        description = 'パスワードは6文字以上で設定してください。';
-      } else if (error.code === 'auth/network-request-failed') {
-        const isLine = isLineApp();
-        if (isLine) {
-          description = 'LINEブラウザでは登録に制限があります。Safari、Chrome等の標準ブラウザをご利用ください。';
-        } else {
-          description = 'ネットワークエラーが発生しました。';
-        }
-      }
-      
       toast({ 
         title: '登録エラー', 
-        description, 
+        description: 'ネットワークエラーが発生しました。', 
         variant: 'destructive' 
       });
       
@@ -355,20 +205,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('🚪 Logout attempt');
     
     try {
-      const auth = getFirebaseAuth();
+      setIsLoading(true);
       
-      if (!auth) {
-        console.error('❌ Auth not available');
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Logout failed:', result.error);
+        toast({ 
+          title: 'ログアウトエラー', 
+          description: result.error || 'ログアウトに失敗しました', 
+          variant: 'destructive' 
+        });
+        setIsLoading(false);
         return false;
       }
-      
-      setIsLoading(true);
+
+      console.log('✅ Logout successful');
       setCurrentUser(null);
       
-      await firebaseSignOut(auth);
+      // Firebase Authからもサインアウト
+      const { getFirebaseAuth } = await import('@/lib/firebase/client');
+      const { signOut } = await import('firebase/auth');
+      const auth = getFirebaseAuth();
+      if (auth) {
+        try {
+          await signOut(auth);
+          console.log('✅ Firebase Auth signed out');
+        } catch (error) {
+          console.warn('⚠️ Could not sign out from Firebase Auth:', error);
+        }
+      }
       
-      console.log('✅ Logout successful');
       toast({ title: 'ログアウトしました' });
+      
+      // ログインページにリダイレクト
+      router.push('/login');
       
       setIsLoading(false);
       return true;
