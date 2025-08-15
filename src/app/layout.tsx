@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LineRedirectWrapper } from '@/components/LineRedirectWrapper';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -37,15 +38,17 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
-              <Header />
-              <LayoutWrapper>
-                <main>
-                  <PageWrapper>
-                    {children}
-                  </PageWrapper>
-                </main>
-              </LayoutWrapper>
-              <Toaster />
+              <LineRedirectWrapper>
+                <Header />
+                <LayoutWrapper>
+                  <main>
+                    <PageWrapper>
+                      {children}
+                    </PageWrapper>
+                  </main>
+                </LayoutWrapper>
+                <Toaster />
+              </LineRedirectWrapper>
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>

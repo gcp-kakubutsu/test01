@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth, browserLocalPersistence, browserSessionPersistence, setPersistence } from 'firebase/auth';
-import { getFirestore, type Firestore, enableNetwork, disableNetwork } from 'firebase/firestore';
+import { getAuth, type Auth, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, setPersistence, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, type Firestore, enableNetwork, disableNetwork, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
 
@@ -60,21 +60,42 @@ if (
       app = initializeApp(firebaseConfig);
       authInstance = getAuth(app);
       
-      // LINE browser compatibility: Use session persistence instead of local
+      // LINE browser compatibility: Handle persistence carefully
       if (typeof window !== 'undefined') {
         const ua = window.navigator.userAgent.toLowerCase();
-        if (ua.includes('line')) {
-          console.log('LINE browser detected, using session persistence');
-          // Use session persistence for LINE browser to avoid cookie/storage issues
-          setPersistence(authInstance, browserSessionPersistence).catch(e => {
-            console.warn('Failed to set session persistence:', e);
-            // Fallback to local persistence if session storage fails
-            if (authInstance) {
-              setPersistence(authInstance, browserLocalPersistence).catch(e2 => {
-                console.warn('Failed to set local persistence:', e2);
-              });
+        const isLine = ua.includes('line');
+        
+        if (isLine) {
+          console.log('LINE browser detected, configuring special handling');
+          
+          // Try different persistence strategies for LINE browser
+          const setPersistenceWithFallback = async () => {
+            if (!authInstance) return;
+            
+            try {
+              // First try: in-memory persistence (most compatible)
+              await setPersistence(authInstance, inMemoryPersistence);
+              console.log('Using in-memory persistence for LINE browser');
+            } catch (e1) {
+              console.warn('Failed to set in-memory persistence:', e1);
+              try {
+                // Second try: session persistence
+                await setPersistence(authInstance, browserSessionPersistence);
+                console.log('Using session persistence for LINE browser');
+              } catch (e2) {
+                console.warn('Failed to set session persistence:', e2);
+                try {
+                  // Last resort: local persistence
+                  await setPersistence(authInstance, browserLocalPersistence);
+                  console.log('Using local persistence for LINE browser');
+                } catch (e3) {
+                  console.error('All persistence methods failed for LINE browser:', e3);
+                }
+              }
             }
-          });
+          };
+          
+          setPersistenceWithFallback();
         } else {
           // Use local persistence for standard browsers
           setPersistence(authInstance, browserLocalPersistence).catch(e => {

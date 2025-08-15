@@ -9,6 +9,7 @@ import type { AuthFormData } from '@/app/login/page';
 import { addUserToFirestore } from '@/app/auth/actions';
 import { useToast } from '@/hooks/use-toast';
 import { isLineApp, isLocalStorageAvailable } from '@/lib/utils/browser';
+import { lineCompatibleSignIn, lineCompatibleSignUp, initializeLineAuth } from '@/lib/firebase/line-auth-helper';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -34,21 +36,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isLine = isLineApp();
     const hasLocalStorage = isLocalStorageAvailable();
     
+    // Initialize LINE-specific auth settings
+    if (isLine) {
+      initializeLineAuth();
+    }
+    
     if (isLine) {
       console.log('LINE browser detected, applying compatibility fixes');
-      // LINE browser may have issues with certain Firebase features
-      // Apply workarounds if needed
+      
+      // LINE browser specific fixes
+      // 1. Disable offline persistence if enabled
+      // 2. Use simpler auth flow
+      // 3. Add retry logic for network errors
+      
+      // Force reload auth state after delay for LINE browser
+      setTimeout(() => {
+        if (auth && !currentUser && isLoading) {
+          console.log('Forcing auth state check for LINE browser');
+          auth.currentUser?.reload().catch(err => {
+            console.warn('Failed to reload auth state:', err);
+          });
+        }
+      }, 2000);
     }
     
     if (!hasLocalStorage) {
-      console.warn('localStorage is not available, some features may not work');
+      console.warn('localStorage is not available, using fallback auth methods');
     }
 
-    // Set a timeout to force loading to false after 5 seconds
+    // Set a timeout to force loading to false
     const timeout = setTimeout(() => {
       console.log('Auth loading timeout reached, forcing loading to false');
       setIsLoading(false);
-    }, isLine ? 3000 : 5000); // 3 seconds for LINE, 5 seconds for others
+      setIsInitialized(true);
+      
+      // For LINE browser, show specific message if still loading
+      if (isLine && !currentUser) {
+        console.warn('LINE browser auth timeout - user may need to retry login');
+      }
+    }, isLine ? 2000 : 5000); // 2 seconds for LINE, 5 seconds for others
     
     setLoadingTimeout(timeout);
 
@@ -70,9 +96,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (auth) {
+      // For LINE browser, add additional auth state handling
+      if (isLine) {
+        // Check current user immediately for LINE browser
+        const currentAuthUser = auth.currentUser;
+        if (currentAuthUser) {
+          console.log('Found existing auth user in LINE browser');
+          setCurrentUser(currentAuthUser);
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+      }
+      
       unsubscribe = onAuthStateChanged(auth, (user) => {
+        console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
         setCurrentUser(user);
         setIsLoading(false);
+        setIsInitialized(true);
         // Clear timeout when auth state is determined
         if (loadingTimeout) {
           clearTimeout(loadingTimeout);
@@ -88,24 +128,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error.message.includes('503') ||
             error.message.includes('Service Unavailable')) {
           console.warn('一時的なネットワークエラーが発生しました。ユーザー状態を保持します。');
+          
+          // LINE browser specific handling
+          if (isLine) {
+            console.log('Retrying auth for LINE browser after network error');
+            setTimeout(() => {
+              if (auth) {
+                auth.currentUser?.reload().catch(e => console.warn('Retry failed:', e));
+              }
+            }, 1000);
+          }
+          
           // ユーザー状態を変更せずにローディングだけ終了
           setIsLoading(false);
+          setIsInitialized(true);
           return;
         }
         
         // その他のエラーの場合は通常通り処理
         setCurrentUser(null);
         setIsLoading(false);
-        toast({
-          title: "認証エラー",
-          description: "認証状態の確認中にエラーが発生しました。再度ログインしてください。",
-          variant: "destructive",
-        });
+        setIsInitialized(true);
+        
+        // Don't show error toast on LINE browser for initial load
+        if (!isLine || isInitialized) {
+          toast({
+            title: "認証エラー",
+            description: "認証状態の確認中にエラーが発生しました。再度ログインしてください。",
+            variant: "destructive",
+          });
+        }
       });
     } else {
       console.warn("AuthContext: Firebase Auth が初期化されていませんが、firebaseInitErrorは設定されていませんでした。認証機能は動作しません。");
       setCurrentUser(null);
       setIsLoading(false);
+      setIsInitialized(true);
       // Only show toast in development or if not in LINE browser
       if (process.env.NODE_ENV === 'development' && !isLine) {
         toast({
@@ -135,8 +193,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
     setIsLoading(true);
+    
+    // LINE browser specific handling
+    const isLine = isLineApp();
+    
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      let userCredential;
+      
+      if (isLine) {
+        console.log('Using LINE-compatible login');
+        // Use LINE-compatible login with retry logic
+        const user = await lineCompatibleSignIn(data.email, data.password);
+        if (user) {
+          userCredential = { user };
+        } else {
+          throw new Error('Login failed');
+        }
+      } else {
+        // Standard login for non-LINE browsers
+        userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      }
       if (userCredential.user) {
         // メールアドレスが確認されていない場合はログインを拒否
         if (!userCredential.user.emailVerified) {
@@ -193,8 +269,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
     setIsLoading(true);
+    
+    const isLine = isLineApp();
+    
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      let userCredential;
+      
+      if (isLine) {
+        console.log('Using LINE-compatible signup');
+        // Use LINE-compatible signup with retry logic
+        const user = await lineCompatibleSignUp(data.email, data.password);
+        if (user) {
+          userCredential = { user };
+        } else {
+          throw new Error('Signup failed');
+        }
+      } else {
+        // Standard signup for non-LINE browsers
+        userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      }
       if (userCredential.user) {
         // メール確認を送信
         try {
