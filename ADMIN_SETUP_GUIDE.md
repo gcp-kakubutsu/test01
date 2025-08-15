@@ -68,6 +68,12 @@ setAdminClaim('varuvaru10000@yahoo.co.jp');
 node scripts/set-admin.js
 ```
 
+プレミアムユーザー
+```bash
+node scripts/makePremiumUser.js
+```
+
+
 #### 方法2: Cloud Function経由（既存の管理者が必要）
 
 既に管理者権限を持つユーザーがいる場合、Cloud Function経由で他のユーザーに権限を付与：
