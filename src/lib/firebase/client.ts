@@ -65,8 +65,20 @@ if (
         const ua = window.navigator.userAgent.toLowerCase();
         if (ua.includes('line')) {
           console.log('LINE browser detected, using session persistence');
+          // Use session persistence for LINE browser to avoid cookie/storage issues
           setPersistence(authInstance, browserSessionPersistence).catch(e => {
             console.warn('Failed to set session persistence:', e);
+            // Fallback to local persistence if session storage fails
+            if (authInstance) {
+              setPersistence(authInstance, browserLocalPersistence).catch(e2 => {
+                console.warn('Failed to set local persistence:', e2);
+              });
+            }
+          });
+        } else {
+          // Use local persistence for standard browsers
+          setPersistence(authInstance, browserLocalPersistence).catch(e => {
+            console.warn('Failed to set local persistence:', e);
           });
         }
       }
