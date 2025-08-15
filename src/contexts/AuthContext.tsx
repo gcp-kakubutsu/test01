@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/client';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase/client';
 import type { AuthFormData } from '@/app/login/page';
 import { addUserToFirestore } from '@/app/auth/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -22,46 +22,70 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Quick check for auth availability
-    if (!auth) {
-      console.log('Auth not initialized');
-      setIsLoading(false);
-      return;
-    }
+    let unsubscribe: (() => void) | undefined;
+    
+    // 非同期で認証を初期化
+    const initAuth = async () => {
+      try {
+        const auth = getFirebaseAuth();
+        
+        if (!auth) {
+          console.log('Firebase Auth not available');
+          setIsLoading(false);
+          return;
+        }
 
-    // Setup auth state listener
-    const unsubscribe = onAuthStateChanged(auth, 
-      (user) => {
-        setCurrentUser(user);
+        // 認証状態のリスナーを設定
+        unsubscribe = onAuthStateChanged(auth, 
+          (user) => {
+            console.log('Auth state updated:', user ? 'User logged in' : 'No user');
+            setCurrentUser(user);
+            setIsLoading(false);
+            setAuthInitialized(true);
+          },
+          (error) => {
+            console.error('Auth state error:', error);
+            setCurrentUser(null);
+            setIsLoading(false);
+            setAuthInitialized(true);
+          }
+        );
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
         setIsLoading(false);
-      },
-      (error) => {
-        console.error('Auth state error:', error);
-        setCurrentUser(null);
-        setIsLoading(false);
+        setAuthInitialized(true);
       }
-    );
+    };
 
-    // Fallback timeout
+    // 初期化を実行
+    initAuth();
+
+    // タイムアウト設定（3秒）
     const timeout = setTimeout(() => {
-      if (isLoading) {
-        console.log('Auth check timeout');
+      if (!authInitialized) {
+        console.log('Auth initialization timeout');
         setIsLoading(false);
+        setAuthInitialized(true);
       }
-    }, 2000);
+    }, 3000);
 
     return () => {
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
       clearTimeout(timeout);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (data: AuthFormData): Promise<boolean> => {
+    const auth = getFirebaseAuth();
+    
     if (!auth) {
-      toast({ title: 'ログインエラー', description: '認証サービスが利用できません。', variant: 'destructive' });
+      toast({ title: 'ログインエラー', description: '認証サービスが一時的に利用できません。', variant: 'destructive' });
       return false;
     }
     
@@ -76,32 +100,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: 'メールアドレス未確認', 
             description: 'メールアドレスの確認が完了していません。確認メールが見つからない場合は、ログイン画面の「パスワードをお忘れですか？」から再送信できます。', 
             variant: 'destructive',
-            duration: 10000 // 10秒間表示
+            duration: 10000
           });
           await firebaseSignOut(auth);
           setIsLoading(false);
           return false;
         }
         toast({ title: 'ログインしました', description: 'Nukuneへようこそ！' });
+        setIsLoading(false);
         return true;
       }
+      setIsLoading(false);
       return false;
     } catch (error: any) {
-      let description = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。';
+      console.error('Login error:', error);
       
-      if (error.code === 'auth/invalid-credential') {
-        description = 'メールアドレスまたはパスワードが正しくありません。';
-      } else if (error.code === 'auth/user-not-found') {
-        description = 'このメールアドレスは登録されていません。';
-      } else if (error.code === 'auth/wrong-password') {
-        description = 'パスワードが正しくありません。';
-      } else if (error.code === 'auth/invalid-email') {
-        description = 'メールアドレスの形式が正しくありません。';
-      } else if (error.code === 'auth/user-disabled') {
-        description = 'このアカウントは無効になっています。';
-      } else if (error.code === 'auth/too-many-requests') {
-        description = 'ログイン試行回数が多すぎます。しばらくしてから再度お試しください。';
-      }
+      let description = 'ログインに失敗しました。';
+      
+      // エラーメッセージのマッピング
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-credential': 'メールアドレスまたはパスワードが正しくありません。',
+        'auth/user-not-found': 'このメールアドレスは登録されていません。',
+        'auth/wrong-password': 'パスワードが正しくありません。',
+        'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
+        'auth/user-disabled': 'このアカウントは無効になっています。',
+        'auth/too-many-requests': 'ログイン試行回数が多すぎます。しばらくしてから再度お試しください。',
+        'auth/network-request-failed': 'ネットワークエラーが発生しました。接続を確認してください。',
+      };
+      
+      description = errorMessages[error.code] || description;
       
       toast({ title: 'ログインエラー', description, variant: 'destructive' });
       setIsLoading(false);
@@ -110,8 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (data: AuthFormData & { username: string; birthDate?: string; gender?: string }): Promise<boolean> => {
+    const auth = getFirebaseAuth();
+    const db = getFirebaseDb();
+    
     if (!auth || !db) {
-      toast({ title: '登録エラー', description: '認証サービスが利用できません。', variant: 'destructive' });
+      toast({ title: '登録エラー', description: '認証サービスが一時的に利用できません。', variant: 'destructive' });
       return false;
     }
     
@@ -136,26 +166,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
         
-        const firestoreResult = await addUserToFirestore(userCredential.user.uid, data.username, data.email, data.birthDate, data.gender);
+        // Firestoreにユーザー情報を保存
+        const firestoreResult = await addUserToFirestore(
+          userCredential.user.uid, 
+          data.username, 
+          data.email, 
+          data.birthDate, 
+          data.gender
+        );
+        
         if (!firestoreResult.success) {
-            console.error("Firestoreへのユーザー追加に失敗:", firestoreResult.error);
-            toast({ title: '登録処理エラー', description: `アカウントは作成されましたが、プロフィール情報の保存に失敗しました: ${firestoreResult.error}`, variant: 'destructive' });
+          console.error("Firestoreへのユーザー追加に失敗:", firestoreResult.error);
+          toast({ 
+            title: '登録処理エラー', 
+            description: 'プロフィール情報の保存に失敗しました。', 
+            variant: 'destructive' 
+          });
         } else {
-            toast({ title: '登録完了！', description: 'メールアドレスの確認後、ログインできるようになります。' });
+          toast({ 
+            title: '登録完了！', 
+            description: 'メールアドレスの確認後、ログインできるようになります。' 
+          });
         }
         
-        // サインアップ後は自動的にログアウト（メール確認が必要なため）
+        // サインアップ後は自動的にログアウト
         await firebaseSignOut(auth);
+        setIsLoading(false);
         return true;
       }
+      setIsLoading(false);
       return false;
     } catch (error: any) {
+      console.error('Signup error:', error);
+      
       let description = '登録に失敗しました。';
-      if (error.code === 'auth/email-already-in-use') {
-        description = 'このメールアドレスは既に使用されています。';
-      } else if (error.code === 'auth/weak-password') {
-        description = 'パスワードは6文字以上で設定してください。';
-      }
+      
+      const errorMessages: Record<string, string> = {
+        'auth/email-already-in-use': 'このメールアドレスは既に使用されています。',
+        'auth/weak-password': 'パスワードは6文字以上で設定してください。',
+        'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
+        'auth/operation-not-allowed': 'メール/パスワード認証が無効になっています。',
+        'auth/network-request-failed': 'ネットワークエラーが発生しました。接続を確認してください。',
+      };
+      
+      description = errorMessages[error.code] || description;
+      
       toast({ title: '登録エラー', description, variant: 'destructive' });
       setIsLoading(false);
       return false;
@@ -163,27 +218,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (): Promise<boolean> => {
+    const auth = getFirebaseAuth();
+    
     if (!auth) {
-      toast({ title: 'ログアウトエラー', description: '認証サービスが利用できません。', variant: 'destructive' });
+      toast({ title: 'ログアウトエラー', description: '認証サービスが一時的に利用できません。', variant: 'destructive' });
       return false;
     }
     
     setIsLoading(true);
+    
     try {
-      // Clear user state immediately
+      // ユーザー状態をクリア
       setCurrentUser(null);
       
-      // Small delay to ensure cleanup
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Sign out from Firebase
+      // Firebaseからログアウト
       await firebaseSignOut(auth);
       
       toast({ title: 'ログアウトしました' });
       setIsLoading(false);
       return true;
     } catch (error: any) {
-      toast({ title: 'ログアウトエラー', description: error.message || 'ログアウトに失敗しました。', variant: 'destructive' });
+      console.error('Logout error:', error);
+      toast({ 
+        title: 'ログアウトエラー', 
+        description: 'ログアウトに失敗しました。', 
+        variant: 'destructive' 
+      });
       setIsLoading(false);
       return false;
     }
