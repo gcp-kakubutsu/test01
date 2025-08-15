@@ -132,10 +132,10 @@ async function restoreAuthFromSession() {
 
     if (response.ok) {
       const data = await response.json();
-      if (data.customToken && auth) {
-        // カスタムトークンでFirebase Authにサインイン
-        await signInWithCustomToken(auth, data.customToken);
-        console.log('✅ Auth state restored from session');
+      if (data.customToken) {
+        // IDトークンを使用して認証
+        const { signInWithIdToken } = await import('./auth-helper');
+        await signInWithIdToken(data.customToken);
       }
     }
   } catch (error) {

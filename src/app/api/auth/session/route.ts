@@ -14,73 +14,47 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // まずIDトークンとして高速デコード
     try {
-      const auth = getAdminAuth();
-      
-      // セッションクッキーを検証
-      const decodedClaims = await auth.verifySessionCookie(sessionCookie.value, true);
-
-      // ユーザー情報を取得
-      try {
-        const user = await auth.getUser(decodedClaims.uid);
-        
-        return NextResponse.json({
-          authenticated: true,
-          user: {
-            uid: user.uid,
-            email: user.email,
-            emailVerified: user.emailVerified,
-            displayName: user.displayName,
-          },
-        });
-      } catch (getUserError) {
-        console.warn('Could not get user record:', getUserError);
-        // getUserが失敗しても基本情報を返す
-        return NextResponse.json({
-          authenticated: true,
-          user: {
-            uid: decodedClaims.uid,
-            email: decodedClaims.email,
-            emailVerified: decodedClaims.email_verified || false,
-            displayName: null,
-          },
-        });
+      const parts = sessionCookie.value.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid token format');
       }
-    } catch (error) {
-      console.warn('Session verification with Admin SDK failed, trying to decode token directly:', error);
-      
-      // Admin SDKが利用できない場合、IDトークンとして扱う
-      try {
-        // IDトークンをデコード（簡易的な検証）
-        const payload = JSON.parse(
-          Buffer.from(sessionCookie.value.split('.')[1], 'base64').toString()
-        );
-        
-        // 有効期限チェック
-        if (payload.exp && payload.exp * 1000 < Date.now()) {
-          throw new Error('Token expired');
-        }
-        
-        return NextResponse.json({
-          authenticated: true,
-          user: {
-            uid: payload.sub || payload.user_id,
-            email: payload.email,
-            emailVerified: payload.email_verified || false,
-            displayName: payload.name || null,
-          },
-        });
-      } catch (decodeError) {
-        console.error('Failed to decode session token:', decodeError);
-        
-        // セッションが無効な場合はクッキーを削除
-        cookieStore.delete('session');
 
+      const payload = JSON.parse(
+        Buffer.from(parts[1], 'base64').toString()
+      );
+      
+      // 有効期限チェック
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        // トークンが期限切れ
+        cookieStore.delete('session');
         return NextResponse.json({
           authenticated: false,
           user: null,
         });
       }
+      
+      // 即座にユーザー情報を返す（Admin SDK検証をスキップして高速化）
+      return NextResponse.json({
+        authenticated: true,
+        user: {
+          uid: payload.sub || payload.user_id || payload.localId,
+          email: payload.email,
+          emailVerified: payload.email_verified || payload.emailVerified || false,
+          displayName: payload.name || null,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to decode session token:', error);
+      
+      // セッションが無効な場合はクッキーを削除
+      cookieStore.delete('session');
+
+      return NextResponse.json({
+        authenticated: false,
+        user: null,
+      });
     }
 
   } catch (error: any) {

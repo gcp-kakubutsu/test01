@@ -1,7 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase/client';
+import { getFirebaseDb } from '@/lib/firebase/client';
 import { doc, getDoc } from 'firebase/firestore';
+import { getStoredUserId, waitForAuth } from '@/lib/firebase/auth-helper';
 import { handleFirebaseError, isPermissionError } from '@/lib/firebase/error-handler';
 
 interface SubscriptionData {
@@ -30,21 +31,27 @@ export function useSubscription() {
 
     const fetchSubscription = async () => {
       try {
+        const db = getFirebaseDb();
+        
         // Check if component is still mounted and db is initialized
         if (!isMounted || !db) {
           console.log('Component unmounted or Firestore not initialized');
           return;
         }
         
-        // Check if currentUser still exists before making Firestore call
-        if (!currentUser?.uid) {
-          console.log('User logged out, skipping Firestore call');
+        // Firebase Authの認証状態を待つ（最大と2秒）
+        await waitForAuth(2000);
+        
+        // ストレージからユーザーIDを取得
+        const userId = currentUser?.uid || getStoredUserId();
+        if (!userId) {
+          console.log('No user ID available');
           setSubscription({ isPremium: false, subscriptionStatus: 'none' });
           setLoading(false);
           return;
         }
         
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const userDoc = await getDoc(doc(db, 'users', userId));
         
         // Check if component is still mounted after async operation
         if (!isMounted) {

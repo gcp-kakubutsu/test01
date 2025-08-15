@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Firebase AuthのREST APIを使用してユーザー認証
+    // Firebase AuthのREST APIを使用してユーザー認証（高速）
     const response = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
       {
@@ -48,68 +47,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Admin SDKが利用可能か確認
-    let sessionCookie = data.idToken; // デフォルトはIDトークンを使用
-    let customToken = data.idToken;
-    let emailVerified = data.emailVerified || false;
-    let uid = data.localId;
-    
-    try {
-      // Firebase Admin SDKでIDトークンを検証
-      const auth = getAdminAuth();
-      const decodedToken = await auth.verifyIdToken(data.idToken);
-      uid = decodedToken.uid;
-      
-      // メール確認チェック
-      try {
-        const userRecord = await auth.getUser(decodedToken.uid);
-        emailVerified = userRecord.emailVerified;
-        
-        if (!emailVerified) {
-          // 開発環境では警告のみ
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('⚠️ Email not verified for user:', userRecord.email);
-          } else {
-            return NextResponse.json(
-              { error: 'メールアドレスの確認が完了していません' },
-              { status: 403 }
-            );
-          }
-        }
-      } catch (getUserError) {
-        console.warn('Could not get user record:', getUserError);
-        // getUserが失敗しても続行
-      }
-      
-      // カスタムセッショントークンを作成
-      try {
-        sessionCookie = await auth.createSessionCookie(data.idToken, {
-          expiresIn: 60 * 60 * 24 * 1000, // 24時間
-        });
-      } catch (sessionError) {
-        console.warn('Could not create session cookie:', sessionError);
-        // セッションクッキー作成に失敗しても、IDトークンを使用
-      }
-      
-      // カスタムトークンを生成
-      try {
-        customToken = await auth.createCustomToken(uid);
-      } catch (customTokenError) {
-        console.warn('Could not create custom token:', customTokenError);
-        // カスタムトークン作成に失敗しても、IDトークンを使用
-      }
-    } catch (error) {
-      console.warn('Admin SDK not available, using ID token directly:', error);
-      // Admin SDKが利用できない場合は、IDトークンを直接使用
+    // メール確認チェック（開発環境ではスキップ）
+    if (process.env.NODE_ENV === 'production' && !data.emailVerified) {
+      // 本番環境のみメール確認を必須にする
+      return NextResponse.json(
+        { error: 'メールアドレスの確認が完了していません' },
+        { status: 403 }
+      );
     }
 
-    // クッキーに保存
+    // IDトークンを直接セッションクッキーとして保存（高速化）
     const cookieStore = await cookies();
-    cookieStore.set('session', sessionCookie, {
+    cookieStore.set('session', data.idToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24時間
+      maxAge: parseInt(data.expiresIn) || 3600, // expiresInの値を使用（デフォルト1時間）
       path: '/',
     });
 
@@ -117,11 +70,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        uid: uid,
+        uid: data.localId,
         email: data.email,
-        emailVerified: emailVerified,
+        emailVerified: data.emailVerified || false,
       },
-      customToken,
+      customToken: data.idToken, // Firebase Authで直接使用
     });
 
   } catch (error: any) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,28 +13,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    try {
-      const auth = getAdminAuth();
-      
-      // セッションクッキーを検証
-      const decodedClaims = await auth.verifySessionCookie(sessionCookie.value, true);
-
-      // カスタムトークンを生成（Firestore認証用）
-      const customToken = await auth.createCustomToken(decodedClaims.uid);
-
-      return NextResponse.json({
-        authenticated: true,
-        customToken,
-      });
-    } catch (error) {
-      console.warn('Token generation with Admin SDK failed, using session cookie as token:', error);
-      
-      // Admin SDKが利用できない場合、セッションクッキーをそのまま返す
-      return NextResponse.json({
-        authenticated: true,
-        customToken: sessionCookie.value, // IDトークンとして使用
-      });
-    }
+    // セッションクッキー（IDトークン）をそのまま返す（高速化）
+    // Firebase Authはこのトークンを直接使用可能
+    return NextResponse.json({
+      authenticated: true,
+      customToken: sessionCookie.value,
+    });
 
   } catch (error: any) {
     console.error('Token API error:', error);
