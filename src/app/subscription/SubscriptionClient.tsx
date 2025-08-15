@@ -125,6 +125,7 @@ export default function SubscriptionClient() {
       // URLパラメータがない場合はselectedPlanの初期値（6month）を使用
       updatePlanConfig(selectedPlan);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初回マウント時のみ実行
 
   const updatePlanConfig = (plan: string) => {

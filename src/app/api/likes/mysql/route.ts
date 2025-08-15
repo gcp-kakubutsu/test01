@@ -72,6 +72,9 @@ export async function POST(request: NextRequest) {
     console.log('Checking existing likes for:', { fromUserId, mysqlGirlId });
     
     try {
+      if (!db) {
+        throw new Error('Firestore database not initialized');
+      }
       const likesRef = collection(db, 'likes');
       const q = firestoreQuery(
         likesRef,
@@ -146,6 +149,9 @@ export async function GET(request: NextRequest) {
 
     // Check if like exists
     const mysqlGirlId = `mysql_girl_${girlId}`;
+    if (!db) {
+      throw new Error('Firestore database not initialized');
+    }
     const likesRef = collection(db, 'likes');
     const q = firestoreQuery(
       likesRef,

@@ -296,8 +296,10 @@ function parseInterests(hobby: string): string[] {
   return interests.length > 0 ? interests : ['カフェ巡り', '映画鑑賞'];
 }
 
-export default {
+const girlsOptimized = {
   fetchOptimizedGirls,
   prefetchNextPage,
   batchFetchGirls
 };
+
+export default girlsOptimized;

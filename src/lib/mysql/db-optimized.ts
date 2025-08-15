@@ -192,14 +192,15 @@ export function getPerformanceMetrics() {
 // Optimized query with streaming for large datasets
 export async function streamQuery<T = any>(
   sql: string,
-  params?: any[],
+  params: any[] = [],
   onRow: (row: T) => void
 ): Promise<void> {
   const db = await getOptimizedDb();
   const connection = await db.getConnection();
   
   try {
-    const stream = connection.query(sql, params).stream();
+    const query = connection.query(sql, params);
+    const stream = (query as any).stream();
     
     await new Promise((resolve, reject) => {
       stream.on('data', (row: T) => onRow(row));
@@ -211,10 +212,12 @@ export async function streamQuery<T = any>(
   }
 }
 
-export default {
+const dbOptimized = {
   cachedQuery,
   batchQueries,
   getPerformanceMetrics,
   clearCache,
   streamQuery
 };
+
+export default dbOptimized;

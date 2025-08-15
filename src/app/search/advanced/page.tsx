@@ -508,7 +508,7 @@ function AdvancedSearchContent() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam])
+  }, [currentPage, LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
 
   // データ取得のタイミングを制御
   useEffect(() => {
@@ -524,7 +524,7 @@ function AdvancedSearchContent() {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [currentPage, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad])
+  }, [currentPage, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*

@@ -104,7 +104,8 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 // Prefetch popular queries on server start
-export async function warmUp() {
+// Warm-up function for cache priming (not exported to avoid Next.js type issues)
+async function warmUp() {
   const popularQueries = [
     { limit: 200, offset: 0, area: null },
     { limit: 200, offset: 0, area: '東京都' },

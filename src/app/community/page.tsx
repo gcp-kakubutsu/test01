@@ -161,6 +161,7 @@ export default function CommunityPage() {
           return;
         }
         
+        if (!db) throw new Error('Firestore not initialized');
         const communitiesRef = collection(db, 'communities');
         const communitiesQuery = query(communitiesRef, orderBy('memberCount', 'desc'));
         
@@ -241,6 +242,7 @@ export default function CommunityPage() {
         unsubscribe();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, currentUser?.uid, toast, isPremium]);
 
   // Fetch posts (Premium only) - either for selected community or global
@@ -261,6 +263,7 @@ export default function CommunityPage() {
           return;
         }
         
+        if (!db) throw new Error('Firestore not initialized');
         const postsRef = collection(db, 'posts');
         
         // Try with compound query first, fall back to simple query if index not available
@@ -314,6 +317,7 @@ export default function CommunityPage() {
                 const data = doc.data();
                 
                 // Fetch comments for each post
+                if (!db) throw new Error('Firestore not initialized');
                 const commentsRef = collection(db, 'posts', doc.id, 'comments');
                 const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'), limit(10));
                 const commentsSnapshot = await getDocs(commentsQuery);
@@ -353,12 +357,12 @@ export default function CommunityPage() {
               // Try simple query without ordering
               const simpleQuery = selectedCommunity 
                 ? query(
-                    collection(db, 'posts'),
+                    collection(db!, 'posts'),
                     where('communityId', '==', selectedCommunity),
                     limit(50)
                   )
                 : query(
-                    collection(db, 'posts'),
+                    collection(db!, 'posts'),
                     where('communityId', '==', 'global'),
                     limit(50)
                   );
@@ -373,6 +377,7 @@ export default function CommunityPage() {
                       const data = doc.data();
                       
                       // Fetch comments for each post
+                      if (!db) throw new Error('Firestore not initialized');
                       const commentsRef = collection(db, 'posts', doc.id, 'comments');
                       const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'), limit(10));
                       const commentsSnapshot = await getDocs(commentsQuery);
@@ -457,6 +462,7 @@ export default function CommunityPage() {
         unsubscribe();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCommunity, currentUser?.uid, toast, isPremium]);
 
   const handleJoinCommunity = async (communityId: string) => {
@@ -1188,9 +1194,11 @@ export default function CommunityPage() {
                 <div className="relative w-full">
                   {imagePreview || newCommunityImage ? (
                     <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={imagePreview || newCommunityImage}
+                      <Image
+                        src={imagePreview || newCommunityImage || '/placeholder.jpg'}
                         alt="Community preview"
+                        width={500}
+                        height={300}
                         className="w-full h-auto"
                       />
                       <Button
@@ -1321,9 +1329,11 @@ export default function CommunityPage() {
               onClick={() => setSelectedCommunity(community.id)}
             >
               <div className="relative w-full bg-gray-100 rounded-t-lg overflow-hidden">
-                <img
-                  src={community.imageUrl}
+                <Image
+                  src={community.imageUrl || '/placeholder.jpg'}
                   alt={community.name}
+                  width={400}
+                  height={200}
                   className="w-full h-auto"
                 />
                 <Badge className="absolute top-2 right-2 bg-white/90 text-black z-10">

@@ -229,7 +229,7 @@ export default function GirlProfilePage() {
                 {girl.images.length > 0 ? (
                   <>
                     <Image
-                      src={girl.images[currentImageIndex].image_url || girl.images[currentImageIndex].real_image_url}
+                      src={girl.images[currentImageIndex].image_url || girl.images[currentImageIndex].real_image_url || '/placeholder.jpg'}
                       alt={`${girl.name} - Photo ${currentImageIndex + 1}`}
                       fill
                       className="object-cover"
@@ -297,7 +297,7 @@ export default function GirlProfilePage() {
                       }`}
                     >
                       <Image
-                        src={image.image_url || image.real_image_url || ''}
+                        src={image.image_url || image.real_image_url || '/placeholder.jpg'}
                         alt={`${girl.name} - Thumbnail ${index + 1}`}
                         fill
                         className="object-cover"

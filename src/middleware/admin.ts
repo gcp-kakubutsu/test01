@@ -37,5 +37,5 @@ export async function withAdminAuth(
   modifiedRequest.headers.set('x-admin-role', session.role)
   
   // Call the actual handler
-  return handler(modifiedRequest)
+  return handler(modifiedRequest as NextRequest)
 }

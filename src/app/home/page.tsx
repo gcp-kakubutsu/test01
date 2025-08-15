@@ -208,6 +208,7 @@ export default function HomePage() {
     if (userLocation && girlsFromDB.length > 0 && !loadingUsers && currentUser) {
       fetchGirlsFromMySQL();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
   // MySQLからの女の子データ取得（最適化版）
