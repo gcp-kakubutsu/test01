@@ -15,6 +15,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import AuthGuard from '@/components/AuthGuard';
 
 interface Match {
   id: string;
@@ -41,7 +42,7 @@ interface Like {
 }
 
 export default function MatchesPage() {
-  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { matches, loading: matchesLoading } = useMatches();
@@ -54,11 +55,6 @@ export default function MatchesPage() {
   const [processingLikes, setProcessingLikes] = useState<Set<string>>(new Set());
   const [likedBackUsers, setLikedBackUsers] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   // Load matches and likes
   useEffect(() => {
@@ -281,12 +277,15 @@ export default function MatchesPage() {
     loadMatchesAndLikes();
   }, [matches, matchesLoading, currentUser]);
 
-  if (authLoading || isLoadingData) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+  if (isLoadingData) {
+    return (
+      <AuthGuard>
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">読み込み中...</p>
+        </div>
+      </AuthGuard>
+    );
   }
 
   const formatDate = (date: Date) => {
@@ -545,7 +544,8 @@ export default function MatchesPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <AuthGuard>
+      <div className="max-w-2xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold text-center mb-6">マッチ</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -628,5 +628,6 @@ export default function MatchesPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </AuthGuard>
   );
 }

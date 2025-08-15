@@ -25,10 +25,11 @@ import Link from 'next/link';
 import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
+import AuthGuard from '@/components/AuthGuard';
 
 
 export default function ProfilePage() {
-  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
@@ -40,12 +41,6 @@ export default function ProfilePage() {
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
   const [malePreferences, setMalePreferences] = useState<MalePreferences | null>(null);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (profile) {
@@ -86,16 +81,25 @@ export default function ProfilePage() {
     }
   }, [currentUser, profile]);
 
-  if (authLoading || profileLoading) {
+  if (profileLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AuthGuard>
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">読み込み中...</p>
+        </div>
+      </AuthGuard>
     );
   }
 
-  if (!isAuthenticated || !profile) {
-    return null;
+  if (!profile) {
+    return (
+      <AuthGuard>
+        <div className="flex justify-center items-center h-screen">
+          <p>プロフィールを読み込み中...</p>
+        </div>
+      </AuthGuard>
+    );
   }
 
   const age = profile.birthDate ? calculateAge(profile.birthDate) : null;
@@ -438,5 +442,6 @@ export default function ProfilePage() {
         </Link>
       </div>
     </div>
+    </AuthGuard>
   );
 }

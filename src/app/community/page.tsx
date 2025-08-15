@@ -16,6 +16,7 @@ import {
 import { Users, MessageSquare, Heart, Plus, Search, TrendingUp, Loader2, Trash2, PlusCircle, Upload, Camera, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import AuthGuard from '@/components/AuthGuard';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment, deleteDoc, getDoc } from 'firebase/firestore';
@@ -93,7 +94,7 @@ const formatTimestamp = (timestamp: any): string => {
 };
 
 export default function CommunityPage() {
-  const { isAuthenticated, isLoading, currentUser } = useAuth();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -125,23 +126,18 @@ export default function CommunityPage() {
   // Check if current user is admin
   const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   // Check premium status
   useEffect(() => {
-    if (!subscriptionLoading && isAuthenticated && !isPremium) {
+    if (!subscriptionLoading && !isPremium) {
       // User is not premium, don't initialize or fetch community data
       console.log('Community is premium-only feature');
     }
-  }, [subscriptionLoading, isAuthenticated, isPremium]);
+  }, [subscriptionLoading, isPremium]);
 
   // Fetch communities from Firebase (Premium only)
   useEffect(() => {
-    if (!isAuthenticated || !currentUser || !isPremium) {
+    if (!currentUser || !isPremium) {
       setLoadingCommunities(false);
       setLoadingPosts(false);
       return;
@@ -243,7 +239,7 @@ export default function CommunityPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, currentUser?.uid, toast, isPremium]);
+  }, [currentUser?.uid, toast, isPremium]);
 
   // Fetch posts (Premium only) - either for selected community or global
   useEffect(() => {
@@ -1077,12 +1073,14 @@ export default function CommunityPage() {
     }
   };
 
-  if (isLoading || !isAuthenticated || subscriptionLoading) {
+  if (subscriptionLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">読み込み中...</p>
-      </div>
+      <AuthGuard>
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">読み込み中...</p>
+        </div>
+      </AuthGuard>
     );
   }
 
@@ -1090,19 +1088,22 @@ export default function CommunityPage() {
   if (!isPremium) {
     const communityMessage = getPremiumMessage('community');
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <PremiumOnlyCard 
-          title={communityMessage.title}
-          description={communityMessage.description}
-          buttonText={communityMessage.buttonText}
-          features={communityMessage.features}
-        />
-      </div>
+      <AuthGuard>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <PremiumOnlyCard 
+            title={communityMessage.title}
+            description={communityMessage.description}
+            buttonText={communityMessage.buttonText}
+            features={communityMessage.features}
+          />
+        </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-0">
+    <AuthGuard>
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl sm:text-2xl font-bold">コミュニティ</h1>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -1626,5 +1627,6 @@ export default function CommunityPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

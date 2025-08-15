@@ -16,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
+import AuthGuard from '@/components/AuthGuard';
 
 interface MemoDisplay {
   id: string;
@@ -27,25 +28,19 @@ interface MemoDisplay {
 }
 
 export default function MemosPage() {
-  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
   
   // Check premium status
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium && isAuthenticated) {
+    if (!subscriptionLoading && !isPremium) {
       // Not a premium member
     }
-  }, [subscriptionLoading, isPremium, isAuthenticated]);
+  }, [subscriptionLoading, isPremium]);
 
   // Convert memos to display format
   useEffect(() => {
@@ -65,20 +60,24 @@ export default function MemosPage() {
     setMemoDisplays(displays);
   }, [memos, memosLoading]);
 
-  if (authLoading || memosLoading || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
-  }
-
   const filteredMemos = memoDisplays.filter(memo =>
     memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  if (memosLoading || subscriptionLoading) {
+    return (
+      <AuthGuard>
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">読み込み中...</p>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   return (
+    <AuthGuard>
     <div className="max-w-3xl mx-auto py-8">
       <Card className="shadow-lg">
         <CardHeader>
@@ -154,5 +153,6 @@ export default function MemosPage() {
         </CardContent>
       </Card>
     </div>
+    </AuthGuard>
   );
 }
