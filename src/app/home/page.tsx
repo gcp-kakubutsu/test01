@@ -29,11 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-<<<<<<< HEAD
-  const { isAuthenticated, isLoading, currentUser } = useAuth();
-=======
   const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
->>>>>>> 202c062 (エラーとか出ないように色々する)
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -464,16 +460,6 @@ export default function HomePage() {
     }
   }
 
-<<<<<<< HEAD
-  if (isLoading || (loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
-  }
-
-  if (!isAuthenticated) {
-    // This case should ideally be handled by the redirect in useEffect,
-    // but as a fallback or during transition:
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><p className="text-gray-900 dark:text-white">ログインページへリダイレクト中...</p></div>;
-=======
   // 認証状態に関係なくページを表示 - LINEブラウザ対応
 
   // 初期ローディング中は表示しない（LINEブラウザ対応）
@@ -485,7 +471,6 @@ export default function HomePage() {
   // ユーザーデータの読み込み中（ただし初回以外）
   if ((loadingUsers && !users.length && !girlsFromDB.length) && !isLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p></div>;
->>>>>>> 202c062 (エラーとか出ないように色々する)
   }
 
   // Show welcome page for first-time male users
