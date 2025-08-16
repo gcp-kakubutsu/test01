@@ -37,7 +37,7 @@ export default function HomePage() {
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false); // LINEブラウザ対応: 絶対にfalseで開始！
+  const [loadingUsers, setLoadingUsers] = useState(true); // 初期データ取得中を表示
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -229,6 +229,7 @@ export default function HomePage() {
   // MySQLからの女の子データ取得（最適化版）
   const fetchGirlsFromMySQL = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得
+    console.log('[fetchGirlsFromMySQL] Starting MySQL data fetch...');
     
     try {
       // const startTime = performance.now(); // 未使用のためコメントアウト
@@ -328,6 +329,7 @@ export default function HomePage() {
         );
         
         setGirlsFromDB(sortedGirls);
+        console.log(`[fetchGirlsFromMySQL] Set ${sortedGirls.length} girls from MySQL`);
         
       } else {
         // Try once more without any filters as last resort
@@ -370,10 +372,13 @@ export default function HomePage() {
                 userProfile?.location
               );
               setGirlsFromDB(sortedGirls);
+              console.log(`[fetchGirlsFromMySQL] Last resort: Set ${sortedGirls.length} girls`);
             } else {
+              console.log('[fetchGirlsFromMySQL] Last resort: No data available');
               setGirlsFromDB([]);
             }
           } else {
+            console.log('[fetchGirlsFromMySQL] Last resort response not ok');
             setGirlsFromDB([]);
           }
         } catch (lastError) {
@@ -391,8 +396,9 @@ export default function HomePage() {
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
+    console.log('[fetchUsers] Starting data fetch...');
     try {
-      setLoadingUsers(true);
+      // loadingUsersを設定しない - 初期値のtrueのまま
       
       if (useFirebaseData) {
         // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
@@ -413,32 +419,42 @@ export default function HomePage() {
         // MySQLから女の子データを取得
         await fetchGirlsFromMySQL();
       }
+      console.log('[fetchUsers] Data fetch completed successfully');
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('[fetchUsers] Error fetching users:', error);
       // エラー時でも既存データを保持（LINEブラウザ対応）
       // setUsers([]); 
       // setGirlsFromDB([]); 
     } finally {
+      console.log('[fetchUsers] Setting loadingUsers to false');
       setLoadingUsers(false);
     }
   }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
   useEffect(() => {
     // LINEブラウザ対応: 即座にデータを取得
-    const timer = setTimeout(() => {
-      fetchUsers();
-    }, 100); // 0.1秒後に取得開始
+    console.log('[useEffect] Component mounted, starting data fetch...');
     
-    // LINEブラウザ対応: 5秒経ってもデータがない場合はローディングを停止
+    // 少し遅延を入れてから実行（コンポーネントの初期化を待つ）
+    const fetchTimer = setTimeout(() => {
+      console.log('[useEffect] Calling fetchUsers...');
+      fetchUsers();
+    }, 100); // 100msの遅延
+    
+    // LINEブラウザ対応: 10秒経ってもデータがない場合はローディングを停止
     const timeoutTimer = setTimeout(() => {
+      console.log('[useEffect] Timeout reached, forcing loadingUsers to false');
       setLoadingUsers(false);
-    }, 5000); // 5秒でタイムアウト
+    }, 10000); // 10秒でタイムアウト
     
     return () => {
-      clearTimeout(timer);
+      clearTimeout(fetchTimer);
       clearTimeout(timeoutTimer);
     };
-  }, [fetchUsers]); // checkingWelcomeを依存配列から除外
+  }, []); // 依存配列を空にして初回のみ実行
+
+  // fetchUsersをuseEffectの外で別途呼び出すため、依存関係の警告を回避
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -497,27 +513,8 @@ export default function HomePage() {
   //   );
   // }
   
-  if (displayData.length === 0) {
-    return (
-      <div className="w-full bg-white dark:bg-black min-h-screen">
-        <div className="text-center py-10">
-          <p className="text-gray-900 dark:text-white mb-4">
-            現在表示できるプロフィールはありません。
-          </p>
-          <Button 
-            onClick={() => {
-              setLoadingUsers(true);
-              fetchUsers();
-            }}
-            variant="outline"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            再読み込み
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // LINEブラウザ対応: データが空でもページを表示
+  // loadingUsersに関係なく常にページを表示
 
   // Apply search filter and sort to all data first
   const filteredAndSortedData = displayData
@@ -1027,9 +1024,9 @@ export default function HomePage() {
         </div>
       )}
       
-      {displayData.length === 0 && !searchKeyword && (
+      {displayData.length === 0 && !searchKeyword && !loadingUsers && (
         <div className="text-center py-10 text-gray-300">
-          <p className="text-xl mb-4 text-white">現在表示できるプロフィールはありません！</p>
+          <p className="text-xl mb-4 text-white">プロフィールを読み込んでいます...</p>
           <Button onClick={handleReset} variant="outline">
             <RotateCcw className="mr-2 h-4 w-4" /> プロフィールを再読み込み
           </Button>
