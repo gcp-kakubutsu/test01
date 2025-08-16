@@ -150,10 +150,19 @@ function initializeFirebaseServices(): void {
   }
 }
 
+// セッション復元の実行フラグ
+let isRestoringSession = false;
+
 /**
  * セッションから認証状態を復元（非同期でブロックしない）
  */
 function restoreAuthFromSession() {
+  // 既に実行中の場合はスキップ（429エラー対策）
+  if (isRestoringSession) {
+    return;
+  }
+  isRestoringSession = true;
+  
   // 非同期で実行し、ブロッキングを避ける
   setTimeout(async () => {
     try {
@@ -173,8 +182,10 @@ function restoreAuthFromSession() {
       }
     } catch (error) {
       // Silently handle auth restoration errors
+    } finally {
+      isRestoringSession = false;
     }
-  }, 100);
+  }, 500); // 遅延を増やして429エラーを防ぐ
 }
 
 // ブラウザ環境で自動初期化（即座に実行）

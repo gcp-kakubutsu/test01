@@ -21,15 +21,39 @@ export async function sortGirlsByPreference(
   userLocation?: LocationCoordinates | null,
   userProfileLocation?: string | null
 ): Promise<GirlWithDetails[]> {
+  console.log('🎯 [sortGirlsByPreference] Starting sort with:', {
+    girlsCount: girls.length,
+    userId,
+    hasUserLocation: !!userLocation,
+    userProfileLocation
+  });
+  
   try {
     // Get user preferences (only if userId is valid)
     let preferences = null;
     if (userId && userId.trim() !== '') {
+      console.log('📊 [sortGirlsByPreference] Fetching preferences for user:', userId);
       preferences = await getMalePreferences(userId);
+      
+      // より詳細なデバッグ情報
+      if (preferences) {
+        console.log('✅ [sortGirlsByPreference] Preferences fetched successfully');
+        console.log('   - isComplete:', preferences.isComplete);
+        console.log('   - partnerAgeRange:', `${preferences.partnerAgeMin || '?'}-${preferences.partnerAgeMax || '?'}`);
+        console.log('   - partnerBodyTypes:', preferences.partnerBodyTypes);
+        console.log('   - partnerHeight:', preferences.partnerHeight);
+        console.log('   - Full preferences object:', preferences);
+      } else {
+        console.log('❌ [sortGirlsByPreference] No preferences found for user');
+      }
+    } else {
+      console.log('⚠️ [sortGirlsByPreference] No valid userId, using default sort');
     }
     
     // Even without preferences, we should sort by distance and ID for consistency
+    // preferencesが全くない場合のみデフォルトソートを使用
     if (!preferences) {
+      console.log('🔄 [sortGirlsByPreference] Using default sort (no preferences)');
       // デフォルトソート: 距離とIDで安定したソート
       const sortedByDefault = [...girls].sort((a, b) => {
         // 距離でソート（位置情報がある場合）
@@ -57,6 +81,7 @@ export async function sortGirlsByPreference(
     }
     
     // Score each girl based on preferences
+    console.log('🎲 [sortGirlsByPreference] Starting scoring for', girls.length, 'girls with preferences');
     const scoredGirls = girls.map(girl => {
       let score = 0;
       const reasons: string[] = [];
@@ -292,6 +317,16 @@ export async function sortGirlsByPreference(
       }
       // 距離も同じ場合はIDで比較（安定したソート順を保証）
       return a.girl.id - b.girl.id;
+    });
+
+    // Top 5のスコアをログ出力
+    console.log('🏆 [sortGirlsByPreference] Top 5 sorted results:');
+    scoredGirls.slice(0, 5).forEach((sg, index) => {
+      console.log(`  ${index + 1}. ${sg.girl.name} (ID: ${sg.girl.id})`, {
+        score: sg.score,
+        distance: sg.distance !== Infinity ? `${sg.distance.toFixed(1)}km` : 'N/A',
+        reasons: sg.reasons
+      });
     });
 
     return scoredGirls.map(sg => sg.girl);

@@ -375,6 +375,14 @@ export default function HomePage() {
         // 一度だけソートを実行（競合を防ぐ）
         if (!isSorting) {
           setIsSorting(true);
+          console.log('🔍 [fetchGirlsFromMySQL] Starting preference-based sort:', {
+            hasCurrentUser: !!currentUser,
+            userId: currentUser?.uid || 'none',
+            hasUserProfile: !!userProfile,
+            userGender: userProfile?.gender,
+            hasUserLocation: !!userLocation
+          });
+          
           try {
             const sortedGirls = await sortGirlsByPreference(
               girlsWithDetails,
@@ -385,7 +393,7 @@ export default function HomePage() {
             
             setGirlsFromDB(sortedGirls);
             setSortedGirlsCache(sortedGirls); // キャッシュに保存
-            console.log(`[fetchGirlsFromMySQL] Set ${sortedGirls.length} girls from MySQL`);
+            console.log(`✅ [fetchGirlsFromMySQL] Sorted and set ${sortedGirls.length} girls from MySQL`);
           } finally {
             setIsSorting(false);
           }

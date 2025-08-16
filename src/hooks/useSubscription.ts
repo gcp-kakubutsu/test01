@@ -31,16 +31,27 @@ export function useSubscription() {
 
     const fetchSubscription = async () => {
       try {
-        const db = getFirebaseDb();
+        let db = getFirebaseDb();
         
         // Check if component is still mounted and db is initialized
         if (!isMounted || !db) {
-          // Component unmounted or Firestore not initialized (silent)
-          return;
+          // LINEブラウザの場合、少し待ってリトライ
+          if (typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line')) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            db = getFirebaseDb();
+            if (!db || !isMounted) {
+              setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+              setLoading(false);
+              return;
+            }
+          } else {
+            return;
+          }
         }
         
-        // Firebase Authの認証状態を待つ（最大と2秒）
-        await waitForAuth(2000);
+        // Firebase Authの認証状態を待つ（LINEブラウザは長めに）
+        const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+        await waitForAuth(isLineBrowser ? 5000 : 2000);
         
         // ストレージからユーザーIDを取得
         const userId = currentUser?.uid || getStoredUserId();
