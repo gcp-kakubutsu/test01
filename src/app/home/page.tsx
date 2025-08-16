@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isLoading } = useAuth();
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -48,17 +48,8 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
-  // 認証チェック
-  useEffect(() => {
-    // 1秒待ってからチェック（セッション確認のため）
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        router.push('/login');
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, router]);
+  // 認証チェックを削除 - LINEブラウザ対応
+  // ページ表示を優先し、認証が必要な機能のみチェック
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -469,33 +460,15 @@ export default function HomePage() {
     }
   }
 
-  // 認証確認中（1秒間）
-  const [showContent, setShowContent] = useState(false);
-  
-  useEffect(() => {
-    // すぐに表示するか、1秒待つ
-    if (isAuthenticated) {
-      setShowContent(true);
-    } else {
-      const timer = setTimeout(() => {
-        setShowContent(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated]);
-  
-  // コンテンツ表示前
-  if (!showContent) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p>
-      </div>
-    );
-  }
+  // 認証状態に関係なくページを表示 - LINEブラウザ対応
 
-  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
+  // 初期ローディング中は表示しない（LINEブラウザ対応）
+  if (isLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
+  }
+  
+  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p></div>;
   }
 
   // Show welcome page for first-time male users

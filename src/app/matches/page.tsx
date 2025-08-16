@@ -41,33 +41,12 @@ interface Like {
 }
 
 export default function MatchesPage() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [showContent, setShowContent] = useState(false);
 
-  // 認証チェック
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        router.push('/login');
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, router]);
-  
-  // コンテンツ表示タイミング
-  useEffect(() => {
-    if (isAuthenticated) {
-      setShowContent(true);
-    } else {
-      const timer = setTimeout(() => {
-        setShowContent(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated]);
+  // 認証チェック - データ取得時にチェック
+  // LINEブラウザ対応のためページ表示を優先
   const { matches, loading: matchesLoading } = useMatches();
   const [activeTab, setActiveTab] = useState('matches');
   const [displayMatches, setDisplayMatches] = useState<Match[]>([]);
@@ -82,7 +61,16 @@ export default function MatchesPage() {
   // Load matches and likes
   useEffect(() => {
     const loadMatchesAndLikes = async () => {
-      if (!currentUser || !db) return;
+      // 認証されていない場合はデータを取得しない
+      if (!currentUser || !db) {
+        // 3秒待っても認証されない場合はログインページへ
+        setTimeout(() => {
+          if (!currentUser) {
+            router.push('/login');
+          }
+        }, 3000);
+        return;
+      }
       
       setIsLoadingData(true);
       
@@ -300,8 +288,10 @@ export default function MatchesPage() {
     loadMatchesAndLikes();
   }, [matches, matchesLoading, currentUser]);
 
-  // コンテンツ表示前
-  if (!showContent) {
+  // データ取得中の表示（認証状態に関係なく表示）
+
+  // 初期ローディング中は表示しない
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

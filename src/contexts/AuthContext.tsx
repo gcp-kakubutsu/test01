@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 常にfalse - 廃止予定
+  const [isLoading, setIsLoading] = useState(true); // 初期状態はtrue
   const [hasInitialized, setHasInitialized] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (mounted) {
           setHasInitialized(true);
+          setIsLoading(false); // セッション確認完了
         }
       }
     };
@@ -346,7 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     currentUser,
     isAuthenticated: !!currentUser, // シンプルに現在のユーザーがいるかどうか
-    isLoading: false, // 常にfalse（後方互換性のため残す）
+    isLoading, // 初期セッション確認中はtrue
     hasInitialized, // 初期化状態を公開
     login,
     loginWithRedirect,
