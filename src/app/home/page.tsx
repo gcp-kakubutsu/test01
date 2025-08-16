@@ -358,7 +358,8 @@ export default function HomePage() {
           });
           if (lastResortResponse.ok) {
             const lastResortData = await lastResortResponse.json();
-            if (lastResortData?.girls?.length > 0) {
+            if (lastResortData && lastResortData.girls && Array.isArray(lastResortData.girls) && lastResortData.girls.length > 0) {
+              console.log(`[fetchGirlsFromMySQL] Last resort success: ${lastResortData.girls.length} girls`);
               // Convert MySQLGirlProfile to GirlWithDetails format
               const girlsWithDetails = lastResortData.girls.map((girl: any) => {
                 let shop = girl.shop || {
