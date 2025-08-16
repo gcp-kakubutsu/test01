@@ -28,6 +28,7 @@ export default function GirlProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,7 +216,7 @@ export default function GirlProfilePage() {
           <h1 className="text-xl font-bold">プロフィール</h1>
         </div>
           
-          {!isPremium && !subscriptionLoading ? (
+          {!isPremium && !subscriptionLoading && !isLineBrowser ? (
             <PremiumOnlyCard 
               title={getPremiumMessage('profile').title}
               description={getPremiumMessage('profile').description}
@@ -396,7 +397,7 @@ export default function GirlProfilePage() {
                   <Heart className="h-4 w-4 mr-2" />
                   {isProcessingLike ? "送信中..." : "いいね"}
                 </Button>
-                {isPremium && (
+                {(isPremium || isLineBrowser) && (
                   <Button 
                     className="flex-1" 
                     variant="outline"

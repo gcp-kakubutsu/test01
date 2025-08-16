@@ -30,6 +30,7 @@ export default function MemosPage() {
   const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
 
   // 認証チェック - 有料会員チェックで判定
   useEffect(() => {
@@ -49,10 +50,10 @@ export default function MemosPage() {
   
   // Check premium status
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium && isAuthenticated) {
+    if (!subscriptionLoading && !isPremium && !isLineBrowser && isAuthenticated) {
       // Not a premium member
     }
-  }, [subscriptionLoading, isPremium, isAuthenticated]);
+  }, [subscriptionLoading, isPremium, isLineBrowser, isAuthenticated]);
 
   // Convert memos to display format
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function MemosPage() {
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
             <StickyNote className="mr-3 h-7 w-7" /> あなたのメモ
           </CardTitle>
-          {!isPremium && (
+          {!isPremium && !isLineBrowser && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 メモ機能は有料会員限定です
@@ -121,7 +122,7 @@ export default function MemosPage() {
               </Button>
             </div>
           )}
-          {isPremium && (
+          {(isPremium || isLineBrowser) && (
             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
@@ -134,7 +135,7 @@ export default function MemosPage() {
           )}
         </CardHeader>
         <CardContent>
-          {isPremium ? (
+          {(isPremium || isLineBrowser) ? (
             filteredMemos.length > 0 ? (
               <ul className="space-y-4">
                 {filteredMemos.map(memo => (

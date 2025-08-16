@@ -33,6 +33,7 @@ export default function HomePage() {
   const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
   
@@ -520,8 +521,7 @@ export default function HomePage() {
       setInitialFetchDone(true);
       
       // ブラウザ判定
-      const isLine = isLineBrowser();
-      if (isLine) {
+      if (isLineBrowser) {
         console.log('📱 LINE browser detected - using optimized fetch');
       }
       
@@ -540,7 +540,7 @@ export default function HomePage() {
               'Content-Type': 'application/json',
             },
             // LINEブラウザの場合はcredentialsを除外
-            credentials: isLine ? 'omit' : 'include',
+            credentials: isLineBrowser ? 'omit' : 'include',
             mode: 'cors',
           });
           
@@ -908,10 +908,10 @@ export default function HomePage() {
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading ? 'blur-image' : ''}`}
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading && !isLineBrowser ? 'blur-image' : ''}`}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                {!isPremium && !subscriptionLoading && (
+                {!isPremium && !subscriptionLoading && !isLineBrowser && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 )}
               </div>
@@ -1066,8 +1066,8 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // 有料会員チェック（subscriptionLoading中はスキップ）
-                      if (!isPremium && !subscriptionLoading) {
+                      // 有料会員チェック（subscriptionLoading中またはLINEブラウザはスキップ）
+                      if (!isPremium && !subscriptionLoading && !isLineBrowser) {
                         toast({
                           title: '有料会員限定',
                           description: 'いいねを送るには有料会員登録が必要です',
@@ -1135,8 +1135,8 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // 有料会員チェック（subscriptionLoading中はスキップ）
-                      if (!isPremium && !subscriptionLoading) {
+                      // 有料会員チェック（subscriptionLoading中またはLINEブラウザはスキップ）
+                      if (!isPremium && !subscriptionLoading && !isLineBrowser) {
                         toast({
                           title: '有料会員限定',
                           description: 'メモ機能を使うには有料会員登録が必要です',

@@ -23,6 +23,7 @@ interface MemoPageProps {
 export default function MemoPage({ targetId, targetName, targetImage }: MemoPageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
   const { memo, loading: memoLoading, reload } = useFirebaseMemo(targetId);
@@ -37,7 +38,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium && isAuthenticated) {
+    if (!subscriptionLoading && !isPremium && !isLineBrowser && isAuthenticated) {
       toast({
         title: '有料会員限定',
         description: 'メモ機能は有料会員のみ利用可能です',
@@ -45,7 +46,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
       });
       router.push('/subscription');
     }
-  }, [subscriptionLoading, isPremium, isAuthenticated, router, toast]);
+  }, [subscriptionLoading, isPremium, isLineBrowser, isAuthenticated, router, toast]);
 
   useEffect(() => {
     if (memo) {
@@ -54,7 +55,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   }, [memo]);
 
   const handleSave = async () => {
-    if (!currentUser || !isPremium || isSaving) return;
+    if (!currentUser || (!isPremium && !isLineBrowser) || isSaving) return;
 
     setIsSaving(true);
     try {
@@ -84,7 +85,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   };
 
   const handleDelete = async () => {
-    if (!currentUser || !isPremium || isDeleting) return;
+    if (!currentUser || (!isPremium && !isLineBrowser) || isDeleting) return;
 
     if (!confirm('このメモを削除しますか？')) return;
 
@@ -119,7 +120,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
     );
   }
 
-  if (!isPremium) {
+  if (!isPremium && !isLineBrowser) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Card className="max-w-md">

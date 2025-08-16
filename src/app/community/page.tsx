@@ -97,6 +97,7 @@ export default function CommunityPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
@@ -124,19 +125,43 @@ export default function CommunityPage() {
   
   // Check if current user is admin
   const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
+  // 初回のみコミュニティコレクションを初期化
+  useEffect(() => {
+    if (!currentUser || hasInitialized || subscriptionLoading) return;
+    
+    const initCommunity = async () => {
+      try {
+        if (typeof initializeCommunityCollections === 'function') {
+          await initializeCommunityCollections();
+          console.log('Community collections initialized');
+        }
+      } catch (error) {
+        console.error('Error initializing community collections:', error);
+      }
+      setHasInitialized(true);
+    };
+    
+    initCommunity();
+  }, [currentUser, hasInitialized, subscriptionLoading]);
 
   // Check premium status
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium) {
+    if (!subscriptionLoading && !isPremium && !isLineBrowser) {
       // User is not premium, don't initialize or fetch community data
       console.log('Community is premium-only feature');
     }
-  }, [subscriptionLoading, isPremium]);
+  }, [subscriptionLoading, isPremium, isLineBrowser]);
 
   // Fetch communities from Firebase (Premium only)
   useEffect(() => {
-    if (!currentUser || !isPremium) {
+    // subscriptionLoadingの間は待機
+    if (subscriptionLoading) {
+      return;
+    }
+    
+    if (!currentUser || (!isPremium && !isLineBrowser)) {
       setLoadingCommunities(false);
       setLoadingPosts(false);
       return;
@@ -149,14 +174,24 @@ export default function CommunityPage() {
       try {
         setLoadingCommunities(true);
         
+        // Firebaseが初期化されるまで待機
+        if (!db) {
+          console.log('Firestore not initialized yet, waiting...');
+          // Firebaseが初期化されるまで少し待つ
+          setTimeout(() => {
+            if (isMounted) {
+              fetchCommunities();
+            }
+          }, 500);
+          return;
+        }
+        
         // Check if component is still mounted and user is authenticated
-        if (!isMounted || !currentUser || !db) {
+        if (!isMounted || !currentUser) {
           console.log('Component unmounted or user not authenticated');
           setLoadingCommunities(false);
           return;
         }
-        
-        if (!db) throw new Error('Firestore not initialized');
         const communitiesRef = collection(db, 'communities');
         const communitiesQuery = query(communitiesRef, orderBy('memberCount', 'desc'));
         
@@ -238,11 +273,16 @@ export default function CommunityPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid, toast, isPremium]);
+  }, [currentUser?.uid, toast, isPremium, isLineBrowser, subscriptionLoading]);
 
   // Fetch posts (Premium only) - either for selected community or global
   useEffect(() => {
-    if (!currentUser || !isPremium) return;
+    // subscriptionLoadingの間は待機
+    if (subscriptionLoading) {
+      return;
+    }
+    
+    if (!currentUser || (!isPremium && !isLineBrowser)) return;
 
     let isMounted = true;
     let unsubscribe: (() => void) | undefined;
@@ -251,14 +291,24 @@ export default function CommunityPage() {
       try {
         setLoadingPosts(true);
         
+        // Firebaseが初期化されるまで待機
+        if (!db) {
+          console.log('Firestore not initialized yet for posts, waiting...');
+          // Firebaseが初期化されるまで少し待つ
+          setTimeout(() => {
+            if (isMounted) {
+              fetchPosts();
+            }
+          }, 500);
+          return;
+        }
+        
         // Check if component is still mounted and user is authenticated
-        if (!isMounted || !currentUser || !db) {
+        if (!isMounted || !currentUser) {
           console.log('Component unmounted or user not authenticated (posts)');
           setLoadingPosts(false);
           return;
         }
-        
-        if (!db) throw new Error('Firestore not initialized');
         const postsRef = collection(db, 'posts');
         
         // Try with compound query first, fall back to simple query if index not available
@@ -458,7 +508,7 @@ export default function CommunityPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCommunity, currentUser?.uid, toast, isPremium]);
+  }, [selectedCommunity, currentUser?.uid, toast, isPremium, isLineBrowser, subscriptionLoading]);
 
   const handleJoinCommunity = async (communityId: string) => {
     if (!currentUser) return;
@@ -655,7 +705,7 @@ export default function CommunityPage() {
   const handleAddComment = async (postId: string) => {
     if (!currentUser || !newComment.trim()) return;
     
-    if (!isPremium) {
+    if (!isPremium && !isLineBrowser) {
       toast({
         title: "プレミアム機能",
         description: "コメント機能はプレミアム会員限定です。",
@@ -928,7 +978,7 @@ export default function CommunityPage() {
   const handleCreateCommunity = async () => {
     if (!currentUser || !newCommunityName.trim() || !newCommunityDescription.trim()) return;
     
-    if (!isPremium) {
+    if (!isPremium && !isLineBrowser) {
       toast({
         title: "プレミアム機能",
         description: "コミュニティ作成はプレミアム会員限定です。",
@@ -1006,7 +1056,7 @@ export default function CommunityPage() {
     if (!currentUser || !newPostContent.trim()) return;
     
     // Check premium status before posting
-    if (!isPremium) {
+    if (!isPremium && !isLineBrowser) {
       toast({
         title: "プレミアム機能",
         description: "投稿機能はプレミアム会員限定です。",
@@ -1082,7 +1132,7 @@ export default function CommunityPage() {
   }
 
   // Show premium-only message if not premium
-  if (!isPremium) {
+  if (!isPremium && !isLineBrowser) {
     const communityMessage = getPremiumMessage('community');
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -1104,7 +1154,7 @@ export default function CommunityPage() {
           <Button 
             variant="outline"
             onClick={() => setShowCreateCommunity(true)}
-            disabled={!isPremium}
+            disabled={!isPremium && !isLineBrowser}
             className="flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
           >
             <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -1114,7 +1164,7 @@ export default function CommunityPage() {
           <Button 
             className="bg-[#F0306A] hover:bg-[#E02860] flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
             onClick={() => {
-              if (!isPremium) {
+              if (!isPremium && !isLineBrowser) {
                 toast({
                   title: "プレミアム機能",
                   description: "投稾機能はプレミアム会員限定です。",
@@ -1142,7 +1192,7 @@ export default function CommunityPage() {
                 postFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }, 100);
             }}
-            disabled={!isPremium}
+            disabled={!isPremium && !isLineBrowser}
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             投稿する
@@ -1315,7 +1365,14 @@ export default function CommunityPage() {
             <p className="text-sm mt-2">管理者にお問い合わせください。</p>
           </div>
         ) : (
-          communities.map(community => (
+          communities
+            .filter(community => 
+              searchQuery === '' || 
+              community.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              community.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              community.category.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map(community => (
             <Card 
               key={community.id} 
               className={`cursor-pointer hover:shadow-lg transition-shadow ${
@@ -1474,7 +1531,7 @@ export default function CommunityPage() {
                   <Button 
                     className="bg-[#F0306A] hover:bg-[#E02860]"
                     onClick={handleCreatePost}
-                    disabled={isPosting || !newPostContent.trim() || !isPremium}
+                    disabled={isPosting || !newPostContent.trim() || (!isPremium && !isLineBrowser)}
                   >
                     {isPosting ? (
                       <>

@@ -18,26 +18,67 @@ export function useSubscription() {
     isPremium: false,
     subscriptionStatus: 'none'
   });
-  // LINEブラウザでは初期状態でloadingをfalseにして表示を優先
-  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
-  const [loading, setLoading] = useState(!isLineBrowser);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     
-    if (!currentUser) {
-      // LINEブラウザの場合は少し待ってから再確認
-      const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
-      if (isLineBrowser) {
-        setTimeout(() => {
-          if (!currentUser && isMounted) {
+    // LINEブラウザの場合は専用APIを使用
+    const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+    
+    if (isLineBrowser) {
+      // LINEブラウザ専用の処理
+      const fetchSubscriptionForLine = async () => {
+        try {
+          // セッションベースのAPIを呼び出し
+          const response = await fetch('/api/subscription/check', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (isMounted) {
+              setSubscription({
+                isPremium: data.isPremium || false,
+                subscriptionStatus: data.subscriptionStatus || 'none',
+                subscriptionEndDate: data.subscriptionEndDate ? new Date(data.subscriptionEndDate) : undefined,
+              });
+            }
+          } else {
+            if (isMounted) {
+              setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+            }
+          }
+        } catch (error) {
+          console.error('LINE browser subscription check error:', error);
+          if (isMounted) {
             setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+          }
+        } finally {
+          if (isMounted) {
             setLoading(false);
           }
-        }, 2000);
-        return;
-      }
+        }
+      };
       
+      // 即座に実行
+      fetchSubscriptionForLine();
+      
+      // 1秒後に再チェック（保険）
+      setTimeout(() => {
+        if (isMounted) {
+          fetchSubscriptionForLine();
+        }
+      }, 1000);
+      
+      return () => {
+        isMounted = false;
+      };
+    }
+    
+    // 通常のブラウザの処理
+    if (!currentUser) {
       setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       setLoading(false);
       return;
