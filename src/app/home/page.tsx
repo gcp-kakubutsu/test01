@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -48,17 +48,8 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
-  // LINEブラウザ対応: 認証チェックを遅延実行
-  useEffect(() => {
-    // 3秒待ってから認証状態を確認
-    const timer = setTimeout(() => {
-      if (!isAuthenticated && !isLoading) {
-        router.push('/login');
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, isLoading, router]);
+  // search/advancedと同様、認証チェックを無効化（LINEブラウザ対応）
+  // ログインしていなくてもページを表示
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -129,7 +120,7 @@ export default function HomePage() {
 
     if (isAuthenticated && currentUser && userProfile) {
       checkWelcomeStatus();
-    } else if (isAuthenticated && currentUser && !isLoading) {
+    } else if (isAuthenticated && currentUser) {
       // If authenticated but no profile yet, still stop checking
       setCheckingWelcome(false);
     }
@@ -138,7 +129,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, currentUser, userProfile, isLoading]);
+  }, [isAuthenticated, currentUser, userProfile]);
 
   // Handle welcome completion
   const handleWelcomeComplete = async () => {
@@ -240,7 +231,7 @@ export default function HomePage() {
     // LINEブラウザ対応: currentUserがなくてもデータを取得
     
     try {
-      const startTime = performance.now();
+      // const startTime = performance.now(); // 未使用のためコメントアウト
       
       // First try without area filter to ensure we get data
       const params = new URLSearchParams({
@@ -253,7 +244,7 @@ export default function HomePage() {
       
       // Try optimized API first
       let data = null;
-      let apiUsed = 'optimized';
+      // let apiUsed = 'optimized'; // 未使用のためコメントアウト
       let retryCount = 0;
       const maxRetries = 2;
       
@@ -277,7 +268,7 @@ export default function HomePage() {
           
           if (retryCount > maxRetries) {
             // Final fallback to regular API
-            apiUsed = 'regular';
+            // apiUsed = 'regular';
             
             try {
               const response = await fetch(`/api/girls?limit=200&offset=0`);
@@ -480,11 +471,8 @@ export default function HomePage() {
 
   // 認証状態に関係なくページを表示 - LINEブラウザ対応
 
-  // LINEブラウザ対応: 初回認証チェックのみ待つ
-  // 2秒以上かかった場合はページを表示
-  if (isLoading && !hasInitialized) {
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
-  }
+  // search/advancedと同様、ローディング表示を削除
+  // 即座にコンテンツを表示
 
   // Show welcome page for first-time male users
   if (showWelcome) {

@@ -28,7 +28,7 @@ import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePre
 
 
 export default function ProfilePage() {
-  const { isAuthenticated, currentUser, isLoading: authLoading, hasInitialized } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
@@ -80,8 +80,8 @@ export default function ProfilePage() {
     }
   }, [currentUser, profile]);
 
-  // LINEブラウザ対応: 何も待たずに即座にページを表示
-  // データは非同期で取得し、取得できたら更新
+  // search/advancedと同じく、何も待たずに即座にページを表示
+  // ローディング表示を完全に削除
 
   const age = profile?.birthDate ? calculateAge(profile.birthDate) : null;
   const displayName = profile?.username || currentUser?.displayName || 'ユーザー';
