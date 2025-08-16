@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, currentUser, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, currentUser } = useAuth();
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -48,8 +48,11 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
-  // 認証チェックを削除 - LINEブラウザ対応
-  // ページ表示を優先し、認証が必要な機能のみチェック
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -67,14 +70,11 @@ export default function HomePage() {
         return;
       }
 
-      // Set checking to false immediately to show content faster
-      setCheckingWelcome(false);
-
       try {
         // Check if component is still mounted and user is still authenticated
         if (!isMounted || !currentUser) return;
         
-        // Check if user has seen welcome (non-blocking)
+        // Check if user has seen welcome
         const welcomeRef = doc(db, 'userSettings', currentUser.uid);
         const welcomeDoc = await getDoc(welcomeRef);
         
@@ -117,7 +117,7 @@ export default function HomePage() {
 
     if (isAuthenticated && currentUser && userProfile) {
       checkWelcomeStatus();
-    } else if (isAuthenticated && currentUser) {
+    } else if (isAuthenticated && currentUser && !isLoading) {
       // If authenticated but no profile yet, still stop checking
       setCheckingWelcome(false);
     }
@@ -126,7 +126,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, currentUser, userProfile]);
+  }, [isAuthenticated, currentUser, userProfile, isLoading]);
 
   // Handle welcome completion
   const handleWelcomeComplete = async () => {
@@ -460,15 +460,14 @@ export default function HomePage() {
     }
   }
 
-  // 認証状態に関係なくページを表示 - LINEブラウザ対応
-
-  // 初期ローディング中は表示しない（LINEブラウザ対応）
-  if (isLoading) {
+  if (isLoading || (loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
-  
-  if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p></div>;
+
+  if (!isAuthenticated) {
+    // This case should ideally be handled by the redirect in useEffect,
+    // but as a fallback or during transition:
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><p className="text-gray-900 dark:text-white">ログインページへリダイレクト中...</p></div>;
   }
 
   // Show welcome page for first-time male users

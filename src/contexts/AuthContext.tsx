@@ -17,7 +17,6 @@ interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  hasInitialized: boolean;
   login: (data: AuthFormData) => Promise<boolean>;
   loginWithRedirect: (data: AuthFormData) => Promise<void>;
   signup: (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => Promise<boolean>;
@@ -28,112 +27,74 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // 初期状態はtrue
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
 
-  // セッションチェック（初回のみ）
+  // セッションチェック
   useEffect(() => {
-    let mounted = true;
-    
-    // 非同期でセッション確認（UIをブロックしない）
     const checkSession = async () => {
-      if (!mounted) return;
-      
       try {
-        console.log('🔐 Session check...');
-        
+        console.log('🔐 Checking session...');
         const response = await fetch('/api/auth/session', {
           method: 'GET',
           credentials: 'include',
         });
-        
-        if (!mounted) return;
-        
+
         const data = await response.json();
         
         if (data.authenticated && data.user) {
           console.log('✅ Session valid:', data.user.email);
           setCurrentUser(data.user);
+          
+          // Firebase Authにも同期（Firestore権限のため）
+          const tokenResponse = await fetch('/api/auth/custom-token', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            if (tokenData.customToken && tokenData.uid) {
+              // カスタムトークンでFirebase Authにサインイン
+              const { getFirebaseAuth } = await import('@/lib/firebase/client');
+              const { signInWithCustomToken } = await import('firebase/auth');
+              const auth = getFirebaseAuth();
+              if (auth) {
+                try {
+                  await signInWithCustomToken(auth, tokenData.customToken);
+                  console.log('✅ Firebase Auth synced with custom token');
+                } catch (error: any) {
+                  // カスタムトークンが失敗した場合、IDトークンを使用
+                  if (error.code === 'auth/invalid-custom-token') {
+                    const { signInWithIdToken } = await import('@/lib/firebase/auth-helper');
+                    await signInWithIdToken(tokenData.customToken);
+                  } else {
+                    console.warn('⚠️ Could not sync Firebase Auth:', error);
+                  }
+                }
+              }
+            }
+          }
         } else {
           console.log('❌ No valid session');
           setCurrentUser(null);
         }
-      } catch (error: any) {
-        if (!mounted) return;
+      } catch (error) {
         console.error('❌ Session check failed:', error);
         setCurrentUser(null);
       } finally {
-        if (mounted) {
-          setHasInitialized(true);
-          setIsLoading(false); // セッション確認完了
-        }
+        setIsLoading(false);
       }
     };
-    
-    // 初回実行
-    checkSession();
-    
-    // 定期的にセッションをチェック（5分ごと）
-    const interval = setInterval(() => {
-      if (mounted) {
-        checkSession();
-      }
-    }, 5 * 60 * 1000);
-    
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []); // 空の依存配列で初回のみ実行
 
-  // Firebase Auth同期（currentUserが設定された後）
-  useEffect(() => {
-    if (!currentUser || !hasInitialized) return;
+    checkSession();
+
+    // 定期的にセッションをチェック（5分ごと）
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
     
-    let mounted = true;
-    
-    const syncFirebase = async () => {
-      if (!mounted) return;
-      
-      try {
-        const tokenResponse = await fetch('/api/auth/custom-token', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        
-        if (!mounted) return;
-        
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          if (tokenData.customToken && tokenData.uid) {
-            const { getFirebaseAuth } = await import('@/lib/firebase/client');
-            const { signInWithCustomToken } = await import('firebase/auth');
-            const auth = getFirebaseAuth();
-            if (auth && mounted) {
-              try {
-                await signInWithCustomToken(auth, tokenData.customToken);
-                console.log('✅ Firebase Auth synced');
-              } catch (error) {
-                console.warn('⚠️ Firebase sync failed, but session is valid');
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ Background sync failed, but session is valid');
-      }
-    };
-    
-    // 遅延実行でFirebase同期
-    const timer = setTimeout(syncFirebase, 100);
-    
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
-  }, [currentUser?.uid]); // currentUser.uidの変更時のみ実行
+    return () => clearInterval(interval);
+  }, []);
 
   // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {
@@ -154,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        // エラーログを出さずにトーストのみ表示
+        console.error('❌ Login failed:', result.error);
         toast({ 
           title: 'ログインエラー', 
           description: result.error || 'ログインに失敗しました', 
@@ -166,7 +127,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Login successful');
       setCurrentUser(result.user);
-      setIsLoading(false);
+      
+      // Firebase Authにもサインイン（Firestoreアクセス用）
+      if (result.customToken) {
+        // カスタムトークンAPIを呼び出して正しいトークンを取得
+        const tokenResponse = await fetch('/api/auth/custom-token', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          if (tokenData.customToken) {
+            const { getFirebaseAuth } = await import('@/lib/firebase/client');
+            const { signInWithCustomToken } = await import('firebase/auth');
+            const auth = getFirebaseAuth();
+            if (auth) {
+              try {
+                await signInWithCustomToken(auth, tokenData.customToken);
+                console.log('✅ Firebase Auth synced after login');
+              } catch (error: any) {
+                // カスタムトークンが失敗した場合、IDトークンを使用
+                if (error.code === 'auth/invalid-custom-token') {
+                  const { signInWithIdToken } = await import('@/lib/firebase/auth-helper');
+                  await signInWithIdToken(result.customToken);
+                } else {
+                  console.warn('⚠️ Could not sync Firebase Auth:', error);
+                }
+              }
+            }
+          }
+        }
+      }
       
       toast({ 
         title: 'ログインしました', 
@@ -176,41 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ホームページにリダイレクト
       router.push('/');
       
-      // Firebase Auth同期は非同期で実行（ブロックしない）
-      if (result.customToken) {
-        setTimeout(async () => {
-          try {
-            const tokenResponse = await fetch('/api/auth/custom-token', {
-              method: 'GET',
-              credentials: 'include',
-            });
-            
-            if (tokenResponse.ok) {
-              const tokenData = await tokenResponse.json();
-              if (tokenData.customToken) {
-                const { getFirebaseAuth } = await import('@/lib/firebase/client');
-                const { signInWithCustomToken } = await import('firebase/auth');
-                const auth = getFirebaseAuth();
-                if (auth) {
-                  try {
-                    await signInWithCustomToken(auth, tokenData.customToken);
-                    console.log('✅ Firebase Auth synced after login');
-                  } catch (error) {
-                    console.warn('⚠️ Firebase sync failed, but login successful');
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('⚠️ Background sync failed, but login successful');
-          }
-        }, 100);
-      }
-      
+      setIsLoading(false);
       return true;
       
     } catch (error: any) {
-      // ネットワークエラーの場合もコンソールエラーを出さない
+      console.error('❌ Login error:', error);
+      
       toast({ 
         title: 'ログインエラー', 
         description: 'ネットワークエラーが発生しました。インターネット接続を確認してください。', 
@@ -247,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        // エラーログを出さずにトーストのみ表示
+        console.error('❌ Signup failed:', result.error);
         toast({ 
           title: '登録エラー', 
           description: result.error || '登録に失敗しました', 
@@ -271,7 +234,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
       
     } catch (error: any) {
-      // ネットワークエラーの場合もコンソールエラーを出さない
+      console.error('❌ Signup error:', error);
+      
       toast({ 
         title: '登録エラー', 
         description: 'ネットワークエラーが発生しました。', 
@@ -298,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        // エラーログを出さずにトーストのみ表示
+        console.error('❌ Logout failed:', result.error);
         toast({ 
           title: 'ログアウトエラー', 
           description: result.error || 'ログアウトに失敗しました', 
@@ -333,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
       
     } catch (error: any) {
-      // ネットワークエラーの場合もコンソールエラーを出さない
+      console.error('❌ Logout error:', error);
       toast({ 
         title: 'ログアウトエラー', 
         description: 'ログアウトに失敗しました。', 
@@ -346,9 +310,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     currentUser,
-    isAuthenticated: !!currentUser, // シンプルに現在のユーザーがいるかどうか
-    isLoading, // 初期セッション確認中はtrue
-    hasInitialized, // 初期化状態を公開
+    isAuthenticated: !isLoading && !!currentUser,
+    isLoading,
     login,
     loginWithRedirect,
     signup,
