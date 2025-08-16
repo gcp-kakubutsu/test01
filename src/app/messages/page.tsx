@@ -22,7 +22,7 @@ interface MemoDisplay {
   targetId: string;
   name: string;
   content: string;
-  avatarUrl: string;
+  avatarUrl: string | null;
   lastUpdated?: string | null;
 }
 
@@ -142,7 +142,7 @@ export default function MemosPage() {
                     <Link href={`/messages/${memo.targetId}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={memo.avatarUrl} alt={memo.name} />
+                          <AvatarImage src={memo.avatarUrl || undefined} alt={memo.name} />
                           <AvatarFallback>{memo.name.substring(0, 1).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">

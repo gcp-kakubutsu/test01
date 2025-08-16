@@ -730,7 +730,7 @@ function AdvancedSearchContent() {
         if (!user.girlTypes || user.girlTypes.length === 0) return false
         // Check if any selected type matches
         return selectedGirlTypes.some(type => 
-          user.girlTypes.includes(type)
+          user.girlTypes!.includes(type)
         )
       })
     }
@@ -921,7 +921,7 @@ function AdvancedSearchContent() {
           
           // Selected girl types matching
           if (selectedGirlTypes.length > 0 && user.girlTypes) {
-            const matchedTypes = selectedGirlTypes.filter(type => user.girlTypes.includes(type))
+            const matchedTypes = selectedGirlTypes.filter(type => user.girlTypes!.includes(type))
             score += matchedTypes.length * 30
           }
           

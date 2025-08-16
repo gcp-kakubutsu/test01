@@ -119,39 +119,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-        if (mounted) {
-          clearTimeout(timeout); // タイムアウトをクリア
-          setHasInitialized(true);
-          setIsLoading(false); // セッション確認完了
-        }
-      }
-    };
-    
-    // 初回実行
-    checkSession();
-    
-    // 定期的にセッションをチェック（5分ごと）
-    const interval = setInterval(() => {
-      if (mounted) {
-        // 定期チェックではisLoadingを変更しない
-        const periodicCheck = async () => {
-          try {
-            const response = await fetch('/api/auth/session', {
-              method: 'GET',
-              credentials: 'include',
-            });
-            const data = await response.json();
-            if (data.authenticated && data.user) {
-              setCurrentUser(data.user);
-            } else {
-              setCurrentUser(null);
-            }
-          } catch {
-            // 定期チェックのエラーは無視
-          }
-        };
-        periodicCheck();
-      }
     
     // 初回実行
     checkSession();
@@ -266,38 +233,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ Login successful');
       setCurrentUser(result.user);
       setIsLoading(false);
-      
-      // Firebase Authにもサインイン（Firestoreアクセス用）
-      if (result.customToken) {
-        // カスタムトークンAPIを呼び出して正しいトークンを取得
-        const tokenResponse = await fetch('/api/auth/custom-token', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          if (tokenData.customToken) {
-            const { getFirebaseAuth } = await import('@/lib/firebase/client');
-            const { signInWithCustomToken } = await import('firebase/auth');
-            const auth = getFirebaseAuth();
-            if (auth) {
-              try {
-                await signInWithCustomToken(auth, tokenData.customToken);
-                console.log('✅ Firebase Auth synced after login');
-              } catch (error: any) {
-                // カスタムトークンが失敗した場合、IDトークンを使用
-                if (error.code === 'auth/invalid-custom-token') {
-                  const { signInWithIdToken } = await import('@/lib/firebase/auth-helper');
-                  await signInWithIdToken(result.customToken);
-                } else {
-                  console.warn('⚠️ Could not sync Firebase Auth:', error);
-                }
-              }
-            }
-          }
-        }
-      }
       
       toast({ 
         title: 'ログインしました', 
