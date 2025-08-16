@@ -80,19 +80,8 @@ export default function ProfilePage() {
     }
   }, [currentUser, profile]);
 
-  // LINEブラウザ対応: 認証チェックを待たずに表示
-  // authLoadingが長引いても無視してページを表示
-  if (authLoading && !hasInitialized) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">読み込み中...</p>
-      </div>
-    );
-  }
-
-  // profileがなくてもデフォルト値で表示（LINEブラウザ対応）
-  // ユーザーが見えることを優先
+  // LINEブラウザ対応: 何も待たずに即座にページを表示
+  // データは非同期で取得し、取得できたら更新
 
   const age = profile?.birthDate ? calculateAge(profile.birthDate) : null;
   const displayName = profile?.username || currentUser?.displayName || 'ユーザー';

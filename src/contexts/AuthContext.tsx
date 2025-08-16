@@ -28,8 +28,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // 初期状態はtrue
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // LINEブラウザ対応: 初期状態をfalseに
+  const [hasInitialized, setHasInitialized] = useState(true); // 即座に初期化済みとする
   const { toast } = useToast();
   const router = useRouter();
 
@@ -37,14 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     
-    // LINEブラウザ対応: 2秒でタイムアウトしてページを表示
+    // LINEブラウザ対応: 500msでタイムアウトしてページを表示
     const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
+      if (mounted) {
         console.log('⏱️ Session check timeout - proceeding with page load');
         setHasInitialized(true);
         setIsLoading(false);
       }
-    }, 2000); // 2秒でタイムアウト
+    }, 500); // 0.5秒でタイムアウト
     
     // 非同期でセッション確認（UIをブロックしない）
     const checkSession = async () => {
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // LINEブラウザ対応: フェッチにもタイムアウトを設定
         const controller = new AbortController();
-        const fetchTimeout = setTimeout(() => controller.abort(), 3000); // 3秒タイムアウト
+        const fetchTimeout = setTimeout(() => controller.abort(), 1000); // 1秒タイムアウト
         
         const response = await fetch('/api/auth/session', {
           method: 'GET',
