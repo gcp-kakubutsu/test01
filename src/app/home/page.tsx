@@ -37,7 +37,7 @@ export default function HomePage() {
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true); // 初期データ取得中を表示
+  const [loadingUsers, setLoadingUsers] = useState(false); // LINEブラウザ対応: 初期値をfalseに
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -226,13 +226,16 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
+  // APIのベースURL取得（fetchGirlsFromMySQL内で使用）
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
   // MySQLからの女の子データ取得（最適化版）
   const fetchGirlsFromMySQL = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得
     console.log('[fetchGirlsFromMySQL] Starting MySQL data fetch...');
+    console.log('[fetchGirlsFromMySQL] Base URL:', baseUrl);
     
     try {
-      // const startTime = performance.now(); // 未使用のためコメントアウト
       
       // First try without area filter to ensure we get data
       const params = new URLSearchParams({
@@ -251,7 +254,13 @@ export default function HomePage() {
       
       while (retryCount <= maxRetries && !data?.girls?.length) {
         try {
-          const response = await fetch(`/api/mysql-girls-fast?${params}`);
+          const response = await fetch(`${baseUrl}/api/mysql-girls-fast?${params}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
@@ -272,7 +281,13 @@ export default function HomePage() {
             // apiUsed = 'regular';
             
             try {
-              const response = await fetch(`/api/girls?limit=200&offset=0`);
+              const response = await fetch(`${baseUrl}/api/girls?limit=200&offset=0`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+              });
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status} from regular API`);
               }
@@ -334,7 +349,13 @@ export default function HomePage() {
       } else {
         // Try once more without any filters as last resort
         try {
-          const lastResortResponse = await fetch('/api/mysql-girls?limit=200&offset=0');
+          const lastResortResponse = await fetch(`${baseUrl}/api/mysql-girls?limit=200&offset=0`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
           if (lastResortResponse.ok) {
             const lastResortData = await lastResortResponse.json();
             if (lastResortData?.girls?.length > 0) {
@@ -392,13 +413,14 @@ export default function HomePage() {
       // LINEブラウザ対応: エラー時も既存データを保持
       // setGirlsFromDB([]);
     }
-  }, [currentUser, userLocation, userProfile]);
+  }, [currentUser, userLocation, userProfile, baseUrl]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
     console.log('[fetchUsers] Starting data fetch...');
     try {
-      // loadingUsersを設定しない - 初期値のtrueのまま
+      // LINEブラウザでも即座に表示するため、ローディングは表示しない
+      // setLoadingUsers(true); // コメントアウト
       
       if (useFirebaseData) {
         // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
@@ -435,26 +457,30 @@ export default function HomePage() {
     // LINEブラウザ対応: 即座にデータを取得
     console.log('[useEffect] Component mounted, starting data fetch...');
     
-    // 少し遅延を入れてから実行（コンポーネントの初期化を待つ）
-    const fetchTimer = setTimeout(() => {
-      console.log('[useEffect] Calling fetchUsers...');
-      fetchUsers();
-    }, 100); // 100msの遅延
+    // 即座に実行（遅延なし）
+    console.log('[useEffect] Calling fetchUsers immediately...');
+    fetchUsers().catch(error => {
+      console.error('[useEffect] Initial fetch failed:', error);
+      // エラー時も再試行
+      setTimeout(() => {
+        console.log('[useEffect] Retrying fetch after error...');
+        fetchUsers();
+      }, 1000);
+    });
     
-    // LINEブラウザ対応: 10秒経ってもデータがない場合はローディングを停止
-    const timeoutTimer = setTimeout(() => {
-      console.log('[useEffect] Timeout reached, forcing loadingUsers to false');
-      setLoadingUsers(false);
-    }, 10000); // 10秒でタイムアウト
+    // LINEブラウザ対応: 3秒後に再度試行（初回が失敗した場合のバックアップ）
+    const retryTimer = setTimeout(() => {
+      if (girlsFromDB.length === 0 && users.length === 0) {
+        console.log('[useEffect] No data yet, retrying...');
+        fetchUsers();
+      }
+    }, 3000);
     
     return () => {
-      clearTimeout(fetchTimer);
-      clearTimeout(timeoutTimer);
+      clearTimeout(retryTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 依存配列を空にして初回のみ実行
-
-  // fetchUsersをuseEffectの外で別途呼び出すため、依存関係の警告を回避
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -1024,11 +1050,16 @@ export default function HomePage() {
         </div>
       )}
       
-      {displayData.length === 0 && !searchKeyword && !loadingUsers && (
+      {displayData.length === 0 && !searchKeyword && (
         <div className="text-center py-10 text-gray-300">
-          <p className="text-xl mb-4 text-white">プロフィールを読み込んでいます...</p>
-          <Button onClick={handleReset} variant="outline">
-            <RotateCcw className="mr-2 h-4 w-4" /> プロフィールを再読み込み
+          <p className="text-xl mb-4 text-white">データを読み込み中...</p>
+          <p className="text-sm mb-4 text-gray-400">しばらくお待ちください</p>
+          <Button onClick={() => {
+            console.log('Manual reload triggered');
+            setLoadingUsers(true);
+            fetchUsers().finally(() => setLoadingUsers(false));
+          }} variant="outline">
+            <RotateCcw className="mr-2 h-4 w-4" /> 今すぐ再読み込み
           </Button>
         </div>
       )}
