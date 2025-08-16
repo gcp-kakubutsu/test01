@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChevronLeft, ChevronRight, Loader2, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -37,7 +37,7 @@ export default function HomePage() {
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true); // 初期状態をtrueに（データ取得中）
+  const [loadingUsers, setLoadingUsers] = useState(false); // LINEブラウザ対応: 絶対にfalseで開始！
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -487,16 +487,15 @@ export default function HomePage() {
   // Determine which data to display
   const displayData = useFirebaseData ? users : girlsFromDB;
   
-  // データ取得中でもページを表示（LINEブラウザ対応）
-  // データがまだない場合のみローディング表示
-  if (loadingUsers && displayData.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p>
-      </div>
-    );
-  }
+  // LINEブラウザ対応: ローディング表示を完全に削除！
+  // if (loadingUsers && displayData.length === 0) {
+  //   return (
+  //     <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
+  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  //       <p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p>
+  //     </div>
+  //   );
+  // }
   
   if (displayData.length === 0) {
     return (
