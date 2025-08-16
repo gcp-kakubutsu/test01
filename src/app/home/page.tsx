@@ -37,21 +37,27 @@ export default function HomePage() {
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(true); // 初期状態をtrueに（データ取得中）
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [checkingWelcome, setCheckingWelcome] = useState(true);
+  const [checkingWelcome, setCheckingWelcome] = useState(false); // LINEブラウザ対応: 即座にデータ取得
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
 
+  // LINEブラウザ対応: 認証チェックを遅延実行
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
+    // 3秒待ってから認証状態を確認
+    const timer = setTimeout(() => {
+      if (!isAuthenticated && !isLoading) {
+        router.push('/login');
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
   }, [isAuthenticated, isLoading, router]);
 
   // Check if user should see welcome page or onboarding (male users)
@@ -59,7 +65,13 @@ export default function HomePage() {
     let isMounted = true;
     
     const checkWelcomeStatus = async () => {
-      if (!currentUser || !userProfile || !db) {
+      // LINEブラウザ対応: データがなくても処理を続行
+      if (!db) {
+        setCheckingWelcome(false);
+        return;
+      }
+      
+      if (!currentUser || !userProfile) {
         setCheckingWelcome(false);
         return;
       }
@@ -84,7 +96,7 @@ export default function HomePage() {
         const hasSeenWelcome = welcomeDoc.exists() && welcomeDoc.data()?.hasSeenWelcome;
 
         // Check if user has completed detailed preferences
-        const malePreferences = await getMalePreferences(currentUser.uid);
+        const malePreferences = currentUser?.uid ? await getMalePreferences(currentUser.uid) : null;
         const hasCompletedPreferences = isMalePreferencesComplete(malePreferences);
 
         if (!hasSeenWelcome) {
@@ -137,7 +149,7 @@ export default function HomePage() {
       await setDoc(welcomeRef, { hasSeenWelcome: true }, { merge: true });
       setShowWelcome(false);
       // After welcome, check if onboarding is needed
-      const malePreferences = await getMalePreferences(currentUser.uid);
+      const malePreferences = currentUser?.uid ? await getMalePreferences(currentUser.uid) : null;
       const hasCompletedPreferences = isMalePreferencesComplete(malePreferences);
       if (!hasCompletedPreferences) {
         setShowOnboarding(true);
@@ -163,7 +175,7 @@ export default function HomePage() {
     
     try {
       // 設定完了状況を再確認
-      if (currentUser) {
+      if (currentUser?.uid) {
         const malePreferences = await getMalePreferences(currentUser.uid);
         const hasCompletedPreferences = isMalePreferencesComplete(malePreferences);
         
@@ -375,12 +387,14 @@ export default function HomePage() {
           }
         } catch (lastError) {
           console.error('Last resort fetch also failed:', lastError);
-          setGirlsFromDB([]);
+          // LINEブラウザ対応: エラー時も既存データを保持
+          // setGirlsFromDB([]);
         }
       }
     } catch (error) {
       console.error('Error fetching girls from MySQL:', error);
-      setGirlsFromDB([]);
+      // LINEブラウザ対応: エラー時も既存データを保持
+      // setGirlsFromDB([]);
     }
   }, [currentUser, userLocation, userProfile]);
 
@@ -419,25 +433,21 @@ export default function HomePage() {
   }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
   useEffect(() => {
-    // LINEブラウザ対応: 認証不要でデータを取得
-    // ページが表示されたらすぐにデータを取得
-    if (!checkingWelcome) {
-      // Delay fetch to allow location to be obtained first
-      const timer = setTimeout(() => {
-        fetchUsers();
-      }, 500); // 0.5秒待ってから取得
-      
-      // LINEブラウザ対応: 10秒経ってもデータがない場合はローディングを停止
-      const timeoutTimer = setTimeout(() => {
-        setLoadingUsers(false);
-      }, 10000); // 10秒でタイムアウト
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(timeoutTimer);
-      };
-    }
-  }, [checkingWelcome, fetchUsers]);
+    // LINEブラウザ対応: 即座にデータを取得
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 100); // 0.1秒後に取得開始
+    
+    // LINEブラウザ対応: 5秒経ってもデータがない場合はローディングを停止
+    const timeoutTimer = setTimeout(() => {
+      setLoadingUsers(false);
+    }, 5000); // 5秒でタイムアウト
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timeoutTimer);
+    };
+  }, [fetchUsers]); // checkingWelcomeを依存配列から除外
 
   const handleReset = async () => {
     if (!currentUser) return;

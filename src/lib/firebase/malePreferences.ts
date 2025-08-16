@@ -71,6 +71,12 @@ export const defaultMalePreferences: Partial<MalePreferences> = {
 // 男性ユーザーの詳細設定を取得
 export async function getMalePreferences(userId: string): Promise<MalePreferences | null> {
   if (!db) throw new Error('Firestore is not initialized');
+  
+  // userIdが空または無効な場合はnullを返す
+  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+    console.warn('getMalePreferences: Invalid userId provided:', userId);
+    return null;
+  }
 
   try {
     const preferencesRef = doc(db, 'malePreferences', userId);
@@ -89,6 +95,12 @@ export async function getMalePreferences(userId: string): Promise<MalePreference
 // 男性ユーザーの詳細設定を保存
 export async function saveMalePreferences(userId: string, preferences: Partial<MalePreferences>): Promise<void> {
   if (!db) throw new Error('Firestore is not initialized');
+  
+  // userIdが空または無効な場合はエラー
+  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+    console.error('saveMalePreferences: Invalid userId provided:', userId);
+    throw new Error('Invalid userId for saving preferences');
+  }
 
   try {
     console.log('Starting to save male preferences for user:', userId);
@@ -127,6 +139,12 @@ export async function saveMalePreferences(userId: string, preferences: Partial<M
 // ユーザープロフィールに設定情報を反映
 async function updateUserProfileWithPreferences(userId: string, preferences: Partial<MalePreferences>): Promise<void> {
   if (!db) return;
+  
+  // userIdが空または無効な場合は処理をスキップ
+  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+    console.warn('updateUserProfileWithPreferences: Invalid userId provided:', userId);
+    return;
+  }
 
   try {
     const userRef = doc(db, 'users', userId);

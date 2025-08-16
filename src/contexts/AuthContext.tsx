@@ -28,8 +28,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // LINEブラウザ対応: 初期状態をfalseに
-  const [hasInitialized, setHasInitialized] = useState(true); // 即座に初期化済みとする
+  const [isLoading, setIsLoading] = useState(true); // 初期状態はtrue（認証チェック中）
+  const [hasInitialized, setHasInitialized] = useState(false); // 初期化完了までfalse
   const { toast } = useToast();
   const router = useRouter();
 
