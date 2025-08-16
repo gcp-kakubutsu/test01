@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, hasInitialized } = useAuth() as any;
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -50,15 +50,10 @@ export default function HomePage() {
 
   // 認証チェック（初期化後に判定）
   useEffect(() => {
-    // セッション確認が完了していて、認証されていない場合のみリダイレクト
-    const timer = setTimeout(() => {
-      if (!isAuthenticated && !currentUser) {
-        router.push('/login');
-      }
-    }, 1000); // 1秒待つ（セッション確認のため）
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, currentUser, router]);
+    if (hasInitialized && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [hasInitialized, isAuthenticated, router]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -469,18 +464,8 @@ export default function HomePage() {
     }
   }
 
-  // 認証待ちまたは未認証の場合（最大1秒待つ）
-  const [authCheckDone, setAuthCheckDone] = useState(false);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAuthCheckDone(true);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-  
-  // 認証待ち中の表示
-  if (!authCheckDone && !isAuthenticated && !currentUser) {
+  // 認証チェック待ち
+  if (!hasInitialized) {
     return (
       <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -489,9 +474,9 @@ export default function HomePage() {
     );
   }
   
-  // 認証チェック完了後、未認証の場合はnullを返す（リダイレクトされる）
-  if (authCheckDone && !isAuthenticated && !currentUser) {
-    return null;
+  // 認証チェック完了後、未認証の場合
+  if (hasInitialized && !isAuthenticated) {
+    return null; // useEffectでリダイレクトされる
   }
 
   if ((loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {

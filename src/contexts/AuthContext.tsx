@@ -17,6 +17,7 @@ interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  hasInitialized: boolean;
   login: (data: AuthFormData) => Promise<boolean>;
   loginWithRedirect: (data: AuthFormData) => Promise<void>;
   signup: (data: AuthFormData & { username: string; birthDate?: string; gender?: string }) => Promise<boolean>;
@@ -346,8 +347,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     currentUser,
-    isAuthenticated: hasInitialized ? !!currentUser : false, // 初期化完了後のみ認証状態を判定
+    isAuthenticated: !!currentUser, // シンプルに現在のユーザーがいるかどうか
     isLoading: false, // 常にfalse（後方互換性のため残す）
+    hasInitialized, // 初期化状態を公開
     login,
     loginWithRedirect,
     signup,
