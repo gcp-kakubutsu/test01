@@ -22,11 +22,38 @@ export async function sortGirlsByPreference(
   userProfileLocation?: string | null
 ): Promise<GirlWithDetails[]> {
   try {
-    // Get user preferences
-    const preferences = await getMalePreferences(userId);
+    // Get user preferences (only if userId is valid)
+    let preferences = null;
+    if (userId && userId.trim() !== '') {
+      preferences = await getMalePreferences(userId);
+    }
     
+    // Even without preferences, we should sort by distance and ID for consistency
     if (!preferences) {
-      return girls;
+      // デフォルトソート: 距離とIDで安定したソート
+      const sortedByDefault = [...girls].sort((a, b) => {
+        // 距離でソート（位置情報がある場合）
+        if (userLocation && a.shop?.latitude && a.shop?.longitude && b.shop?.latitude && b.shop?.longitude) {
+          const distanceA = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            a.shop.latitude,
+            a.shop.longitude
+          );
+          const distanceB = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            b.shop.latitude,
+            b.shop.longitude
+          );
+          if (distanceA !== distanceB) {
+            return distanceA - distanceB;
+          }
+        }
+        // IDでソート（安定性のため）
+        return a.id - b.id;
+      });
+      return sortedByDefault;
     }
     
     // Score each girl based on preferences
@@ -253,18 +280,46 @@ export async function sortGirlsByPreference(
       };
     });
 
-    // Sort by score first, then by distance for same scores
+    // Sort by score first, then by distance, then by ID for stable sorting
     scoredGirls.sort((a, b) => {
       // まずスコアで比較
       if (b.score !== a.score) {
         return b.score - a.score;
       }
       // スコアが同じ場合は距離で比較（近い方が優先）
-      return a.distance - b.distance;
+      if (a.distance !== b.distance) {
+        return a.distance - b.distance;
+      }
+      // 距離も同じ場合はIDで比較（安定したソート順を保証）
+      return a.girl.id - b.girl.id;
     });
 
     return scoredGirls.map(sg => sg.girl);
   } catch (error) {
-    return girls;
+    console.error('Error in sortGirlsByPreference:', error);
+    // エラー時も安定したソートを返す
+    const sortedByDefault = [...girls].sort((a, b) => {
+      // 距離でソート（位置情報がある場合）
+      if (userLocation && a.shop?.latitude && a.shop?.longitude && b.shop?.latitude && b.shop?.longitude) {
+        const distanceA = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          a.shop.latitude,
+          a.shop.longitude
+        );
+        const distanceB = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          b.shop.latitude,
+          b.shop.longitude
+        );
+        if (distanceA !== distanceB) {
+          return distanceA - distanceB;
+        }
+      }
+      // IDでソート（安定性のため）
+      return a.id - b.id;
+    });
+    return sortedByDefault;
   }
 }

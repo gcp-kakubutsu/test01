@@ -6,9 +6,18 @@ import {
   onAuthStateChanged,
   signInWithCustomToken
 } from 'firebase/auth';
-import { getFirestore, type Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  type Firestore, 
+  connectFirestoreEmulator,
+  initializeFirestore,
+  memoryLocalCache,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
+import { isLineBrowser, isIndexedDBAvailable, getBrowserInfo } from '@/lib/utils/browser-detection';
 
 // Firebase設定
 const firebaseConfig = {
@@ -69,11 +78,47 @@ function initializeFirebaseServices(): void {
       }
     }
 
-    // Firestore初期化
+    // Firestore初期化（LINEブラウザ対応）
     if (app) {
       try {
-        db = getFirestore(app);
+        // 既存のFirestoreインスタンスがあるかチェック
+        try {
+          db = getFirestore(app);
+          console.log('✅ Using existing Firestore instance');
+        } catch (noExistingInstance) {
+          // 新規初期化が必要
+          const browserInfo = getBrowserInfo();
+          console.log('🌐 Browser info:', browserInfo);
+          
+          // LINEブラウザまたはIndexedDBが使えない環境の場合
+          if (browserInfo.isLine || !browserInfo.hasIndexedDB) {
+            console.log('📱 LINE browser detected - using memory cache for Firestore');
+            
+            // メモリキャッシュを使用（IndexedDBを使わない）
+            db = initializeFirestore(app, {
+              localCache: memoryLocalCache(),
+              experimentalForceLongPolling: true, // WebSocket接続の代わりにlong pollingを使用
+            });
+          } else {
+            // 通常のブラウザの場合
+            try {
+              // persistentLocalCacheを使用（IndexedDBベース）
+              db = initializeFirestore(app, {
+                localCache: persistentLocalCache({
+                  tabManager: persistentMultipleTabManager()
+                })
+              });
+            } catch (persistError: any) {
+              console.warn('⚠️ Failed to initialize with persistent cache, falling back to memory cache:', persistError);
+              // フォールバック: メモリキャッシュを使用
+              db = initializeFirestore(app, {
+                localCache: memoryLocalCache()
+              });
+            }
+          }
+        }
       } catch (error: any) {
+        console.error('❌ Firestore initialization failed:', error);
         db = undefined;
       }
     }

@@ -25,6 +25,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import '@/styles/blur.css';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import { isLineBrowser } from '@/lib/utils/browser-detection';
 
 const USERS_PER_PAGE = 20;
 
@@ -43,6 +44,8 @@ export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingWelcome, setCheckingWelcome] = useState(false); // LINEブラウザ対応: 即座にデータ取得
   const [initialFetchDone, setInitialFetchDone] = useState(false); // 初回データ取得完了フラグ
+  const [sortedGirlsCache, setSortedGirlsCache] = useState<GirlWithDetails[] | null>(null); // ソート済みデータのキャッシュ
+  const [isSorting, setIsSorting] = useState(false); // ソート処理中フラグ
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
@@ -221,7 +224,29 @@ export default function HomePage() {
 
   // 位置情報が更新されたらデータを再取得
   useEffect(() => {
-    if (userLocation && girlsFromDB.length > 0 && !loadingUsers && currentUser) {
+    // ソート中の場合はスキップ（競合を防ぐ）
+    if (isSorting) return;
+    
+    // キャッシュがある場合は再ソートのみ実行
+    if (userLocation && sortedGirlsCache && sortedGirlsCache.length > 0) {
+      const resortGirls = async () => {
+        setIsSorting(true); // ソート開始
+        try {
+          const resortedGirls = await sortGirlsByPreference(
+            sortedGirlsCache, // キャッシュされたデータを使用
+            currentUser?.uid || '',
+            userLocation,
+            userProfile?.location
+          );
+          setGirlsFromDB(resortedGirls);
+          setSortedGirlsCache(resortedGirls);
+        } finally {
+          setIsSorting(false); // ソート終了
+        }
+      };
+      resortGirls();
+    } else if (userLocation && !sortedGirlsCache && !loadingUsers) {
+      // 初回のみDBから取得
       fetchGirlsFromMySQL();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -347,15 +372,29 @@ export default function HomePage() {
         });
         
         // Sort girls by user preferences (including location preference)
-        const sortedGirls = await sortGirlsByPreference(
-          girlsWithDetails,
-          currentUser?.uid || '',
-          userLocation,
-          userProfile?.location
-        );
-        
-        setGirlsFromDB(sortedGirls);
-        console.log(`[fetchGirlsFromMySQL] Set ${sortedGirls.length} girls from MySQL`);
+        // 一度だけソートを実行（競合を防ぐ）
+        if (!isSorting) {
+          setIsSorting(true);
+          try {
+            const sortedGirls = await sortGirlsByPreference(
+              girlsWithDetails,
+              currentUser?.uid || '',
+              userLocation,
+              userProfile?.location
+            );
+            
+            setGirlsFromDB(sortedGirls);
+            setSortedGirlsCache(sortedGirls); // キャッシュに保存
+            console.log(`[fetchGirlsFromMySQL] Set ${sortedGirls.length} girls from MySQL`);
+          } finally {
+            setIsSorting(false);
+          }
+        } else {
+          // ソート中の場合はソートせずに保存
+          setGirlsFromDB(girlsWithDetails);
+          setSortedGirlsCache(girlsWithDetails);
+          console.log(`[fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls (no sort - already sorting)`);
+        }
         
       } else {
         // Try once more without any filters as last resort
@@ -405,6 +444,7 @@ export default function HomePage() {
                 userProfile?.location
               );
               setGirlsFromDB(sortedGirls);
+              setSortedGirlsCache(sortedGirls); // キャッシュに保存
               console.log(`[fetchGirlsFromMySQL] Last resort: Set ${sortedGirls.length} girls`);
             } else {
               console.log('[fetchGirlsFromMySQL] Last resort: No data available');
@@ -468,8 +508,14 @@ export default function HomePage() {
   // LINEブラウザ対応: コンポーネントマウント時に即座にデータ取得
   useEffect(() => {
     if (!initialFetchDone) {
-      console.log('[useEffect] Starting initial data fetch for LINE browser...');
+      console.log('[useEffect] Starting initial data fetch...');
       setInitialFetchDone(true);
+      
+      // ブラウザ判定
+      const isLine = isLineBrowser();
+      if (isLine) {
+        console.log('📱 LINE browser detected - using optimized fetch');
+      }
       
       // LINEブラウザ用: 直接APIを呼び出す
       const fetchDataDirectly = async () => {
@@ -485,7 +531,8 @@ export default function HomePage() {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
             },
-            // credentialsを除外してLINEブラウザでの問題を回避
+            // LINEブラウザの場合はcredentialsを除外
+            credentials: isLine ? 'omit' : 'include',
             mode: 'cors',
           });
           
@@ -523,7 +570,9 @@ export default function HomePage() {
                 };
               });
               
+              // 初回取得時はソートせずに保存（後でユーザー情報取得後にソート）
               setGirlsFromDB(girlsWithDetails);
+              setSortedGirlsCache(girlsWithDetails); // キャッシュに保存
               console.log('[useEffect] Data set successfully');
             }
           } else {
