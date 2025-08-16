@@ -79,13 +79,13 @@ export function useUserProfile(userId?: string) {
               const firebaseError = err as any;
               if (firebaseError.code === 'permission-denied' || 
                   firebaseError.message?.includes('Missing or insufficient permissions')) {
-                console.log('Permission denied - likely during logout');
+                // Silently handle permission denied during logout
                 setProfile(null);
                 setLoading(false);
                 return;
               }
               
-              console.error('Error in profile listener:', err);
+              // Silently handle profile listener errors
               setError('プロフィールの取得に失敗しました');
               setLoading(false);
             }
@@ -104,12 +104,12 @@ export function useUserProfile(userId?: string) {
         const firebaseError = err as any;
         if (firebaseError.code === 'permission-denied' || 
             firebaseError.message?.includes('Missing or insufficient permissions')) {
-          console.log('Permission denied - likely during logout');
+          // Silently handle permission denied during logout
           setProfile(null);
           setLoading(false);
           return;
         }
-        console.error('Error fetching user profile:', err);
+        // Silently handle profile fetch errors
         setError('プロフィールの取得に失敗しました');
         setLoading(false);
       });
@@ -198,7 +198,7 @@ export function useCommunities() {
           setLoading(false);
           return;
         }
-        console.error('Error fetching communities:', err);
+        // Silently handle community fetch errors
         setError('コミュニティの取得に失敗しました');
         setLoading(false);
       }
@@ -265,7 +265,7 @@ export function useMessages(matchId: string) {
           setLoading(false);
           return;
         }
-        console.error('Error fetching messages:', err);
+        // Silently handle message fetch errors
         setError('メッセージの取得に失敗しました');
         setLoading(false);
       }
@@ -302,7 +302,7 @@ export async function fetchUserProfiles(userIds: string[]): Promise<Map<string, 
           profiles.set(userId, { uid: userId, ...userDoc.data() } as UserProfile);
         }
       } catch (error) {
-        console.error(`Error fetching user ${userId}:`, error);
+        // Silently handle user fetch errors
       }
     }
   }
@@ -363,7 +363,7 @@ export function useMatches() {
           setLoading(false);
           return;
         }
-        console.error('Error fetching matches:', err);
+        // Silently handle match fetch errors
         setError('マッチの取得に失敗しました');
         setLoading(false);
       }
@@ -416,7 +416,7 @@ export function useUserStats(userId?: string) {
             // User might have logged out, ignore this error
             return;
           }
-          console.error('Error listening to profile views:', error);
+          // Silently handle profile view errors
         });
 
         // Get likes received (one-time fetch for now)
@@ -441,7 +441,7 @@ export function useUserStats(userId?: string) {
           unsubscribeViews();
         };
       } catch (err) {
-        console.error('Error fetching user stats:', err);
+        // Silently handle stats fetch errors
         setError('統計情報の取得に失敗しました');
         setLoading(false);
       }

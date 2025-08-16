@@ -18,8 +18,8 @@ export function handleFirebaseError(error: any, context?: string): void {
     return;
   }
 
-  // Log other errors normally
-  console.error(`Firebase error${context ? ` in ${context}` : ''}:`, error);
+  // Silent handling for other errors - don't log to console
+  // Errors are handled by the calling code
 }
 
 /**
@@ -43,7 +43,7 @@ export async function safeFirestoreOperation<T>(
     return await operation();
   } catch (error) {
     if (isPermissionError(error)) {
-      console.log(`Permission denied${context ? ` in ${context}` : ''} - returning fallback`);
+      // Silently return fallback for permission errors
       return fallback;
     }
     // Re-throw non-permission errors

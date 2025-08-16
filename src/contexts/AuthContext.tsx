@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false); // 常にfalse - 廃止予定
-  const [hasCheckedSession, setHasCheckedSession] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -59,22 +59,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('❌ No valid session');
           setCurrentUser(null);
         }
-        
-        setHasCheckedSession(true);
       } catch (error: any) {
         if (!mounted) return;
         console.error('❌ Session check failed:', error);
         setCurrentUser(null);
-        setHasCheckedSession(true);
+      } finally {
+        if (mounted) {
+          setHasInitialized(true);
+        }
       }
     };
     
     // 初回のみセッションチェック
-    checkSession();
+    if (!hasInitialized) {
+      checkSession();
+    }
     
     // 定期的にセッションをチェック（5分ごと）
     const interval = setInterval(() => {
-      if (mounted) checkSession();
+      if (mounted && hasInitialized) {
+        checkSession();
+      }
     }, 5 * 60 * 1000);
     
     return () => {
@@ -85,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Firebase Auth同期（currentUserが設定された後）
   useEffect(() => {
-    if (!currentUser || !hasCheckedSession) return;
+    if (!currentUser || !hasInitialized) return;
     
     let mounted = true;
     
@@ -128,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       clearTimeout(timer);
     };
-  }, [currentUser?.uid, hasCheckedSession]); // currentUser.uidの変更時のみ実行
+  }, [currentUser?.uid]); // currentUser.uidの変更時のみ実行
 
   // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {
@@ -149,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('❌ Login failed:', result.error);
+        // エラーログを出さずにトーストのみ表示
         toast({ 
           title: 'ログインエラー', 
           description: result.error || 'ログインに失敗しました', 
@@ -205,8 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
       
     } catch (error: any) {
-      console.error('❌ Login error:', error);
-      
+      // ネットワークエラーの場合もコンソールエラーを出さない
       toast({ 
         title: 'ログインエラー', 
         description: 'ネットワークエラーが発生しました。インターネット接続を確認してください。', 
@@ -243,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('❌ Signup failed:', result.error);
+        // エラーログを出さずにトーストのみ表示
         toast({ 
           title: '登録エラー', 
           description: result.error || '登録に失敗しました', 
@@ -267,8 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
       
     } catch (error: any) {
-      console.error('❌ Signup error:', error);
-      
+      // ネットワークエラーの場合もコンソールエラーを出さない
       toast({ 
         title: '登録エラー', 
         description: 'ネットワークエラーが発生しました。', 
@@ -295,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error('❌ Logout failed:', result.error);
+        // エラーログを出さずにトーストのみ表示
         toast({ 
           title: 'ログアウトエラー', 
           description: result.error || 'ログアウトに失敗しました', 
@@ -330,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
       
     } catch (error: any) {
-      console.error('❌ Logout error:', error);
+      // ネットワークエラーの場合もコンソールエラーを出さない
       toast({ 
         title: 'ログアウトエラー', 
         description: 'ログアウトに失敗しました。', 
@@ -343,7 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     currentUser,
-    isAuthenticated: !!currentUser, // isLoadingを削除
+    isAuthenticated: hasInitialized ? !!currentUser : false, // 初期化完了後のみ認証状態を判定
     isLoading: false, // 常にfalse（後方互換性のため残す）
     login,
     loginWithRedirect,

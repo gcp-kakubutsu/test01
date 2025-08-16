@@ -30,13 +30,19 @@ export default function MemosPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const [authCheckDone, setAuthCheckDone] = useState(false);
 
-  // 認証チェック
+  // 認証チェック（初期化後に判定）
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    const timer = setTimeout(() => {
+      setAuthCheckDone(true);
+      if (!isAuthenticated && !currentUser) {
+        router.push('/login');
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, currentUser, router]);
   const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
@@ -71,8 +77,18 @@ export default function MemosPage() {
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  // 認証前は何も表示しない
-  if (!isAuthenticated) {
+  // 認証待ち中の表示
+  if (!authCheckDone && !isAuthenticated && !currentUser) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
+  }
+  
+  // 認証チェック完了後、未認証の場合
+  if (authCheckDone && !isAuthenticated && !currentUser) {
     return null;
   }
 

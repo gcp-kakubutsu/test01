@@ -39,8 +39,6 @@ function initializeFirebaseServices(): void {
   if (initialized) return;
   
   try {
-    console.log('🔥 Firebase initialization starting...');
-    
     // 設定値の検証
     const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'];
     const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
@@ -52,26 +50,21 @@ function initializeFirebaseServices(): void {
     // Firebaseアプリの初期化
     const existingApps = getApps();
     if (existingApps.length > 0) {
-      console.log('✅ Using existing Firebase app');
       app = existingApps[0];
     } else {
-      console.log('🚀 Initializing new Firebase app');
       app = initializeApp(firebaseConfig);
-      console.log('✅ Firebase app initialized');
     }
 
     // Auth初期化
     if (app) {
       try {
         auth = getAuth(app);
-        console.log('✅ Auth initialized');
         
         // セッションから認証状態を復元
         if (typeof window !== 'undefined') {
           restoreAuthFromSession();
         }
       } catch (error: any) {
-        console.error('❌ Auth initialization failed:', error);
         auth = undefined;
       }
     }
@@ -80,9 +73,7 @@ function initializeFirebaseServices(): void {
     if (app) {
       try {
         db = getFirestore(app);
-        console.log('✅ Firestore initialized');
       } catch (error: any) {
-        console.error('❌ Firestore initialization failed:', error);
         db = undefined;
       }
     }
@@ -91,9 +82,7 @@ function initializeFirebaseServices(): void {
     if (app) {
       try {
         storage = getStorage(app);
-        console.log('✅ Storage initialized');
       } catch (error: any) {
-        console.error('❌ Storage initialization failed:', error);
         storage = undefined;
       }
     }
@@ -102,18 +91,15 @@ function initializeFirebaseServices(): void {
     if (app) {
       try {
         functions = getFunctions(app);
-        console.log('✅ Functions initialized');
       } catch (error: any) {
-        console.error('❌ Functions initialization failed:', error);
         functions = undefined;
       }
     }
 
     initialized = true;
-    console.log('🎉 Firebase initialization completed');
     
   } catch (error: any) {
-    console.error('💥 Firebase initialization failed:', error);
+    // Silently handle initialization errors
     initializationError = error;
     initialized = true; // エラーでも初期化済みとマーク
   }
@@ -141,7 +127,7 @@ function restoreAuthFromSession() {
         }
       }
     } catch (error) {
-      console.warn('⚠️ Could not restore auth state:', error);
+      // Silently handle auth restoration errors
     }
   }, 100);
 }
