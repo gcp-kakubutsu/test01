@@ -23,7 +23,7 @@ import { db, functions, storage } from '@/lib/firebase/client';
 import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeCommunityCollections } from '@/lib/firebase/init-community';
-import { useSubscription } from '@/hooks/useSubscription';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { getPremiumMessage } from '@/config/premium-messages';
 import { useUserProfile } from '@/lib/firebase/hooks';
@@ -96,8 +96,7 @@ export default function CommunityPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
-  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+  const { isPremium, loading: subscriptionLoading, isLineBrowser } = usePremiumStatus();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');

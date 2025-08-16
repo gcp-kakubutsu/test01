@@ -24,7 +24,7 @@ import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 import { sendLike, recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useSubscription } from '@/hooks/useSubscription';
+import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 
 interface UserProfilePageProps {
   params: Promise<{ id: string }>;
@@ -34,7 +34,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { isPremium, loading: subscriptionLoading, isLineBrowser } = usePremiumStatus();
   const [userId, setUserId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [isProcessingLike, setIsProcessingLike] = useState(false);

@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location'
 import { getLocationCoordinates } from '@/lib/utils/japanLocations'
 import { useUserProfile } from '@/lib/firebase/hooks'
-import { useSubscription } from '@/hooks/useSubscription'
+import { usePremiumStatus } from '@/hooks/usePremiumStatus'
 import Image from 'next/image'
 import styles from './search.module.scss'
 import './search-dialog.css'
@@ -105,7 +105,7 @@ function AdvancedSearchContent() {
   const searchParams = useSearchParams()
   const { isAuthenticated, currentUser } = useAuth()
   const { profile: userProfile } = useUserProfile()
-  const { isPremium, loading: subscriptionLoading } = useSubscription()
+  const { isPremium, loading: subscriptionLoading, isLineBrowser } = usePremiumStatus()
   const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   
@@ -997,7 +997,7 @@ function AdvancedSearchContent() {
     }
 
     // 有料会員チェック - subscriptionLoadingが完了してからチェック
-    if (!subscriptionLoading && !isPremium) {
+    if (!subscriptionLoading && !isPremium && !isLineBrowser) {
       toast({
         title: '有料会員限定',
         description: 'いいねを送るには有料会員登録が必要です',
@@ -1107,7 +1107,7 @@ function AdvancedSearchContent() {
       return
     }
 
-    if (!isPremium) {
+    if (!isPremium && !isLineBrowser) {
       toast({
         title: 'プレミアム会員限定',
         description: 'メモ機能は有料会員のみ利用可能です',
@@ -1725,9 +1725,9 @@ function AdvancedSearchContent() {
                 className={styles.profileImage}
                 onClick={() => {
                   // 有料ユーザーかつMySQLの女の子データの場合のみ詳細ページへ遷移
-                  if (isPremium && user.isGirlProfile) {
+                  if ((isPremium || isLineBrowser) && user.isGirlProfile) {
                     router.push(`/girl/${user.id}`)
-                  } else if (!isPremium) {
+                  } else if (!isPremium && !isLineBrowser) {
                     toast({
                       title: '有料会員限定',
                       description: 'プロフィール詳細を見るには有料会員登録が必要です',
@@ -1751,18 +1751,18 @@ function AdvancedSearchContent() {
                   fill
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   className={viewMode === 'list' ? "object-contain" : "object-cover"}
-                  style={!subscriptionLoading && !isPremium ? { filter: 'blur(8px)' } : {}}
+                  style={!subscriptionLoading && !isPremium && !isLineBrowser ? { filter: 'blur(8px)' } : {}}
                 />
-                {!subscriptionLoading && !isPremium && <div className={styles.profileBlur} />}
+                {!subscriptionLoading && !isPremium && !isLineBrowser && <div className={styles.profileBlur} />}
               </div>
               <CardContent className={styles.profileInfo}>
                 <h3 
                   className={styles.profileName}
                   onClick={() => {
                     // 有料ユーザーかつMySQLの女の子データの場合のみ詳細ページへ遷移
-                    if (isPremium && user.isGirlProfile) {
+                    if ((isPremium || isLineBrowser) && user.isGirlProfile) {
                       router.push(`/girl/${user.id}`)
-                    } else if (!isPremium) {
+                    } else if (!isPremium && !isLineBrowser) {
                       toast({
                         title: '有料会員限定',
                         description: 'プロフィール詳細を見るには有料会員登録が必要です',
