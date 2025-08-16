@@ -27,7 +27,7 @@ import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 export default function GirlProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { isPremium } = useSubscription();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,7 +215,7 @@ export default function GirlProfilePage() {
           <h1 className="text-xl font-bold">プロフィール</h1>
         </div>
           
-          {!isPremium ? (
+          {!isPremium && !subscriptionLoading ? (
             <PremiumOnlyCard 
               title={getPremiumMessage('profile').title}
               description={getPremiumMessage('profile').description}

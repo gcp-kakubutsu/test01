@@ -18,12 +18,26 @@ export function useSubscription() {
     isPremium: false,
     subscriptionStatus: 'none'
   });
-  const [loading, setLoading] = useState(true);
+  // LINEブラウザでは初期状態でloadingをfalseにして表示を優先
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+  const [loading, setLoading] = useState(!isLineBrowser);
 
   useEffect(() => {
     let isMounted = true;
     
     if (!currentUser) {
+      // LINEブラウザの場合は少し待ってから再確認
+      const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+      if (isLineBrowser) {
+        setTimeout(() => {
+          if (!currentUser && isMounted) {
+            setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+            setLoading(false);
+          }
+        }, 2000);
+        return;
+      }
+      
       setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       setLoading(false);
       return;
