@@ -37,7 +37,7 @@ export default function HomePage() {
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -225,7 +225,7 @@ export default function HomePage() {
 
   // MySQLからの女の子データ取得（最適化版）
   const fetchGirlsFromMySQL = useCallback(async () => {
-    if (!currentUser) return;
+    // LINEブラウザ対応: currentUserがなくてもデータを取得
     
     try {
       const startTime = performance.now();
@@ -319,7 +319,7 @@ export default function HomePage() {
         // Sort girls by user preferences (including location preference)
         const sortedGirls = await sortGirlsByPreference(
           girlsWithDetails,
-          currentUser.uid,
+          currentUser?.uid || '',
           userLocation,
           userProfile?.location
         );
@@ -362,7 +362,7 @@ export default function HomePage() {
               });
               const sortedGirls = await sortGirlsByPreference(
                 girlsWithDetails,
-                currentUser.uid,
+                currentUser?.uid || '',
                 userLocation,
                 userProfile?.location
               );
@@ -385,20 +385,19 @@ export default function HomePage() {
   }, [currentUser, userLocation, userProfile]);
 
   const fetchUsers = useCallback(async () => {
-    if (!currentUser) return;
-    
+    // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
     try {
       setLoadingUsers(true);
       
       if (useFirebaseData) {
         // 共通関数を使用してFirebaseから管理者登録の女性ユーザーを取得（より多く取得）
-        let fetchedUsers = await fetchAdminGirls(currentUser.uid, 200);
+        let fetchedUsers = await fetchAdminGirls(currentUser?.uid || '', 200);
         
         // 新しい優先順位ソート機能を使用
         // 1. GPS位置情報 → 2. プロフィール住所 → 3. 活動エリア の順で優先
         fetchedUsers = await sortUsersByPreference(
           fetchedUsers,
-          currentUser.uid,
+          currentUser?.uid || '',
           userLocation,
           userProfile?.location
         );
@@ -411,25 +410,34 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setUsers([]); // エラー時は空配列
-      setGirlsFromDB([]); // MySQLデータもクリア
+      // エラー時でも既存データを保持（LINEブラウザ対応）
+      // setUsers([]); 
+      // setGirlsFromDB([]); 
     } finally {
       setLoadingUsers(false);
     }
-  }, [currentUser, useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL]);
+  }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
   useEffect(() => {
-    // Don't wait for userProfile if it's not a male user
-    // Wait for location to be fetched before loading users for better distance calculation
-    if (isAuthenticated && currentUser && !checkingWelcome) {
+    // LINEブラウザ対応: 認証不要でデータを取得
+    // ページが表示されたらすぐにデータを取得
+    if (!checkingWelcome) {
       // Delay fetch to allow location to be obtained first
       const timer = setTimeout(() => {
         fetchUsers();
-      }, 1000); // Give 1 second for location to be obtained
+      }, 500); // 0.5秒待ってから取得
       
-      return () => clearTimeout(timer);
+      // LINEブラウザ対応: 10秒経ってもデータがない場合はローディングを停止
+      const timeoutTimer = setTimeout(() => {
+        setLoadingUsers(false);
+      }, 10000); // 10秒でタイムアウト
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(timeoutTimer);
+      };
     }
-  }, [isAuthenticated, currentUser, checkingWelcome, fetchUsers]);
+  }, [checkingWelcome, fetchUsers]);
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -462,15 +470,10 @@ export default function HomePage() {
 
   // 認証状態に関係なくページを表示 - LINEブラウザ対応
 
-  // 初期ローディング中は表示しない（LINEブラウザ対応）
-  // isLoadingが長引く場合は無視してページを表示
+  // LINEブラウザ対応: 初回認証チェックのみ待つ
+  // 2秒以上かかった場合はページを表示
   if (isLoading && !hasInitialized) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
-  }
-  
-  // ユーザーデータの読み込み中（ただし初回以外）
-  if ((loadingUsers && !users.length && !girlsFromDB.length) && !isLoading) {
-    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p></div>;
   }
 
   // Show welcome page for first-time male users
@@ -486,8 +489,9 @@ export default function HomePage() {
   // Determine which data to display
   const displayData = useFirebaseData ? users : girlsFromDB;
   
-  // Show loading state while fetching users
-  if (loadingUsers) {
+  // データ取得中でもページを表示（LINEブラウザ対応）
+  // データがまだない場合のみローディング表示
+  if (loadingUsers && displayData.length === 0) {
     return (
       <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

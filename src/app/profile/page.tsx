@@ -28,7 +28,7 @@ import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePre
 
 
 export default function ProfilePage() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isLoading: authLoading, hasInitialized } = useAuth();
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
@@ -80,7 +80,9 @@ export default function ProfilePage() {
     }
   }, [currentUser, profile]);
 
-  if (profileLoading) {
+  // LINEブラウザ対応: 認証チェックを待たずに表示
+  // authLoadingが長引いても無視してページを表示
+  if (authLoading && !hasInitialized) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -89,21 +91,16 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p>プロフィールを読み込み中...</p>
-      </div>
-    );
-  }
+  // profileがなくてもデフォルト値で表示（LINEブラウザ対応）
+  // ユーザーが見えることを優先
 
-  const age = profile.birthDate ? calculateAge(profile.birthDate) : null;
-  const displayName = profile.username || 'ユーザー';
-  const location = profile.location || '未設定';
-  const occupation = profile.occupation || '未設定';
-  const bio = profile.bio || 'まだ自己紹介がありません';
-  const interests = profile.interests || [];
-  const profilePhoto = profile.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
+  const age = profile?.birthDate ? calculateAge(profile.birthDate) : null;
+  const displayName = profile?.username || currentUser?.displayName || 'ユーザー';
+  const location = profile?.location || '未設定';
+  const occupation = profile?.occupation || '未設定';
+  const bio = profile?.bio || 'まだ自己紹介がありません';
+  const interests = profile?.interests || [];
+  const profilePhoto = profile?.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
@@ -150,7 +147,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mb-2">
                 <h1 className="text-2xl sm:text-3xl font-bold">{displayName}</h1>
                 {age && <span className="text-xl sm:text-2xl">{age}歳</span>}
-                {profile.accountStatus === 'verified' && (
+                {profile?.accountStatus === 'verified' && (
                   <Badge className="bg-blue-500/80 backdrop-blur-sm">
                     <Shield className="h-3 w-3 mr-1" />
                     認証済み
@@ -169,11 +166,11 @@ export default function ProfilePage() {
                 </span>
               </div>
               
-              {profile.gender && (
+              {profile?.gender && (
                 <div>
                   <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                    {profile.gender === 'male' ? '男性' : 
-                     profile.gender === 'female' ? '女性' : 'その他'}
+                    {profile?.gender === 'male' ? '男性' : 
+                     profile?.gender === 'female' ? '女性' : 'その他'}
                   </Badge>
                 </div>
               )}
@@ -216,7 +213,7 @@ export default function ProfilePage() {
                 ) : statsError ? (
                   '-'
                 ) : (
-                  stats.likesReceived
+                  stats?.likesReceived || 0
                 )}
               </p>
               <p className="text-xs text-gray-600">いいね</p>
@@ -229,7 +226,7 @@ export default function ProfilePage() {
                 ) : statsError ? (
                   '-'
                 ) : (
-                  stats.matchesCount
+                  stats?.matchesCount || 0
                 )}
               </p>
               <p className="text-xs text-gray-600">マッチ</p>
@@ -242,7 +239,7 @@ export default function ProfilePage() {
                 ) : statsError ? (
                   '-'
                 ) : (
-                  stats.profileViews
+                  stats?.profileViews || 0
                 )}
               </p>
               <p className="text-xs text-gray-600">閲覧数</p>
