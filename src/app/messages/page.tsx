@@ -27,16 +27,33 @@ interface MemoDisplay {
 }
 
 export default function MemosPage() {
-  const { isAuthenticated, currentUser, hasInitialized } = useAuth() as any;
+  const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const [showContent, setShowContent] = useState(false);
 
-  // 認証チェック（初期化後に判定）
+  // 認証チェック
   useEffect(() => {
-    if (hasInitialized && !isAuthenticated) {
-      router.push('/login');
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.push('/login');
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, router]);
+  
+  // コンテンツ表示タイミング
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowContent(true);
+    } else {
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [hasInitialized, isAuthenticated, router]);
+  }, [isAuthenticated]);
   const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
@@ -71,19 +88,14 @@ export default function MemosPage() {
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  // 認証チェック待ち
-  if (!hasInitialized) {
+  // コンテンツ表示前
+  if (!showContent) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2">読み込み中...</p>
       </div>
     );
-  }
-  
-  // 認証チェック完了後、未認証の場合
-  if (hasInitialized && !isAuthenticated) {
-    return null;
   }
 
   if (memosLoading || subscriptionLoading) {

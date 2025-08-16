@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       
       try {
-        console.log('🔐 Initial session check...');
+        console.log('🔐 Session check...');
         
         const response = await fetch('/api/auth/session', {
           method: 'GET',
@@ -71,14 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // 初回のみセッションチェック
-    if (!hasInitialized) {
-      checkSession();
-    }
+    // 初回実行
+    checkSession();
     
     // 定期的にセッションをチェック（5分ごと）
     const interval = setInterval(() => {
-      if (mounted && hasInitialized) {
+      if (mounted) {
         checkSession();
       }
     }, 5 * 60 * 1000);
