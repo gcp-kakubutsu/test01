@@ -42,6 +42,7 @@ export default function HomePage() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingWelcome, setCheckingWelcome] = useState(false); // LINEブラウザ対応: 即座にデータ取得
+  const [initialFetchDone, setInitialFetchDone] = useState(false); // 初回データ取得完了フラグ
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
@@ -234,6 +235,7 @@ export default function HomePage() {
     // LINEブラウザ対応: currentUserがなくてもデータを取得
     console.log('[fetchGirlsFromMySQL] Starting MySQL data fetch...');
     console.log('[fetchGirlsFromMySQL] Base URL:', baseUrl);
+    console.log('[fetchGirlsFromMySQL] User agent:', typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown');
     
     try {
       
@@ -254,14 +256,23 @@ export default function HomePage() {
       
       while (retryCount <= maxRetries && !data?.girls?.length) {
         try {
-          const response = await fetch(`${baseUrl}/api/mysql-girls-fast?${params}`, {
+          const apiUrl = `${baseUrl}/api/mysql-girls-fast?${params}`;
+          console.log(`[fetchGirlsFromMySQL] Attempt ${retryCount + 1}: ${apiUrl}`);
+          
+          const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
+              'Accept': 'application/json',
               'Content-Type': 'application/json',
             },
-            credentials: 'include',
+            // LINEブラウザでのcredentials問題を回避
+            credentials: typeof window !== 'undefined' && window.navigator.userAgent.includes('Line') ? 'omit' : 'include',
+            mode: 'cors',
           });
+          console.log(`[fetchGirlsFromMySQL] Response status: ${response.status}`);
+          
           if (!response.ok) {
+            console.error(`[fetchGirlsFromMySQL] API error: ${response.status}`);
             throw new Error(`HTTP ${response.status}`);
           }
           const responseData = await response.json();
@@ -454,34 +465,90 @@ export default function HomePage() {
     }
   }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
+  // LINEブラウザ対応: コンポーネントマウント時に即座にデータ取得
   useEffect(() => {
-    // LINEブラウザ対応: 即座にデータを取得
-    console.log('[useEffect] Component mounted, starting data fetch...');
-    
-    // 即座に実行（遅延なし）
-    console.log('[useEffect] Calling fetchUsers immediately...');
-    fetchUsers().catch(error => {
-      console.error('[useEffect] Initial fetch failed:', error);
-      // エラー時も再試行
+    if (!initialFetchDone) {
+      console.log('[useEffect] Starting initial data fetch for LINE browser...');
+      setInitialFetchDone(true);
+      
+      // LINEブラウザ用: 直接APIを呼び出す
+      const fetchDataDirectly = async () => {
+        try {
+          const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nukune.com';
+          const apiUrl = `${origin}/api/mysql-girls-fast?limit=200&offset=0`;
+          
+          console.log('[useEffect] Direct API call to:', apiUrl);
+          
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            // credentialsを除外してLINEブラウザでの問題を回避
+            mode: 'cors',
+          });
+          
+          console.log('[useEffect] API response status:', response.status);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.girls && Array.isArray(data.girls)) {
+              console.log(`[useEffect] Got ${data.girls.length} girls directly`);
+              
+              // 直接データを設定
+              const girlsWithDetails = data.girls.map((girl: any) => {
+                let shop = girl.shop || {
+                  id: girl.shopId,
+                  name: girl.shopName,
+                  latitude: girl.latitude,
+                  longitude: girl.longitude
+                };
+                
+                if ((!shop.latitude || !shop.longitude) && girl.location) {
+                  const coords = getLocationCoordinates(girl.location);
+                  if (coords) {
+                    shop = {
+                      ...shop,
+                      latitude: coords.lat,
+                      longitude: coords.lng
+                    };
+                  }
+                }
+                
+                return {
+                  ...girl,
+                  id: parseInt(girl.id),
+                  shop
+                };
+              });
+              
+              setGirlsFromDB(girlsWithDetails);
+              console.log('[useEffect] Data set successfully');
+            }
+          } else {
+            throw new Error(`API returned ${response.status}`);
+          }
+        } catch (error) {
+          console.error('[useEffect] Direct API call failed:', error);
+          // フォールバック: fetchUsersを試す
+          fetchUsers();
+        }
+      };
+      
+      // 即座に実行
+      fetchDataDirectly();
+      
+      // 2秒後に再試行
       setTimeout(() => {
-        console.log('[useEffect] Retrying fetch after error...');
-        fetchUsers();
-      }, 1000);
-    });
-    
-    // LINEブラウザ対応: 3秒後に再度試行（初回が失敗した場合のバックアップ）
-    const retryTimer = setTimeout(() => {
-      if (girlsFromDB.length === 0 && users.length === 0) {
-        console.log('[useEffect] No data yet, retrying...');
-        fetchUsers();
-      }
-    }, 3000);
-    
-    return () => {
-      clearTimeout(retryTimer);
-    };
+        if (girlsFromDB.length === 0) {
+          console.log('[useEffect] Retrying after 2 seconds...');
+          fetchDataDirectly();
+        }
+      }, 2000);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 依存配列を空にして初回のみ実行
+  }, []); // 初回のみ実行
 
   const handleReset = async () => {
     if (!currentUser) return;
