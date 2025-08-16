@@ -27,18 +27,25 @@ interface MemoDisplay {
 }
 
 export default function MemosPage() {
-  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
   const router = useRouter();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+
+  // 認証チェック - 有料会員チェックで判定
+  useEffect(() => {
+    // 認証されていない場合は3秒待ってからリダイレクト
+    if (!subscriptionLoading && !currentUser) {
+      const timer = setTimeout(() => {
+        if (!currentUser) {
+          router.push('/login');
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser, subscriptionLoading, router]);
   const { memos, loading: memosLoading } = useMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
   
   // Check premium status
   useEffect(() => {
@@ -65,18 +72,33 @@ export default function MemosPage() {
     setMemoDisplays(displays);
   }, [memos, memosLoading]);
 
-  if (authLoading || memosLoading || subscriptionLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
-  }
-
   const filteredMemos = memoDisplays.filter(memo =>
     memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // データ取得中の表示
+
+  // 初期ローディング中は表示しない
+  // isLoadingが長引く場合は無視してページを表示
+  if (isLoading && !hasInitialized) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // データ読み込み中（ただし初回以外）
+  if ((memosLoading || subscriptionLoading) && !isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto py-8">

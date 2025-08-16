@@ -7,14 +7,13 @@ export function handleFirebaseError(error: any, context?: string): void {
   // Check if it's a permission error
   if (error?.code === 'permission-denied' || 
       error?.message?.includes('Missing or insufficient permissions')) {
-    // Log quietly - this is expected during logout
-    console.log(`Permission denied${context ? ` in ${context}` : ''} - likely during logout or auth transition`);
+    // Completely silent - this is expected during logout or auth transition
     return;
   }
 
   // Check for other auth-related errors
   if (error?.code?.startsWith('auth/')) {
-    console.log(`Auth error${context ? ` in ${context}` : ''}: ${error.code}`);
+    // Silent for auth errors too
     return;
   }
 

@@ -41,7 +41,7 @@ interface Like {
 }
 
 export default function MatchesPage() {
-  const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { matches, loading: matchesLoading } = useMatches();
@@ -54,16 +54,20 @@ export default function MatchesPage() {
   const [processingLikes, setProcessingLikes] = useState<Set<string>>(new Set());
   const [likedBackUsers, setLikedBackUsers] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   // Load matches and likes
   useEffect(() => {
     const loadMatchesAndLikes = async () => {
-      if (!currentUser || !db) return;
+      // 認証されていない場合はデータを取得しない
+      if (!currentUser || !db) {
+        // 3秒待っても認証されない場合はログインページへ
+        setTimeout(() => {
+          if (!currentUser) {
+            router.push('/login');
+          }
+        }, 3000);
+        return;
+      }
       
       setIsLoadingData(true);
       
@@ -281,12 +285,27 @@ export default function MatchesPage() {
     loadMatchesAndLikes();
   }, [matches, matchesLoading, currentUser]);
 
-  if (authLoading || isLoadingData) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">読み込み中...</p></div>;
+  // データ取得中の表示（認証状態に関係なく表示）
+
+  // 初期ローディング中は表示しない
+  // isLoadingが長引く場合は無視してページを表示
+  if (isLoading && !hasInitialized) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
   }
-  
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-screen"><p>ログインページへリダイレクト中...</p></div>;
+
+  // データ読み込み中（ただし初回以外）
+  if (isLoadingData && !isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">読み込み中...</p>
+      </div>
+    );
   }
 
   const formatDate = (date: Date) => {

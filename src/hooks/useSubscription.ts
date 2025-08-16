@@ -35,7 +35,7 @@ export function useSubscription() {
         
         // Check if component is still mounted and db is initialized
         if (!isMounted || !db) {
-          console.log('Component unmounted or Firestore not initialized');
+          // Component unmounted or Firestore not initialized (silent)
           return;
         }
         
@@ -45,7 +45,7 @@ export function useSubscription() {
         // ストレージからユーザーIDを取得
         const userId = currentUser?.uid || getStoredUserId();
         if (!userId) {
-          console.log('No user ID available');
+          // No user ID available (silent)
           setSubscription({ isPremium: false, subscriptionStatus: 'none' });
           setLoading(false);
           return;
@@ -55,7 +55,7 @@ export function useSubscription() {
         
         // Check if component is still mounted after async operation
         if (!isMounted) {
-          console.log('Component unmounted during Firestore operation');
+          // Component unmounted during Firestore operation (silent)
           return;
         }
         
@@ -76,7 +76,7 @@ export function useSubscription() {
           const endDate = userData.subscriptionEndDate.toDate();
           const isActive = endDate > new Date();
           
-          console.log('[useSubscription] User has premium with end date:', endDate, 'isActive:', isActive)
+          // User has premium with end date
           
           setSubscription({
             isPremium: isActive,
@@ -86,26 +86,24 @@ export function useSubscription() {
           });
         } else if (userData?.isPremium) {
           // isPremiumがtrueだが、subscriptionEndDateがない場合も有効とする
-          console.log('[useSubscription] Premium user without end date - treating as premium');
           setSubscription({
             isPremium: true,
             subscriptionStatus: 'active',
             subscriptionPlan: userData.subscriptionPlan
           });
         } else {
-          console.log('[useSubscription] Non-premium user. userData:', userData);
+          // Non-premium user
           setSubscription({ isPremium: false, subscriptionStatus: 'none' });
         }
       } catch (error: any) {
         // Check if component is still mounted before setting state
         if (!isMounted) {
-          console.log('Component unmounted, ignoring error');
+          // Component unmounted, ignoring error (silent)
           return;
         }
         
         if (isPermissionError(error)) {
-          // Permission denied - user might not have access yet or logged out
-          console.log('Permission denied for subscription data - treating as non-premium');
+          // Permission denied - completely silent
         } else {
           handleFirebaseError(error, 'useSubscription');
         }

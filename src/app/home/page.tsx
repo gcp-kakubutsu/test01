@@ -29,7 +29,11 @@ import { useToast } from '@/hooks/use-toast';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
+<<<<<<< HEAD
   const { isAuthenticated, isLoading, currentUser } = useAuth();
+=======
+  const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
+>>>>>>> 202c062 (エラーとか出ないように色々する)
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const router = useRouter();
@@ -102,7 +106,7 @@ export default function HomePage() {
         // Silently handle permission errors during logout
         if (error?.code === 'permission-denied' || 
             error?.message?.includes('Missing or insufficient permissions')) {
-          console.log('Permission denied in welcome check - likely during logout');
+          // Permission denied in welcome check - likely during logout (silent)
           setCheckingWelcome(false);
           return;
         }
@@ -460,6 +464,7 @@ export default function HomePage() {
     }
   }
 
+<<<<<<< HEAD
   if (isLoading || (loadingUsers && !users.length && !girlsFromDB.length) || (checkingWelcome && userProfile?.gender === 'male') || subscriptionLoading) {
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
   }
@@ -468,6 +473,19 @@ export default function HomePage() {
     // This case should ideally be handled by the redirect in useEffect,
     // but as a fallback or during transition:
     return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><p className="text-gray-900 dark:text-white">ログインページへリダイレクト中...</p></div>;
+=======
+  // 認証状態に関係なくページを表示 - LINEブラウザ対応
+
+  // 初期ローディング中は表示しない（LINEブラウザ対応）
+  // isLoadingが長引く場合は無視してページを表示
+  if (isLoading && !hasInitialized) {
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">読み込み中...</p></div>;
+  }
+  
+  // ユーザーデータの読み込み中（ただし初回以外）
+  if ((loadingUsers && !users.length && !girlsFromDB.length) && !isLoading) {
+    return <div className="flex justify-center items-center h-screen bg-white dark:bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2 text-gray-900 dark:text-white">プロフィールを読み込み中...</p></div>;
+>>>>>>> 202c062 (エラーとか出ないように色々する)
   }
 
   // Show welcome page for first-time male users
@@ -756,10 +774,10 @@ export default function HomePage() {
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium ? 'blur-image' : ''}`}
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading ? 'blur-image' : ''}`}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                {!isPremium && (
+                {!isPremium && !subscriptionLoading && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 )}
               </div>
@@ -914,8 +932,8 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // 有料会員チェック
-                      if (!isPremium) {
+                      // 有料会員チェック（subscriptionLoading中はスキップ）
+                      if (!isPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
                           description: 'いいねを送るには有料会員登録が必要です',
@@ -965,20 +983,48 @@ export default function HomePage() {
                     <Heart className="w-4 h-4" />
                     いいね
                   </Button>
-                  {isPremium && (
-                    <Button
-                      className={`flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 hover:from-yellow-600 hover:to-amber-600 transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                        viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
-                      } sm:text-sm`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/messages/${item.id}`);
-                      }}
-                    >
-                      <StickyNote className="w-4 h-4" />
-                      メモ
-                    </Button>
-                  )}
+                  <Button
+                    className={`flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 hover:from-yellow-600 hover:to-amber-600 transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                      viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
+                    } sm:text-sm`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      
+                      // ログインチェック
+                      if (!currentUser) {
+                        toast({
+                          title: 'ログインが必要です',
+                          description: 'メモを使うにはログインしてください',
+                          variant: 'destructive'
+                        });
+                        router.push('/login');
+                        return;
+                      }
+                      
+                      // 有料会員チェック（subscriptionLoading中はスキップ）
+                      if (!isPremium && !subscriptionLoading) {
+                        toast({
+                          title: '有料会員限定',
+                          description: 'メモ機能を使うには有料会員登録が必要です',
+                          action: (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push('/subscription')}
+                            >
+                              有料会員になる
+                            </Button>
+                          ),
+                        });
+                        return;
+                      }
+                      
+                      router.push(`/messages/${item.id}`);
+                    }}
+                  >
+                    <StickyNote className="w-4 h-4" />
+                    メモ
+                  </Button>
                 </div>
               </div>
             </div>

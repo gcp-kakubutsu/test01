@@ -66,7 +66,7 @@ export async function fetchAdminGirls(
     return fetchedUsers;
   } catch (error: any) {
     if (error.code === 'permission-denied') {
-      console.log('Permission denied when fetching users - returning empty array');
+      // Permission denied when fetching users - returning empty array (silent)
       return [];
     }
     console.error('Error fetching admin girls:', error);
