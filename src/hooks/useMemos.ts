@@ -58,6 +58,14 @@ export function useMemo(targetId: string) {
       try {
         console.log('[useMemo] Loading memo for:', { userId: currentUser.uid, targetId });
         setLoading(true);
+        
+        // LINEブラウザの場合は少し待機
+        const isLineBrowser = typeof window !== 'undefined' && 
+          window.navigator.userAgent.toLowerCase().includes('line');
+        if (isLineBrowser) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
         const userMemo = await getMemo(currentUser.uid, targetId);
         console.log('[useMemo] Memo loaded:', userMemo);
         setMemo(userMemo);
@@ -86,6 +94,14 @@ export function useMemo(targetId: string) {
     
     try {
       setLoading(true);
+      
+      // LINEブラウザの場合は少し待機
+      const isLineBrowser = typeof window !== 'undefined' && 
+        window.navigator.userAgent.toLowerCase().includes('line');
+      if (isLineBrowser) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       const userMemo = await getMemo(currentUser.uid, targetId);
       setMemo(userMemo);
       setError(null);

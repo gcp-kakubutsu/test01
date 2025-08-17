@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Next.jsのキャッシュを無効化
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
@@ -68,13 +72,14 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production';
     
     // LINEブラウザを含むすべてのブラウザで動作するよう設定
-    // sameSiteをlaxに設定してLINEブラウザでも動作するように
+    // 本番環境でもsameSiteをlaxに設定してLINEブラウザでも動作するように
     cookieStore.set('session', data.idToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax', // LINEブラウザでも動作するようlaxに統一
       maxAge: parseInt(data.expiresIn) || 3600, // expiresInの値を使用（デフォルト1時間）
       path: '/',
+      priority: 'high' as const, // 優先度を高に設定
     });
 
     // Firestoreにユーザーデータが存在するか確認し、ない場合は作成

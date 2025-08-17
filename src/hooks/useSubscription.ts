@@ -54,7 +54,12 @@ export function useSubscription() {
           const response = await fetch('/api/subscription/check', {
             method: 'GET',
             credentials: 'include',
-            headers,
+            headers: {
+              ...headers,
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
+            cache: 'no-store',
           });
           
           if (response.ok) {
@@ -91,12 +96,19 @@ export function useSubscription() {
       // 即座に実行
       fetchSubscriptionForLine();
       
-      // 1秒後に再チェック（保険）
+      // 2秒後に再チェック（保険）
       setTimeout(() => {
         if (isMounted) {
           fetchSubscriptionForLine();
         }
-      }, 1000);
+      }, 2000);
+      
+      // 5秒後にもう一度チェック（キャッシュ対策）
+      setTimeout(() => {
+        if (isMounted) {
+          fetchSubscriptionForLine();
+        }
+      }, 5000);
       
       return () => {
         isMounted = false;

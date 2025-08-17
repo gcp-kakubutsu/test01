@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getAdminAuth, getAdminFirestore, isAdminInitialized } from '@/lib/firebase/admin';
 
+// Next.jsのキャッシュを無効化
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // セッションベースで有料会員状態をチェック（LINEブラウザ対応）
 export async function GET() {
   try {
@@ -15,6 +19,12 @@ export async function GET() {
         isPremium: false, 
         subscriptionStatus: 'none',
         error: 'No session'
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -25,6 +35,12 @@ export async function GET() {
         isPremium: false, 
         subscriptionStatus: 'none',
         error: 'Admin SDK not initialized'
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -69,6 +85,12 @@ export async function GET() {
             userId: decodedClaims.uid,
             email: decodedClaims.email
           }
+        }, {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
         });
       }
       
@@ -111,6 +133,12 @@ export async function GET() {
         subscriptionEndDate,
         userId: decodedClaims.uid,
         email: decodedClaims.email
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
       
     } catch (error: any) {
@@ -119,6 +147,12 @@ export async function GET() {
         isPremium: false, 
         subscriptionStatus: 'none',
         error: 'Invalid session'
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
     
@@ -128,6 +162,13 @@ export async function GET() {
       isPremium: false, 
       subscriptionStatus: 'none',
       error: 'Server error'
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   }
 }

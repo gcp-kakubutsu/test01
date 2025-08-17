@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getAdminAuth, getAdminFirestore, isAdminInitialized } from '@/lib/firebase/admin';
 
+// Next.jsのキャッシュを無効化
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     console.log('[Session Check API] Starting session check');
@@ -14,6 +18,12 @@ export async function GET() {
         isAuthenticated: false,
         userId: null,
         isPremium: false
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -24,6 +34,12 @@ export async function GET() {
         isAuthenticated: false,
         userId: null,
         isPremium: false
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
 
@@ -81,6 +97,12 @@ export async function GET() {
         userId: decodedClaims.uid,
         email: decodedClaims.email,
         isPremium
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
       
     } catch (error: any) {
@@ -89,6 +111,12 @@ export async function GET() {
         isAuthenticated: false,
         userId: null,
         isPremium: false
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
     }
     
@@ -98,6 +126,13 @@ export async function GET() {
       isAuthenticated: false,
       userId: null,
       isPremium: false
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   }
 }

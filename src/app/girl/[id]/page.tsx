@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation, StickyNote } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { toast } from '@/hooks/use-toast';
 import { getPremiumMessage } from '@/config/premium-messages';
@@ -19,7 +20,6 @@ import {
   addDoc, 
   Timestamp 
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
 import '@/styles/blur.css';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
@@ -30,6 +30,7 @@ export default function GirlProfilePage() {
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { firebaseUser, isInitialized: firebaseInitialized } = useFirebaseAuth();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -125,7 +126,7 @@ export default function GirlProfilePage() {
     }
 
     // 有料会員チェック
-    if (!subscriptionLoading && !isPremium) {
+    if (!subscriptionLoading && !isPremium && !isLineBrowser) {
       toast({
         title: "有料会員限定",
         description: "いいねを送るには有料会員登録が必要です。",
@@ -135,42 +136,30 @@ export default function GirlProfilePage() {
       return;
     }
 
-    // LINEブラウザの場合、Firebase初期化を待つ
-    const isLineBrowser = typeof window !== 'undefined' && 
-      window.navigator.userAgent.toLowerCase().includes('line');
-    
-    let currentDb = db;
-    
-    if (isLineBrowser || !db) {
-      console.log('[handleLike] Waiting for Firebase initialization...');
+    // Firebase Authが初期化されているか確認
+    if (!firebaseUser || !firebaseInitialized) {
+      console.log('[handleLike] Firebase Auth not initialized, waiting...');
+      
+      // LINEブラウザの場合、Firebase初期化を待つ
       const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
       const initialized = await waitForFirebaseInLine();
       
       if (!initialized) {
         toast({
           title: "エラー",
-          description: "Firebaseの初期化に失敗しました。ページを再読み込みしてください。",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Firebaseが初期化された後、dbを再取得
-      const { getFirebaseDb } = await import('@/lib/firebase/client');
-      currentDb = getFirebaseDb();
-      
-      if (!currentDb) {
-        toast({
-          title: "エラー",
-          description: "データベースに接続できません。",
+          description: "認証の初期化に失敗しました。ページを再読み込みしてください。",
           variant: "destructive",
         });
         return;
       }
     }
     
-    // currentDbがnullでないことを保証
+    // Firebaseモジュールを動的にインポート
+    const { getFirebaseDb } = await import('@/lib/firebase/client');
+    const currentDb = getFirebaseDb();
+    
     if (!currentDb) {
+      console.error('[handleLike] Firestore not available');
       toast({
         title: "エラー",
         description: "データベースに接続できません。",
@@ -227,7 +216,7 @@ export default function GirlProfilePage() {
     } finally {
       setIsProcessingLike(false);
     }
-  }, [currentUser, girl, isProcessingLike, isAuthenticated, router]);
+  }, [currentUser, girl, isProcessingLike, isAuthenticated, router, isPremium, subscriptionLoading, isLineBrowser, firebaseUser, firebaseInitialized]);
 
   if (loading) {
     return (
