@@ -136,11 +136,12 @@ export default function GirlProfilePage() {
       return;
     }
 
-    // Firebase Authが初期化されているか確認
-    if (!firebaseUser || !firebaseInitialized) {
+    // 本番環境のLINEブラウザではFirebase Authチェックをスキップ
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction && !isLineBrowser && (!firebaseUser || !firebaseInitialized)) {
       console.log('[handleLike] Firebase Auth not initialized, waiting...');
       
-      // LINEブラウザの場合、Firebase初期化を待つ
+      // Firebase初期化を待つ
       const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
       const initialized = await waitForFirebaseInLine();
       

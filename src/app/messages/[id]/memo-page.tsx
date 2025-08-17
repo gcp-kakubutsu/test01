@@ -71,8 +71,9 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   const handleSave = async () => {
     if (!currentUser || (!isPremium && !subscriptionLoading && !isLineBrowser) || isSaving) return;
 
-    // Firebase Authが初期化されているか確認
-    if (!firebaseUser || !firebaseInitialized) {
+    // 本番環境のLINEブラウザではFirebase Authチェックをスキップ
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction && (!firebaseUser || !firebaseInitialized)) {
       console.log('[MemoPage] Firebase Auth not initialized, waiting...');
       
       const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
@@ -118,8 +119,9 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   const handleDelete = async () => {
     if (!currentUser || (!isPremium && !subscriptionLoading && !isLineBrowser) || isDeleting) return;
     
-    // Firebase Authが初期化されているか確認
-    if (!firebaseUser || !firebaseInitialized) {
+    // 本番環境のLINEブラウザではFirebase Authチェックをスキップ
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction && (!firebaseUser || !firebaseInitialized)) {
       console.log('[MemoPage] Firebase Auth not initialized for delete');
       
       const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');

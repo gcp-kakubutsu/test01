@@ -63,6 +63,36 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/api/auth/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        source: '/api/subscription/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+        ],
+      },
+      {
         source: '/api/(.*)',
         headers: [
           {
@@ -84,7 +114,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'SAMEORIGIN' // LINEブラウザ対応でDENYからSAMEORIGINに変更
           },
           {
             key: 'X-XSS-Protection',
@@ -104,7 +134,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+            value: "default-src 'self' https://*.line-apps.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com https://*.line-apps.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co https://*.line-apps.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.line-apps.com https://line.me; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.line-apps.com; frame-ancestors 'self' https://*.line-apps.com https://line.me; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
           }
         ],
       },

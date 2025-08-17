@@ -20,14 +20,18 @@ export async function waitForFirebaseInLine(maxRetries = 20): Promise<boolean> {
   console.log('[LINE Auth Helper] Waiting for Firebase initialization...');
   
   // まずセッションからユーザー情報を取得して認証
-  try {
-    const sessionData = await checkLineSession();
-    if (sessionData.isAuthenticated && sessionData.userId) {
-      console.log('[LINE Auth Helper] Session found, syncing Firebase Auth...');
-      await syncFirebaseAuth(sessionData.userId);
+  // 本番環境ではスキップ
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!isProduction) {
+    try {
+      const sessionData = await checkLineSession();
+      if (sessionData.isAuthenticated && sessionData.userId) {
+        console.log('[LINE Auth Helper] Session found, syncing Firebase Auth...');
+        await syncFirebaseAuth(sessionData.userId);
+      }
+    } catch (error) {
+      console.error('[LINE Auth Helper] Session sync failed:', error);
     }
-  } catch (error) {
-    console.error('[LINE Auth Helper] Session sync failed:', error);
   }
   
   for (let i = 0; i < maxRetries; i++) {
@@ -63,9 +67,21 @@ export async function waitForFirebaseInLine(maxRetries = 20): Promise<boolean> {
 
 /**
  * セッションからFirebase Authを同期
+ * 本番環境では無効化（LINEブラウザでのFirebase SDK問題回避）
  */
 async function syncFirebaseAuth(userId: string): Promise<void> {
   try {
+    // 本番環境ではFirebase Auth同期をスキップ
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isLineProduction = isProduction && 
+      typeof window !== 'undefined' && 
+      window.navigator.userAgent.toLowerCase().includes('line');
+    
+    if (isLineProduction) {
+      console.log('[LINE Auth Helper] Skipping Firebase Auth sync in production LINE browser');
+      return;
+    }
+    
     const auth = getFirebaseAuth();
     if (!auth) {
       console.error('[LINE Auth Helper] Auth not initialized');
@@ -78,7 +94,7 @@ async function syncFirebaseAuth(userId: string): Promise<void> {
       return;
     }
     
-    // カスタムトークンを取得
+    // カスタムトークンを取得（開発環境のみ）
     const tokenResponse = await fetch('/api/auth/custom-token', {
       method: 'GET',
       credentials: 'include',

@@ -24,7 +24,19 @@ export function useFirebaseAuth() {
           window.navigator.userAgent.toLowerCase().includes('line');
 
         if (isLineBrowser) {
-          console.log('[useFirebaseAuth] LINE browser detected, waiting for Firebase...');
+          console.log('[useFirebaseAuth] LINE browser detected');
+          
+          // 本番環境のLINEブラウザではFirebase Authを使わない
+          const isProduction = process.env.NODE_ENV === 'production';
+          if (isProduction) {
+            console.log('[useFirebaseAuth] Skipping Firebase Auth in production LINE browser');
+            setIsInitialized(true);
+            setLoading(false);
+            return;
+          }
+          
+          // 開発環境のみ初期化を待つ
+          console.log('[useFirebaseAuth] Waiting for Firebase...');
           const initialized = await waitForFirebaseInLine();
           if (!initialized || !mounted) {
             setLoading(false);
