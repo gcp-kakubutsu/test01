@@ -35,7 +35,7 @@ export function useSubscription() {
     // LINEブラウザの場合は常にセッションベースのAPIを使用
     // currentUserの有無に関わらず、LINEブラウザではFirestore直接アクセスは不安定
     if (isLineBrowser) {
-      // LINEブラウザでcurrentUserがない場合のみ、専用APIを使用
+      // LINEブラウザでは常に専用APIを使用（currentUserの有無に関わらず）
       const fetchSubscriptionForLine = async () => {
         try {
           // セッションベースのAPIを呼び出し
@@ -54,30 +54,42 @@ export function useSubscription() {
           const response = await fetch('/api/subscription/check', {
             method: 'GET',
             credentials: 'include',
-            headers,
+            headers: {
+              ...headers,
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            },
+            mode: 'same-origin', // LINEブラウザでのCORS問題を回避
+            cache: 'no-store' // キャッシュを無効化
           });
           
+          const responseText = await response.text();
+          console.log('[useSubscription] LINE API raw response:', responseText);
+          
           if (response.ok) {
-            const data = await response.json();
-            console.log('[useSubscription] LINE API response:', { 
+            const data = JSON.parse(responseText);
+            console.log('[useSubscription] LINE API parsed response:', { 
               isPremium: data.isPremium, 
               status: data.subscriptionStatus,
-              userId: data.userId 
+              userId: data.userId,
+              fullData: data
             });
             if (isMounted) {
               setSubscription({
-                isPremium: data.isPremium || false,
+                isPremium: data.isPremium === true, // 確実にboolean型にする
                 subscriptionStatus: data.subscriptionStatus || 'none',
+                subscriptionPlan: data.subscriptionPlan,
                 subscriptionEndDate: data.subscriptionEndDate ? new Date(data.subscriptionEndDate) : undefined,
               });
             }
           } else {
+            console.error('[useSubscription] LINE API error response:', responseText);
             if (isMounted) {
               setSubscription({ isPremium: false, subscriptionStatus: 'none' });
             }
           }
         } catch (error) {
-          console.error('LINE browser subscription check error:', error);
+          console.error('[useSubscription] LINE browser subscription check error:', error);
           if (isMounted) {
             setSubscription({ isPremium: false, subscriptionStatus: 'none' });
           }
@@ -91,13 +103,21 @@ export function useSubscription() {
       // 即座に実行
       fetchSubscriptionForLine();
       
-      // 1秒後に再チェック（保険）
+      // 2秒後と5秒後に再チェック（LINEブラウザの遅延対策）
       setTimeout(() => {
         if (isMounted) {
           fetchSubscriptionForLine();
         }
-      }, 1000);
+      }, 2000);
       
+      setTimeout(() => {
+        if (isMounted) {
+          fetchSubscriptionForLine();
+        }
+      }, 5000);
+      
+      // LINEブラウザの場合は、ここで処理を終了
+      // 通常のFirestoreアクセスはスキップ
       return () => {
         isMounted = false;
       };
