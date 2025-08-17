@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useMemos } from '@/hooks/useMemos';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { usePremiumStatus } from '@/hooks/usePremiumStatus';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 
 interface MemoDisplay {
@@ -29,7 +29,8 @@ interface MemoDisplay {
 export default function MemosPage() {
   const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
   const router = useRouter();
-  const { isPremium, loading: subscriptionLoading, isLineBrowser } = usePremiumStatus();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
 
   // 認証チェック - 有料会員チェックで判定
   useEffect(() => {

@@ -21,7 +21,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
 import Image from 'next/image';
-import { usePremiumStatus } from '@/hooks/usePremiumStatus';
+import { useSubscription } from '@/hooks/useSubscription';
 import '@/styles/blur.css';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -32,8 +32,8 @@ const USERS_PER_PAGE = 20;
 export default function HomePage() {
   const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
-  const { isPremium, loading: subscriptionLoading, isLineBrowser } = usePremiumStatus();
-  // isLineBrowserはusePremiumStatusから取得するので不要
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
   
