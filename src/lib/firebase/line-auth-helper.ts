@@ -2,13 +2,12 @@
  * LINEブラウザ専用のFirebase認証ヘルパー
  */
 
-import { getFirebaseDb, getFirebaseAuth } from './client';
-import { signInWithCustomToken } from 'firebase/auth';
+import { getFirebaseDb } from './client';
 
 /**
  * LINEブラウザでFirebaseが初期化されるまで待機
  */
-export async function waitForFirebaseInLine(maxRetries = 20): Promise<boolean> {
+export async function waitForFirebaseInLine(maxRetries = 10): Promise<boolean> {
   const isLineBrowser = typeof window !== 'undefined' && 
     window.navigator.userAgent.toLowerCase().includes('line');
   
@@ -19,41 +18,10 @@ export async function waitForFirebaseInLine(maxRetries = 20): Promise<boolean> {
 
   console.log('[LINE Auth Helper] Waiting for Firebase initialization...');
   
-  // まずセッションからユーザー情報を取得して認証
-  // 本番環境ではスキップ
-  const isProduction = process.env.NODE_ENV === 'production';
-  if (!isProduction) {
-    try {
-      const sessionData = await checkLineSession();
-      if (sessionData.isAuthenticated && sessionData.userId) {
-        console.log('[LINE Auth Helper] Session found, syncing Firebase Auth...');
-        await syncFirebaseAuth(sessionData.userId);
-      }
-    } catch (error) {
-      console.error('[LINE Auth Helper] Session sync failed:', error);
-    }
-  }
-  
   for (let i = 0; i < maxRetries; i++) {
     const db = getFirebaseDb();
-    const auth = getFirebaseAuth();
-    
-    if (db && auth) {
+    if (db) {
       console.log(`[LINE Auth Helper] Firebase initialized after ${i} attempts`);
-      
-      // 認証状態を再確認
-      if (!auth.currentUser) {
-        console.log('[LINE Auth Helper] No current user, attempting to restore from session...');
-        try {
-          const sessionData = await checkLineSession();
-          if (sessionData.isAuthenticated && sessionData.userId) {
-            await syncFirebaseAuth(sessionData.userId);
-          }
-        } catch (error) {
-          console.error('[LINE Auth Helper] Failed to restore auth:', error);
-        }
-      }
-      
       return true;
     }
     
@@ -63,57 +31,6 @@ export async function waitForFirebaseInLine(maxRetries = 20): Promise<boolean> {
   
   console.error('[LINE Auth Helper] Firebase initialization timeout');
   return false;
-}
-
-/**
- * セッションからFirebase Authを同期
- * 本番環境では無効化（LINEブラウザでのFirebase SDK問題回避）
- */
-async function syncFirebaseAuth(userId: string): Promise<void> {
-  try {
-    // 本番環境ではFirebase Auth同期をスキップ
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isLineProduction = isProduction && 
-      typeof window !== 'undefined' && 
-      window.navigator.userAgent.toLowerCase().includes('line');
-    
-    if (isLineProduction) {
-      console.log('[LINE Auth Helper] Skipping Firebase Auth sync in production LINE browser');
-      return;
-    }
-    
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      console.error('[LINE Auth Helper] Auth not initialized');
-      return;
-    }
-    
-    // すでに認証済みならスキップ
-    if (auth.currentUser?.uid === userId) {
-      console.log('[LINE Auth Helper] Already authenticated with correct user');
-      return;
-    }
-    
-    // カスタムトークンを取得（開発環境のみ）
-    const tokenResponse = await fetch('/api/auth/custom-token', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-      },
-    });
-    
-    if (tokenResponse.ok) {
-      const tokenData = await tokenResponse.json();
-      if (tokenData.customToken) {
-        await signInWithCustomToken(auth, tokenData.customToken);
-        console.log('[LINE Auth Helper] Firebase Auth synced successfully');
-      }
-    }
-  } catch (error) {
-    console.error('[LINE Auth Helper] Failed to sync Firebase Auth:', error);
-  }
 }
 
 /**

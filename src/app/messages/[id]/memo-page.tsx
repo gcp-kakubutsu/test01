@@ -12,7 +12,6 @@ import { useMemo as useFirebaseMemo } from '@/hooks/useMemos';
 import { saveMemo, deleteMemo } from '@/lib/firebase/memos';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 import Image from 'next/image';
 
 interface MemoPageProps {
@@ -24,7 +23,6 @@ interface MemoPageProps {
 export default function MemoPage({ targetId, targetName, targetImage }: MemoPageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
-  const { firebaseUser, isInitialized: firebaseInitialized } = useFirebaseAuth();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
@@ -69,25 +67,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   }, [memo, memoLoading, memoError]);
 
   const handleSave = async () => {
-    if (!currentUser || (!isPremium && !subscriptionLoading && !isLineBrowser) || isSaving) return;
-
-    // 本番環境のLINEブラウザではFirebase Authチェックをスキップ
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (!isProduction && (!firebaseUser || !firebaseInitialized)) {
-      console.log('[MemoPage] Firebase Auth not initialized, waiting...');
-      
-      const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
-      const initialized = await waitForFirebaseInLine();
-      
-      if (!initialized) {
-        toast({
-          title: "エラー",
-          description: "認証の初期化に失敗しました。ページを再読み込みしてください。",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    if (!currentUser || (!isPremium && !subscriptionLoading) || isSaving) return;
 
     setIsSaving(true);
     try {
@@ -117,25 +97,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   };
 
   const handleDelete = async () => {
-    if (!currentUser || (!isPremium && !subscriptionLoading && !isLineBrowser) || isDeleting) return;
-    
-    // 本番環境のLINEブラウザではFirebase Authチェックをスキップ
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (!isProduction && (!firebaseUser || !firebaseInitialized)) {
-      console.log('[MemoPage] Firebase Auth not initialized for delete');
-      
-      const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
-      const initialized = await waitForFirebaseInLine();
-      
-      if (!initialized) {
-        toast({
-          title: "エラー",
-          description: "認証の初期化に失敗しました。",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    if (!currentUser || (!isPremium && !subscriptionLoading) || isDeleting) return;
 
     if (!confirm('このメモを削除しますか？')) return;
 

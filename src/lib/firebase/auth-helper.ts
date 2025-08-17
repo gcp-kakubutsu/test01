@@ -12,19 +12,17 @@ export async function signInWithIdToken(idToken: string): Promise<boolean> {
       return false;
     }
 
+    // 既に認証済みかチェック
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      console.log('✅ Already signed in:', currentUser.email);
+      return true;
+    }
+
     // IDトークンからユーザー情報を抽出
     const payload = JSON.parse(
       Buffer.from(idToken.split('.')[1], 'base64').toString()
     );
-    
-    const uid = payload.sub || payload.user_id || payload.localId;
-
-    // 既に同じユーザーで認証済みかチェック
-    const currentUser = auth.currentUser;
-    if (currentUser && currentUser.uid === uid) {
-      console.log('✅ Already signed in with correct user:', currentUser.email);
-      return true;
-    }
 
     try {
       // カスタムトークンとして試す

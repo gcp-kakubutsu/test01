@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// Next.jsのキャッシュを無効化
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
@@ -72,14 +68,13 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production';
     
     // LINEブラウザを含むすべてのブラウザで動作するよう設定
-    // 本番環境ではsameSite='none'でLINEブラウザ対応
+    // sameSiteをlaxに設定してLINEブラウザでも動作するように
     cookieStore.set('session', data.idToken, {
       httpOnly: true,
-      secure: true, // HTTPSで必須（本番・ngrok両方で有効）
-      sameSite: isProduction ? 'none' : 'lax', // 本番環境ではnoneでLINE対応
+      secure: isProduction,
+      sameSite: 'lax', // LINEブラウザでも動作するようlaxに統一
       maxAge: parseInt(data.expiresIn) || 3600, // expiresInの値を使用（デフォルト1時間）
       path: '/',
-      priority: 'high' as const, // 優先度を高に設定
     });
 
     // Firestoreにユーザーデータが存在するか確認し、ない場合は作成
