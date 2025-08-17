@@ -37,19 +37,6 @@ export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // LINEブラウザでのデバッグ用
-  useEffect(() => {
-    if (isLineBrowser) {
-      console.log('[HomePage] LINE Browser Subscription Status:', {
-        isPremium,
-        subscriptionLoading,
-        currentUser: currentUser?.uid,
-        isAuthenticated,
-        userAgent: window.navigator.userAgent
-      });
-    }
-  }, [isPremium, subscriptionLoading, isLineBrowser, currentUser, isAuthenticated]);
-  
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false); // LINEブラウザ対応: 初期値をfalseに
@@ -889,7 +876,7 @@ export default function HomePage() {
             ? 'grid-cols-1' 
             : 'grid-cols-2'
         } sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6`}>
-        {currentDisplayData.map((item: any, index: number) => {
+        {currentDisplayData.map((item: any) => {
           // Handle both UserProfile and GirlWithDetails types
           // Check if it's Firebase data by looking for unique Firebase fields
           const isFirebaseData = 'uid' in item || ('email' in item && !('shopName' in item));
@@ -950,22 +937,7 @@ export default function HomePage() {
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-contain transition-transform duration-300 hover:scale-105 ${
-                    // LINEブラウザでのデバッグ用ログ
-                    (() => {
-                      const shouldBlur = !isPremium && !subscriptionLoading;
-                      if (isLineBrowser && index === 0) {
-                        console.log('[HomePage] Image blur decision:', {
-                          shouldBlur,
-                          isPremium,
-                          subscriptionLoading,
-                          index,
-                          itemId: item.id
-                        });
-                      }
-                      return shouldBlur ? 'blur-image' : '';
-                    })()
-                  }`}
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading ? 'blur-image' : ''}`}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 {!isPremium && !subscriptionLoading && (
