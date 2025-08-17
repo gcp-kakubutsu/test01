@@ -35,7 +35,8 @@ export function useSubscription() {
     // LINEブラウザの場合は常にセッションベースのAPIを使用
     // currentUserの有無に関わらず、LINEブラウザではFirestore直接アクセスは不安定
     if (isLineBrowser) {
-      // LINEブラウザでcurrentUserがない場合のみ、専用APIを使用
+      // LINEブラウザでは必ず専用APIを使用（currentUserの有無に関わらず）
+      // 重要：早期リターンにより、通常のFirestore処理をスキップする
       const fetchSubscriptionForLine = async () => {
         try {
           // セッションベースのAPIを呼び出し
@@ -98,13 +99,14 @@ export function useSubscription() {
         }
       }, 1000);
       
+      // LINEブラウザの場合は、ここで早期リターンして通常のFirestore処理を行わない
       return () => {
         isMounted = false;
       };
     }
     
-    // 通常のブラウザの処理
-    if (!currentUser) {
+    // 通常のブラウザの処理（LINEブラウザ以外のみ実行される）
+    if (!isLineBrowser && !currentUser) {
       // currentUserがない場合、デフォルト値を設定
       setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       setLoading(false);
@@ -236,7 +238,10 @@ export function useSubscription() {
       }
     };
 
-    fetchSubscription();
+    // LINEブラウザ以外の場合のみfetchSubscriptionを実行
+    if (!isLineBrowser) {
+      fetchSubscription();
+    }
     
     // Cleanup function to prevent state updates after unmount
     return () => {

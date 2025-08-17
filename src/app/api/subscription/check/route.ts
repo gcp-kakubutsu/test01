@@ -8,9 +8,14 @@ export async function GET() {
     console.log('[Subscription Check API] Starting subscription check');
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session');
+    
+    // 全てのクッキーをログ出力（デバッグ用）
+    const allCookies = cookieStore.getAll();
+    console.log('[Subscription Check API] All cookies:', allCookies.map(c => c.name));
     console.log('[Subscription Check API] Session cookie found:', !!sessionCookie);
     
     if (!sessionCookie) {
+      console.log('[Subscription Check API] No session cookie, returning default response');
       return NextResponse.json({ 
         isPremium: false, 
         subscriptionStatus: 'none',
