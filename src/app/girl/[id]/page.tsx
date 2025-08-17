@@ -47,9 +47,28 @@ export default function GirlProfilePage() {
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
+  const [showAccessDenied, setShowAccessDenied] = useState(false);
+
+  // 無料ユーザーのアクセスチェック
+  useEffect(() => {
+    // サブスクリプションローディング中は待つ
+    if (subscriptionLoading) return;
+    
+    // 無料ユーザーの場合はアクセス拒否
+    if (!isPremium) {
+      setShowAccessDenied(true);
+      setLoading(false);
+      return;
+    }
+  }, [isPremium, subscriptionLoading]);
 
   useEffect(() => {
     const fetchGirlDetails = async () => {
+      // 無料ユーザーはデータ取得しない
+      if (!isPremium && !subscriptionLoading) {
+        return;
+      }
+      
       try {
         const response = await fetch(`/api/girls/${params.id}`);
         if (response.ok) {
@@ -68,10 +87,10 @@ export default function GirlProfilePage() {
       }
     };
 
-    if (params.id) {
+    if (params.id && isPremium) {
       fetchGirlDetails();
     }
-  }, [params.id, userLocation]);
+  }, [params.id, userLocation, isPremium, subscriptionLoading]);
   
   // Get user location on mount
   useEffect(() => {
@@ -299,6 +318,38 @@ export default function GirlProfilePage() {
     }
   }, [currentUser, girl, isProcessingLike, isAuthenticated, router]);
 
+  // 無料ユーザーにアクセス拒否メッセージを表示
+  if (showAccessDenied && !isPremium && !subscriptionLoading) {
+    return (
+      <div className="bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-bold">プロフィール</h1>
+          </div>
+          
+          <PremiumOnlyCard 
+            title="プロフィール詳細は有料会員限定"
+            description="女性の詳細なプロフィール、写真、情報を閲覧するには有料会員登録が必要です。"
+            buttonText="有料会員になる"
+            features={[
+              "全ての写真を閲覧",
+              "詳細なプロフィール情報",
+              "いいね・メッセージ送信",
+              "写メ日記の閲覧"
+            ]}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white dark:bg-black">
@@ -318,28 +369,23 @@ export default function GirlProfilePage() {
 
   // Return content with or without premium access
   return (
-    <div className="bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
-      <div className="max-w-2xl mx-auto space-y-6 pb-20">
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-xl font-bold">プロフィール</h1>
-        </div>
-          
-          {!isPremium && !subscriptionLoading && !isLineBrowser ? (
-            <PremiumOnlyCard 
-              title={getPremiumMessage('profile').title}
-              description={getPremiumMessage('profile').description}
-              buttonText={getPremiumMessage('profile').buttonText}
-              features={getPremiumMessage('profile').features}
-            />
-          ) : (
-            <div className="space-y-6">
+    <>
+      <div className="bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
+        <div className="max-w-2xl mx-auto space-y-6 pb-20">
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-bold">プロフィール</h1>
+          </div>
+            
+          {/* 有料会員のみ表示 */}
+          {isPremium ? (
+          <div className="space-y-6">
               {/* Image Gallery */}
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden">
                 {girl.images.length > 0 ? (
@@ -558,7 +604,20 @@ export default function GirlProfilePage() {
                 </Button>
               </div>
             </div>
+          ) : (
+            <PremiumOnlyCard 
+              title="プロフィール詳細は有料会員限定"
+              description="女性の詳細なプロフィール、写真、情報を閲覧するには有料会員登録が必要です。"
+              buttonText="有料会員になる"
+              features={[
+                "全ての写真を閲覧",
+                "詳細なプロフィール情報",
+                "いいね・メッセージ送信",
+                "写メ日記の閲覧"
+              ]}
+            />
           )}
+        </div>
       </div>
       
       {/* Reservation Confirmation Dialog */}
@@ -579,6 +638,6 @@ export default function GirlProfilePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
