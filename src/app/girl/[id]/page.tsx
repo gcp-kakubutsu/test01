@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation, StickyNote } from 'lucide-react';
+import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation, StickyNote, ExternalLink } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
@@ -23,6 +23,16 @@ import { db } from '@/lib/firebase/client';
 import '@/styles/blur.css';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function GirlProfilePage() {
   const params = useParams();
@@ -36,6 +46,7 @@ export default function GirlProfilePage() {
   const [isProcessingLike, setIsProcessingLike] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [showReservationDialog, setShowReservationDialog] = useState(false);
 
   useEffect(() => {
     const fetchGirlDetails = async () => {
@@ -109,6 +120,65 @@ export default function GirlProfilePage() {
       const calculatedDistance = R * c;
       setDistance(calculatedDistance);
     }
+  };
+
+  // Generate reservation URL with proper parameters
+  const generateReservationUrl = () => {
+    if (!girl) return '';
+    
+    const baseUrl = process.env.NEXT_PUBLIC_RESERVATION_SITE_URL || 'https://stg.nukipedia.jp';
+    
+    // Get region and prefecture from location or shop data
+    let fromRegion = '関東';
+    let fromRegionId = '3';
+    let fromPrefecture = '東京';
+    let fromPrefectureId = '13';
+    
+    // Try to determine location from girl's location string
+    if (girl.location) {
+      if (girl.location.includes('東京')) {
+        fromPrefecture = '東京';
+        fromPrefectureId = '13';
+      } else if (girl.location.includes('神奈川')) {
+        fromPrefecture = '神奈川';
+        fromPrefectureId = '14';
+      } else if (girl.location.includes('千葉')) {
+        fromPrefecture = '千葉';
+        fromPrefectureId = '12';
+      } else if (girl.location.includes('埼玉')) {
+        fromPrefecture = '埼玉';
+        fromPrefectureId = '11';
+      }
+      // Add more prefecture mappings as needed
+    }
+    
+    // Use area_prefecture_id if available
+    if (girl.shop?.area_prefecture_id) {
+      fromPrefectureId = girl.shop.area_prefecture_id.toString();
+    }
+    
+    const params = new URLSearchParams({
+      shopId: girl.shop_profile_id.toString(),
+      girlId: girl.id.toString(),
+      fromRegion: fromRegion,
+      fromRegionId: fromRegionId,
+      fromPrefecture: fromPrefecture,
+      fromPrefectureId: fromPrefectureId,
+      fromGenre: 'デリヘル,ホテヘル,ヘルス,ソープ,風俗エステ,その他',
+      fromSearchType: 'search'
+    });
+    
+    return `${baseUrl}/reservation/course?${params.toString()}`;
+  };
+
+  const handleReservation = () => {
+    setShowReservationDialog(true);
+  };
+
+  const confirmReservation = () => {
+    const reservationUrl = generateReservationUrl();
+    window.open(reservationUrl, '_blank');
+    setShowReservationDialog(false);
   };
 
   const handleLike = useCallback(async () => {
@@ -403,30 +473,57 @@ export default function GirlProfilePage() {
                   </div>
                 )}
 
-                {/* Shop Information */}
-                <div className="border-t pt-4">
-                  <h3 className="font-bold mb-2">店舗情報</h3>
-                  <p>{girl.shop.name}</p>
-                  {distance !== null && (
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      <Navigation className="h-4 w-4 mr-1" />
-                      <span>
-                        現在地から約{distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}
-                      </span>
-                    </div>
-                  )}
-                  {girl.shop.tel && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      TEL: {girl.shop.tel}
-                    </p>
-                  )}
-                </div>
-
                 {/* Comments */}
                 {girl.comment && (
                   <div className="border-t pt-4">
                     <h3 className="font-bold mb-2">コメント</h3>
                     <p className="whitespace-pre-wrap">{girl.comment}</p>
+                  </div>
+                )}
+
+                {/* Photo Diaries */}
+                {girl.photoDiaries && girl.photoDiaries.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-bold mb-3">写メ日記</h3>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {girl.photoDiaries.map((diary) => (
+                        <div key={diary.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                          {diary.title && (
+                            <h4 className="font-semibold mb-2 text-pink-600">{diary.title}</h4>
+                          )}
+                          {diary.images && diary.images.length > 0 && (
+                            <div className="flex justify-center mb-3">
+                              <div className={`${diary.images.length === 1 ? 'flex justify-center' : 'grid grid-cols-2 gap-2 max-w-md'}`}>
+                                {diary.images.map((imageUrl, index) => (
+                                  <div key={index} className="relative w-40 h-40 rounded-lg overflow-hidden">
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`${diary.title || '写メ日記'} ${index + 1}`}
+                                      fill
+                                      className="object-cover hover:scale-105 transition-transform duration-300"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {diary.content && (
+                            <p className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                              {diary.content}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            {new Date(diary.created_at).toLocaleDateString('ja-JP', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -452,13 +549,36 @@ export default function GirlProfilePage() {
                     メモ
                   </Button>
                 )}
-                <Button className="flex-1" variant="outline">
-                  予約する
+                <Button 
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center text-xs px-2 py-1" 
+                  onClick={handleReservation}
+                >
+                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                  <span className="tracking-tighter ml-1">この嬢に決めた</span>
                 </Button>
               </div>
             </div>
           )}
       </div>
+      
+      {/* Reservation Confirmation Dialog */}
+      <AlertDialog open={showReservationDialog} onOpenChange={setShowReservationDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>外部サイトへ移動します</AlertDialogTitle>
+            <AlertDialogDescription>
+              この嬢と遊ぶには、外部の予約サイトに移動します。
+              よろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReservation}>
+              予約ページへ進む
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

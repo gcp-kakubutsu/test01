@@ -67,6 +67,45 @@ export async function GET(
     
     const images = await query<GirlImageUrl>(imagesQuery, [girlId]);
     
+    // Fetch photo diaries if exist
+    let photoDiaries = [];
+    try {
+      // Fetch data from girl_diaries table
+      const diariesQuery = `
+        SELECT 
+          gd.id,
+          gd.girl_profile_id,
+          gd.title,
+          gd.content,
+          gd.created_at,
+          gd.updated_at
+        FROM girl_diaries gd
+        WHERE gd.girl_profile_id = ?
+        ORDER BY gd.created_at DESC
+        LIMIT 10
+      `;
+      
+      const diariesData = await query<any>(diariesQuery, [girlId]);
+      
+      // For each diary, fetch associated images
+      for (const diary of diariesData) {
+        const imagesQuery = `
+          SELECT image_urls
+          FROM girl_diary_image_urls
+          WHERE girl_diary_id = ?
+          ORDER BY sort_order ASC
+        `;
+        
+        const diaryImages = await query<any>(imagesQuery, [diary.id]);
+        diary.images = diaryImages.map((img: any) => img.image_urls);
+      }
+      
+      photoDiaries = diariesData;
+    } catch (error) {
+      // If table doesn't exist or other error, just continue without diaries
+      console.log('Photo diaries not available:', error);
+    }
+    
     // Format the response
     const location = [girl.prefecture_name, girl.municipality_name].filter(Boolean).join(' ');
     
@@ -149,7 +188,8 @@ export async function GET(
         updated_at: girl.updated_at
       },
       images,
-      location
+      location,
+      photoDiaries: photoDiaries.length > 0 ? photoDiaries : undefined
     };
     
     return NextResponse.json(girlWithDetails);

@@ -108,10 +108,21 @@ export interface GirlImageUrl {
   updated_at: string;
 }
 
+export interface PhotoDiary {
+  id: number;
+  girl_profile_id: number;
+  title?: string;
+  content?: string;
+  images?: string[];  // Array of image URLs
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GirlWithDetails extends GirlProfile {
   shop: ShopProfile;
   prefecture?: AreaPrefecture;
   municipality?: AreaPrefecturalMunicipality;
   images: GirlImageUrl[];
   location?: string;
+  photoDiaries?: PhotoDiary[];
 }
