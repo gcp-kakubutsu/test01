@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2 } from 'lucide-react';
+import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2, MapPin } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -403,6 +403,98 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Solutions Section - こんなとき、NUKUNEが解決します */}
+      <section className={`${styles.section} ${styles.solutions}`}>
+        <div className={styles.container}>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
+            <span className={styles.titleLine1}>こんなとき、</span>
+            <span className={styles.titleLine2}>NUKUNEが解決します</span>
+          </h2>
+          <div className={styles.solutionsIntro}>
+            <p className={styles.solutionsProblem}>
+              急に時間ができたとき、知らない土地で遊びたいとき、<br />
+              「どこに行けばいいのかわからない…」そんな経験はありませんか？
+            </p>
+          </div>
+
+          <div className={styles.problemsGrid}>
+            <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
+              <div className={styles.problemIcon}>✕</div>
+              <p>風俗サイトでの検索は時間がかかる</p>
+            </div>
+            <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
+              <div className={styles.problemIcon}>✕</div>
+              <p>無料案内所に行くのは面倒</p>
+            </div>
+            <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
+              <div className={styles.problemIcon}>✕</div>
+              <p>飛び込みで店に行く勇気がない</p>
+            </div>
+            <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
+              <div className={styles.problemIcon}>✕</div>
+              <p>やっと見つけたお目当ての嬢が予約完売</p>
+            </div>
+            <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
+              <div className={styles.problemIcon}>✕</div>
+              <p>時間や性癖が合わずに断念</p>
+            </div>
+          </div>
+
+          <div className={styles.solutionBridge}>
+            <div className={styles.solutionArrow}>↓</div>
+          </div>
+
+          <div className={styles.solutionCard}>
+            <div className={styles.solutionHeader}>
+              <span className={styles.solutionBadge}>Solution</span>
+              <h3 className={styles.solutionTitle}>
+                NUKUNE（ヌクネ）は、そんな悩みを解消する<br />
+                <span className={styles.solutionHighlight}>"性癖コンシェルジュ"</span>です
+              </h3>
+            </div>
+            
+            <div className={styles.solutionFeatures}>
+              <div className={styles.solutionFeature}>
+                <div className={styles.solutionFeatureIcon}>
+                  <Search />
+                </div>
+                <div className={styles.solutionFeatureText}>
+                  <h4>一括検索</h4>
+                  <p>登録した性癖や趣味嗜好に合わせて、あなたにぴったりの風俗嬢を一括検索</p>
+                </div>
+              </div>
+              
+              <div className={styles.solutionFeature}>
+                <div className={styles.solutionFeatureIcon}>
+                  <MapPin />
+                </div>
+                <div className={styles.solutionFeatureText}>
+                  <h4>GPS検索</h4>
+                  <p>最短で遊びに行けるキャストをすぐにご案内</p>
+                </div>
+              </div>
+              
+              <div className={styles.solutionFeature}>
+                <div className={styles.solutionFeatureIcon}>
+                  <Heart />
+                </div>
+                <div className={styles.solutionFeatureText}>
+                  <h4>スムーズなキャスティング</h4>
+                  <p>あなたの理想と今の状況にマッチする相手を、スムーズにキャスティング</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.solutionCta}>
+              <p className={styles.solutionTagline}>
+                今までなかった新しいサービス<br />
+                <span className={styles.solutionBrand}>性癖マッチング NUKUNE</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Matching Search Section */}
       <section className={`${styles.section} ${styles.matchingSearch}`}>
         <div className={styles.container}>
@@ -610,69 +702,135 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Fixed Price Section */}
+      <section className={`${styles.section} ${styles.fixedPrice}`}>
+        <div className={styles.container}>
+          <div className={`${styles.fixedPriceContent} ${styles.scrollFadeIn}`}>
+            <h2 className={styles.fixedPriceTitle}>
+              <span className={styles.goldAccent}>完全定額制</span>で安心
+            </h2>
+            <p className={styles.fixedPriceDescription}>
+              NUKUNEは月額料金だけで利用できる、完全定額制のマッチングサービスです。<br />
+              メッセージのやり取りや閲覧に追加課金が発生することはありません。<br />
+              登録からマッチング、やり取り、予約まで、すべて月額料金に含まれています。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section - LUXE DATE Style */}
       <section className={`${styles.section} ${styles.pricing}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>料金プラン</h2>
-          <p className={`${styles.sectionSubtitle} ${styles.scrollFadeIn}`}>
-            Nukuneは登録無料で利用できるマッチングサービスですが、良質な出会いを提供するために男性会員様には女性とのやりとりに付随する機能は月額定額制の有料プランで提供しています。
-          </p>
+          <div className={styles.pricingHeader}>
+            <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
+              <span className={styles.titleLine1}>NUKUNE 利用料金</span>
+              <span className={styles.titleLine2}>（男性会員様）</span>
+            </h2>
+            <p className={`${styles.pricingSubtitle} ${styles.scrollFadeIn}`}>
+              NUKUNEは登録無料でお使いいただけます。<br />
+              ただし、良質な出会いを提供するため、男性会員様のキャスト検索機能は<br />
+              月額定額制の有料プランで提供しています。
+            </p>
+          </div>
+
+          {/* 共通機能表示 */}
+          <div className={styles.commonFeatures}>
+            <h3 className={styles.commonFeaturesTitle}>料金プラン</h3>
+            <div className={styles.featuresBox}>
+              <div className={styles.featureItem}>
+                <span className={styles.checkIcon}>✓</span>
+                <span>全ての基本機能</span>
+              </div>
+              <div className={styles.featureItem}>
+                <span className={styles.checkIcon}>✓</span>
+                <span>プロフィール閲覧</span>
+              </div>
+              <div className={styles.featureItem}>
+                <span className={styles.checkIcon}>✓</span>
+                <span>マッチング機能</span>
+              </div>
+              <div className={styles.featureItem}>
+                <span className={styles.checkIcon}>✓</span>
+                <span>カスタマーサポート</span>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.pricingGrid}>
-            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={styles.pricingHeader}>
-                <h3 className={styles.pricingTitle}>1ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="2000">¥2,000</div>
-                <div className={styles.pricingPeriod}>月額</div>
+            {/* 1ヶ月プラン */}
+            <div className={`${styles.pricingCard} ${styles.scrollStagger}`}>
+              <div className={styles.planBadge}>期間限定！</div>
+              <div className={styles.planHeader}>
+                <h3 className={styles.planTitle}>1ヶ月プラン</h3>
+                <div className={styles.priceWrapper}>
+                  <span className={styles.priceLabel}>月額</span>
+                  <span className={`${styles.priceAmount} ${styles.counterNumber}`} data-count="1980">¥1,980</span>
+                  <span className={styles.priceTax}>円/月</span>
+                </div>
+                <div className={styles.priceTaxLabel}>（税込）</div>
+                <div className={styles.totalPrice}>（一括1,980円）</div>
+                <div className={styles.specialOffer}>3,480円が期間限定で1,980円に！</div>
               </div>
-              <ul className={styles.pricingFeatures}>
-                <li>全ての基本機能</li>
-                <li>無制限メッセージ</li>
-                <li>プロフィール閲覧</li>
-                <li>マッチング機能</li>
-                <li>カスタマーサポート</li>
-              </ul>
-              <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={() => handlePricingClick('1month')}>プラン登録</button>
-              </div>
+              <button className={styles.planButton} onClick={() => handlePricingClick('1month')}>
+                プラン登録
+              </button>
             </div>
-            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={styles.pricingHeader}>
-                <h3 className={styles.pricingTitle}>6ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1500">¥1,500</div>
-                <div className={styles.pricingPeriod}>月額</div>
-                <span className={styles.pricingDiscount}>25%お得</span>
+
+            {/* 3ヶ月プラン */}
+            <div className={`${styles.pricingCard} ${styles.scrollStagger}`}>
+              <div className={styles.planBadge}>少しお得</div>
+              <div className={styles.planHeader}>
+                <h3 className={styles.planTitle}>3ヶ月プラン</h3>
+                <div className={styles.priceWrapper}>
+                  <span className={styles.priceLabel}>月額</span>
+                  <span className={`${styles.priceAmount} ${styles.counterNumber}`} data-count="1550">¥1,550</span>
+                  <span className={styles.priceTax}>円/月</span>
+                </div>
+                <div className={styles.priceTaxLabel}>（税込）</div>
+                <div className={styles.totalPrice}>（一括4,650円）</div>
+                <div className={styles.discountBadge}>最大56%お得なプラン</div>
               </div>
-              <ul className={styles.pricingFeatures}>
-                <li>全ての基本機能</li>
-                <li>無制限メッセージ</li>
-                <li>プロフィール閲覧</li>
-                <li>マッチング機能</li>
-                <li>優先サポート</li>
-                <li>特別検索機能</li>
-              </ul>
-              <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={() => handlePricingClick('6month')}>プラン登録</button>
-              </div>
+              <button className={styles.planButton} onClick={() => handlePricingClick('3month')}>
+                プラン登録
+              </button>
             </div>
-            <div className={`${styles.pricingCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={styles.pricingHeader}>
-                <h3 className={styles.pricingTitle}>12ヶ月プラン</h3>
-                <div className={`${styles.pricingPrice} ${styles.counterNumber}`} data-count="1000">¥1,000</div>
-                <div className={styles.pricingPeriod}>月額</div>
-                <span className={styles.pricingDiscount}>50%お得</span>
+
+            {/* 6ヶ月プラン - 人気 */}
+            <div className={`${styles.pricingCard} ${styles.pricingCardPopular} ${styles.scrollStagger}`}>
+              <div className={styles.planBadge}>一番人気！</div>
+              <div className={styles.planHeader}>
+                <h3 className={styles.planTitle}>6ヶ月プラン</h3>
+                <div className={styles.priceWrapper}>
+                  <span className={styles.priceLabel}>月額</span>
+                  <span className={`${styles.priceAmount} ${styles.counterNumber}`} data-count="1350">¥1,350</span>
+                  <span className={styles.priceTax}>円/月</span>
+                </div>
+                <div className={styles.priceTaxLabel}>（税込）</div>
+                <div className={styles.totalPrice}>（一括8,100円）</div>
+                <div className={styles.discountBadge}>最大62%お得なプラン</div>
               </div>
-              <ul className={styles.pricingFeatures}>
-                <li>全ての基本機能</li>
-                <li>無制限メッセージ</li>
-                <li>プロフィール閲覧</li>
-                <li>マッチング機能</li>
-                <li>VIPサポート</li>
-                <li>特別検索機能</li>
-                <li>プレミアムバッジ</li>
-              </ul>
-              <div className={styles.pricingCta}>
-                <button className={styles.pricingBtn} onClick={() => handlePricingClick('12month')}>プラン登録</button>
+              <button className={`${styles.planButton} ${styles.planButtonPopular}`} onClick={() => handlePricingClick('6month')}>
+                プラン登録
+              </button>
+            </div>
+
+            {/* 12ヶ月プラン */}
+            <div className={`${styles.pricingCard} ${styles.scrollStagger}`}>
+              <div className={styles.planBadge}>一番お得！</div>
+              <div className={styles.planHeader}>
+                <h3 className={styles.planTitle}>12ヶ月プラン</h3>
+                <div className={styles.priceWrapper}>
+                  <span className={styles.priceLabel}>月額</span>
+                  <span className={`${styles.priceAmount} ${styles.counterNumber}`} data-count="1150">¥1,150</span>
+                  <span className={styles.priceTax}>円/月</span>
+                </div>
+                <div className={styles.priceTaxLabel}>（税込）</div>
+                <div className={styles.totalPrice}>（一括13,800円）</div>
+                <div className={styles.discountBadge}>最大67%お得なプラン</div>
               </div>
+              <button className={styles.planButton} onClick={() => handlePricingClick('12month')}>
+                プラン登録
+              </button>
             </div>
           </div>
         </div>
