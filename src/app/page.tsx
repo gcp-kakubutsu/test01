@@ -46,7 +46,19 @@ export default function LandingPage() {
     // Skip animations if authenticated (will redirect anyway)
     if (isAuthenticated) return;
 
-    // モバイルでも確実に動作するように初期化
+    // アニメーションを無効化してモバイルでの表示問題を解決
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // モバイルではアニメーションを無効化
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        el.setAttribute('data-animated', 'true');
+      });
+      return;
+    }
+
+    // デスクトップのみアニメーション実行
     const initializeAnimations = () => {
       
       // Smooth scrolling for anchor links
@@ -70,23 +82,17 @@ export default function LandingPage() {
         anchor.addEventListener('click', handleAnchorClick);
       });
 
-      // Remove parallax effect to ensure video stays visible
-
-
-
       // Intersection Observer for scroll animations
       const observerOptions = {
-        threshold: 0.1, // 10%見えたらアニメーション開始
-        rootMargin: '-50px 0px -50px 0px' // 上下両方向に余白を設定
+        threshold: 0.1,
+        rootMargin: '-50px 0px -50px 0px'
       };
 
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            // 画面に入ったらアニメーション開始
             entry.target.setAttribute('data-animated', 'true');
           } else {
-            // 画面から出たらアニメーションをリセット（毎回動作）
             entry.target.setAttribute('data-animated', 'false');
           }
         });
@@ -95,16 +101,13 @@ export default function LandingPage() {
       // Observe all scroll animation elements
       const animatedElements = document.querySelectorAll(`.${styles.scrollFadeIn}, .${styles.scrollSlideLeft}, .${styles.scrollSlideRight}, .${styles.scrollScaleUp}`);
       
-      // 初期状態を設定（リロード時の対応）
       animatedElements.forEach((el, index) => {
-        // 要素が最初から画面内にある場合
         const rect = el.getBoundingClientRect();
         const windowHeight = window.innerHeight || document.documentElement.clientHeight;
         const isInViewport = rect.top < windowHeight && rect.bottom > 0;
         
         if (isInViewport) {
-          // 少し遅延させてアニメーションを開始（モバイル対応で遅延を増やす）
-          const delay = ('ontouchstart' in window) ? 200 + (index * 50) : 100 + (index * 30);
+          const delay = 100 + (index * 30);
           setTimeout(() => {
             el.setAttribute('data-animated', 'true');
           }, delay);
@@ -120,14 +123,12 @@ export default function LandingPage() {
         entries.forEach(entry => {
           const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
           if (entry.isIntersecting) {
-            // 画面に入ったら順番にアニメーション
             staggerElements.forEach((el, index) => {
               setTimeout(() => {
                 el.setAttribute('data-animated', 'true');
-              }, index * 80); // より速いスタッガー
+              }, index * 80);
             });
           } else {
-            // 画面から出たら即座にリセット
             staggerElements.forEach(el => {
               el.setAttribute('data-animated', 'false');
             });
@@ -138,7 +139,6 @@ export default function LandingPage() {
       // Observe containers with stagger elements
       const staggerContainers = document.querySelectorAll(`.${styles.featuresGrid}, .${styles.reasonsGrid}, .${styles.stepsContainer}, .${styles.safetyGrid}, .${styles.faqContainer}, .${styles.pricingGrid}`);
       
-      // スタッガーアニメーションの初期化
       staggerContainers.forEach(container => {
         const rect = container.getBoundingClientRect();
         const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
@@ -201,24 +201,14 @@ export default function LandingPage() {
       };
     };
     
-    // モバイルでの初期化を確実にする
+    // デスクトップでの初期化
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeAnimations);
     } else {
-      // すでにDOMが読み込まれている場合
       initializeAnimations();
-    }
-    
-    // さらに確実にするため、少し遅延させて再実行
-    const timer = setTimeout(initializeAnimations, 500);
-    
-    // モバイルデバイスの場合は追加で遅延実行
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-      setTimeout(initializeAnimations, 1000);
     }
 
     return () => {
-      clearTimeout(timer);
       document.removeEventListener('DOMContentLoaded', initializeAnimations);
     };
   }, [isAuthenticated]);

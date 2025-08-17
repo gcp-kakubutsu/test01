@@ -2090,12 +2090,21 @@ $border-color-light: #E5E7EB;
   opacity: 1;
   transform: translateY(0);
   
+  // モバイルでは常に表示
+  @media (max-width: 768px) {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  
   &[data-animated="false"] {
     opacity: 0;
     transform: translateY(30px);
     
     @media (max-width: 768px) {
-      transform: translateY(20px);
+      // モバイルでは常に表示
+      opacity: 1 !important;
+      transform: none !important;
     }
   }
   
