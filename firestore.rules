@@ -52,8 +52,13 @@ service cloud.firestore {
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.from;
       
-      // いいねは削除・更新不可
-      allow update, delete: if false;
+      // ユーザーは自分が送信したいいねのみ更新できる（タイムスタンプの更新用）
+      allow update: if request.auth != null && 
+        request.auth.uid == resource.data.from &&
+        request.auth.uid == request.resource.data.from;
+      
+      // いいねは削除不可
+      allow delete: if false;
     }
     
     // Communities collection rules

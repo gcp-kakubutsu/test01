@@ -1078,8 +1078,8 @@ export default function HomePage() {
                 <div className="flex gap-2 mt-auto">
                   <Button
                     variant="outline"
-                    className={`flex-1 bg-pink-500/20 text-pink-500 border-pink-500 hover:bg-pink-500 hover:text-white transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                      viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
+                    className={`flex-1 min-w-0 bg-[#8B1E3F]/20 text-[#8B1E3F] border-[#8B1E3F] hover:bg-[#8B1E3F] hover:text-white hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis ${
+                      viewMode === 'single' ? 'text-sm px-4 py-2' : 'text-xs px-2 py-1.5'
                     } sm:text-sm`}
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -1124,8 +1124,10 @@ export default function HomePage() {
                         
                         if (result.alreadyLiked) {
                           toast({
-                            title: '既にいいねを送っています',
-                            description: `${name}さんには既にいいねを送信済みです。`,
+                            title: result.updated ? 'いいねを更新しました！' : '既にいいねを送っています',
+                            description: result.updated 
+                              ? `${name}さんへのいいねを最新に更新しました。`
+                              : `${name}さんには既にいいねを送信済みです。`,
                           });
                         } else {
                           toast({
@@ -1147,8 +1149,8 @@ export default function HomePage() {
                     いいね
                   </Button>
                   <Button
-                    className={`flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 hover:from-yellow-600 hover:to-amber-600 transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
-                      viewMode === 'single' ? 'text-sm' : 'text-xs py-1.5'
+                    className={`flex-1 min-w-0 bg-pink-500 text-white hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-lg transition-all flex items-center justify-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis ${
+                      viewMode === 'single' ? 'text-sm px-4 py-2' : 'text-xs px-2 py-1.5'
                     } sm:text-sm`}
                     onClick={(e) => {
                       e.stopPropagation();

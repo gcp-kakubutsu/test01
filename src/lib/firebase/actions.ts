@@ -253,14 +253,39 @@ export async function sendLike(
     const existingLikeSnapshot = await getDocs(existingLikeQuery);
     
     if (!existingLikeSnapshot.empty) {
-      console.log('Like already exists');
-      return { likeId: existingLikeSnapshot.docs[0].id, matchId: null, isMatch: false, alreadyLiked: true };
+      console.log('Like already exists, updating timestamp');
+      // Update the existing like with new timestamp to move it to the latest
+      const existingLikeDoc = existingLikeSnapshot.docs[0];
+      const existingLikeRef = doc(currentDb, 'likes', existingLikeDoc.id);
+      
+      try {
+        await updateDoc(existingLikeRef, {
+          createdAt: serverTimestamp(), // Update createdAt to move to latest
+          updatedAt: serverTimestamp(),
+          seen: false // Reset seen status when re-liking
+        });
+        
+        return { likeId: existingLikeDoc.id, matchId: null, isMatch: false, alreadyLiked: true, updated: true };
+      } catch (updateError: any) {
+        console.error('Error updating existing like:', updateError);
+        
+        // If update fails due to permissions, still return that like exists
+        if (updateError.code === 'permission-denied' || updateError.message?.includes('Missing or insufficient permissions')) {
+          console.warn('Permission denied to update like, but like already exists');
+          // Return that like already exists without updating
+          return { likeId: existingLikeDoc.id, matchId: null, isMatch: false, alreadyLiked: true, updated: false };
+        }
+        
+        // Re-throw other errors
+        throw updateError;
+      }
     }
     
     const likeData: any = {
       from: fromUserId,
       to: toUserId,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       seen: false
     };
     

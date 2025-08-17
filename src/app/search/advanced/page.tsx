@@ -1037,8 +1037,10 @@ function AdvancedSearchContent() {
       
       if (result.alreadyLiked) {
         toast({
-          title: '既にいいねを送っています',
-          description: `${user.name}さんには既にいいねを送信済みです。`,
+          title: result.updated ? 'いいねを更新しました！' : '既にいいねを送っています',
+          description: result.updated 
+            ? `${user.name}さんへのいいねを最新に更新しました。`
+            : `${user.name}さんには既にいいねを送信済みです。`,
         })
       } else if (result.isMatch) {
         toast({
