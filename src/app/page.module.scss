@@ -26,6 +26,7 @@ $border-color-light: #E5E7EB;
   position: relative;
   z-index: 0;
   isolation: isolate;
+  overflow-x: hidden;
 
   :global(.light) & {
     background-color: $bg-light;
@@ -46,7 +47,7 @@ $border-color-light: #E5E7EB;
 // Hero Section
 .hero {
   width: 100%;
-  height: 100vh; // 正確に1ページの高さにする
+  height: 100vh;
   position: relative;
   display: flex;
   align-items: center;
@@ -54,9 +55,30 @@ $border-color-light: #E5E7EB;
   text-align: center;
   background-color: #000;
   overflow: hidden;
+  
+  // ゴールドアクセントのシマーアニメーション
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(212, 175, 55, 0.5), 
+      transparent);
+    animation: shimmer 3s infinite;
+    z-index: 3;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
 
   :global(.light) & {
-    background-color: #000; // Hero keeps dark background in light mode
+    background-color: #000;
   }
 }
 
@@ -83,7 +105,9 @@ $border-color-light: #E5E7EB;
   height: 100%;
   background: linear-gradient(135deg, 
     rgba(17, 24, 39, 0.8) 0%, 
+    rgba(212, 175, 55, 0.15) 30%,
     rgba(139, 30, 63, 0.4) 50%, 
+    rgba(212, 175, 55, 0.1) 70%,
     rgba(17, 24, 39, 0.9) 100%);
   z-index: 1;
   pointer-events: none;
@@ -101,7 +125,7 @@ $border-color-light: #E5E7EB;
   font-size: 3.75rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, $text-light, $accent-gold);
+  background: linear-gradient(135deg, #f3e5c1, #caa35b, #F0306A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -109,6 +133,12 @@ $border-color-light: #E5E7EB;
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: goldShimmer 4s ease-in-out infinite;
+  
+  @keyframes goldShimmer {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+  }
 
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -182,22 +212,42 @@ $border-color-light: #E5E7EB;
   align-items: center;
   gap: 0.5rem;
   font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
 
   @media (max-width: 768px) {
     padding: 0.875rem 1.5rem;
   }
 
   &Primary {
-    background: linear-gradient(135deg, $accent-burgundy, #D91E5A);
-    color: #FFFFFF;
+    background: linear-gradient(135deg, #caa35b, #f3e5c1, #caa35b);
+    color: #1a1a1a;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
 
     :global(.light) & {
-      color: #FFFFFF;
+      color: #1a1a1a;
     }
 
     &:hover {
-      transform: translateY(-2px) scale(1.05);
-      box-shadow: 0 8px 25px rgba(240, 48, 106, 0.4);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+      background: linear-gradient(135deg, #f3e5c1, #caa35b, #8f6a2a);
     }
   }
 
@@ -260,11 +310,40 @@ $border-color-light: #E5E7EB;
   font-size: 2.5rem;
   text-align: center;
   margin-bottom: 3rem;
-  color: #ffffff;
-  font-weight: 500;
+  font-weight: 700;
+  position: relative;
+  background: linear-gradient(90deg, #caa35b, #f3e5c1, #caa35b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldFlow 4s ease-in-out infinite;
+  
+  @keyframes goldFlow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+  }
+  
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #caa35b, transparent);
+    animation: shimmer 3s infinite;
+  }
 
   :global(.light) & {
-    color: $text-dark;
+    background: linear-gradient(90deg, #F0306A, #FF6B9D, #F0306A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    
+    &::after {
+      background: linear-gradient(90deg, transparent, #F0306A, transparent);
+    }
   }
 
   .titleLine1,
@@ -1050,18 +1129,37 @@ $border-color-light: #E5E7EB;
 }
 
 .reasonCard {
-  background: rgba(212, 175, 55, 0.05);
-  border: 1px solid rgba(212, 175, 55, 0.1);
-  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.08), rgba(212, 175, 55, 0.02));
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 18px;
   padding: 2rem;
   transition: all 0.3s ease;
   color: $text-light;
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.1), transparent 40%);
+    animation: pulse 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
 
   :global(.light) & {
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    background: linear-gradient(180deg, rgba(240, 48, 106, 0.05), rgba(240, 48, 106, 0.02));
+    border: 1px solid rgba(240, 48, 106, 0.2);
     color: $text-dark;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   }
 
   &:hover {
@@ -1688,10 +1786,33 @@ $border-color-light: #E5E7EB;
     }
   }
 
+  // Add gold edge effect on hover
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: 
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)) border-box,
+      conic-gradient(from var(--angle, 0deg), transparent, rgba(202,163,91,.3), transparent) border-box;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(212, 175, 55, 0.2);
     border-color: rgba(212, 175, 55, 0.4);
+    
+    &::after {
+      opacity: 1;
+      animation: rotateGoldBorder 4s linear infinite;
+    }
     
     :global(.light) & {
       box-shadow: 0 15px 35px rgba(240, 48, 106, 0.15);
@@ -1707,6 +1828,24 @@ $border-color-light: #E5E7EB;
 .pricingCardPopular {
   border: 2px solid rgba(212, 175, 55, 0.5);
   transform: scale(1.05);
+  
+  // Permanent gold edge animation for popular card
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: 
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0)) border-box,
+      conic-gradient(from 0deg, rgba(202,163,91,.8), transparent, rgba(202,163,91,.8)) border-box;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: rotateGoldBorder 5s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
   
   :global(.light) & {
     border: 2px solid rgba(240, 48, 106, 0.5);
@@ -2087,24 +2226,14 @@ $border-color-light: #E5E7EB;
 .scrollFadeIn {
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
-  opacity: 1;
-  transform: translateY(0);
-  
-  // モバイルでは常に表示
-  @media (max-width: 768px) {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateY(30px);
     
     @media (max-width: 768px) {
-      // モバイルでは常に表示
-      opacity: 1 !important;
-      transform: none !important;
+      opacity: 0;
+      transform: translateY(20px);
     }
   }
   
@@ -2112,19 +2241,22 @@ $border-color-light: #E5E7EB;
     opacity: 1;
     transform: translateY(0);
   }
+  
+  @media (max-width: 768px) {
+    transition: all 0.4s ease-out;
+  }
 }
 
 .scrollSlideLeft {
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
-  opacity: 1;
-  transform: translateX(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateX(-50px);
     
     @media (max-width: 768px) {
+      opacity: 0;
       transform: translateX(-30px);
     }
   }
@@ -2133,19 +2265,22 @@ $border-color-light: #E5E7EB;
     opacity: 1;
     transform: translateX(0);
   }
+  
+  @media (max-width: 768px) {
+    transition: all 0.4s ease-out;
+  }
 }
 
 .scrollSlideRight {
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
-  opacity: 1;
-  transform: translateX(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateX(50px);
     
     @media (max-width: 768px) {
+      opacity: 0;
       transform: translateX(30px);
     }
   }
@@ -2154,36 +2289,46 @@ $border-color-light: #E5E7EB;
     opacity: 1;
     transform: translateX(0);
   }
+  
+  @media (max-width: 768px) {
+    transition: all 0.4s ease-out;
+  }
 }
 
 .scrollScaleUp {
   transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
-  opacity: 1;
-  transform: scale(1);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: scale(0.8);
+    
+    @media (max-width: 768px) {
+      opacity: 0;
+      transform: scale(0.9);
+    }
   }
   
   &[data-animated="true"] {
     opacity: 1;
     transform: scale(1);
   }
+  
+  @media (max-width: 768px) {
+    transition: all 0.5s ease-out;
+  }
 }
 
 .scrollStagger {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
-  opacity: 1;
-  transform: translateY(0);
   
   &[data-animated="false"] {
     opacity: 0;
     transform: translateY(30px);
     
     @media (max-width: 768px) {
+      opacity: 0;
       transform: translateY(20px);
     }
   }
@@ -2191,6 +2336,10 @@ $border-color-light: #E5E7EB;
   &[data-animated="true"] {
     opacity: 1;
     transform: translateY(0);
+  }
+  
+  @media (max-width: 768px) {
+    transition: all 0.3s ease-out;
   }
 }
 
@@ -2239,5 +2388,151 @@ $border-color-light: #E5E7EB;
   
   :global(.light) & {
     background-color: rgba(243, 244, 246, 0.8);
+  }
+}
+
+// Section slide animations
+.sectionSlideLeft {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  
+  &[data-section-animated="false"] {
+    opacity: 0;
+    transform: translateX(-100px);
+    
+    @media (max-width: 768px) {
+      transform: translateX(-50px);
+    }
+  }
+  
+  &[data-section-animated="true"] {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sectionSlideRight {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  
+  &[data-section-animated="false"] {
+    opacity: 0;
+    transform: translateX(100px);
+    
+    @media (max-width: 768px) {
+      transform: translateX(50px);
+    }
+  }
+  
+  &[data-section-animated="true"] {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Mobile optimizations for section animations
+@media (max-width: 768px) {
+  @media (prefers-reduced-motion: reduce) {
+    .sectionSlideLeft,
+    .sectionSlideRight {
+      &[data-section-animated="false"],
+      &[data-section-animated="true"] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+    }
+  }
+  
+  // For mobile with animations enabled
+  @media (prefers-reduced-motion: no-preference) {
+    .sectionSlideLeft,
+    .sectionSlideRight {
+      transition: all 0.5s ease-out !important;
+    }
+  }
+}
+
+// Background animated boxes (from test1.html)
+.bgBoxesContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.03;
+}
+
+.bgBox {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, transparent, rgba(202, 163, 91, 0.1), transparent);
+  border: 1px solid rgba(202, 163, 91, 0.05);
+  animation: floatBox 20s infinite ease-in-out;
+  
+  &:nth-child(1) {
+    top: 10%;
+    left: 5%;
+    animation-duration: 25s;
+    animation-delay: 0s;
+    transform: rotate(45deg);
+  }
+  
+  &:nth-child(2) {
+    top: 60%;
+    right: 10%;
+    animation-duration: 30s;
+    animation-delay: 3s;
+    transform: rotate(60deg);
+  }
+  
+  &:nth-child(3) {
+    bottom: 20%;
+    left: 15%;
+    animation-duration: 28s;
+    animation-delay: 5s;
+    transform: rotate(30deg);
+  }
+  
+  &:nth-child(4) {
+    top: 30%;
+    right: 25%;
+    animation-duration: 32s;
+    animation-delay: 2s;
+    transform: rotate(75deg);
+  }
+  
+  &:nth-child(5) {
+    bottom: 10%;
+    right: 5%;
+    animation-duration: 27s;
+    animation-delay: 7s;
+    transform: rotate(15deg);
+  }
+}
+
+@keyframes floatBox {
+  0%, 100% {
+    transform: translateY(0) rotate(var(--rotation, 45deg));
+  }
+  25% {
+    transform: translateY(-30px) rotate(calc(var(--rotation, 45deg) + 10deg));
+  }
+  50% {
+    transform: translateY(0) rotate(calc(var(--rotation, 45deg) + 20deg));
+  }
+  75% {
+    transform: translateY(30px) rotate(calc(var(--rotation, 45deg) + 10deg));
+  }
+}
+
+// Gold edge rotating border animation (from test1.html)
+@keyframes rotateGoldBorder {
+  to {
+    transform: rotate(1turn);
   }
 }

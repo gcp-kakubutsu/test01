@@ -46,19 +46,9 @@ export default function LandingPage() {
     // Skip animations if authenticated (will redirect anyway)
     if (isAuthenticated) return;
 
-    // アニメーションを無効化してモバイルでの表示問題を解決
     const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 768;
     
-    if (isMobile) {
-      // モバイルではアニメーションを無効化
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(el => {
-        el.setAttribute('data-animated', 'true');
-      });
-      return;
-    }
-
-    // デスクトップのみアニメーション実行
+    // アニメーション初期化（モバイルでも動作するが、異なる設定）
     const initializeAnimations = () => {
       
       // Smooth scrolling for anchor links
@@ -82,10 +72,10 @@ export default function LandingPage() {
         anchor.addEventListener('click', handleAnchorClick);
       });
 
-      // Intersection Observer for scroll animations
+      // Bidirectional Intersection Observer for scroll animations
       const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '-50px 0px -50px 0px'
+        threshold: isMobile ? 0 : 0.1,
+        rootMargin: isMobile ? '0px 0px 0px 0px' : '-50px 0px -50px 0px'
       };
 
       const observer = new IntersectionObserver((entries) => {
@@ -93,6 +83,7 @@ export default function LandingPage() {
           if (entry.isIntersecting) {
             entry.target.setAttribute('data-animated', 'true');
           } else {
+            // 双方向アニメーション: 要素が画面外に出たら即座にリセット（上下両方向）
             entry.target.setAttribute('data-animated', 'false');
           }
         });
@@ -107,7 +98,7 @@ export default function LandingPage() {
         const isInViewport = rect.top < windowHeight && rect.bottom > 0;
         
         if (isInViewport) {
-          const delay = 100 + (index * 30);
+          const delay = isMobile ? 50 + (index * 20) : 100 + (index * 30);
           setTimeout(() => {
             el.setAttribute('data-animated', 'true');
           }, delay);
@@ -117,18 +108,51 @@ export default function LandingPage() {
         
         observer.observe(el);
       });
+      
+      // Observe section slide animations
+      const sectionElements = document.querySelectorAll(`.${styles.sectionSlideLeft}, .${styles.sectionSlideRight}`);
+      
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute('data-section-animated', 'true');
+          } else {
+            // 双方向アニメーション: 画面外に出たら即座にリセット（上下両方向で毎回動作）
+            entry.target.setAttribute('data-section-animated', 'false');
+          }
+        });
+      }, {
+        threshold: isMobile ? 0.05 : 0.1,
+        rootMargin: isMobile ? '0px' : '-50px 0px'
+      });
+      
+      sectionElements.forEach(section => {
+        const rect = section.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const isInViewport = rect.top < windowHeight && rect.bottom > 0;
+        
+        if (isInViewport) {
+          section.setAttribute('data-section-animated', 'true');
+        } else {
+          section.setAttribute('data-section-animated', 'false');
+        }
+        
+        sectionObserver.observe(section);
+      });
 
-      // Stagger animation observer
+      // Stagger animation observer with bidirectional support
       const staggerObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           const staggerElements = entry.target.querySelectorAll(`.${styles.scrollStagger}`);
           if (entry.isIntersecting) {
             staggerElements.forEach((el, index) => {
+              const delay = isMobile ? 0 : index * 80;
               setTimeout(() => {
                 el.setAttribute('data-animated', 'true');
-              }, index * 80);
+              }, delay);
             });
           } else {
+            // 双方向アニメーション: 画面外に出たら即座にリセット
             staggerElements.forEach(el => {
               el.setAttribute('data-animated', 'false');
             });
@@ -146,9 +170,10 @@ export default function LandingPage() {
         if (isInViewport) {
           const staggerElements = container.querySelectorAll(`.${styles.scrollStagger}`);
           staggerElements.forEach((el, index) => {
+            const delay = isMobile ? 50 + (index * 40) : 100 + (index * 80);
             setTimeout(() => {
               el.setAttribute('data-animated', 'true');
-            }, 100 + (index * 80));
+            }, delay);
           });
         } else {
           const staggerElements = container.querySelectorAll(`.${styles.scrollStagger}`);
@@ -198,10 +223,11 @@ export default function LandingPage() {
         observer.disconnect();
         staggerObserver.disconnect();
         counterObserver.disconnect();
+        sectionObserver.disconnect();
       };
     };
     
-    // デスクトップでの初期化
+    // 初期化（モバイル・デスクトップ両方）
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeAnimations);
     } else {
@@ -276,6 +302,14 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* Background animated boxes */}
+      <div className={styles.bgBoxesContainer}>
+        <div className={styles.bgBox}></div>
+        <div className={styles.bgBox}></div>
+        <div className={styles.bgBox}></div>
+        <div className={styles.bgBox}></div>
+        <div className={styles.bgBox}></div>
+      </div>
       {/* Hero Section */}
       <section className={styles.hero}>
         <video 
@@ -312,7 +346,7 @@ export default function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section className={`${styles.section} ${styles.about}`}>
+      <section className={`${styles.section} ${styles.about} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>NUKUNEとは</h2>
           <div className={styles.aboutContent}>
@@ -361,7 +395,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className={`${styles.section} ${styles.features}`}>
+      <section className={`${styles.section} ${styles.features} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>充実の機能で</span>
@@ -394,7 +428,7 @@ export default function LandingPage() {
       </section>
 
       {/* Solutions Section - こんなとき、NUKUNEが解決します */}
-      <section className={`${styles.section} ${styles.solutions}`}>
+      <section className={`${styles.section} ${styles.solutions} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>こんなとき、</span>
@@ -486,7 +520,7 @@ export default function LandingPage() {
       </section>
 
       {/* Matching Search Section */}
-      <section className={`${styles.section} ${styles.matchingSearch}`}>
+      <section className={`${styles.section} ${styles.matchingSearch} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <div className={`${styles.scrollFadeIn} max-w-4xl mx-auto`}>
             <MatchingSearch />
@@ -495,7 +529,7 @@ export default function LandingPage() {
       </section>
 
       {/* Reasons Section */}
-      <section className={`${styles.section} ${styles.reasons}`}>
+      <section className={`${styles.section} ${styles.reasons} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>従来の風俗サイトとの</span>
@@ -549,7 +583,7 @@ export default function LandingPage() {
       </section>
 
       {/* Start Guide Section */}
-      <section className={`${styles.section} ${styles.startGuide}`}>
+      <section className={`${styles.section} ${styles.startGuide} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>簡単スタートガイド</h2>
           <div className={`${styles.guideContainer} ${styles.scrollScaleUp}`}>
@@ -583,7 +617,7 @@ export default function LandingPage() {
       </section>
 
       {/* Safety Section */}
-      <section className={`${styles.section} ${styles.safety}`}>
+      <section className={`${styles.section} ${styles.safety} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>安全への取り組み</h2>
           <div className={styles.safetyGrid}>
@@ -646,7 +680,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className={`${styles.section} ${styles.faq}`}>
+      <section className={`${styles.section} ${styles.faq} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>よくあるご質問</h2>
           <div className={styles.faqContainer}>
@@ -693,7 +727,7 @@ export default function LandingPage() {
       </section>
 
       {/* Fixed Price Section */}
-      <section className={`${styles.section} ${styles.fixedPrice}`}>
+      <section className={`${styles.section} ${styles.fixedPrice} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <div className={`${styles.fixedPriceContent} ${styles.scrollFadeIn}`}>
             <h2 className={styles.fixedPriceTitle}>
@@ -709,7 +743,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section - LUXE DATE Style */}
-      <section className={`${styles.section} ${styles.pricing}`}>
+      <section className={`${styles.section} ${styles.pricing} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <div className={styles.pricingHeader}>
             <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
@@ -827,7 +861,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className={`${styles.section} ${styles.cta}`}>
+      <section className={`${styles.section} ${styles.cta} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <div className={styles.ctaContent}>
             <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖に正直な出会いを。</h2>
