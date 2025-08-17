@@ -58,11 +58,19 @@ export default function MatchesPage() {
   // Load matches and likes
   useEffect(() => {
     const loadMatchesAndLikes = async () => {
+      console.log('[Matches] Firebase check:', { 
+        hasCurrentUser: !!currentUser, 
+        hasDb: !!db,
+        userId: currentUser?.uid 
+      });
+      
       // 認証されていない場合はデータを取得しない
       if (!currentUser || !db) {
+        console.log('[Matches] Waiting for Firebase initialization...');
         // 3秒待っても認証されない場合はログインページへ
         setTimeout(() => {
           if (!currentUser) {
+            console.log('[Matches] No auth after 3s, redirecting to login');
             router.push('/login');
           }
         }, 3000);

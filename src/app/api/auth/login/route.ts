@@ -77,6 +77,35 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    // Firestoreにユーザーデータが存在するか確認し、ない場合は作成
+    try {
+      const { getAdminFirestore, isAdminInitialized } = await import('@/lib/firebase/admin');
+      
+      if (isAdminInitialized()) {
+        const adminFirestore = getAdminFirestore();
+        const userRef = adminFirestore.collection('users').doc(data.localId);
+        const userDoc = await userRef.get();
+        
+        if (!userDoc.exists) {
+          console.log('[Login] Creating missing user document in Firestore for:', data.email);
+          // ユーザードキュメントが存在しない場合は作成
+          await userRef.set({
+            email: data.email,
+            emailVerified: emailVerified,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isPremium: false, // デフォルトは無料会員
+            subscriptionStatus: 'none',
+          });
+        } else {
+          console.log('[Login] User document exists in Firestore');
+        }
+      }
+    } catch (firestoreError) {
+      console.error('[Login] Failed to check/create Firestore user document:', firestoreError);
+      // Firestoreエラーがあってもログインは続行
+    }
+    
     // ユーザー情報を返す
     return NextResponse.json({
       success: true,

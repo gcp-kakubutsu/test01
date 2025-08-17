@@ -26,7 +26,15 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
-  const { memo, loading: memoLoading, reload } = useFirebaseMemo(targetId);
+  
+  console.log('[MemoPage] Component mounted with:', { 
+    targetId, 
+    targetName, 
+    currentUser: currentUser?.uid,
+    isLineBrowser 
+  });
+  
+  const { memo, loading: memoLoading, error: memoError, reload } = useFirebaseMemo(targetId);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,7 +46,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium && !isLineBrowser && isAuthenticated) {
+    if (!subscriptionLoading && !isPremium && isAuthenticated) {
       toast({
         title: '有料会員限定',
         description: 'メモ機能は有料会員のみ利用可能です',
@@ -46,16 +54,20 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
       });
       router.push('/subscription');
     }
-  }, [subscriptionLoading, isPremium, isLineBrowser, isAuthenticated, router, toast]);
+  }, [subscriptionLoading, isPremium, isAuthenticated, router, toast]);
 
   useEffect(() => {
+    console.log('[MemoPage] Memo data changed:', memo);
+    console.log('[MemoPage] Memo loading state:', memoLoading);
+    console.log('[MemoPage] Memo error:', memoError);
+    
     if (memo) {
       setContent(memo.content);
     }
-  }, [memo]);
+  }, [memo, memoLoading, memoError]);
 
   const handleSave = async () => {
-    if (!currentUser || (!isPremium && !isLineBrowser) || isSaving) return;
+    if (!currentUser || (!isPremium && !subscriptionLoading) || isSaving) return;
 
     setIsSaving(true);
     try {
@@ -85,7 +97,7 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
   };
 
   const handleDelete = async () => {
-    if (!currentUser || (!isPremium && !isLineBrowser) || isDeleting) return;
+    if (!currentUser || (!isPremium && !subscriptionLoading) || isDeleting) return;
 
     if (!confirm('このメモを削除しますか？')) return;
 
@@ -113,14 +125,19 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
 
   if (authLoading || memoLoading || subscriptionLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex flex-col justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2">読み込み中...</p>
+        {memoError && (
+          <div className="mt-4 text-red-500 text-sm">
+            エラー: {memoError}
+          </div>
+        )}
       </div>
     );
   }
 
-  if (!isPremium && !isLineBrowser) {
+  if (!isPremium && !subscriptionLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Card className="max-w-md">

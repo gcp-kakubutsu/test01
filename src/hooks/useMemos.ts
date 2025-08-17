@@ -21,8 +21,13 @@ export function useMemos() {
         const userMemos = await getUserMemos(currentUser.uid);
         setMemos(userMemos);
         setError(null);
-      } catch (err) {
-        console.error('Error loading memos:', err);
+      } catch (err: any) {
+        console.error('[useMemos] Error loading memos:', err);
+        console.error('[useMemos] Error details:', {
+          code: err?.code,
+          message: err?.message,
+          userId: currentUser?.uid
+        });
         setError('メモの読み込みに失敗しました');
         setMemos([]);
       } finally {
@@ -51,12 +56,21 @@ export function useMemo(targetId: string) {
 
     const loadMemo = async () => {
       try {
+        console.log('[useMemo] Loading memo for:', { userId: currentUser.uid, targetId });
         setLoading(true);
         const userMemo = await getMemo(currentUser.uid, targetId);
+        console.log('[useMemo] Memo loaded:', userMemo);
         setMemo(userMemo);
         setError(null);
-      } catch (err) {
-        console.error('Error loading memo:', err);
+      } catch (err: any) {
+        console.error('[useMemo] Error loading memo:', err);
+        console.error('[useMemo] Error details:', {
+          code: err?.code,
+          message: err?.message,
+          stack: err?.stack,
+          userId: currentUser?.uid,
+          targetId
+        });
         setError('メモの読み込みに失敗しました');
         setMemo(null);
       } finally {

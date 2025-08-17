@@ -108,7 +108,7 @@ export default function MemosPage() {
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
             <StickyNote className="mr-3 h-7 w-7" /> あなたのメモ
           </CardTitle>
-          {!isPremium && !isLineBrowser && (
+          {!isPremium && !subscriptionLoading && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 メモ機能は有料会員限定です
@@ -122,7 +122,7 @@ export default function MemosPage() {
               </Button>
             </div>
           )}
-          {(isPremium || isLineBrowser) && (
+          {isPremium && !subscriptionLoading && (
             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
@@ -135,7 +135,7 @@ export default function MemosPage() {
           )}
         </CardHeader>
         <CardContent>
-          {(isPremium || isLineBrowser) ? (
+          {isPremium && !subscriptionLoading ? (
             filteredMemos.length > 0 ? (
               <ul className="space-y-4">
                 {filteredMemos.map(memo => (

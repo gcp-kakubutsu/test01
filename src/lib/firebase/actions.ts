@@ -14,6 +14,18 @@ import { db } from './client';
 
 // Community Actions
 export async function joinCommunity(communityId: string, userId: string) {
+  // LINEブラウザの場合、Firebase初期化を待つ
+  const isLineBrowser = typeof window !== 'undefined' && 
+    window.navigator.userAgent.toLowerCase().includes('line');
+  
+  if (isLineBrowser) {
+    const { waitForFirebaseInLine } = await import('./line-auth-helper');
+    const initialized = await waitForFirebaseInLine();
+    if (!initialized) {
+      throw new Error('Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
+    }
+  }
+  
   if (!db) throw new Error('Firestore is not initialized');
   
   try {
@@ -201,13 +213,36 @@ export async function sendLike(
     isGirlProfile?: boolean;
   }
 ) {
-  if (!db) throw new Error('Firestore is not initialized');
+  // LINEブラウザの場合、Firebase初期化を待つ
+  const isLineBrowser = typeof window !== 'undefined' && 
+    window.navigator.userAgent.toLowerCase().includes('line');
   
+  if (isLineBrowser) {
+    console.log('[sendLike] LINE browser detected, waiting for Firebase...');
+    const { waitForFirebaseInLine } = await import('./line-auth-helper');
+    const initialized = await waitForFirebaseInLine();
+    if (!initialized) {
+      console.error('[sendLike] Firebase initialization failed');
+      throw new Error('Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
+    }
+    console.log('[sendLike] Firebase initialized successfully');
+  }
+  
+  // dbを再取得
+  const { getFirebaseDb } = await import('./client');
+  const currentDb = getFirebaseDb();
+  
+  if (!currentDb) {
+    console.error('[sendLike] Firestore is null after initialization');
+    throw new Error('Firestore is not initialized');
+  }
+  
+  console.log('[sendLike] Using Firestore instance:', !!currentDb);
   console.log('Sending like from:', fromUserId, 'to:', toUserId, 'options:', options);
   
   try {
     const { getDocs, query, where } = await import('firebase/firestore');
-    const likesRef = collection(db, 'likes');
+    const likesRef = collection(currentDb, 'likes');
     
     // Check if like already exists
     const existingLikeQuery = query(

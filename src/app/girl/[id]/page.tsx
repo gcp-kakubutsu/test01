@@ -124,8 +124,53 @@ export default function GirlProfilePage() {
       return;
     }
 
-    // Check if db is initialized
-    if (!db) {
+    // 有料会員チェック
+    if (!subscriptionLoading && !isPremium) {
+      toast({
+        title: "有料会員限定",
+        description: "いいねを送るには有料会員登録が必要です。",
+        variant: "destructive",
+      });
+      router.push('/subscription');
+      return;
+    }
+
+    // LINEブラウザの場合、Firebase初期化を待つ
+    const isLineBrowser = typeof window !== 'undefined' && 
+      window.navigator.userAgent.toLowerCase().includes('line');
+    
+    let currentDb = db;
+    
+    if (isLineBrowser || !db) {
+      console.log('[handleLike] Waiting for Firebase initialization...');
+      const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
+      const initialized = await waitForFirebaseInLine();
+      
+      if (!initialized) {
+        toast({
+          title: "エラー",
+          description: "Firebaseの初期化に失敗しました。ページを再読み込みしてください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Firebaseが初期化された後、dbを再取得
+      const { getFirebaseDb } = await import('@/lib/firebase/client');
+      currentDb = getFirebaseDb();
+      
+      if (!currentDb) {
+        toast({
+          title: "エラー",
+          description: "データベースに接続できません。",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // currentDbがnullでないことを保証
+    if (!currentDb) {
       toast({
         title: "エラー",
         description: "データベースに接続できません。",
@@ -140,7 +185,7 @@ export default function GirlProfilePage() {
       const mysqlGirlId = `mysql_girl_${girl.id}`;
       
       // Check if like already exists
-      const likesRef = collection(db, 'likes');
+      const likesRef = collection(currentDb, 'likes');
       const q = firestoreQuery(
         likesRef,
         where('from', '==', currentUser.uid),
@@ -397,7 +442,7 @@ export default function GirlProfilePage() {
                   <Heart className="h-4 w-4 mr-2" />
                   {isProcessingLike ? "送信中..." : "いいね"}
                 </Button>
-                {(isPremium || isLineBrowser) && (
+                {isPremium && !subscriptionLoading && (
                   <Button 
                     className="flex-1" 
                     variant="outline"

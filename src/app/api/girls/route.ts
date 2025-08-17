@@ -216,8 +216,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(responseData);
     
   } catch (error) {
+    console.error('[/api/girls] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch girls data' },
+      { 
+        error: 'Failed to fetch girls data',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        girls: [],
+        total: 0
+      },
       { status: 500 }
     );
   }

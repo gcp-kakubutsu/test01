@@ -131,6 +131,31 @@ export async function POST(request: NextRequest) {
         console.error('Failed to send verification email:', await verifyResponse.json());
       }
 
+      // REST APIでユーザーが作成された場合もFirestoreにデータを保存
+      try {
+        const { getAdminFirestore, isAdminInitialized } = await import('@/lib/firebase/admin');
+        
+        if (isAdminInitialized()) {
+          const adminFirestore = getAdminFirestore();
+          console.log('[Signup] Creating user document in Firestore for REST API signup:', data.email);
+          
+          await adminFirestore.collection('users').doc(data.localId).set({
+            username,
+            email,
+            birthDate: birthDate || null,
+            gender: gender || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            emailVerified: false,
+            isPremium: false, // デフォルトは無料会員
+            subscriptionStatus: 'none',
+          });
+        }
+      } catch (firestoreError) {
+        console.error('[Signup] Failed to create Firestore user document:', firestoreError);
+        // Firestoreエラーがあってもユーザー作成は成功しているので続行
+      }
+
       return NextResponse.json({
         success: true,
         message: 'アカウントを作成しました。メールアドレスの確認をお願いします。',

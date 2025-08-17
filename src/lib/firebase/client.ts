@@ -166,10 +166,23 @@ function restoreAuthFromSession() {
   // 非同期で実行し、ブロッキングを避ける
   setTimeout(async () => {
     try {
+      // ngrok環境対応のヘッダー
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
+      
+      // ngrok環境の場合、警告ページをスキップ
+      if (typeof window !== 'undefined' && 
+          (window.location.hostname.includes('ngrok') || 
+           window.location.hostname.includes('ngrok-free'))) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
+      
       // セッション確認APIを呼び出し
       const response = await fetch('/api/auth/token', {
         method: 'GET',
         credentials: 'include',
+        headers,
       });
 
       if (response.ok) {

@@ -117,3 +117,10 @@ export function getAdminFirestore(): Firestore {
   }
   return db;
 }
+
+/**
+ * Firebase Admin SDKが初期化されているかチェック
+ */
+export function isAdminInitialized(): boolean {
+  return !!app;
+}

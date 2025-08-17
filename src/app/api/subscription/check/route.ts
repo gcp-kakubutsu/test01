@@ -5,8 +5,10 @@ import { getAdminAuth, getAdminFirestore, isAdminInitialized } from '@/lib/fireb
 // セッションベースで有料会員状態をチェック（LINEブラウザ対応）
 export async function GET() {
   try {
+    console.log('[Subscription Check API] Starting subscription check');
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session');
+    console.log('[Subscription Check API] Session cookie found:', !!sessionCookie);
     
     if (!sessionCookie) {
       return NextResponse.json({ 
@@ -49,20 +51,34 @@ export async function GET() {
       }
       
       // Firestoreから直接ユーザー情報を取得
+      console.log('[Subscription Check API] Fetching user from Firestore:', decodedClaims.uid);
       const userDoc = await adminFirestore
         .collection('users')
         .doc(decodedClaims.uid)
         .get();
       
+      console.log('[Subscription Check API] User doc exists:', userDoc.exists);
+      
       if (!userDoc.exists) {
+        console.log('[Subscription Check API] User document not found in Firestore');
         return NextResponse.json({ 
           isPremium: false, 
           subscriptionStatus: 'none',
-          error: 'User not found'
+          error: 'User not found',
+          debug: {
+            userId: decodedClaims.uid,
+            email: decodedClaims.email
+          }
         });
       }
       
       const userData = userDoc.data();
+      console.log('[Subscription Check API] User data retrieved:', {
+        uid: decodedClaims.uid,
+        isPremium: userData?.isPremium,
+        hasEndDate: !!userData?.subscriptionEndDate,
+        subscriptionPlan: userData?.subscriptionPlan
+      });
       
       // 有料会員チェック
       let isPremium = false;
@@ -82,6 +98,12 @@ export async function GET() {
           subscriptionStatus = 'active';
         }
       }
+      
+      console.log('[Subscription Check API] Final result:', {
+        isPremium,
+        subscriptionStatus,
+        userId: decodedClaims.uid
+      });
       
       return NextResponse.json({ 
         isPremium,

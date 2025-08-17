@@ -148,6 +148,96 @@ Firebaseプロジェクトをセットアップし、必要な設定情報をア
 ### ローカル開発
 上記「はじめに」の通り `npm run dev` を実行し、 `http://localhost:9002` で開発中のアプリを確認できます。
 
+### LINEブラウザでのローカルテスト（ngrok使用）
+
+開発中のアプリをLINEブラウザで確認するには、ngrokを使用してローカル環境を外部からアクセス可能にします。
+
+#### 前提条件
+- ngrokのインストール（[公式サイト](https://ngrok.com/)からダウンロード）
+- ngrokアカウントの作成とauthtokenの設定（初回のみ）
+- 開発サーバーが起動していること（`npm run dev`）
+
+#### 初回セットアップ（ngrokを初めて使う場合）
+
+1. **ngrokアカウントを作成**:
+   - [https://dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup) にアクセス
+   - 無料アカウントを作成（GitHubまたはGoogleアカウントでも可）
+
+2. **authtokenを設定**:
+```bash
+# セットアップスクリプトを実行
+./scripts/setup-ngrok.sh
+# プロンプトに従ってauthtokenを入力
+
+# または手動で設定
+ngrok config add-authtoken YOUR_AUTH_TOKEN_HERE
+```
+
+#### 手順
+
+1. **開発サーバーを起動**（ターミナル1）:
+```bash
+npm run dev
+```
+
+2. **ngrokトンネルを作成**（ターミナル2）:
+```bash
+# 方法1: スクリプトを使用（推奨）
+./scripts/start-ngrok.sh
+
+# 方法2: 直接コマンドを実行
+ngrok http 9002
+```
+
+3. **生成されたURLを確認**:
+ngrokが起動すると、以下のような情報が表示されます：
+```
+Forwarding  https://xxxxx-xx-xx-xxx-xxx.ngrok-free.app -> http://localhost:9002
+```
+この `https://xxxxx-xx-xx-xxx-xxx.ngrok-free.app` がLINEブラウザでアクセスするURLです。
+
+4. **LINEでURLを共有**:
+- LINEのトークで自分宛てにURLを送信
+- 送信したリンクをタップしてLINEブラウザで開く
+
+#### 注意事項
+- ngrokの無料プランでは、URLは一時的なものです（セッション毎に変わります）
+- 8時間でセッションがタイムアウトします
+- 初回アクセス時にngrokの警告画面が表示される場合があります（「Visit Site」をクリック）
+  - アプリ内では自動的にこの警告をスキップするヘッダーが設定されています
+- Firebase認証のリダイレクトURLにngrokドメインを追加する必要がある場合があります
+- ngrok使用時は開発ツールのコンソールでログを確認できます
+
+#### トラブルシューティング
+
+**Q: LINEブラウザで認証がうまくいかない**
+A: 以下を確認してください：
+1. Firebase ConsoleでAuthentication > 設定 > 承認済みドメインにngrokのドメインを追加
+2. Firestoreのセキュリティルールが正しく設定されているか確認（FIRESTORE_RULES.mdを参照）
+3. デバッグパネル（画面右下の紫ボタン）でFirebase接続状態を確認
+
+**Q: セッションが保持されない**
+A: LINEブラウザは特殊なCookie処理をするため、セッション管理に問題が生じることがあります。`/api/subscription/check`エンドポイントなど、LINEブラウザ専用の処理が正しく動作しているか確認してください。
+
+**Q: モザイクや有料会員機能の動作確認**
+A: ブラウザのコンソールログを確認するために、以下を利用できます：
+- vconsole（モバイルデバッグツール）を導入
+- ngrokのWeb Interfaceで通信ログを確認（`http://127.0.0.1:4040`）
+
+```
+ 1. ngrokアカウントを作成
+    - https://dashboard.ngrok.com/signup にアクセス
+    - 無料アカウントを作成（GitHub/Googleでログインも可）
+  2. authtokenを取得
+    - ログイン後、https://dashboard.ngrok.com/get-started/your-aut
+  htoken にアクセス
+    - 表示されているauthtokenをコピー
+  3. authtokenを設定
+  ngrok config add-authtoken YOUR_AUTHTOKEN_HERE
+  4. 再度ngrokを起動
+  ./scripts/start-ngrok.sh
+```
+
 ### デプロイ（アプリの公開）
 作成したアプリをインターネット上で公開するには、「デプロイ」作業が必要です。
 このプロジェクトは `apphosting.yaml` を含んでおり、Firebase App Hosting へのデプロイを想定しています。

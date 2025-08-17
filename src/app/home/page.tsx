@@ -538,6 +538,7 @@ export default function HomePage() {
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true', // ngrok警告ページをスキップ
             },
             // LINEブラウザの場合はcredentialsを除外
             credentials: isLineBrowser ? 'omit' : 'include',
@@ -547,7 +548,28 @@ export default function HomePage() {
           console.log('[useEffect] API response status:', response.status);
           
           if (response.ok) {
-            const data = await response.json();
+            // レスポンスのテキストを取得
+            const responseText = await response.text();
+            console.log('[useEffect] Response text length:', responseText.length);
+            
+            // 空のレスポンスチェック
+            if (!responseText || responseText.trim() === '') {
+              console.log('[useEffect] Empty response from API');
+              setGirlsFromDB([]);
+              return;
+            }
+            
+            // JSONパースを試みる
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              console.error('[useEffect] JSON parse error:', parseError);
+              console.error('[useEffect] Response text:', responseText.substring(0, 200));
+              setGirlsFromDB([]);
+              return;
+            }
+            
             if (data && data.girls && Array.isArray(data.girls)) {
               console.log(`[useEffect] Got ${data.girls.length} girls directly`);
               
@@ -584,12 +606,19 @@ export default function HomePage() {
               console.log('[useEffect] Data set successfully');
             }
           } else {
-            throw new Error(`API returned ${response.status}`);
+            console.error('[useEffect] API request failed:', response.status);
+            // エラーレスポンスの内容を確認
+            try {
+              const errorText = await response.text();
+              console.error('[useEffect] Error response:', errorText.substring(0, 200));
+            } catch (e) {
+              console.error('[useEffect] Could not read error response');
+            }
+            setGirlsFromDB([]);
           }
         } catch (error) {
           console.error('[useEffect] Direct API call failed:', error);
-          // フォールバック: fetchUsersを試す
-          fetchUsers();
+          setGirlsFromDB([]);
         }
       };
       
@@ -908,10 +937,10 @@ export default function HomePage() {
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading && !isLineBrowser ? 'blur-image' : ''}`}
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading ? 'blur-image' : ''}`}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                {!isPremium && !subscriptionLoading && !isLineBrowser && (
+                {!isPremium && !subscriptionLoading && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 )}
               </div>
@@ -1066,8 +1095,8 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // 有料会員チェック（subscriptionLoading中またはLINEブラウザはスキップ）
-                      if (!isPremium && !subscriptionLoading && !isLineBrowser) {
+                      // 有料会員チェック
+                      if (!isPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
                           description: 'いいねを送るには有料会員登録が必要です',
@@ -1135,11 +1164,11 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // 有料会員チェック（subscriptionLoading中またはLINEブラウザはスキップ）
-                      if (!isPremium && !subscriptionLoading && !isLineBrowser) {
+                      // 有料会員チェック
+                      if (!isPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
-                          description: 'メモ機能を使うには有料会員登録が必要です',
+                          description: 'メモ機能を使うには有料会員登鞂が必要です',
                           action: (
                             <Button
                               variant="outline"

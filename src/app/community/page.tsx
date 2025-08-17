@@ -148,11 +148,11 @@ export default function CommunityPage() {
 
   // Check premium status
   useEffect(() => {
-    if (!subscriptionLoading && !isPremium && !isLineBrowser) {
+    if (!subscriptionLoading && !isPremium) {
       // User is not premium, don't initialize or fetch community data
       console.log('Community is premium-only feature');
     }
-  }, [subscriptionLoading, isPremium, isLineBrowser]);
+  }, [subscriptionLoading, isPremium]);
 
   // Fetch communities from Firebase (Premium only)
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function CommunityPage() {
       return;
     }
     
-    if (!currentUser || (!isPremium && !isLineBrowser)) {
+    if (!currentUser || (!isPremium && !subscriptionLoading)) {
       setLoadingCommunities(false);
       setLoadingPosts(false);
       return;
@@ -273,7 +273,7 @@ export default function CommunityPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid, toast, isPremium, isLineBrowser, subscriptionLoading]);
+  }, [currentUser?.uid, toast, isPremium, subscriptionLoading]);
 
   // Fetch posts (Premium only) - either for selected community or global
   useEffect(() => {
@@ -282,7 +282,7 @@ export default function CommunityPage() {
       return;
     }
     
-    if (!currentUser || (!isPremium && !isLineBrowser)) return;
+    if (!currentUser || (!isPremium && !subscriptionLoading)) return;
 
     let isMounted = true;
     let unsubscribe: (() => void) | undefined;
@@ -508,7 +508,7 @@ export default function CommunityPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCommunity, currentUser?.uid, toast, isPremium, isLineBrowser, subscriptionLoading]);
+  }, [selectedCommunity, currentUser?.uid, toast, isPremium, subscriptionLoading]);
 
   const handleJoinCommunity = async (communityId: string) => {
     if (!currentUser) return;
@@ -705,7 +705,7 @@ export default function CommunityPage() {
   const handleAddComment = async (postId: string) => {
     if (!currentUser || !newComment.trim()) return;
     
-    if (!isPremium && !isLineBrowser) {
+    if (!isPremium && !subscriptionLoading) {
       toast({
         title: "プレミアム機能",
         description: "コメント機能はプレミアム会員限定です。",
@@ -978,7 +978,7 @@ export default function CommunityPage() {
   const handleCreateCommunity = async () => {
     if (!currentUser || !newCommunityName.trim() || !newCommunityDescription.trim()) return;
     
-    if (!isPremium && !isLineBrowser) {
+    if (!isPremium && !subscriptionLoading) {
       toast({
         title: "プレミアム機能",
         description: "コミュニティ作成はプレミアム会員限定です。",
@@ -1056,7 +1056,7 @@ export default function CommunityPage() {
     if (!currentUser || !newPostContent.trim()) return;
     
     // Check premium status before posting
-    if (!isPremium && !isLineBrowser) {
+    if (!isPremium && !subscriptionLoading) {
       toast({
         title: "プレミアム機能",
         description: "投稿機能はプレミアム会員限定です。",
@@ -1132,7 +1132,7 @@ export default function CommunityPage() {
   }
 
   // Show premium-only message if not premium
-  if (!isPremium && !isLineBrowser) {
+  if (!isPremium && !subscriptionLoading) {
     const communityMessage = getPremiumMessage('community');
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -1154,7 +1154,7 @@ export default function CommunityPage() {
           <Button 
             variant="outline"
             onClick={() => setShowCreateCommunity(true)}
-            disabled={!isPremium && !isLineBrowser}
+            disabled={!isPremium && !subscriptionLoading}
             className="flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
           >
             <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -1164,7 +1164,7 @@ export default function CommunityPage() {
           <Button 
             className="bg-[#F0306A] hover:bg-[#E02860] flex-1 sm:flex-initial text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 h-9 sm:h-10"
             onClick={() => {
-              if (!isPremium && !isLineBrowser) {
+              if (!isPremium && !subscriptionLoading) {
                 toast({
                   title: "プレミアム機能",
                   description: "投稾機能はプレミアム会員限定です。",
@@ -1192,7 +1192,7 @@ export default function CommunityPage() {
                 postFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }, 100);
             }}
-            disabled={!isPremium && !isLineBrowser}
+            disabled={!isPremium && !subscriptionLoading}
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             投稿する
@@ -1531,7 +1531,7 @@ export default function CommunityPage() {
                   <Button 
                     className="bg-[#F0306A] hover:bg-[#E02860]"
                     onClick={handleCreatePost}
-                    disabled={isPosting || !newPostContent.trim() || (!isPremium && !isLineBrowser)}
+                    disabled={isPosting || !newPostContent.trim() || (!isPremium && !subscriptionLoading)}
                   >
                     {isPosting ? (
                       <>

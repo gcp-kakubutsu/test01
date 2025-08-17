@@ -26,18 +26,44 @@ export function useSubscription() {
     // LINEブラウザの場合は専用APIを使用
     const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
     
+    console.log('[useSubscription] Browser detection:', { 
+      isLineBrowser, 
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'SSR',
+      currentUser: currentUser?.uid
+    });
+    
+    // LINEブラウザの場合は常にセッションベースのAPIを使用
+    // currentUserの有無に関わらず、LINEブラウザではFirestore直接アクセスは不安定
     if (isLineBrowser) {
-      // LINEブラウザ専用の処理
+      // LINEブラウザでcurrentUserがない場合のみ、専用APIを使用
       const fetchSubscriptionForLine = async () => {
         try {
           // セッションベースのAPIを呼び出し
+          // ngrok環境対応
+          const headers: HeadersInit = {
+            'Accept': 'application/json',
+          };
+          
+          // ngrok環境の場合、警告ページをスキップ
+          if (typeof window !== 'undefined' && 
+              (window.location.hostname.includes('ngrok') || 
+               window.location.hostname.includes('ngrok-free'))) {
+            headers['ngrok-skip-browser-warning'] = 'true';
+          }
+          
           const response = await fetch('/api/subscription/check', {
             method: 'GET',
             credentials: 'include',
+            headers,
           });
           
           if (response.ok) {
             const data = await response.json();
+            console.log('[useSubscription] LINE API response:', { 
+              isPremium: data.isPremium, 
+              status: data.subscriptionStatus,
+              userId: data.userId 
+            });
             if (isMounted) {
               setSubscription({
                 isPremium: data.isPremium || false,
@@ -79,6 +105,7 @@ export function useSubscription() {
     
     // 通常のブラウザの処理
     if (!currentUser) {
+      // currentUserがない場合、デフォルト値を設定
       setSubscription({ isPremium: false, subscriptionStatus: 'none' });
       setLoading(false);
       return;
@@ -86,15 +113,23 @@ export function useSubscription() {
 
     const fetchSubscription = async () => {
       try {
+        console.log('[useSubscription] fetchSubscription started:', {
+          currentUserId: currentUser?.uid,
+          isLineBrowser,
+          hasDb: !!getFirebaseDb()
+        });
+        
         let db = getFirebaseDb();
         
         // Check if component is still mounted and db is initialized
         if (!isMounted || !db) {
+          console.log('[useSubscription] DB not ready, retrying...', { isMounted, hasDb: !!db });
           // LINEブラウザの場合、少し待ってリトライ
           if (typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line')) {
             await new Promise(resolve => setTimeout(resolve, 1000));
             db = getFirebaseDb();
             if (!db || !isMounted) {
+              console.log('[useSubscription] DB still not ready after retry');
               setSubscription({ isPremium: false, subscriptionStatus: 'none' });
               setLoading(false);
               return;
@@ -105,8 +140,8 @@ export function useSubscription() {
         }
         
         // Firebase Authの認証状態を待つ（LINEブラウザは長めに）
-        const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
-        await waitForAuth(isLineBrowser ? 5000 : 2000);
+        const isLineBrowserForAuth = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+        await waitForAuth(isLineBrowserForAuth ? 5000 : 2000);
         
         // ストレージからユーザーIDを取得
         const userId = currentUser?.uid || getStoredUserId();
@@ -117,7 +152,12 @@ export function useSubscription() {
           return;
         }
         
+        console.log('[useSubscription] Fetching user doc for:', userId);
         const userDoc = await getDoc(doc(db, 'users', userId));
+        console.log('[useSubscription] User doc result:', {
+          exists: userDoc.exists(),
+          id: userDoc.id
+        });
         
         // Check if component is still mounted after async operation
         if (!isMounted) {
@@ -137,6 +177,12 @@ export function useSubscription() {
         
         const userData = userDoc.data();
         
+        console.log('[useSubscription] Firestore user data:', { 
+          isPremium: userData?.isPremium, 
+          hasEndDate: !!userData?.subscriptionEndDate,
+          userId: userId,
+          fullData: userData
+        });
         
         if (userData?.isPremium && userData?.subscriptionEndDate) {
           const endDate = userData.subscriptionEndDate.toDate();
@@ -168,8 +214,17 @@ export function useSubscription() {
           return;
         }
         
+        console.error('[useSubscription] Error fetching subscription:', error);
+        console.error('[useSubscription] Error details:', {
+          code: error?.code,
+          message: error?.message,
+          userId: currentUser?.uid,
+          hasDb: !!getFirebaseDb(),
+          errorStack: error?.stack
+        });
+        
         if (isPermissionError(error)) {
-          // Permission denied - completely silent
+          console.error('[useSubscription] Permission denied error');
         } else {
           handleFirebaseError(error, 'useSubscription');
         }
