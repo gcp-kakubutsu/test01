@@ -1170,7 +1170,7 @@ export default function HomePage() {
                       if (!isPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
-                          description: 'メモ機能を使うには有料会員登鞂が必要です',
+                          description: 'メモ機能を使うには有料会員登録が必要です',
                           action: (
                             <Button
                               variant="outline"
