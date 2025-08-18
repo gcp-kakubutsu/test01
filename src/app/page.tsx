@@ -415,11 +415,11 @@ export default function LandingPage() {
               </div>
               
               <div className={styles.ageNotice}>
-                <p>NUKUNEは18歳未満の方はご利用いただけません。</p>
+                <p>NUKUNEは18歳未満の方は<br className="sp" />ご利用いただけません。</p>
               </div>
               
               <div className={styles.aboutTagline}>
-                <p>あなたの特別な時間を演出する、信頼できるパートナー。</p>
+                <p>あなたの特別な時間を演出する、<br className="sp" />信頼できるパートナー。</p>
                 <p className={styles.brandStatement}>それがNUKUNEです。</p>
               </div>
             </div>
