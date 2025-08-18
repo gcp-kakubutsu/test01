@@ -1811,7 +1811,7 @@ $border-color-light: #E5E7EB;
     
     &::after {
       opacity: 1;
-      animation: rotateGoldBorder 4s linear infinite;
+      /* animation removed */
     }
     
     :global(.light) & {
@@ -1842,7 +1842,7 @@ $border-color-light: #E5E7EB;
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    animation: rotateGoldBorder 5s linear infinite;
+    /* animation removed */
     pointer-events: none;
     z-index: 1;
   }
@@ -2530,9 +2530,4 @@ $border-color-light: #E5E7EB;
   }
 }
 
-// Gold edge rotating border animation (from test1.html)
-@keyframes rotateGoldBorder {
-  to {
-    transform: rotate(1turn);
-  }
-}
+// Gold edge rotating border animation removed
