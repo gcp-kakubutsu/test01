@@ -760,14 +760,36 @@ export default function HomePage() {
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // スマホ対応のスクロール処理
+      setTimeout(() => {
+        // iOS Safariを含むモバイルブラウザで確実に動作
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0; // iOS Safari用のフォールバック
+        // 追加の保険として、html要素にもスクロール
+        if ('scrollBehavior' in document.documentElement.style) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          window.scrollTo(0, 0);
+        }
+      }, 100); // 少し遅延を入れて、DOMの更新後にスクロール
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // スマホ対応のスクロール処理
+      setTimeout(() => {
+        // iOS Safariを含むモバイルブラウザで確実に動作
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0; // iOS Safari用のフォールバック
+        // 追加の保険として、html要素にもスクロール
+        if ('scrollBehavior' in document.documentElement.style) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          window.scrollTo(0, 0);
+        }
+      }, 100); // 少し遅延を入れて、DOMの更新後にスクロール
     }
   };
 
