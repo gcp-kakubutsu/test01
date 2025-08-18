@@ -973,6 +973,24 @@ function AdvancedSearchContent() {
   }, [availableAgeRange]) // ageRangeを依存配列から削除して無限ループを防ぐ
   */
 
+  // ページ変更時のスクロール処理を含む関数
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    
+    // スマホ対応のスクロール処理
+    setTimeout(() => {
+      // iOS Safariを含むモバイルブラウザで確実に動作
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0; // iOS Safari用のフォールバック
+      // 追加の保険として、html要素にもスクロール
+      if ('scrollBehavior' in document.documentElement.style) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }, 100); // 少し遅延を入れて、DOMの更新後にスクロール
+  };
+
   // フィルター変更時にページを1に戻す（年齢以外）
   useEffect(() => {
     setCurrentPage(1)
@@ -1882,7 +1900,7 @@ function AdvancedSearchContent() {
           <div className={styles.pagination}>
             <Button
               variant="outline"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
               className={styles.paginationButton}
             >
@@ -1948,7 +1966,7 @@ function AdvancedSearchContent() {
                   return (
                     <button
                       key={pageNum}
-                      onClick={() => setCurrentPage(pageNum as number)}
+                      onClick={() => handlePageChange(pageNum as number)}
                       className={`${styles.paginationNumber} ${currentPage === pageNum ? styles.active : ''}`}
                     >
                       {pageNum}
@@ -1962,7 +1980,7 @@ function AdvancedSearchContent() {
             
             <Button
               variant="outline"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className={styles.paginationButton}
             >
@@ -1981,7 +1999,7 @@ function AdvancedSearchContent() {
                   onChange={(e) => {
                     const page = parseInt(e.target.value);
                     if (page >= 1 && page <= totalPages) {
-                      setCurrentPage(page);
+                      handlePageChange(page);
                     }
                   }}
                   className={styles.pageJumpInput}
