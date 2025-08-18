@@ -17,10 +17,28 @@ export default function LandingPage() {
   const router = useRouter();
   const [forceShowContent, setForceShowContent] = useState(false);
   const [isInLineApp, setIsInLineApp] = useState(false);
+  const [showStickyButtons, setShowStickyButtons] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
 
   // Check if we're in LINE browser
   useEffect(() => {
     setIsInLineApp(isLineApp());
+  }, []);
+
+  // スクロール検知でスティッキーボタンの表示制御
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroRef.current) {
+        const heroBottom = heroRef.current.getBoundingClientRect().bottom;
+        // ヒーローセクションが画面外に出たらスティッキーボタンを表示
+        setShowStickyButtons(heroBottom < 0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初期状態をチェック
+
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Timeout for loading state - especially for LINE browser
@@ -302,6 +320,24 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* Sticky Buttons - ヒーローセクションから離れたら表示 */}
+      <div className={`${styles.stickyButtons} ${showStickyButtons ? styles.stickyButtonsVisible : ''}`}>
+        <Link 
+          href="/signup" 
+          className={`${styles.stickyBtn} ${styles.stickyBtnPrimary}`} 
+          onClick={handleAgeConfirmation}
+        >
+          <Heart size={18} />
+          <span>Nukuneに参加</span>
+        </Link>
+        <Link 
+          href="/login" 
+          className={`${styles.stickyBtn} ${styles.stickyBtnSecondary}`}
+        >
+          <span>ログイン</span>
+        </Link>
+      </div>
+
       {/* Background animated boxes */}
       <div className={styles.bgBoxesContainer}>
         <div className={styles.bgBox}></div>
@@ -311,7 +347,7 @@ export default function LandingPage() {
         <div className={styles.bgBox}></div>
       </div>
       {/* Hero Section */}
-      <section className={styles.hero}>
+      <section ref={heroRef} className={styles.hero}>
         <video 
           autoPlay 
           muted 

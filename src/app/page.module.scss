@@ -2531,3 +2531,81 @@ $border-color-light: #E5E7EB;
 }
 
 // Gold edge rotating border animation removed
+
+// Sticky Buttons - スクロール時に表示
+.stickyButtons {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  display: flex;
+  gap: 12px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+
+  &.stickyButtonsVisible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+
+  @media (max-width: 640px) {
+    bottom: 15px;
+    width: calc(100% - 30px);
+    max-width: 500px;
+    justify-content: center;
+  }
+}
+
+.stickyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+
+  @media (max-width: 640px) {
+    padding: 10px 20px;
+    font-size: 13px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  span {
+    display: inline-block;
+  }
+}
+
+.stickyBtnPrimary {
+  background: linear-gradient(135deg, var(--primary) 0%, #ff1493 100%);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  &:hover {
+    background: linear-gradient(135deg, #ff1493 0%, var(--primary) 100%);
+  }
+}
+
+.stickyBtnSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}
