@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { MultiSelect, type Option } from '@/components/ui/multi-select'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Heart, StickyNote, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
 // Removed direct import - will fetch via API
@@ -130,6 +131,7 @@ function AdvancedSearchContent() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([]) // For girl types filter
   const [availableGirlTypes, setAvailableGirlTypes] = useState<string[]>([]) // Available girl types from DB
+  const [girlTypeOptions, setGirlTypeOptions] = useState<Option[]>([]) // For MultiSelect component
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedTime, setSelectedTime] = useState('now')
   const [ageRange, setAgeRange] = useState([18, 50])
@@ -226,18 +228,25 @@ function AdvancedSearchContent() {
         const response = await fetch('/api/girl-types')
         if (response.ok) {
           const data = await response.json()
-          // Extract unique girl types from all categories
-          const allTypes = new Set<string>()
-          if (data.personalityTypes) {
-            data.personalityTypes.forEach((type: any) => allTypes.add(type.name))
-          }
-          if (data.physicalTypes) {
-            data.physicalTypes.forEach((type: any) => allTypes.add(type.name))
-          }
-          if (data.playTypes) {
-            data.playTypes.forEach((type: any) => allTypes.add(type.name))
-          }
-          setAvailableGirlTypes(Array.from(allTypes))
+          
+          // Sort types by class_id and id to maintain consistent order from DB
+          const sortedTypes = data.allTypes
+            .sort((a: any, b: any) => {
+              if (a.class_id !== b.class_id) {
+                return a.class_id - b.class_id;
+              }
+              return a.id - b.id;
+            })
+            .map((type: any) => type.name)
+          
+          setAvailableGirlTypes(sortedTypes)
+          
+          // Create options for MultiSelect
+          const options: Option[] = sortedTypes.map(type => ({
+            value: type,
+            label: type
+          }))
+          setGirlTypeOptions(options)
         }
       } catch (error) {
         console.error('Error fetching girl types:', error)
@@ -1507,24 +1516,14 @@ function AdvancedSearchContent() {
             <Heart className="w-4 h-4" />
             女の子タイプ
           </h3>
-          <div className={styles.tagFilters}>
-            {availableGirlTypes.map(type => (
-              <label key={type} className={styles.tagFilter}>
-                <input
-                  type="checkbox"
-                  checked={selectedGirlTypes.includes(type)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedGirlTypes([...selectedGirlTypes, type])
-                    } else {
-                      setSelectedGirlTypes(selectedGirlTypes.filter(t => t !== type))
-                    }
-                  }}
-                />
-                <span>{type}</span>
-              </label>
-            ))}
-          </div>
+          <MultiSelect
+            options={girlTypeOptions}
+            selected={selectedGirlTypes}
+            onChange={setSelectedGirlTypes}
+            placeholder="タイプを選択（複数選択可）"
+            className={styles.filterSelect}
+            maxDisplay={3}
+          />
         </div>
         
         {/* キーワード検索 */}

@@ -54,11 +54,19 @@ export default function MatchingSearch() {
         const response = await fetch('/api/girl-types')
         const data = await response.json()
         
-        // Convert to options format for multi-select
-        const options: Option[] = data.allTypes.map((type: any) => ({
-          value: type.id.toString(),
-          label: type.name
-        }))
+        // Convert to options format for multi-select - use name as both value and label
+        // Sort by class_id and then by id to maintain consistent order
+        const options: Option[] = data.allTypes
+          .sort((a: any, b: any) => {
+            if (a.class_id !== b.class_id) {
+              return a.class_id - b.class_id;
+            }
+            return a.id - b.id;
+          })
+          .map((type: any) => ({
+            value: type.name,
+            label: type.name
+          }))
         
         setGirlTypeOptions(options)
       } catch (error) {

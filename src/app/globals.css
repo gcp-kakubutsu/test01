@@ -162,4 +162,19 @@ body {
   :root .logo-text {
     color: black;
   }
+  
+  /* Global z-index fixes for MultiSelect and other dropdowns */
+  [data-radix-popper-content-wrapper] {
+    z-index: 99999 !important;
+  }
+  
+  [data-state="open"][role="listbox"] {
+    z-index: 99999 !important;
+  }
+  
+  /* Ensure MultiSelect dropdowns always appear on top in search page */
+  [role="combobox"][aria-expanded="true"] + [data-radix-popper-content-wrapper],
+  [role="combobox"][aria-expanded="true"] ~ [data-radix-popper-content-wrapper] {
+    z-index: 99999 !important;
+  }
 }

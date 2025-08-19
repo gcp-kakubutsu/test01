@@ -45,6 +45,16 @@ $border-color: rgba(212, 175, 55, 0.2);
       left: 0;
     }
   }
+  
+  // Ensure dropdowns in filter sidebar appear on top
+  :global([role="combobox"]) {
+    position: relative;
+    z-index: 10;
+  }
+  
+  :global([data-radix-popper-content-wrapper]) {
+    z-index: 9999 !important;
+  }
 }
 
 .filterHeader {
@@ -81,6 +91,7 @@ $border-color: rgba(212, 175, 55, 0.2);
   margin-bottom: 2rem;
   padding-bottom: 2rem;
   border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  position: relative;
   
   :global(.light) & {
     border-bottom-color: #e5e7eb;
@@ -88,6 +99,15 @@ $border-color: rgba(212, 175, 55, 0.2);
   
   &:last-child {
     border-bottom: none;
+  }
+  
+  // Ensure MultiSelect dropdowns in this section appear on top
+  :global([data-state="open"][role="listbox"]) {
+    z-index: 9999 !important;
+  }
+  
+  :global([data-radix-popper-content-wrapper]) {
+    z-index: 9999 !important;
   }
 }
 
@@ -222,6 +242,8 @@ $border-color: rgba(212, 175, 55, 0.2);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(212, 175, 55, 0.3);
   color: $text-light;
+  position: relative;
+  z-index: 20;
   
   :global(.light) & {
     background: white;
