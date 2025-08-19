@@ -242,7 +242,7 @@ function AdvancedSearchContent() {
           setAvailableGirlTypes(sortedTypes)
           
           // Create options for MultiSelect
-          const options: Option[] = sortedTypes.map(type => ({
+          const options: Option[] = sortedTypes.map((type: string) => ({
             value: type,
             label: type
           }))
