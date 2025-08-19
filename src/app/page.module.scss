@@ -245,6 +245,8 @@ $border-color-light: #E5E7EB;
     color: #1a1a1a;
     font-weight: 700;
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+    min-width: 180px;
+    justify-content: center;
 
     :global(.light) & {
       color: #1a1a1a;
@@ -258,29 +260,33 @@ $border-color-light: #E5E7EB;
   }
 
   &Secondary {
-    background: rgba(212, 175, 55, 0.1);
-    color: #FFFFFF !important;
-    border: 2px solid $accent-gold;
+    background: transparent;
+    color: #caa35b !important;
+    border: 2px solid #caa35b;
+    min-width: 180px;
+    justify-content: center;
+    font-weight: 700;
 
     span {
-      color: #FFFFFF !important;
+      color: #caa35b !important;
     }
 
     :global(.light) & {
-      color: #FFFFFF !important;
+      color: #caa35b !important;
       
       span {
-        color: #FFFFFF !important;
+        color: #caa35b !important;
       }
     }
 
     &:hover {
-      background: $accent-gold;
-      color: #FFFFFF !important;
+      background: linear-gradient(135deg, #caa35b, #f3e5c1, #caa35b);
+      color: #1a1a1a !important;
       transform: translateY(-2px);
+      border-color: transparent;
       
       span {
-        color: #FFFFFF !important;
+        color: #1a1a1a !important;
       }
       
       :global(.light) & {
@@ -2746,20 +2752,24 @@ $border-color-light: #E5E7EB;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 18px 40px;
   border-radius: 30px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 800;
   text-decoration: none;
   transition: all 0.3s ease;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
+  min-width: 160px;
+  justify-content: center;
+  white-space: nowrap;
 
   @media (max-width: 640px) {
-    padding: 10px 20px;
-    font-size: 13px;
+    padding: 16px 32px;
+    font-size: 16px;
     flex: 1;
     justify-content: center;
+    min-width: 140px;
   }
 
   &:hover {
@@ -2773,22 +2783,23 @@ $border-color-light: #E5E7EB;
 }
 
 .stickyBtnPrimary {
-  background: linear-gradient(135deg, #F0306A 0%, #ff1493 100%);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #b8932f, #d4af37, #f4e4a1);
+  color: #000000;
+  border: 1px solid rgba(212, 175, 55, 0.3);
 
   &:hover {
-    background: linear-gradient(135deg, #ff1493 0%, #F0306A 100%);
+    background: linear-gradient(135deg, #d4af37, #f4e4a1, #b8932f);
   }
 }
 
 .stickyBtnSecondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #d4af37;
+  border: 3px solid #d4af37;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, #b8932f, #d4af37, #f4e4a1);
+    color: #000000;
+    border-color: transparent;
   }
 }
