@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCircle, Image as ImageIcon, Tag, X, ArrowLeft, Camera } from 'lucide-react';
+import { Loader2, UserCircle, Image as ImageIcon, Tag, X, ArrowLeft, Camera, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -19,6 +19,8 @@ import { uploadProfileImage, deleteProfileImage } from '@/lib/firebase/storage';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import { updateUserProfile } from '../actions';
 import { ImagePositionAdjuster } from '@/components/ui/image-position-adjuster';
+import { getMalePreferences, saveMalePreferences } from '@/lib/firebase/malePreferences';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 interface UserProfileData {
@@ -52,6 +54,9 @@ export default function EditProfilePage() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [girlTypeIds, setGirlTypeIds] = useState<number[]>([]);
+  const [girlTypesFromDB, setGirlTypesFromDB] = useState<any[]>([]);
+  const [showGirlTypes, setShowGirlTypes] = useState(false);
 
 
   useEffect(() => {
@@ -59,6 +64,43 @@ export default function EditProfilePage() {
       router.push('/login');
     }
   }, [isAuthenticated, authIsLoading, router]);
+
+  // Fetch girl types from DB
+  useEffect(() => {
+    const fetchGirlTypes = async () => {
+      try {
+        const response = await fetch('/api/girl-types');
+        const data = await response.json();
+        if (data.allTypes) {
+          setGirlTypesFromDB(data.allTypes);
+        }
+      } catch (error) {
+        console.error('Failed to fetch girl types:', error);
+      }
+    };
+    fetchGirlTypes();
+  }, []);
+
+  // Load existing girl type preferences for male users
+  useEffect(() => {
+    const loadGirlTypePreferences = async () => {
+      if (currentUser && profile?.gender === 'male') {
+        try {
+          const preferences = await getMalePreferences(currentUser.uid);
+          if (preferences?.girlTypeIds) {
+            setGirlTypeIds(preferences.girlTypeIds);
+          }
+          setShowGirlTypes(true);
+        } catch (error) {
+          console.error('Failed to load girl type preferences:', error);
+        }
+      }
+    };
+    
+    if (currentUser && profile) {
+      loadGirlTypePreferences();
+    }
+  }, [currentUser, profile]);
 
   useEffect(() => {
     if (profile) {
@@ -218,6 +260,19 @@ export default function EditProfilePage() {
       const result = await updateUserProfile(currentUser.uid, updateData);
       
       if (result.success) {
+        // 男性ユーザーの場合、女の子タイプの設定も保存
+        if (profile?.gender === 'male' && girlTypeIds.length > 0) {
+          try {
+            const existingPreferences = await getMalePreferences(currentUser.uid);
+            await saveMalePreferences(currentUser.uid, {
+              ...existingPreferences,
+              girlTypeIds: girlTypeIds
+            });
+          } catch (error) {
+            console.error('Failed to save girl type preferences:', error);
+          }
+        }
+        
         setIsLoading(false);
         toast({
           title: 'プロフィール更新完了',
@@ -377,6 +432,107 @@ export default function EditProfilePage() {
               />
               <p className="text-xs text-muted-foreground">項目はカンマで区切ってください。</p>
             </div>
+
+            {/* Girl Types Section (for male users only) */}
+            {showGirlTypes && girlTypesFromDB.length > 0 && (
+              <div>
+                <Label className="text-base flex items-center mb-3">
+                  <Sparkles className="mr-2 h-5 w-5 text-[#F0306A]" /> 
+                  希望する女の子タイプ（複数選択可）
+                </Label>
+                
+                {/* 性格タイプ (class_id = 1) */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">性格タイプ</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {girlTypesFromDB.filter((type: any) => type.class_id === 1).map((girlType: any) => (
+                      <div 
+                        key={girlType.id} 
+                        className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Checkbox
+                          id={`type-${girlType.id}`}
+                          checked={girlTypeIds.includes(girlType.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setGirlTypeIds([...girlTypeIds, girlType.id]);
+                            } else {
+                              setGirlTypeIds(girlTypeIds.filter(id => id !== girlType.id));
+                            }
+                          }}
+                          className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                        />
+                        <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer">
+                          {girlType.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 身体タイプ (class_id = 2) */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">身体的特徴</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {girlTypesFromDB.filter((type: any) => type.class_id === 2).map((girlType: any) => (
+                      <div 
+                        key={girlType.id} 
+                        className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Checkbox
+                          id={`type-${girlType.id}`}
+                          checked={girlTypeIds.includes(girlType.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setGirlTypeIds([...girlTypeIds, girlType.id]);
+                            } else {
+                              setGirlTypeIds(girlTypeIds.filter(id => id !== girlType.id));
+                            }
+                          }}
+                          className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                        />
+                        <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer">
+                          {girlType.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* プレイタイプ (class_id = 3) */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">プレイスタイル</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {girlTypesFromDB.filter((type: any) => type.class_id === 3).map((girlType: any) => (
+                      <div 
+                        key={girlType.id} 
+                        className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Checkbox
+                          id={`type-${girlType.id}`}
+                          checked={girlTypeIds.includes(girlType.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setGirlTypeIds([...girlTypeIds, girlType.id]);
+                            } else {
+                              setGirlTypeIds(girlTypeIds.filter(id => id !== girlType.id));
+                            }
+                          }}
+                          className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                        />
+                        <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer">
+                          {girlType.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  選択したタイプに基づいて、最適な女性を検索できます。
+                </p>
+              </div>
+            )}
 
             {/* Additional Photos Gallery */}
             <div>

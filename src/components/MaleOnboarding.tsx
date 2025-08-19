@@ -20,7 +20,7 @@ interface MaleOnboardingProps {
   onBack?: () => void;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }: MaleOnboardingProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -31,7 +31,25 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   } as MalePreferences);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
+  const [girlTypesFromDB, setGirlTypesFromDB] = useState<any[]>([]);
   const { toast } = useToast();
+
+  // DBから女の子タイプを取得
+  useEffect(() => {
+    const fetchGirlTypes = async () => {
+      try {
+        const response = await fetch('/api/girl-types');
+        const data = await response.json();
+        if (data.allTypes) {
+          setGirlTypesFromDB(data.allTypes);
+          console.log('Girl types loaded from DB:', data.allTypes);
+        }
+      } catch (error) {
+        console.error('Failed to fetch girl types:', error);
+      }
+    };
+    fetchGirlTypes();
+  }, []);
 
   // 既存の設定を読み込み
   useEffect(() => {
@@ -49,7 +67,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           const defaultPrefs = {
             spanking: 3, outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
             oralReceiving: 3, hypnosisPlay: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-            verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [],
+            verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
             experienceCount: '', recordingDuringPlay: '', isSadist: '', isMasochist: '',
             seekingType: '', partnerHeight: '', partnerWeight: '', partnerBodyType: '',
             partnerLocation: '', contactBeforeMeeting: '', photoExchangeBeforeMeeting: '',
@@ -65,7 +83,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         setPreferences({
           spanking: 3, outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
           oralReceiving: 3, hypnosisPlay: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-          verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [],
+          verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
           experienceCount: '', recordingDuringPlay: '', isSadist: '', isMasochist: '',
           seekingType: '', partnerHeight: '', partnerWeight: '', partnerBodyType: '',
           partnerLocation: '', contactBeforeMeeting: '', photoExchangeBeforeMeeting: '',
@@ -323,6 +341,132 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     </div>
   );
 
+  // Step 8: 女の子タイプ
+  const renderStep8 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-white mb-2">女の子タイプ</h2>
+        <p className="text-gray-300">希望する女の子のタイプを選択してください（複数選択可）</p>
+      </div>
+      
+      {girlTypesFromDB.length > 0 ? (
+        <div>
+          {/* 性格タイプ (class_id = 1) */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-400 mb-3">性格タイプ</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {girlTypesFromDB.filter((type: any) => type.class_id === 1).map((girlType: any) => (
+                <div 
+                  key={girlType.id} 
+                  className="flex items-center space-x-2 p-2 border border-gray-600 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                  onClick={() => {
+                    const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                    if (!isChecked) {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: [...(prev.girlTypeIds || []), girlType.id]
+                      }));
+                    } else {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: (prev.girlTypeIds || []).filter(id => id !== girlType.id)
+                      }));
+                    }
+                  }}
+                >
+                  <Checkbox
+                    id={`type-${girlType.id}`}
+                    checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                    className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                  />
+                  <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer text-gray-200">
+                    {girlType.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 身体タイプ (class_id = 2) */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-400 mb-3">身体的特徴</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {girlTypesFromDB.filter((type: any) => type.class_id === 2).map((girlType: any) => (
+                <div 
+                  key={girlType.id} 
+                  className="flex items-center space-x-2 p-2 border border-gray-600 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                  onClick={() => {
+                    const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                    if (!isChecked) {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: [...(prev.girlTypeIds || []), girlType.id]
+                      }));
+                    } else {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: (prev.girlTypeIds || []).filter(id => id !== girlType.id)
+                      }));
+                    }
+                  }}
+                >
+                  <Checkbox
+                    id={`type-${girlType.id}`}
+                    checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                    className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                  />
+                  <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer text-gray-200">
+                    {girlType.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* プレイタイプ (class_id = 3) */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">プレイスタイル</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {girlTypesFromDB.filter((type: any) => type.class_id === 3).map((girlType: any) => (
+                <div 
+                  key={girlType.id} 
+                  className="flex items-center space-x-2 p-2 border border-gray-600 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                  onClick={() => {
+                    const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                    if (!isChecked) {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: [...(prev.girlTypeIds || []), girlType.id]
+                      }));
+                    } else {
+                      setPreferences(prev => ({
+                        ...prev,
+                        girlTypeIds: (prev.girlTypeIds || []).filter(id => id !== girlType.id)
+                      }));
+                    }
+                  }}
+                >
+                  <Checkbox
+                    id={`type-${girlType.id}`}
+                    checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                    className="data-[state=checked]:bg-[#F0306A] data-[state=checked]:border-[#F0306A]"
+                  />
+                  <Label htmlFor={`type-${girlType.id}`} className="text-xs font-medium cursor-pointer text-gray-200">
+                    {girlType.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center text-gray-400">
+          <p>女の子タイプを読み込んでいます...</p>
+        </div>
+      )}
+    </div>
+  );
+
   // Step 7: 相手の詳細条件
   const renderStep7 = () => (
     <div className="space-y-6">
@@ -415,47 +559,47 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     console.log('Current preferences:', preferences);
     
     switch (currentStep) {
-      case 5: // Step 5: 基本情報
-        const step5Valid = !!(
+      case 3: // Step 3 (旧Step 5): 基本情報
+        const step3Valid = !!(
           preferences.photoExchangeBeforeMeeting &&
           preferences.partnerAgeMin > 0 &&
           preferences.partnerAgeMax > 0
         );
-        console.log('Step 5 validation:', {
+        console.log('Step 3 validation:', {
           photoExchangeBeforeMeeting: preferences.photoExchangeBeforeMeeting,
           partnerAgeMin: preferences.partnerAgeMin,
           partnerAgeMax: preferences.partnerAgeMax,
-          result: step5Valid
+          result: step3Valid
         });
-        return step5Valid;
-      case 6: // Step 6: 詳細な基本情報
-        const step6Valid = !!(
+        return step3Valid;
+      case 2: // Step 2 (旧Step 6): 詳細な基本情報
+        const step2Valid = !!(
           preferences.recordingDuringPlay &&
           preferences.isSadist &&
           preferences.isMasochist
         );
-        console.log('Step 6 validation:', {
+        console.log('Step 2 validation:', {
           recordingDuringPlay: preferences.recordingDuringPlay,
           isSadist: preferences.isSadist,
           isMasochist: preferences.isMasochist,
-          result: step6Valid
+          result: step2Valid
         });
-        return step6Valid;
-      case 7: // Step 7: 相手の詳細条件
-        const step7Valid = !!(
+        return step2Valid;
+      case 1: // Step 1 (旧Step 7): 相手の詳細条件
+        const step1Valid = !!(
           preferences.partnerHeight &&
           preferences.partnerWeight &&
           preferences.partnerBodyType &&
           preferences.partnerLocation
         );
-        console.log('Step 7 validation:', {
+        console.log('Step 1 validation:', {
           partnerHeight: preferences.partnerHeight,
           partnerWeight: preferences.partnerWeight,
           partnerBodyType: preferences.partnerBodyType,
           partnerLocation: preferences.partnerLocation,
-          result: step7Valid
+          result: step1Valid
         });
-        return step7Valid;
+        return step1Valid;
       default:
         console.log('No validation required for step:', currentStep);
         return true; // その他のステップはバリデーション不要
@@ -565,16 +709,17 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderCurrentStep = () => {
     console.log('Rendering step:', currentStep);
     switch (currentStep) {
-      case 1: return renderStep1();
-      case 2: return renderStep2();
-      case 3: return renderStep3();
-      case 4: return renderStep4();
-      case 5: return renderStep5();
-      case 6: return renderStep6();
-      case 7: return renderStep7();
+      case 1: return renderStep7();  // 相手の詳細条件
+      case 2: return renderStep6();  // 詳細な基本情報
+      case 3: return renderStep5();  // 基本情報
+      case 4: return renderStep8();  // 女の子タイプ
+      case 5: return renderStep4();  // 相手の体型
+      case 6: return renderStep3();  // セクシュアル嗜好 (3/3)
+      case 7: return renderStep2();  // セクシュアル嗜好 (2/3)
+      case 8: return renderStep1();  // セクシュアル嗜好 (1/3)
       default: 
         console.warn('Unknown step:', currentStep);
-        return renderStep1();
+        return renderStep7();
     }
   };
 

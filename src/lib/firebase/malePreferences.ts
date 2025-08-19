@@ -18,6 +18,9 @@ export interface MalePreferences {
 
   // 相手の体型
   partnerBodyTypes: string[]; // ["スリム", "やや細め", "細め", "グラマー", "筋肉質", "やややっちゃり", "ぽっちゃり", "こだわらない"]
+  
+  // 女の子タイプ (MySQLのDBから取得したIDを保存)
+  girlTypeIds?: number[]; // MySQLのgirl_typesテーブルのID
 
   // 基本情報
   recordingDuringPlay: string; // プレイ時の撮影

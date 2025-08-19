@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock, User, Ruler, Heart, Sparkles } from 'lucide-react'
+import { Search, MapPin, Clock, User, Ruler, Heart, Sparkles, Settings } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -18,10 +18,15 @@ import { MultiSelect, type Option } from '@/components/ui/multi-select'
 import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
 import { useToast } from '@/hooks/use-toast'
 import styles from './MatchingSearch.module.scss'
+import { useGirlSearch } from '@/lib/hooks/useGirlSearch'
+import { useAuth } from '@/contexts/AuthContext'
+import { getMalePreferences } from '@/lib/firebase/malePreferences'
 
 export default function MatchingSearch() {
   const router = useRouter()
   const { toast } = useToast()
+  const { currentUser } = useAuth()
+  const { girls, loading: searchLoading, error: searchError, searchGirlsByPreferences } = useGirlSearch()
   const [selectedAge, setSelectedAge] = useState<string>('')
   const [selectedHeight, setSelectedHeight] = useState<string>('')
   const [selectedBust, setSelectedBust] = useState<string>('')
@@ -34,6 +39,7 @@ export default function MatchingSearch() {
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
+  const [hasPreferences, setHasPreferences] = useState(false)
 
   const ageOptions = ['10代', '20代', '30代', '40代', '50代']
   const heightOptions = ['身長150cm以下', '身長155cm以下', '身長160cm以下', '身長165cm以上']
@@ -46,6 +52,21 @@ export default function MatchingSearch() {
     '1時間以内',
     '今夜'
   ]
+
+  // Check if user has preferences set
+  useEffect(() => {
+    const checkPreferences = async () => {
+      if (currentUser) {
+        try {
+          const prefs = await getMalePreferences(currentUser.uid)
+          setHasPreferences(prefs?.isComplete === true && prefs?.girlTypeIds?.length > 0)
+        } catch (error) {
+          console.error('Failed to check preferences:', error)
+        }
+      }
+    }
+    checkPreferences()
+  }, [currentUser])
 
   // Fetch girl types on component mount
   useEffect(() => {
@@ -160,6 +181,34 @@ export default function MatchingSearch() {
 
     // Navigate to advanced search page with parameters
     router.push(`/search/advanced?${params.toString()}`)
+  }
+
+  const handlePreferenceSearch = async () => {
+    if (!currentUser) {
+      toast({
+        title: "ログインが必要です",
+        description: "この機能を使用するにはログインしてください。",
+        variant: "destructive",
+      })
+      router.push('/login')
+      return
+    }
+
+    if (!hasPreferences) {
+      toast({
+        title: "詳細設定が必要です",
+        description: "まずプロフィールの詳細設定を完了してください。",
+        variant: "destructive",
+      })
+      router.push('/profile/preferences')
+      return
+    }
+
+    // Search using preferences and navigate to results
+    await searchGirlsByPreferences()
+    
+    // Navigate to search results page with special flag
+    router.push('/search/advanced?preferenceSearch=true')
   }
 
   return (
@@ -369,18 +418,35 @@ export default function MatchingSearch() {
           </div>
         </div>
 
-        {/* Search button */}
-        <div className="text-center mb-3">
+        {/* Search buttons */}
+        <div className="flex flex-col gap-3 mb-3">
+          {/* Normal search */}
           <Button
-            className={`btn-primary ${styles.primaryButton}`}
+            className={`btn-primary ${styles.primaryButton} w-full`}
             onClick={handleSearch}
           >
+            <Search className="w-4 h-4 mr-2" />
             候補を見る（無料）
           </Button>
+          
+          {/* Preference-based search */}
+          {currentUser && (
+            <Button
+              className={`${styles.secondaryButton} w-full`}
+              onClick={handlePreferenceSearch}
+              variant="outline"
+              disabled={searchLoading}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {searchLoading ? '検索中...' : 'あなたの詳細設定で検索'}
+            </Button>
+          )}
         </div>
 
         <p className={`text-sm ${styles.textSecondary} text-center mt-6`}>
-          登録後、入力した性癖と条件を引き継いで候補を表示します。
+          {hasPreferences 
+            ? '詳細設定に基づいて、あなたに最適な女の子を検索します。'
+            : '登録後、入力した性癖と条件を引き継いで候補を表示します。'}
         </p>
       </div>
     </div>

@@ -42,6 +42,7 @@ export async function sortGirlsByPreference(
         console.log('   - partnerAgeRange:', `${preferences.partnerAgeMin || '?'}-${preferences.partnerAgeMax || '?'}`);
         console.log('   - partnerBodyTypes:', preferences.partnerBodyTypes);
         console.log('   - partnerHeight:', preferences.partnerHeight);
+        console.log('   - girlTypeIds:', preferences.girlTypeIds);
         console.log('   - Full preferences object:', preferences);
       } else {
         console.log('❌ [sortGirlsByPreference] No preferences found for user');
@@ -85,6 +86,34 @@ export async function sortGirlsByPreference(
     const scoredGirls = girls.map(girl => {
       let score = 0;
       const reasons: string[] = [];
+
+      // Girl type preference scoring (weight: 100) - 最重要
+      if (preferences.girlTypeIds && preferences.girlTypeIds.length > 0 && girl.girlTypes) {
+        const matchingTypes = girl.girlTypes.filter((girlType: any) => 
+          preferences.girlTypeIds?.includes(girlType.id)
+        );
+        
+        if (matchingTypes.length > 0) {
+          // マッチするタイプの数に応じてスコアを増やす
+          score += 100 + (matchingTypes.length * 20);
+          const typeNames = matchingTypes.map((t: any) => t.name).join('、');
+          reasons.push(`タイプが完全一致（${typeNames}）`);
+        } else {
+          // 部分的な類似性をチェック（関連するタイプ）
+          const hasRelatedType = girl.girlTypes.some((girlType: any) => {
+            // 類似カテゴリーのチェック（例：class_idが同じ）
+            return preferences.girlTypeIds?.some((prefId: number) => {
+              // ここでは簡単な実装として、IDの近さでチェック
+              return Math.abs(girlType.id - prefId) <= 3;
+            });
+          });
+          
+          if (hasRelatedType) {
+            score += 30;
+            reasons.push('タイプが部分的に一致');
+          }
+        }
+      }
 
       // Age preference scoring (weight: 30)
       if (girl.age && preferences.partnerAgeMin && preferences.partnerAgeMax) {
