@@ -574,33 +574,36 @@ export default function GirlProfilePage() {
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button 
-                  className="flex-1" 
-                  variant="default"
-                  onClick={handleLike}
-                  disabled={isProcessingLike}
-                >
-                  <Heart className="h-4 w-4 mr-2" />
-                  {isProcessingLike ? "送信中..." : "いいね"}
-                </Button>
-                {isPremium && !subscriptionLoading && (
+              {/* Action Buttons - 2段レイアウト */}
+              <div className="space-y-3">
+                {/* 上段: いいね と メモ */}
+                <div className="flex gap-3">
                   <Button 
-                    className="flex-1" 
-                    variant="outline"
-                    onClick={() => router.push(`/messages/${girl.id}`)}
+                    className="flex-1 h-14 text-base font-semibold bg-pink-500 hover:bg-pink-600 text-white" 
+                    onClick={handleLike}
+                    disabled={isProcessingLike}
                   >
-                    <StickyNote className="h-4 w-4 mr-2" />
-                    メモ
+                    <Heart className="h-5 w-5 mr-2" />
+                    {isProcessingLike ? "送信中..." : "いいね"}
                   </Button>
-                )}
+                  {isPremium && !subscriptionLoading && (
+                    <Button 
+                      className="flex-1 h-14 text-base font-semibold bg-gray-900 hover:bg-gray-800 text-white border-0" 
+                      onClick={() => router.push(`/messages/${girl.id}`)}
+                    >
+                      <StickyNote className="h-5 w-5 mr-2" />
+                      メモ
+                    </Button>
+                  )}
+                </div>
+                
+                {/* 下段: この嬢に決めた */}
                 <Button 
-                  className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center text-xs px-2 py-1" 
+                  className="w-full h-16 text-lg font-bold bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center" 
                   onClick={handleReservation}
                 >
-                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                  <span className="tracking-tighter ml-1">この嬢に決めた</span>
+                  <ExternalLink className="h-5 w-5 mr-2" />
+                  この嬢に決めた
                 </Button>
               </div>
             </div>
