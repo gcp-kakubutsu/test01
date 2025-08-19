@@ -287,9 +287,19 @@ function AdvancedSearchContent() {
       let searchAreaName: string | null = null
       let nonLocationKeywords = searchQuery.trim()
       
-      // キーワード検索は全て通常のキーワード検索として扱う
+      // キーワード検索で市区町村名の場合、エリアフィルターとして扱う
       if (hasKeywordSearch) {
-        nonLocationKeywords = searchQuery.toLowerCase().trim()
+        const query = searchQuery.trim()
+        // 市区町村名のパターンをチェック
+        const locationSuffixes = ['区', '市', '町', '村']
+        const isLocationName = locationSuffixes.some(suffix => query.endsWith(suffix))
+        
+        if (isLocationName) {
+          searchAreaName = query
+          nonLocationKeywords = '' // エリア検索として扱うのでキーワードをクリア
+        } else {
+          nonLocationKeywords = searchQuery.toLowerCase().trim()
+        }
       }
       
       const hasNonLocationKeywordSearch = nonLocationKeywords.trim() !== ''
