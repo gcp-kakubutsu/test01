@@ -290,11 +290,23 @@ export default function LandingPage() {
   };
 
   const handlePricingClick = (plan: string) => {
-    if (confirm('あなたは18歳以上ですか？')) {
-      // Store the selected plan in sessionStorage
-      sessionStorage.setItem('selectedPlan', plan);
-      // Redirect to subscription page with plan parameter
-      router.push(`/subscription?plan=${plan}`);
+    // Store the selected plan in sessionStorage first
+    sessionStorage.setItem('selectedPlan', plan);
+    
+    // Try to show confirmation dialog
+    try {
+      const isAdult = confirm('あなたは18歳以上ですか？');
+      if (isAdult) {
+        // Redirect to subscription page with plan parameter
+        router.push(`/subscription?plan=${plan}`);
+      } else {
+        // Clear the stored plan if user says no
+        sessionStorage.removeItem('selectedPlan');
+      }
+    } catch (error) {
+      // If popup is blocked, redirect directly with a warning page parameter
+      console.log('Popup blocked, redirecting with age confirmation required');
+      router.push(`/subscription?plan=${plan}&age_confirm=required`);
     }
   };
 

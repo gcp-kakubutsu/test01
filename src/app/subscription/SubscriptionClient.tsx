@@ -138,6 +138,13 @@ export default function SubscriptionClient() {
 
   useEffect(() => {
     const plan = searchParams.get('plan');
+    const ageConfirm = searchParams.get('age_confirm');
+    
+    // If age confirmation is required, show alert
+    if (ageConfirm === 'required') {
+      alert('このサービスは18歳以上の方のみご利用いただけます。\n18歳以上の場合は続行してください。');
+    }
+    
     if (plan && PLAN_OPTIONS.some(p => p.id === plan)) {
       setSelectedPlan(plan);
       updatePlanConfig(plan);
@@ -247,21 +254,21 @@ export default function SubscriptionClient() {
       setIsLoadingAddress(true);
       
       try {
-        const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleaned}`);
+        // Use our internal API route to avoid CORS issues
+        const response = await fetch(`/api/zipcode?zipcode=${cleaned}`);
         const data = await response.json();
         
-        if (data.status === 200 && data.results && data.results.length > 0) {
-          const result = data.results[0];
+        if (response.ok && data.prefecture) {
           setFormData(prev => ({
             ...prev,
-            prefecture: result.address1,
-            city: result.address2,
-            address: result.address3
+            prefecture: data.prefecture,
+            city: data.city,
+            address: data.address
           }));
         } else {
           toast({
             title: "郵便番号エラー",
-            description: "郵便番号が見つかりませんでした。",
+            description: data.error || "郵便番号が見つかりませんでした。",
             variant: "destructive",
           });
         }
@@ -718,6 +725,28 @@ export default function SubscriptionClient() {
                         </label>
                       </div>
                     </div>
+
+                    {/* Payment Button - moved to form */}
+                    <div className={styles.paymentButtonSection}>
+                      <Button
+                        type="submit"
+                        className={styles.paymentButton}
+                        disabled={isProcessing}
+                        onClick={handleSubmit}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            決済処理中...
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="mr-2 h-4 w-4" />
+                            安全に決済する
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </CardContent>
               </Card>
@@ -754,24 +783,6 @@ export default function SubscriptionClient() {
                     </div>
                   </div>
 
-                  <Button
-                    type="submit"
-                    className={styles.paymentButton}
-                    disabled={isProcessing}
-                    onClick={handleSubmit}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        決済処理中...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="mr-2 h-4 w-4" />
-                        安全に決済する
-                      </>
-                    )}
-                  </Button>
                 </CardContent>
               </Card>
             </div>

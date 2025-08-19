@@ -679,6 +679,13 @@
   font-weight: 600;
 }
 
+// Payment Button Section
+.paymentButtonSection {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
 // Payment Button
 .paymentButton {
   width: 100%;
@@ -691,7 +698,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
