@@ -293,8 +293,8 @@ export default function LandingPage() {
     if (confirm('あなたは18歳以上ですか？')) {
       // Store the selected plan in sessionStorage
       sessionStorage.setItem('selectedPlan', plan);
-      // Redirect to login page
-      router.push('/login');
+      // Redirect to subscription page with plan parameter
+      router.push(`/subscription?plan=${plan}`);
     }
   };
 

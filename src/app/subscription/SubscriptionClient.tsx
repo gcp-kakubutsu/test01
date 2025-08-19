@@ -29,43 +29,63 @@ const PLAN_OPTIONS = [
   {
     id: '1month',
     name: '1ヶ月プラン',
-    price: 2000,
-    originalPrice: 2000,
+    price: 1980,
+    monthlyPrice: 1980,
+    originalPrice: 3480,
     discount: 0,
+    badge: '期間限定！',
+    specialOffer: '3,480円が期間限定で1,980円に！',
     features: [
-      '全ての女性のプロフィール閲覧',
-      '無制限のいいね送信',
+      '全ての基本機能',
+      'プロフィール閲覧',
       'マッチング機能',
-      'メッセージ機能',
+      'カスタマーサポート',
+    ]
+  },
+  {
+    id: '3month',
+    name: '3ヶ月プラン',
+    price: 4650,
+    monthlyPrice: 1550,
+    originalPrice: 10440,
+    discount: 56,
+    badge: '少しお得',
+    features: [
+      '全ての基本機能',
+      'プロフィール閲覧',
+      'マッチング機能',
+      'カスタマーサポート',
     ]
   },
   {
     id: '6month',
     name: '6ヶ月プラン',
-    price: 9000,
-    originalPrice: 12000,
-    discount: 25,
+    price: 8100,
+    monthlyPrice: 1350,
+    originalPrice: 20880,
+    discount: 62,
     popular: true,
+    badge: '一番人気！',
     features: [
-      '全ての女性のプロフィール閲覧',
-      '無制限のいいね送信',
+      '全ての基本機能',
+      'プロフィール閲覧',
       'マッチング機能',
-      'メッセージ機能',
-      '25%お得！',
+      'カスタマーサポート',
     ]
   },
   {
     id: '12month',
     name: '12ヶ月プラン',
-    price: 12000,
-    originalPrice: 24000,
-    discount: 50,
+    price: 13800,
+    monthlyPrice: 1150,
+    originalPrice: 41760,
+    discount: 67,
+    badge: '一番お得！',
     features: [
-      '全ての女性のプロフィール閲覧',
-      '無制限のいいね送信',
+      '全ての基本機能',
+      'プロフィール閲覧',
       'マッチング機能',
-      'メッセージ機能',
-      '50%お得！最もお得',
+      'カスタマーサポート',
     ]
   }
 ];
@@ -81,12 +101,12 @@ export default function SubscriptionClient() {
   
   const [planConfig, setPlanConfig] = useState<PlanConfig>({
     name: '6ヶ月プラン',
-    originalPrice: 12000,
-    discountAmount: 3000,
-    discountText: '割引（25%お得）',
-    subtotal: 9000,
-    tax: 900,
-    total: 9900
+    originalPrice: 8100,
+    discountAmount: 0,
+    discountText: '',
+    subtotal: 8100,
+    tax: 0,
+    total: 8100
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -133,34 +153,45 @@ export default function SubscriptionClient() {
       case '1month':
         setPlanConfig({
           name: '1ヶ月プラン',
-          originalPrice: 2000,
+          originalPrice: 1980,
           discountAmount: 0,
           discountText: '',
-          subtotal: 2000,
-          tax: 200,
-          total: 2200
+          subtotal: 1980,
+          tax: 0,
+          total: 1980
+        });
+        break;
+      case '3month':
+        setPlanConfig({
+          name: '3ヶ月プラン',
+          originalPrice: 4650,
+          discountAmount: 0,
+          discountText: '',
+          subtotal: 4650,
+          tax: 0,
+          total: 4650
         });
         break;
       case '12month':
         setPlanConfig({
           name: '12ヶ月プラン',
-          originalPrice: 24000,
-          discountAmount: 12000,
-          discountText: '割引（50%お得）',
-          subtotal: 12000,
-          tax: 1200,
-          total: 13200
+          originalPrice: 13800,
+          discountAmount: 0,
+          discountText: '',
+          subtotal: 13800,
+          tax: 0,
+          total: 13800
         });
         break;
       default:
         setPlanConfig({
           name: '6ヶ月プラン',
-          originalPrice: 12000,
-          discountAmount: 3000,
-          discountText: '割引（25%お得）',
-          subtotal: 9000,
-          tax: 900,
-          total: 9900
+          originalPrice: 8100,
+          discountAmount: 0,
+          discountText: '',
+          subtotal: 8100,
+          tax: 0,
+          total: 8100
         });
     }
   };
@@ -293,16 +324,43 @@ export default function SubscriptionClient() {
       <div className={styles.container}>
         {/* Page Header */}
         <div className={styles.pageHeader}>
-          <Crown className={styles.crownIcon} />
-          <h1 className={styles.pageTitle}>プレミアム会員になる</h1>
+          <h1 className={styles.pageTitle}>
+            <span className={styles.titleLine1}>NUKUNE 利用料金</span>
+            <span className={styles.titleLine2}>（男性会員様）</span>
+          </h1>
           <p className={styles.pageSubtitle}>
-            すべての機能を使って、理想の相手を見つけましょう
+            NUKUNEは登録無料でお使いいただけます。<br />
+            ただし、良質な出会いを提供するため、男性会員様のキャスト検索機能は<br />
+            月額定額制の有料プランで提供しています。
           </p>
         </div>
 
         {/* Show Plan Selection or Payment Form */}
         {!showPaymentForm ? (
           <>
+            {/* 共通機能表示 */}
+            <div className={styles.commonFeatures}>
+              <h3 className={styles.commonFeaturesTitle}>料金プラン</h3>
+              <div className={styles.featuresBox}>
+                <div className={styles.featureItem}>
+                  <span className={styles.checkIcon}>✓</span>
+                  <span>全ての基本機能</span>
+                </div>
+                <div className={styles.featureItem}>
+                  <span className={styles.checkIcon}>✓</span>
+                  <span>プロフィール閲覧</span>
+                </div>
+                <div className={styles.featureItem}>
+                  <span className={styles.checkIcon}>✓</span>
+                  <span>マッチング機能</span>
+                </div>
+                <div className={styles.featureItem}>
+                  <span className={styles.checkIcon}>✓</span>
+                  <span>カスタマーサポート</span>
+                </div>
+              </div>
+            </div>
+
             {/* Plan Selection */}
             <div className={styles.plansGrid}>
               {PLAN_OPTIONS.map((plan) => (
@@ -311,35 +369,31 @@ export default function SubscriptionClient() {
                   className={`${styles.planCard} ${selectedPlan === plan.id ? styles.selected : ''} ${plan.popular ? styles.popular : ''}`}
                   onClick={() => handlePlanSelect(plan.id)}
                 >
-                  {plan.popular && (
-                    <div className={styles.popularBadge}>人気No.1</div>
+                  {plan.badge && (
+                    <div className={styles.planBadge}>{plan.badge}</div>
                   )}
                   <CardContent className={styles.planContent}>
                     <h3 className={styles.planName}>{plan.name}</h3>
                     <div className={styles.priceContainer}>
-                      {plan.discount > 0 && (
-                        <div className={styles.originalPrice}>
-                          ¥{plan.originalPrice.toLocaleString()}
+                      <div className={styles.priceWrapper}>
+                        <span className={styles.priceLabel}>月額</span>
+                        <div className={styles.currentPrice}>
+                          <span className={styles.currency}>¥</span>
+                          <span className={styles.amount}>{plan.monthlyPrice.toLocaleString()}</span>
                         </div>
-                      )}
-                      <div className={styles.currentPrice}>
-                        <span className={styles.currency}>¥</span>
-                        <span className={styles.amount}>{plan.price.toLocaleString()}</span>
+                        <span className={styles.priceTax}>円/月</span>
                       </div>
+                      <div className={styles.priceTaxLabel}>（税込）</div>
+                      <div className={styles.totalPrice}>（一括{plan.price.toLocaleString()}円）</div>
+                      {plan.specialOffer && (
+                        <div className={styles.specialOffer}>{plan.specialOffer}</div>
+                      )}
                       {plan.discount > 0 && (
                         <div className={styles.discountBadge}>
-                          {plan.discount}%OFF
+                          最大{plan.discount}%お得なプラン
                         </div>
                       )}
                     </div>
-                    <ul className={styles.featuresList}>
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className={styles.featureItem}>
-                          <Check className={styles.checkIcon} />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
                     {selectedPlan === plan.id && (
                       <div className={styles.selectedIndicator}>
                         <Check className={styles.selectedCheck} />
