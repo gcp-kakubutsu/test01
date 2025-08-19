@@ -384,7 +384,8 @@ export function useUserStats(userId?: string) {
   const [stats, setStats] = useState({
     likesReceived: 0,
     matchesCount: 0,
-    profileViews: 0
+    profileViews: 0,
+    requestsReceived: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -400,7 +401,7 @@ export function useUserStats(userId?: string) {
     const setupStatsListeners = async () => {
       try {
         setLoading(true);
-        let currentStats = { likesReceived: 0, matchesCount: 0, profileViews: 0 };
+        let currentStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 };
 
         // Set up real-time listener for profile views
         if (!db) throw new Error('Firestore is not initialized');
@@ -419,12 +420,17 @@ export function useUserStats(userId?: string) {
           // Silently handle profile view errors
         });
 
-        // Get likes received (one-time fetch for now)
+        // Get likes received (requests) - these are likes sent TO the user
         if (!db) throw new Error('Firestore is not initialized');
         const likesRef = collection(db, 'likes');
-        const likesQuery = query(likesRef, where('to', '==', targetUserId));
-        const likesSnapshot = await getDocs(likesQuery);
-        currentStats.likesReceived = likesSnapshot.size;
+        const receivedLikesQuery = query(likesRef, where('to', '==', targetUserId));
+        const receivedLikesSnapshot = await getDocs(receivedLikesQuery);
+        currentStats.requestsReceived = receivedLikesSnapshot.size; // This is the request count
+        
+        // Get likes sent by the user
+        const sentLikesQuery = query(likesRef, where('from', '==', targetUserId));
+        const sentLikesSnapshot = await getDocs(sentLikesQuery);
+        currentStats.likesReceived = sentLikesSnapshot.size; // Keep this for いいね count
 
         // Get matches count (one-time fetch for now)
         if (!db) throw new Error('Firestore is not initialized');

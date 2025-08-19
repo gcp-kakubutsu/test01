@@ -228,10 +228,10 @@ export default function ProfilePage() {
                 ) : statsError ? (
                   '-'
                 ) : (
-                  stats?.profileViews || 0
+                  stats?.requestsReceived || 0
                 )}
               </p>
-              <p className="text-xs">閲覧数</p>
+              <p className="text-xs">リクエスト</p>
             </div>
           </div>
           
@@ -337,7 +337,7 @@ export default function ProfilePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold">詳細設定</CardTitle>
-              <Badge variant={malePreferences?.isComplete ? "default" : "secondary"} className={malePreferences?.isComplete ? "bg-green-500" : "bg-yellow-500"}>
+              <Badge variant={malePreferences?.isComplete ? "default" : "secondary"} className={malePreferences?.isComplete ? "bg-green-500 text-base px-4 py-2" : "bg-[#FFD700] text-base px-4 py-2"}>
                 {malePreferences?.isComplete ? "設定完了" : "設定未完了"}
               </Badge>
             </div>
@@ -370,15 +370,15 @@ export default function ProfilePage() {
                   </div>
                 )}
                 
-                <Button variant="outline" className="w-full" onClick={() => router.push('/profile/preferences')}>
-                  <Settings className="h-4 w-4 mr-2" />
+                <Button className="w-full text-xl py-8 bg-[#F0306A] hover:bg-[#E02860] text-white" onClick={() => router.push('/profile/preferences')}>
+                  <Settings className="h-6 w-6 mr-2" />
                   詳細設定を編集
                 </Button>
               </div>
             ) : (
               <div className="text-center py-6">
                 <p className="mb-4">マッチングを開始するには詳細設定の完了が必要です</p>
-                <Button className="bg-[#F0306A] hover:bg-[#E02860]" onClick={() => router.push('/profile/preferences')}>
+                <Button className="bg-[#F0306A] hover:bg-[#E02860] text-lg px-8 py-6" onClick={() => router.push('/profile/preferences')}>
                   詳細設定を開始
                 </Button>
               </div>
@@ -414,14 +414,14 @@ export default function ProfilePage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link href="/verify">
-          <Button variant="outline" className="w-full">
-            <Shield className="h-4 w-4 mr-2" />
+          <Button className="w-full text-xl py-8 text-white" style={{backgroundColor: '#F0306A'}}>
+            <Shield className="h-6 w-6 mr-2" />
             本人確認
           </Button>
         </Link>
         <Link href="/settings">
-          <Button variant="outline" className="w-full">
-            <Settings className="h-4 w-4 mr-2" />
+          <Button className="w-full text-xl py-8 text-white" style={{backgroundColor: '#FFB347'}}>
+            <Settings className="h-6 w-6 mr-2" />
             設定
           </Button>
         </Link>

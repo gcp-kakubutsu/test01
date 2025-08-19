@@ -499,111 +499,154 @@ export default function MatchesPage() {
 
     return (
       <Card 
-        className={`overflow-hidden hover:shadow-md transition-shadow ${clickable ? 'cursor-pointer' : ''}`}
+        className={`overflow-hidden hover:shadow-lg transition-all border-2 ${clickable ? 'cursor-pointer hover:border-[#F0306A]/30' : ''} bg-white dark:bg-gray-800`}
         onClick={handleCardClick}
       >
-      <CardContent className="p-4">
-        <div className="flex items-start space-x-4">
-          <div className="relative">
-            <Image
-              src={like.imageUrl}
-              alt={like.name}
-              width={80}
-              height={80}
-              className="rounded-lg object-cover"
-            />
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-4">
+          {/* Mobile: Image and basic info in a row */}
+          <div className="flex items-start space-x-3 sm:space-x-0 mb-3 sm:mb-0">
+            <div className="relative flex-shrink-0">
+              <Image
+                src={like.imageUrl}
+                alt={like.name}
+                width={100}
+                height={100}
+                className="rounded-lg object-cover w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28"
+              />
+            </div>
+            
+            {/* Mobile: Name, age, location next to image */}
+            <div className="flex-1 sm:hidden">
+              <div className="flex items-baseline gap-2">
+                <h3 className="font-bold text-lg">{like.name}</h3>
+                <span className="text-base text-gray-600 dark:text-gray-300">{like.age}歳</span>
+              </div>
+              
+              {like.location && (
+                <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <MapPin className="h-3 w-3 text-[#F0306A]" />
+                  <span>{like.location}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <Clock className="h-3 w-3" />
+                <span>{formatDate(like.createdAt)}</span>
+              </div>
+            </div>
           </div>
           
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold">{like.name}</h3>
-              <span className="text-sm text-gray-500">{like.age}歳</span>
+          {/* Desktop: Original layout */}
+          <div className="flex-1 hidden sm:block">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-bold text-lg sm:text-xl">{like.name}</h3>
+              <span className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{like.age}歳</span>
             </div>
             
             {like.location && (
-              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                <MapPin className="h-3 w-3" />
-                <span>{like.location}</span>
+              <div className="flex items-center gap-1.5 text-base text-gray-700 dark:text-gray-300 mb-2">
+                <MapPin className="h-4 w-4 text-[#F0306A]" />
+                <span className="font-medium">{like.location}</span>
               </div>
             )}
             
             {like.bio && (
-              <div className="flex items-start gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                <MessageSquare className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span className="line-clamp-2">{like.bio}</span>
+              <div className="flex items-start gap-2 mb-2">
+                <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-[#F0306A]" />
+                <span className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{like.bio}</span>
               </div>
             )}
             
             {like.isGirlProfile && (
-              <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300 mb-1">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm mb-2">
                 店舗在籍
               </div>
             )}
             
-            <div className="flex items-center gap-1 mt-2">
-              <Clock className="h-3 w-3 text-gray-400" />
-              <span className="text-xs text-gray-400">{formatDate(like.createdAt)}</span>
+            <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{formatDate(like.createdAt)}</span>
             </div>
           </div>
           
-          {showMemoButton && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-[#F0306A]"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Use girlId for MySQL girls or userId for Firebase users
-                const targetId = like.isGirlProfile && like.girlId ? `mysql_girl_${like.girlId}` : like.userId;
-                setSelectedMemoTarget({
-                  id: targetId,
-                  name: like.name,
-                  imageUrl: like.imageUrl
-                });
-              }}
-            >
-              <StickyNote className="h-5 w-5" />
-            </Button>
-          )}
+          {/* Mobile: Bio and badges below */}
+          <div className="sm:hidden">
+            {like.bio && (
+              <div className="mb-3 px-1">
+                <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{like.bio}</p>
+              </div>
+            )}
             
+            {like.isGirlProfile && (
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm">
+                店舗在籍
+              </div>
+            )}
+          </div>
           
-          {showLikeButton && !like.isGirlProfile && (
-            <div>
-              {likedBackUsers.has(like.userId) ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled
-                  className="text-gray-500 border-gray-300"
-                >
-                  <Heart className="h-4 w-4 mr-1 fill-gray-400 text-gray-400" />
-                  いいね済み
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  className="bg-[#F0306A] hover:bg-[#E02860]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLikeBack(like);
-                  }}
-                  disabled={processingLikes.has(like.userId)}
-                >
-                  {processingLikes.has(like.userId) ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      送信中...
-                    </>
-                  ) : (
-                    <>
-                      <Heart className="h-4 w-4 mr-1" />
-                      いいねを返す
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          )}
+          {/* Action buttons container */}
+          <div className="flex gap-2 mt-3 sm:mt-0 sm:flex-col">
+            {showMemoButton && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-[#F0306A] hover:bg-[#F0306A]/10 p-2 flex-1 sm:flex-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Use girlId for MySQL girls or userId for Firebase users
+                  const targetId = like.isGirlProfile && like.girlId ? `mysql_girl_${like.girlId}` : like.userId;
+                  setSelectedMemoTarget({
+                    id: targetId,
+                    name: like.name,
+                    imageUrl: like.imageUrl
+                  });
+                }}
+              >
+                <StickyNote className="h-5 w-5" />
+                <span className="ml-1 sm:hidden">メモ</span>
+              </Button>
+            )}
+              
+            
+            {showLikeButton && !like.isGirlProfile && (
+              <div className="flex-1 sm:flex-none">
+                {likedBackUsers.has(like.userId) ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled
+                    className="text-gray-500 border-gray-300 w-full sm:w-auto"
+                  >
+                    <Heart className="h-4 w-4 mr-1 fill-gray-400 text-gray-400" />
+                    <span className="text-xs sm:text-sm">いいね済み</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-[#F0306A] to-[#E02860] hover:from-[#E02860] hover:to-[#D01850] text-white font-bold shadow-md px-3 py-2 w-full sm:w-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLikeBack(like);
+                    }}
+                    disabled={processingLikes.has(like.userId)}
+                  >
+                    {processingLikes.has(like.userId) ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        <span className="text-xs sm:text-sm">送信中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="h-4 w-4 mr-1" />
+                        <span className="text-xs sm:text-sm">いいねを返す</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -612,30 +655,30 @@ export default function MatchesPage() {
 
   return (
     <>
-      <div className="max-w-2xl mx-auto space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-center mb-6">リクエスト</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="matches" className="flex items-center gap-1">
-            <Heart className="h-4 w-4" />
-            プレイ数 ({displayMatches.length})
+        <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+          <TabsTrigger value="matches" className="flex flex-col sm:flex-row items-center gap-1 py-3 px-2 text-sm sm:text-base">
+            <Heart className="h-5 w-5" />
+            <span className="whitespace-nowrap">プレイ数 ({displayMatches.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="sent" className="flex items-center gap-1">
-            <Heart className="h-4 w-4" />
-            いいね ({sentLikes.length})
+          <TabsTrigger value="sent" className="flex flex-col sm:flex-row items-center gap-1 py-3 px-2 text-sm sm:text-base">
+            <Heart className="h-5 w-5" />
+            <span className="whitespace-nowrap">いいね ({sentLikes.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="received" className="flex items-center gap-1">
-            <Heart className="h-4 w-4" fill="currentColor" />
-            マッチ ({receivedLikes.length})
+          <TabsTrigger value="received" className="flex flex-col sm:flex-row items-center gap-1 py-3 px-2 text-sm sm:text-base">
+            <Heart className="h-5 w-5" fill="currentColor" />
+            <span className="whitespace-nowrap">リクエスト ({receivedLikes.length})</span>
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="matches" className="space-y-3 mt-6">
           {displayMatches.length > 0 ? (
             <>
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-4">
+                <p className="text-base text-gray-700 dark:text-gray-300">
                   プレイした女の子たちです。メモを残して履歴を管理しましょう！
                 </p>
               </div>
@@ -655,8 +698,8 @@ export default function MatchesPage() {
         <TabsContent value="sent" className="space-y-3 mt-6">
           {sentLikes.length > 0 ? (
             <>
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-4">
+                <p className="text-base text-gray-700 dark:text-gray-300">
                   あなたが「いいね」を送った人たちです。
                 </p>
               </div>
@@ -676,8 +719,8 @@ export default function MatchesPage() {
         <TabsContent value="received" className="space-y-3 mt-6">
           {receivedLikes.length > 0 ? (
             <>
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-4">
+                <p className="text-base text-gray-700 dark:text-gray-300">
                   あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
                 </p>
               </div>
