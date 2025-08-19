@@ -37,8 +37,24 @@ export function useSubscription() {
     if (isLineBrowser) {
       // LINEブラウザでは必ず専用APIを使用（currentUserの有無に関わらず）
       // 重要：早期リターンにより、通常のFirestore処理をスキップする
-      const fetchSubscriptionForLine = async () => {
+      const fetchSubscriptionForLine = async (retryCount = 0) => {
         try {
+          // LINEブラウザの場合、Firebase初期化を待つ
+          console.log('[useSubscription] LINE: Waiting for Firebase initialization...');
+          const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
+          const initialized = await waitForFirebaseInLine();
+          
+          if (!initialized && retryCount < 3) {
+            console.log('[useSubscription] LINE: Firebase not ready, retrying...', { retryCount });
+            // 再試行
+            setTimeout(() => {
+              if (isMounted) {
+                fetchSubscriptionForLine(retryCount + 1);
+              }
+            }, 1000 * (retryCount + 1)); // 段階的に待機時間を増やす
+            return;
+          }
+          
           // セッションベースのAPIを呼び出し
           // ngrok環境対応
           const headers: HeadersInit = {
@@ -63,7 +79,8 @@ export function useSubscription() {
             console.log('[useSubscription] LINE API response:', { 
               isPremium: data.isPremium, 
               status: data.subscriptionStatus,
-              userId: data.userId 
+              userId: data.userId,
+              retryCount
             });
             if (isMounted) {
               setSubscription({
@@ -71,33 +88,33 @@ export function useSubscription() {
                 subscriptionStatus: data.subscriptionStatus || 'none',
                 subscriptionEndDate: data.subscriptionEndDate ? new Date(data.subscriptionEndDate) : undefined,
               });
+              setLoading(false);
             }
           } else {
+            console.log('[useSubscription] LINE API response not ok:', response.status);
             if (isMounted) {
               setSubscription({ isPremium: false, subscriptionStatus: 'none' });
+              setLoading(false);
             }
           }
         } catch (error) {
           console.error('LINE browser subscription check error:', error);
-          if (isMounted) {
+          if (isMounted && retryCount >= 3) {
             setSubscription({ isPremium: false, subscriptionStatus: 'none' });
-          }
-        } finally {
-          if (isMounted) {
             setLoading(false);
+          } else if (isMounted && retryCount < 3) {
+            // エラー時も再試行
+            setTimeout(() => {
+              if (isMounted) {
+                fetchSubscriptionForLine(retryCount + 1);
+              }
+            }, 1000 * (retryCount + 1));
           }
         }
       };
       
-      // 即座に実行
+      // 初回実行（初期化待機付き）
       fetchSubscriptionForLine();
-      
-      // 1秒後に再チェック（保険）
-      setTimeout(() => {
-        if (isMounted) {
-          fetchSubscriptionForLine();
-        }
-      }, 1000);
       
       // LINEブラウザの場合は、ここで早期リターンして通常のFirestore処理を行わない
       return () => {
