@@ -84,13 +84,17 @@ export default function EditProfilePage() {
   // Load existing girl type preferences for male users
   useEffect(() => {
     const loadGirlTypePreferences = async () => {
-      if (currentUser && profile?.gender === 'male') {
+      // genderが未設定でも男性ユーザーとして扱う（デフォルト）
+      if (currentUser) {
         try {
           const preferences = await getMalePreferences(currentUser.uid);
           if (preferences?.girlTypeIds) {
             setGirlTypeIds(preferences.girlTypeIds);
           }
-          setShowGirlTypes(true);
+          // 男性ユーザーまたはgender未設定の場合は女の子タイプを表示
+          if (profile?.gender === 'male' || !profile?.gender) {
+            setShowGirlTypes(true);
+          }
         } catch (error) {
           console.error('Failed to load girl type preferences:', error);
         }
@@ -260,8 +264,8 @@ export default function EditProfilePage() {
       const result = await updateUserProfile(currentUser.uid, updateData);
       
       if (result.success) {
-        // 男性ユーザーの場合、女の子タイプの設定も保存
-        if (profile?.gender === 'male' && girlTypeIds.length > 0) {
+        // 男性ユーザーまたはgender未設定の場合、女の子タイプの設定も保存
+        if ((profile?.gender === 'male' || !profile?.gender) && girlTypeIds.length > 0) {
           try {
             const existingPreferences = await getMalePreferences(currentUser.uid);
             await saveMalePreferences(currentUser.uid, {

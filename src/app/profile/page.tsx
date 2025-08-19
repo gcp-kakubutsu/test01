@@ -65,7 +65,7 @@ export default function ProfilePage() {
   // Load male preferences for male users
   useEffect(() => {
     const loadMalePreferences = async () => {
-      if (currentUser && profile?.gender === 'male') {
+      if (currentUser && (profile?.gender === 'male' || !profile?.gender)) {
         try {
           const preferences = await getMalePreferences(currentUser.uid);
           setMalePreferences(preferences);
@@ -332,7 +332,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Male User Preferences Section */}
-      {profile?.gender === 'male' && (
+      {(profile?.gender === 'male' || !profile?.gender) && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
