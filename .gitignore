@@ -59,6 +59,9 @@ firebase-crashlytics-build.json
 # TypeScript
 tsconfig.tsbuildinfo
 
+# Genkit
+.genkit/
+
 .specstory/
 .cursorindexingignore
 

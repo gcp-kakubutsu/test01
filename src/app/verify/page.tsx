@@ -11,6 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { aiProfileVerification, type AIProfileVerificationOutput } from '@/ai/flows/ai-profile-verification';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { updateProfile } from '@/lib/firebase/profiles';
+import { useRouter } from 'next/navigation';
 
 export default function VerifyProfilePage() {
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
@@ -19,6 +22,8 @@ export default function VerifyProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<AIProfileVerificationOutput | null>(null);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const router = useRouter();
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -59,10 +64,35 @@ export default function VerifyProfilePage() {
           profileDescription,
         });
         setVerificationResult(result);
-        toast({
-          title: '認証完了',
-          description: 'プロフィール分析が終了しました。',
-        });
+        
+        // If verification is successful, update the user's account status
+        if (result.isGenuine && result.isAppropriate && currentUser) {
+          try {
+            await updateProfile(currentUser.uid, {
+              accountStatus: 'verified',
+              verifiedAt: new Date().toISOString(),
+            });
+            toast({
+              title: '認証成功！',
+              description: 'プロフィールが認証されました。',
+            });
+            // Redirect to profile page after 2 seconds
+            setTimeout(() => {
+              router.push('/profile');
+            }, 2000);
+          } catch (error) {
+            console.error('Failed to update account status:', error);
+            toast({
+              title: '認証完了',
+              description: 'プロフィール分析が終了しました。',
+            });
+          }
+        } else {
+          toast({
+            title: '認証完了',
+            description: 'プロフィール分析が終了しました。',
+          });
+        }
       };
       reader.onerror = (error) => {
         console.error('ファイル読み取りエラー:', error);
