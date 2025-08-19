@@ -332,9 +332,9 @@ export default function MatchesPage() {
             <Image
               src={match.imageUrl}
               alt={match.name}
-              width={60}
-              height={60}
-              className="rounded-full object-cover"
+              width={80}
+              height={100}
+              className="rounded-lg object-cover w-20 h-24 sm:w-20 sm:h-24"
             />
             {match.isNew && (
               <div className="absolute -top-1 -right-1 bg-[#F0306A] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -510,9 +510,9 @@ export default function MatchesPage() {
               <Image
                 src={like.imageUrl}
                 alt={like.name}
-                width={100}
-                height={100}
-                className="rounded-lg object-cover w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28"
+                width={120}
+                height={160}
+                className="rounded-lg object-cover w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-40"
               />
             </div>
             
