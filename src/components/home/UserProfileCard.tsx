@@ -63,7 +63,7 @@ export function UserProfileCard({ user, feedback }: UserProfileCardProps) {
         </div>
       </div>
       <CardContent className="p-6 space-y-3">
-        <p className="text-muted-foreground text-sm leading-relaxed h-20 overflow-y-auto">{user.bio}</p>
+        <p className="text-sm leading-relaxed h-20 overflow-y-auto">{user.bio}</p>
         {user.kinks && user.kinks.length > 0 && (
           <div>
             <h4 className="font-semibold text-sm mb-2 text-primary">興味・関心:</h4>

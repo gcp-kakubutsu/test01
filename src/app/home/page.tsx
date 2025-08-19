@@ -836,7 +836,7 @@ export default function HomePage() {
                     setSearchKeyword('');
                     setShowSearchInput(false);
                   }}
-                  className="text-gray-400 hover:text-white"
+                  className="hover:text-white"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -846,7 +846,7 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowSearchInput(true)}
-                  className="flex-1 bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700"
+                  className="flex-1 bg-gray-800 border-gray-700 hover:text-white hover:bg-gray-700"
                 >
                   <Search className="w-4 h-4 mr-2" />
                   {searchKeyword || 'キーワード検索'}
@@ -856,7 +856,7 @@ export default function HomePage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setSearchKeyword('')}
-                    className="text-gray-400 hover:text-white"
+                    className="hover:text-white"
                     title="検索をクリア"
                   >
                     <X className="w-4 h-4" />
@@ -873,7 +873,7 @@ export default function HomePage() {
               className={`px-3 py-2 rounded-md transition-all ${
                 viewMode === 'single' 
                   ? 'bg-pink-500 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  : 'hover:text-white'
               }`}
               aria-label="1列表示"
             >
@@ -884,7 +884,7 @@ export default function HomePage() {
               className={`px-3 py-2 rounded-md transition-all ${
                 viewMode === 'double' 
                   ? 'bg-pink-500 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                  : 'hover:text-white'
               }`}
               aria-label="2列表示"
             >
@@ -991,7 +991,7 @@ export default function HomePage() {
                 {/* Details */}
                 <div className={`flex flex-wrap gap-2 ${
                   viewMode === 'single' ? 'text-sm' : 'text-xs'
-                } sm:text-sm text-gray-400 mb-2`}>
+                } sm:text-sm mb-2`}>
                   <span>{age ? `${age}歳` : '不明'}</span>
                   <span>•</span>
                   <span>{location}</span>
@@ -1011,7 +1011,7 @@ export default function HomePage() {
                 {height && (
                   <div className={`${
                     viewMode === 'single' ? 'text-sm' : 'text-xs'
-                  } sm:text-sm text-gray-400 mb-3`}>
+                  } sm:text-sm mb-3`}>
                     {height && <span>T{height}cm</span>}
                     {bust && waist && hip && (
                       <>
@@ -1081,7 +1081,7 @@ export default function HomePage() {
                     </span>
                   )}
                   {is_tobacco !== undefined && (
-                    <span className="px-3 py-1 bg-gray-500/10 border border-gray-500/30 rounded-full text-xs text-gray-400">
+                    <span className="px-3 py-1 bg-gray-500/10 border border-gray-500/30 rounded-full text-xs">
                       {is_tobacco ? '🚬 タバコOK' : '🚫 タバコNG'}
                     </span>
                   )}
@@ -1091,7 +1091,7 @@ export default function HomePage() {
                 {bio && (
                   <p className={`${
                     viewMode === 'single' ? 'text-sm line-clamp-3' : 'text-xs line-clamp-2'
-                  } sm:text-sm text-gray-400 mb-4 flex-1`}>
+                  } sm:text-sm mb-4 flex-1`}>
                     {bio}
                   </p>
                 )}
@@ -1220,7 +1220,7 @@ export default function HomePage() {
       </div>
       
       {filteredAndSortedData.length === 0 && searchKeyword && (
-        <div className="text-center py-10 text-gray-300">
+        <div className="text-center py-10">
           <p className="text-xl mb-4 text-white">「{searchKeyword}」に一致する女の子が見つかりません</p>
           <Button onClick={() => setSearchKeyword('')} variant="outline">
             <RotateCcw className="mr-2 h-4 w-4" /> 検索をクリア
@@ -1229,9 +1229,9 @@ export default function HomePage() {
       )}
       
       {displayData.length === 0 && !searchKeyword && (
-        <div className="text-center py-10 text-gray-300">
+        <div className="text-center py-10">
           <p className="text-xl mb-4 text-white">データを読み込み中...</p>
-          <p className="text-sm mb-4 text-gray-400">しばらくお待ちください</p>
+          <p className="text-sm mb-4">しばらくお待ちください</p>
           <Button onClick={() => {
             console.log('Manual reload triggered');
             setLoadingUsers(true);
@@ -1277,7 +1277,7 @@ export default function HomePage() {
       
       {/* Search results info */}
       {searchKeyword && filteredAndSortedData.length > 0 && (
-        <div className="text-center mt-4 text-gray-400">
+        <div className="text-center mt-4">
           <p>「{searchKeyword}」の検索結果: {filteredAndSortedData.length}名</p>
         </div>
       )}

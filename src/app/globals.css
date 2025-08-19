@@ -42,7 +42,7 @@ body {
     --secondary-foreground: 0 0% 10%; /* Almost Black */
 
     --muted: 0 0% 96%; /* Very Light Gray */
-    --muted-foreground: 0 0% 40%; /* Darker Gray for light mode */
+    --muted-foreground: 0 0% 10%; /* Same as main text color */
 
     --accent: 343 90% 97%; /* Very Light Pink */
     --accent-foreground: 343 90% 50%; /* Pink */
@@ -90,7 +90,7 @@ body {
     --secondary-foreground: 0 0% 98%; /* White */
 
     --muted: 0 0% 25%; /* Gray */
-    --muted-foreground: 0 0% 70%; /* Light Gray for dark mode visibility */
+    --muted-foreground: 0 0% 98%; /* Same as main text color */
 
     --accent: 45 100% 51%; /* Gold */
     --accent-foreground: 0 0% 0%; /* Black */

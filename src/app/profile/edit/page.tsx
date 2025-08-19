@@ -328,10 +328,10 @@ export default function EditProfilePage() {
                 priority
               />
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+            <CardTitle className="text-2xl font-bold mb-2">
               プロフィールを編集
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription>
               最高のマッチングのために、プロフィールを最新の状態に保ちましょう。
             </CardDescription>
           </div>
@@ -447,7 +447,7 @@ export default function EditProfilePage() {
                 
                 {/* 性格タイプ (class_id = 1) */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">性格タイプ</h4>
+                  <h4 className="text-sm font-medium mb-2">性格タイプ</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {girlTypesFromDB.filter((type: any) => type.class_id === 1).map((girlType: any) => (
                       <div 
@@ -476,7 +476,7 @@ export default function EditProfilePage() {
 
                 {/* 身体タイプ (class_id = 2) */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">身体的特徴</h4>
+                  <h4 className="text-sm font-medium mb-2">身体的特徴</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {girlTypesFromDB.filter((type: any) => type.class_id === 2).map((girlType: any) => (
                       <div 
@@ -505,7 +505,7 @@ export default function EditProfilePage() {
 
                 {/* プレイタイプ (class_id = 3) */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">プレイスタイル</h4>
+                  <h4 className="text-sm font-medium mb-2">プレイスタイル</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {girlTypesFromDB.filter((type: any) => type.class_id === 3).map((girlType: any) => (
                       <div 
