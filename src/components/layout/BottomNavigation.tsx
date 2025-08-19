@@ -86,7 +86,7 @@ export default function BottomNavigation() {
               >
                 <div className={styles.navIcon}>
                   <Icon 
-                    size={20}
+                    size={24}
                     strokeWidth={2}
                   />
                 </div>
@@ -105,7 +105,7 @@ export default function BottomNavigation() {
             >
               <div className={styles.navIcon}>
                 <Icon 
-                  size={20}
+                  size={24}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
                 {item.href === '/messages' && totalUnreadCount > 0 && (
