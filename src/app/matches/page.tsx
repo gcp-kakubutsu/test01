@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin, MessageSquare, StickyNote } from 'lucide-react';
+import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin, MessageSquare, StickyNote, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -55,44 +55,96 @@ export default function MatchesPage() {
   const [processingLikes, setProcessingLikes] = useState<Set<string>>(new Set());
   const [likedBackUsers, setLikedBackUsers] = useState<Set<string>>(new Set());
   const [selectedMemoTarget, setSelectedMemoTarget] = useState<{id: string; name?: string; imageUrl?: string} | null>(null);
+  
+  // Pagination states
+  const [currentPageMatches, setCurrentPageMatches] = useState(1);
+  const [currentPageSent, setCurrentPageSent] = useState(1);
+  const [currentPageReceived, setCurrentPageReceived] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
+  // Define scrollToTop function before using it in useEffect
+  const scrollToTop = () => {
+    // Force immediate scroll to top for all devices and browsers
+    setTimeout(() => {
+      // Use multiple methods to ensure scrolling works on all devices
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // For mobile devices, also try scrolling the main container
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        mainElement.scrollTop = 0;
+      }
+      
+      // For iOS Safari
+      if ((window as any).webkit && (window as any).webkit.messageHandlers) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    }, 10); // Small delay to ensure DOM is updated
+  };
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    scrollToTop();
+  }, [currentPageMatches, currentPageSent, currentPageReceived]);
 
   // Load matches and likes
   useEffect(() => {
     const loadMatchesAndLikes = async () => {
-      console.log('[Matches] Firebase check:', { 
-        hasCurrentUser: !!currentUser, 
-        hasDb: !!db,
-        userId: currentUser?.uid 
-      });
-      
       // 認証されていない場合はデータを取得しない
       if (!currentUser || !db) {
-        console.log('[Matches] Waiting for Firebase initialization...');
-        // 3秒待っても認証されない場合はログインページへ
+        // 認証待ちのタイムアウトを1秒に短縮
         setTimeout(() => {
           if (!currentUser) {
-            console.log('[Matches] No auth after 3s, redirecting to login');
             router.push('/login');
           }
-        }, 3000);
+        }, 1000);
         return;
       }
       
       setIsLoadingData(true);
       
       try {
-        // Load matches
+        // 並列処理で全てのデータを同時に取得
+        const [sentLikesSnapshot, receivedLikesSnapshot] = await Promise.all([
+          // Load sent likes
+          getDocs(query(
+            collection(db, 'likes'),
+            where('from', '==', currentUser.uid)
+          )),
+          // Load received likes
+          getDocs(query(
+            collection(db, 'likes'),
+            where('to', '==', currentUser.uid)
+          ))
+        ]);
+        
+        // Process matches in parallel with likes
         if (!matchesLoading && matches.length > 0) {
           const otherUserIds = matches.map(match => 
             match.users.find(uid => uid !== currentUser.uid)
           ).filter(Boolean) as string[];
           
-          const userProfiles = await fetchUserProfiles(otherUserIds);
+          // このプロミスは下で他のデータと並列で処理
+          const userProfilesPromise = fetchUserProfiles(otherUserIds);
           
+          // Process likes data while fetching user profiles
+          const sentLikeUserIds = sentLikesSnapshot.docs.map(doc => doc.data().to);
+          const receivedLikeUserIds = receivedLikesSnapshot.docs.map(doc => doc.data().from);
+          
+          // Fetch all user profiles in parallel
+          const allUserIds = [...new Set([...sentLikeUserIds, ...receivedLikeUserIds])];
+          
+          const [matchUserProfiles, allUserProfiles] = await Promise.all([
+            userProfilesPromise,
+            fetchUserProfiles(allUserIds)
+          ]);
+          
+          // Process matches
           const matchList: Match[] = matches.map(match => {
             const otherUserId = match.users.find(uid => uid !== currentUser.uid);
-            const otherUser = otherUserId ? userProfiles.get(otherUserId) : null;
+            const otherUser = otherUserId ? matchUserProfiles.get(otherUserId) : null;
             
             return {
               id: match.id,
@@ -106,184 +158,268 @@ export default function MatchesPage() {
           });
           
           setDisplayMatches(matchList);
-        }
-        
-        // Load sent likes (without orderBy to avoid index requirement initially)
-        // First try to get likes sent by the user
-        const sentLikesQuery = query(
-          collection(db, 'likes'),
-          where('from', '==', currentUser.uid)
-        );
-        const sentLikesSnapshot = await getDocs(sentLikesQuery);
-        console.log('Sent likes count:', sentLikesSnapshot.size);
-        const sentLikeUserIds = sentLikesSnapshot.docs.map(doc => doc.data().to);
-        
-        // Load received likes (without orderBy to avoid index requirement initially)
-        const receivedLikesQuery = query(
-          collection(db, 'likes'),
-          where('to', '==', currentUser.uid)
-        );
-        const receivedLikesSnapshot = await getDocs(receivedLikesQuery);
-        const receivedLikeUserIds = receivedLikesSnapshot.docs.map(doc => doc.data().from);
-        
-        // Fetch all user profiles
-        const allUserIds = [...new Set([...sentLikeUserIds, ...receivedLikeUserIds])];
-        const allUserProfiles = await fetchUserProfiles(allUserIds);
-        
-        // Collect MySQL girl IDs from sent likes
-        const mysqlGirlIds: string[] = [];
-        const sentLikesData: Array<{ doc: any, data: any }> = [];
-        
-        sentLikesSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          sentLikesData.push({ doc, data });
           
-          // Simplified debug log
-          // console.log('Like to:', data.to);
+          // Process sent likes data
+          const mysqlGirlIds: string[] = [];
+          const sentLikesData: Array<{ doc: any, data: any }> = [];
           
-          // Check if it's a MySQL girl like by ID format or isGirlProfile flag
-          if (data.isGirlProfile && data.toGirlId) {
-            // New format with explicit girl ID
-            // console.log('New format MySQL girl detected, ID:', data.toGirlId);
-            mysqlGirlIds.push(data.toGirlId);
-          } else if (data.to && typeof data.to === 'string' && data.to.startsWith('mysql_girl_')) {
-            // Format with mysql_girl_ prefix
-            const girlId = data.to.replace('mysql_girl_', '');
-            // console.log('MySQL girl with prefix detected, extracted ID:', girlId);
-            mysqlGirlIds.push(girlId);
-            // Add flag to data for processing later
-            data.isOldMysqlFormat = true;
-            data.extractedGirlId = girlId;
-          } else if (data.to && typeof data.to === 'string' && /^\d+$/.test(data.to)) {
-            // Old format: numeric string (likely a MySQL girl ID)
-            // console.log('Old format numeric ID detected:', data.to);
-            mysqlGirlIds.push(data.to);
-            // Add flag to data for processing later
-            data.isOldMysqlFormat = true;
-            data.extractedGirlId = data.to;
-          } else {
-            // console.log('Regular Firebase user, to value:', data.to);
-          }
-        });
-        
-        // Batch fetch MySQL girl data if needed
-        let mysqlGirlsData: Record<string, any> = {};
-        if (mysqlGirlIds.length > 0) {
-          console.log('Fetching MySQL girl data for IDs:', mysqlGirlIds);
-          try {
-            const response = await fetch('/api/girls/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ids: mysqlGirlIds })
-            });
-            if (response.ok) {
-              mysqlGirlsData = await response.json();
-              console.log('Successfully fetched data for', Object.keys(mysqlGirlsData).length, 'girls');
-            } else {
-              console.error('Failed to fetch girls batch:', response.status);
+          sentLikesSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            sentLikesData.push({ doc, data });
+            
+            // Check if it's a MySQL girl like by ID format or isGirlProfile flag
+            if (data.isGirlProfile && data.toGirlId) {
+              mysqlGirlIds.push(data.toGirlId);
+            } else if (data.to && typeof data.to === 'string' && data.to.startsWith('mysql_girl_')) {
+              const girlId = data.to.replace('mysql_girl_', '');
+              mysqlGirlIds.push(girlId);
+              data.isOldMysqlFormat = true;
+              data.extractedGirlId = girlId;
+            } else if (data.to && typeof data.to === 'string' && /^\d+$/.test(data.to)) {
+              mysqlGirlIds.push(data.to);
+              data.isOldMysqlFormat = true;
+              data.extractedGirlId = data.to;
             }
-          } catch (error) {
-            console.error('Error fetching girls batch:', error);
+          });
+        
+          // Batch fetch MySQL girl data if needed
+          let mysqlGirlsData: Record<string, any> = {};
+          if (mysqlGirlIds.length > 0) {
+            try {
+              const response = await fetch('/api/girls/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: mysqlGirlIds })
+              });
+              if (response.ok) {
+                mysqlGirlsData = await response.json();
+              }
+            } catch (error) {
+              console.error('Error fetching girls batch:', error);
+            }
           }
+        
+          // Process sent likes with fetched data
+          const sentLikesList: Like[] = sentLikesData.map(({ doc, data }) => {
+            const targetUserId = data.to;
+            
+            // Check if this is a MySQL girl like (new format)
+            if (data.isGirlProfile && data.toGirlId) {
+              const girlData = mysqlGirlsData[data.toGirlId];
+              const girlName = data.toGirlName || girlData?.name || 'ユーザー';
+              
+              return {
+                id: doc.id,
+                userId: targetUserId,
+                name: girlName,
+                age: girlData?.age || 20,
+                imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                bio: girlData?.comment,
+                location: girlData?.location,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                type: 'sent' as const,
+                isGirlProfile: true,
+                girlId: data.toGirlId
+              };
+            }
+            
+            // Check if this is a MySQL girl like (old format with mysql_girl_ prefix)
+            if (data.isOldMysqlFormat && data.extractedGirlId) {
+              const girlData = mysqlGirlsData[data.extractedGirlId];
+              const girlName = girlData?.name || '読み込み中...';
+              
+              return {
+                id: doc.id,
+                userId: targetUserId,
+                name: girlName,
+                age: girlData?.age || 20,
+                imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                bio: girlData?.comment,
+                location: girlData?.location,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                type: 'sent' as const,
+                isGirlProfile: true,
+                girlId: data.extractedGirlId
+              };
+            }
+            
+            // Regular Firebase user
+            const userProfile = allUserProfiles.get(targetUserId);
+            return {
+              id: doc.id,
+              userId: targetUserId,
+              name: userProfile?.username || 'ユーザー',
+              age: userProfile?.age || 20,
+              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+              bio: userProfile?.bio,
+              location: userProfile?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'sent' as const
+            };
+          });
+        
+          // Sort by date desc
+          sentLikesList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          
+          // Process received likes
+          const receivedLikesList: Like[] = receivedLikesSnapshot.docs.map(doc => {
+            const data = doc.data();
+            const senderUserId = data.from;
+            const userProfile = allUserProfiles.get(senderUserId);
+            
+            return {
+              id: doc.id,
+              userId: senderUserId,
+              name: userProfile?.username || 'ユーザー',
+              age: userProfile?.age || 20,
+              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+              bio: userProfile?.bio,
+              location: userProfile?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'received' as const
+            };
+          }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          
+          // Check which received likes have been liked back
+          const alreadyLikedBackUserIds = new Set(
+            receivedLikesList.filter(receivedLike => 
+              sentLikeUserIds.includes(receivedLike.userId)
+            ).map(like => like.userId)
+          );
+          
+          setSentLikes(sentLikesList);
+          setReceivedLikes(receivedLikesList);
+          setLikedBackUsers(alreadyLikedBackUserIds);
         } else {
-          console.log('No MySQL girl IDs to fetch');
+          // matchesがない場合でもlikesは処理する
+          const sentLikeUserIds = sentLikesSnapshot.docs.map(doc => doc.data().to);
+          const receivedLikeUserIds = receivedLikesSnapshot.docs.map(doc => doc.data().from);
+          const allUserIds = [...new Set([...sentLikeUserIds, ...receivedLikeUserIds])];
+          const allUserProfiles = await fetchUserProfiles(allUserIds);
+          
+          // MySQLガールデータの処理（matches処理の外でも必要）
+          const mysqlGirlIds: string[] = [];
+          const sentLikesData: Array<{ doc: any, data: any }> = [];
+          
+          sentLikesSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            sentLikesData.push({ doc, data });
+            
+            if (data.isGirlProfile && data.toGirlId) {
+              mysqlGirlIds.push(data.toGirlId);
+            } else if (data.to && typeof data.to === 'string' && data.to.startsWith('mysql_girl_')) {
+              const girlId = data.to.replace('mysql_girl_', '');
+              mysqlGirlIds.push(girlId);
+              data.isOldMysqlFormat = true;
+              data.extractedGirlId = girlId;
+            } else if (data.to && typeof data.to === 'string' && /^\d+$/.test(data.to)) {
+              mysqlGirlIds.push(data.to);
+              data.isOldMysqlFormat = true;
+              data.extractedGirlId = data.to;
+            }
+          });
+          
+          let mysqlGirlsData: Record<string, any> = {};
+          if (mysqlGirlIds.length > 0) {
+            try {
+              const response = await fetch('/api/girls/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: mysqlGirlIds })
+              });
+              if (response.ok) {
+                mysqlGirlsData = await response.json();
+              }
+            } catch (error) {
+              console.error('Error fetching girls batch:', error);
+            }
+          }
+          
+          const sentLikesList: Like[] = sentLikesData.map(({ doc, data }) => {
+            const targetUserId = data.to;
+            
+            if (data.isGirlProfile && data.toGirlId) {
+              const girlData = mysqlGirlsData[data.toGirlId];
+              const girlName = data.toGirlName || girlData?.name || 'ユーザー';
+              
+              return {
+                id: doc.id,
+                userId: targetUserId,
+                name: girlName,
+                age: girlData?.age || 20,
+                imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                bio: girlData?.comment,
+                location: girlData?.location,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                type: 'sent' as const,
+                isGirlProfile: true,
+                girlId: data.toGirlId
+              };
+            }
+            
+            if (data.isOldMysqlFormat && data.extractedGirlId) {
+              const girlData = mysqlGirlsData[data.extractedGirlId];
+              const girlName = girlData?.name || '読み込み中...';
+              
+              return {
+                id: doc.id,
+                userId: targetUserId,
+                name: girlName,
+                age: girlData?.age || 20,
+                imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
+                bio: girlData?.comment,
+                location: girlData?.location,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                type: 'sent' as const,
+                isGirlProfile: true,
+                girlId: data.extractedGirlId
+              };
+            }
+            
+            const userProfile = allUserProfiles.get(targetUserId);
+            return {
+              id: doc.id,
+              userId: targetUserId,
+              name: userProfile?.username || 'ユーザー',
+              age: userProfile?.age || 20,
+              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+              bio: userProfile?.bio,
+              location: userProfile?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'sent' as const
+            };
+          });
+          
+          sentLikesList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          
+          const receivedLikesList: Like[] = receivedLikesSnapshot.docs.map(doc => {
+            const data = doc.data();
+            const senderUserId = data.from;
+            const userProfile = allUserProfiles.get(senderUserId);
+            
+            return {
+              id: doc.id,
+              userId: senderUserId,
+              name: userProfile?.username || 'ユーザー',
+              age: userProfile?.age || 20,
+              imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
+              bio: userProfile?.bio,
+              location: userProfile?.location,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              type: 'received' as const
+            };
+          }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          
+          const alreadyLikedBackUserIds = new Set(
+            receivedLikesList.filter(receivedLike => 
+              sentLikeUserIds.includes(receivedLike.userId)
+            ).map(like => like.userId)
+          );
+          
+          setSentLikes(sentLikesList);
+          setReceivedLikes(receivedLikesList);
+          setLikedBackUsers(alreadyLikedBackUserIds);
         }
-        
-        // Process sent likes with fetched data
-        const sentLikesList: Like[] = sentLikesData.map(({ doc, data }) => {
-          const targetUserId = data.to;
-          
-          // Check if this is a MySQL girl like (new format)
-          if (data.isGirlProfile && data.toGirlId) {
-            const girlData = mysqlGirlsData[data.toGirlId];
-            // Use stored name first, then fetched data, then fallback
-            const girlName = data.toGirlName || girlData?.name || 'ユーザー';
-            
-            return {
-              id: doc.id,
-              userId: targetUserId,
-              name: girlName,
-              age: girlData?.age || 20,
-              imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
-              bio: girlData?.comment,
-              location: girlData?.location,
-              createdAt: data.createdAt?.toDate() || new Date(),
-              type: 'sent' as const,
-              isGirlProfile: true,
-              girlId: data.toGirlId
-            };
-          }
-          
-          // Check if this is a MySQL girl like (old format with mysql_girl_ prefix)
-          if (data.isOldMysqlFormat && data.extractedGirlId) {
-            const girlData = mysqlGirlsData[data.extractedGirlId];
-            // console.log('Processing old format like, girlId:', data.extractedGirlId, 'girlData:', girlData);
-            
-            // Use fetched data or show loading state
-            const girlName = girlData?.name || '読み込み中...';
-            
-            return {
-              id: doc.id,
-              userId: targetUserId,
-              name: girlName,
-              age: girlData?.age || 20,
-              imageUrl: girlData?.images?.[0]?.image_url || girlData?.images?.[0]?.real_image_url || 'https://placehold.co/200x200/F0306A/FFF.png?text=G',
-              bio: girlData?.comment,
-              location: girlData?.location,
-              createdAt: data.createdAt?.toDate() || new Date(),
-              type: 'sent' as const,
-              isGirlProfile: true,
-              girlId: data.extractedGirlId
-            };
-          }
-          
-          // Regular Firebase user
-          const userProfile = allUserProfiles.get(targetUserId);
-          return {
-            id: doc.id,
-            userId: targetUserId,
-            name: userProfile?.username || 'ユーザー',
-            age: userProfile?.age || 20,
-            imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
-            bio: userProfile?.bio,
-            location: userProfile?.location,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            type: 'sent' as const
-          };
-        });
-        
-        // Sort by date desc
-        sentLikesList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
-        // Process received likes
-        const receivedLikesList: Like[] = receivedLikesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          const senderUserId = data.from; // The user who sent the like to us
-          const userProfile = allUserProfiles.get(senderUserId);
-          
-          return {
-            id: doc.id,
-            userId: senderUserId, // This should be the sender's ID
-            name: userProfile?.username || 'ユーザー',
-            age: userProfile?.age || 20,
-            imageUrl: userProfile?.profilePhotoUrl || 'https://placehold.co/200x200/F0306A/FFF.png?text=U',
-            bio: userProfile?.bio,
-            location: userProfile?.location,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            type: 'received' as const
-          };
-        }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Sort by date desc
-        
-        // Check which received likes have been liked back (exist in sent likes)
-        const alreadyLikedBackUserIds = new Set(
-          receivedLikesList.filter(receivedLike => 
-            sentLikeUserIds.includes(receivedLike.userId)
-          ).map(like => like.userId)
-        );
-        
-        setSentLikes(sentLikesList);
-        setReceivedLikes(receivedLikesList);
-        setLikedBackUsers(alreadyLikedBackUserIds);
         
       } catch (error) {
         console.error('Error loading likes:', error);
@@ -658,7 +794,15 @@ export default function MatchesPage() {
       <div className="max-w-4xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-center mb-6">リクエスト</h1>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Reset page numbers when switching tabs
+        setCurrentPageMatches(1);
+        setCurrentPageSent(1);
+        setCurrentPageReceived(1);
+        // Scroll to top when switching tabs
+        scrollToTop();
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-3 h-auto p-1">
           <TabsTrigger value="matches" className="flex flex-col sm:flex-row items-center gap-1 py-3 px-2 text-sm sm:text-base">
             <Heart className="h-5 w-5" />
@@ -682,9 +826,58 @@ export default function MatchesPage() {
                   プレイした女の子たちです。メモを残して履歴を管理しましょう！
                 </p>
               </div>
-              {displayMatches.map(match => (
-                <MatchCard key={match.id} match={match} />
-              ))}
+              {(() => {
+                const startIndex = (currentPageMatches - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+                const currentItems = displayMatches.slice(startIndex, endIndex);
+                const totalPages = Math.ceil(displayMatches.length / ITEMS_PER_PAGE);
+                
+                return (
+                  <>
+                    {currentItems.map(match => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                    
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 pt-4 pb-2">
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageMatches(currentPageMatches - 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageMatches === 1}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span>前へ</span>
+                        </Button>
+                        
+                        <div className="flex items-center gap-2 px-2 sm:px-4">
+                          <span className="text-sm font-medium">
+                            {currentPageMatches} / {totalPages}
+                          </span>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageMatches(currentPageMatches + 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageMatches === totalPages}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <span>次へ</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           ) : (
             <Card className="p-8 text-center">
@@ -703,9 +896,58 @@ export default function MatchesPage() {
                   あなたが「いいね」を送った人たちです。
                 </p>
               </div>
-              {sentLikes.map(like => (
-                <LikeCard key={like.id} like={like} clickable={true} showMemoButton={true} />
-              ))}
+              {(() => {
+                const startIndex = (currentPageSent - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+                const currentItems = sentLikes.slice(startIndex, endIndex);
+                const totalPages = Math.ceil(sentLikes.length / ITEMS_PER_PAGE);
+                
+                return (
+                  <>
+                    {currentItems.map(like => (
+                      <LikeCard key={like.id} like={like} clickable={true} showMemoButton={true} />
+                    ))}
+                    
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 pt-4 pb-2">
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageSent(currentPageSent - 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageSent === 1}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span>前へ</span>
+                        </Button>
+                        
+                        <div className="flex items-center gap-2 px-2 sm:px-4">
+                          <span className="text-sm font-medium">
+                            {currentPageSent} / {totalPages}
+                          </span>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageSent(currentPageSent + 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageSent === totalPages}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <span>次へ</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           ) : (
             <Card className="p-8 text-center">
@@ -724,9 +966,58 @@ export default function MatchesPage() {
                   あなたに「いいね」を送った人たちです。いいねを返してマッチしましょう！
                 </p>
               </div>
-              {receivedLikes.map(like => (
-                <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} showMemoButton={true} />
-              ))}
+              {(() => {
+                const startIndex = (currentPageReceived - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+                const currentItems = receivedLikes.slice(startIndex, endIndex);
+                const totalPages = Math.ceil(receivedLikes.length / ITEMS_PER_PAGE);
+                
+                return (
+                  <>
+                    {currentItems.map(like => (
+                      <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} showMemoButton={true} />
+                    ))}
+                    
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 pt-4 pb-2">
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageReceived(currentPageReceived - 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageReceived === 1}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span>前へ</span>
+                        </Button>
+                        
+                        <div className="flex items-center gap-2 px-2 sm:px-4">
+                          <span className="text-sm font-medium">
+                            {currentPageReceived} / {totalPages}
+                          </span>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setCurrentPageReceived(currentPageReceived + 1);
+                            scrollToTop();
+                          }}
+                          disabled={currentPageReceived === totalPages}
+                          className="flex items-center gap-1 px-3 sm:px-4"
+                        >
+                          <span>次へ</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           ) : (
             <Card className="p-8 text-center">
