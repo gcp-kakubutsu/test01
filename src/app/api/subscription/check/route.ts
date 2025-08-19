@@ -23,18 +23,9 @@ export async function GET() {
       });
     }
 
-    // Firebase Adminが初期化されているか確認（複数回試行）
-    let adminInitialized = isAdminInitialized();
-    let retryCount = 0;
-    while (!adminInitialized && retryCount < 3) {
-      console.log(`[Subscription Check API] Admin SDK not initialized, waiting... (attempt ${retryCount + 1})`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      adminInitialized = isAdminInitialized();
-      retryCount++;
-    }
-    
-    if (!adminInitialized) {
-      console.error('Firebase Admin SDK is not initialized after retries');
+    // Firebase Adminが初期化されているか確認
+    if (!isAdminInitialized()) {
+      console.error('Firebase Admin SDK is not initialized');
       return NextResponse.json({ 
         isPremium: false, 
         subscriptionStatus: 'none',
