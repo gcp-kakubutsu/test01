@@ -1,11 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { LRUCache } from 'lru-cache';
+
+// LRUキャッシュの設定
+const cache = new LRUCache<string, any>({
+  max: 500, // 最大500件のキャッシュ
+  ttl: 1000 * 60 * 60 * 24, // 24時間のTTL
+  updateAgeOnGet: true, // アクセス時に有効期限をリセット
+  updateAgeOnHas: true,
+});
+
+// キャッシュ統計用
+let cacheHits = 0;
+let cacheMisses = 0;
+
+// キャッシュキーの生成
+function getCacheKey(params: { lat?: number; lng?: number; address?: string }): string {
+  if (params.address) {
+    return `addr:${params.address}`;
+  }
+  if (params.lat && params.lng) {
+    // 座標を小数点第4位で丸める（約11m精度）
+    const roundedLat = Math.round(params.lat * 10000) / 10000;
+    const roundedLng = Math.round(params.lng * 10000) / 10000;
+    return `coord:${roundedLat},${roundedLng}`;
+  }
+  return '';
+}
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const { lat, lng, address: inputAddress } = await request.json();
     
     // 住所から座標を取得する場合（フォワードジオコーディング）
     if (inputAddress && !lat && !lng) {
+      const cacheKey = getCacheKey({ address: inputAddress });
+      
+      // キャッシュチェック
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        cacheHits++;
+        const responseTime = Date.now() - startTime;
+        console.log(`[Geocode Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+        return NextResponse.json({
+          ...cached,
+          cached: true,
+          responseTime
+        });
+      }
+      
+      cacheMisses++;
+      
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputAddress)}&accept-language=ja&limit=1`,
         {
@@ -23,13 +69,25 @@ export async function POST(request: NextRequest) {
       
       if (data && data.length > 0) {
         const result = data[0];
-        return NextResponse.json({
+        const responseData = {
           coordinates: {
             lat: parseFloat(result.lat),
             lng: parseFloat(result.lon)
           },
           address: inputAddress,
           raw: result
+        };
+        
+        // キャッシュに保存
+        cache.set(cacheKey, responseData);
+        
+        const responseTime = Date.now() - startTime;
+        console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+        
+        return NextResponse.json({
+          ...responseData,
+          cached: false,
+          responseTime
         });
       } else {
         return NextResponse.json({
@@ -47,6 +105,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // キャッシュキーの生成とチェック
+    const cacheKey = getCacheKey({ lat, lng });
+    
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      cacheHits++;
+      const responseTime = Date.now() - startTime;
+      console.log(`[Geocode Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+      return NextResponse.json({
+        ...cached,
+        cached: true,
+        responseTime
+      });
+    }
+    
+    cacheMisses++;
+    
     // Nominatim APIを使用してリバースジオコーディング
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja&zoom=14`,
@@ -122,9 +197,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       address: address || '詳細な住所を取得できませんでした',
       raw: data // デバッグ用に生データも返す
+    };
+    
+    // キャッシュに保存
+    cache.set(cacheKey, responseData);
+    
+    const responseTime = Date.now() - startTime;
+    console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+    
+    return NextResponse.json({
+      ...responseData,
+      cached: false,
+      responseTime
     });
 
   } catch (error) {
