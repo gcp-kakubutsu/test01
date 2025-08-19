@@ -131,13 +131,30 @@ export async function fetchOptimizedGirls(
   // Add girl types filtering if specified
   let girlTypesJoin = '';
   if (girlTypes && girlTypes.length > 0) {
-    const girlTypeIds = girlTypes.map(id => parseInt(id)).filter(id => !isNaN(id));
-    if (girlTypeIds.length > 0) {
+    // Check if girlTypes are IDs (numbers) or names (strings)
+    const isNumericIds = girlTypes.every(type => !isNaN(parseInt(type)));
+    
+    if (isNumericIds) {
+      // If numeric IDs, use them directly
+      const girlTypeIds = girlTypes.map(id => parseInt(id)).filter(id => !isNaN(id));
+      if (girlTypeIds.length > 0) {
+        girlTypesJoin = `
+          INNER JOIN (
+            SELECT DISTINCT girl_profile_id 
+            FROM girl_status 
+            WHERE girl_types_id IN (${girlTypeIds.join(',')})
+          ) gs ON g.id = gs.girl_profile_id
+        `;
+      }
+    } else {
+      // If names, join with girl_types table to get IDs
+      const escapedNames = girlTypes.map(name => `'${name.replace(/'/g, "''")}'`).join(',');
       girlTypesJoin = `
         INNER JOIN (
-          SELECT DISTINCT girl_profile_id 
-          FROM girl_status 
-          WHERE girl_types_id IN (${girlTypeIds.join(',')})
+          SELECT DISTINCT gs.girl_profile_id 
+          FROM girl_status gs
+          INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+          WHERE gt.name IN (${escapedNames})
         ) gs ON g.id = gs.girl_profile_id
       `;
     }
