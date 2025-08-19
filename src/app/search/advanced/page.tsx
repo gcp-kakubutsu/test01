@@ -1543,8 +1543,13 @@ function AdvancedSearchContent() {
             className={styles.filterInput}
           />
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            年齢(25, 25歳)、身長(160cm, 160cm以上)、カップ(Dカップ, Eカップ以上)、地域名、「不明」で年齢不明者<br/>
-            複数単語はスペース区切りでAND検索（例: 渋谷 160cm Dカップ）
+            <strong>検索可能な項目:</strong><br/>
+            • 年齢: 25, 25歳, 不明（年齢不明者）<br/>
+            • 身長: 160cm, 160cm以上, 160cm以下<br/>
+            • カップ: Dカップ, Eカップ以上<br/>
+            • 地域: 渋谷区, 新宿区 等（区/市/町/村はエリア検索）<br/>
+            • その他: 名前, プロフィール, 趣味<br/>
+            <strong>複数検索:</strong> スペース区切りでAND検索（例: 渋谷 160cm Dカップ）
           </p>
         </div>
 

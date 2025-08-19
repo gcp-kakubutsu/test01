@@ -1918,6 +1918,7 @@ $border-color-light: #E5E7EB;
       linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)) border-box,
       conic-gradient(from var(--angle, 0deg), transparent, rgba(202,163,91,.3), transparent) border-box;
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0;
@@ -1961,6 +1962,7 @@ $border-color-light: #E5E7EB;
       linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0)) border-box,
       conic-gradient(from 0deg, rgba(202,163,91,.8), transparent, rgba(202,163,91,.8)) border-box;
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     /* animation removed */
@@ -2771,12 +2773,12 @@ $border-color-light: #E5E7EB;
 }
 
 .stickyBtnPrimary {
-  background: linear-gradient(135deg, var(--primary) 0%, #ff1493 100%);
+  background: linear-gradient(135deg, #F0306A 0%, #ff1493 100%);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
 
   &:hover {
-    background: linear-gradient(135deg, #ff1493 0%, var(--primary) 100%);
+    background: linear-gradient(135deg, #ff1493 0%, #F0306A 100%);
   }
 }
 
