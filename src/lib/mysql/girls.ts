@@ -10,6 +10,7 @@ export interface MySQLGirlProfile {
   waist?: number;
   hip?: number;
   location: string;
+  municipality?: string;
   bio: string;
   interests: string[];
   imageUrl: string;

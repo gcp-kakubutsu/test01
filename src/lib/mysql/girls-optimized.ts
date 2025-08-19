@@ -104,6 +104,8 @@ export async function fetchOptimizedGirls(
     // 都道府県名の完全一致
     areaConditions.push(`p.name = '${escapedArea}'`);
     
+    // 市区町村名での検索を追加
+    areaConditions.push(`m.name = '${escapedArea}'`);
     
     // 都府県の接尾辞を柔軟に処理
     const suffixPattern = /[都府県]$/;
@@ -113,8 +115,8 @@ export async function fetchOptimizedGirls(
       areaConditions.push(`p.name LIKE '${withoutSuffix}%'`);
       // 接尾辞なしの完全一致も追加
       areaConditions.push(`p.name = '${withoutSuffix}'`);
-    } else {
-      // 接尾辞がない場合は、接尾辞付きの形も検索
+    } else if (!escapedArea.match(/[区市町村]$/)) {
+      // 市区町村の接尾辞がない、かつ都道府県の接尾辞もない場合のみ
       areaConditions.push(`p.name LIKE '${escapedArea}%'`);
       areaConditions.push(`p.name = '${escapedArea}都'`);
       areaConditions.push(`p.name = '${escapedArea}府'`);
@@ -163,7 +165,7 @@ export async function fetchOptimizedGirls(
       s.latitude,
       s.longitude,
       IFNULL(p.name, '') as location,
-      '' as municipality,
+      IFNULL(m.name, '') as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 
@@ -180,6 +182,7 @@ export async function fetchOptimizedGirls(
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
+    LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     ${whereClause}
     ORDER BY (g.age IS NULL), g.created_at DESC
     LIMIT ${limitCount} OFFSET ${offset}
@@ -192,6 +195,7 @@ export async function fetchOptimizedGirls(
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     ${area && area !== 'all' ? 'LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id' : ''}
+    ${area && area !== 'all' ? 'LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id' : ''}
     ${whereClause}
   `;
   
@@ -225,7 +229,8 @@ export async function fetchOptimizedGirls(
     cup: row.cup || undefined,
     waist: row.waist || undefined,
     hip: row.hip || undefined,
-    location: row.municipality ? `${row.location} ${row.municipality}` : row.location,
+    location: row.location,
+    municipality: row.municipality || undefined,
     bio: row.bio || '',
     interests: parseInterests(row.hobby || ''),
     imageUrl: row.imageUrl || '/img/noimage.jpg',
@@ -303,7 +308,7 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
       IFNULL(g.hobby, '') as hobby,
       s.name as shop_name,
       IFNULL(p.name, '') as location,
-      '' as municipality,
+      IFNULL(m.name, '') as municipality,
       (
         SELECT MIN(gi.image_url) 
         FROM girl_image_urls gi 

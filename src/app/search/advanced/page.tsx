@@ -37,6 +37,7 @@ interface UserProfile {
   waist?: number
   hip?: number
   location: string
+  municipality?: string
   bio: string
   interests: string[]
   imageUrl: string
@@ -286,29 +287,9 @@ function AdvancedSearchContent() {
       let searchAreaName: string | null = null
       let nonLocationKeywords = searchQuery.trim()
       
-      // キーワードが地域名の場合の処理
-      let isLocationKeywordSearch = false
+      // キーワード検索は全て通常のキーワード検索として扱う
       if (hasKeywordSearch) {
-        const query = searchQuery.toLowerCase().trim()
-        
-        // 地域名パターンをチェック
-        const isLocationSearch = query.includes('区') || 
-                                 query.includes('市') || 
-                                 query.includes('町') || 
-                                 query.includes('村') ||
-                                 query.includes('都') ||
-                                 query.includes('道') ||
-                                 query.includes('府') ||
-                                 query.includes('県')
-        
-        if (isLocationSearch) {
-          // 地域検索の場合、全データから検索するためにフラグを設定
-          isLocationKeywordSearch = true
-          nonLocationKeywords = '' // 地域検索の場合はキーワードをクリア
-        } else {
-          // 地域検索でない場合のみ、通常のキーワード検索として扱う
-          nonLocationKeywords = query
-        }
+        nonLocationKeywords = searchQuery.toLowerCase().trim()
       }
       
       const hasNonLocationKeywordSearch = nonLocationKeywords.trim() !== ''
@@ -323,7 +304,7 @@ function AdvancedSearchContent() {
       
       // フィルターがある場合は、ページングを考慮して適切な量を取得
       // 特殊フィルターや地域・キーワード検索がある場合は、クライアントサイドでフィルタリングするため多めに取得
-      const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch || isLocationKeywordSearch
+      const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch
       
       // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）を最優先
       // ユーザーがエリアを選択した場合はそちらを優先
@@ -479,6 +460,7 @@ function AdvancedSearchContent() {
           waist: user.waist,
           hip: user.hip,
           location: user.location,
+          municipality: user.municipality,
           bio: user.bio,
           interests: user.interests,
           imageUrl: user.imageUrl,
@@ -648,6 +630,9 @@ function AdvancedSearchContent() {
     // 検索クエリフィルター（拡張検索）
     if (searchQuery && searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
+      console.log('🔍 キーワード検索:', query)
+      console.log('🔍 検索対象ユーザー数:', filtered.length)
+      console.log('🔍 最初のユーザーのmunicipality:', filtered[0]?.municipality)
       
       // スペースで分割して複数キーワード対応
       const keywords = query.split(/\s+/).filter(k => k.length > 0)
@@ -709,9 +694,11 @@ function AdvancedSearchContent() {
             (user.name && user.name.toLowerCase().includes(singleQuery)) ||
             (user.bio && user.bio.toLowerCase().includes(singleQuery)) ||
             (user.interests && user.interests.some(interest => interest && interest.toLowerCase().includes(singleQuery))) ||
-            (user.location && user.location.toLowerCase().includes(singleQuery))
+            (user.location && user.location.toLowerCase().includes(singleQuery)) ||
+            (user.municipality && user.municipality.toLowerCase().includes(singleQuery))
           )
         }
+        console.log('🔍 単一キーワード検索後のユーザー数:', filtered.length)
       } else {
         // 複数キーワードの場合はAND検索
         filtered = filtered.filter(user => {
@@ -722,6 +709,7 @@ function AdvancedSearchContent() {
               user.bio,
               ...user.interests,
               user.location,
+              user.municipality || '',
               user.age ? user.age.toString() : '不明',
               user.height ? `${user.height}cm` : '',
               user.cup ? `${user.cup}カップ` : ''
@@ -1332,7 +1320,7 @@ function AdvancedSearchContent() {
                       >
                         <Check
                           className={`mr-2 h-4 w-4 ${
-                            selectedArea === municipality.full_name ? 'opacity-100' : 'opacity-0'
+                            selectedArea === municipality.municipality_name ? 'opacity-100' : 'opacity-0'
                           }`}
                         />
                         <span className="flex-1">{municipality.full_name}</span>
@@ -1492,7 +1480,7 @@ function AdvancedSearchContent() {
                           >
                             <Check
                               className={`mr-2 h-4 w-4 ${
-                                selectedArea === municipality.full_name ? 'opacity-100' : 'opacity-0'
+                                selectedArea === municipality.municipality_name ? 'opacity-100' : 'opacity-0'
                               }`}
                             />
                             <span className="flex-1">{municipality.full_name}</span>
@@ -1559,24 +1547,14 @@ function AdvancedSearchContent() {
           <div className="mb-2">
             <span className="text-xs text-gray-600 dark:text-gray-400">特殊フィルタリング</span>
           </div>
-          <div className={styles.tagFilters}>
-            {personalityTags.map(tag => (
-              <label key={tag} className={styles.tagFilter}>
-                <input
-                  type="checkbox"
-                  checked={selectedTags.includes(tag)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedTags([...selectedTags, tag])
-                    } else {
-                      setSelectedTags(selectedTags.filter(t => t !== tag))
-                    }
-                  }}
-                />
-                <span>{tag}</span>
-              </label>
-            ))}
-          </div>
+          <MultiSelect
+            options={personalityTags.map(tag => ({ value: tag, label: tag }))}
+            selected={selectedTags}
+            onChange={setSelectedTags}
+            placeholder="条件を選択（複数選択可）"
+            className={styles.filterSelect}
+            maxDisplay={3}
+          />
         </div>
 
         {/* 時間帯 */}

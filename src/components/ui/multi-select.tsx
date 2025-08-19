@@ -87,8 +87,8 @@ export function MultiSelect({
                     className="mr-1"
                   >
                     {label}
-                    <button
-                      className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    <span
+                      className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleRemove(selected[index], e as any)
@@ -99,9 +99,11 @@ export function MultiSelect({
                         e.stopPropagation()
                       }}
                       onClick={(e) => handleRemove(selected[index], e)}
+                      role="button"
+                      tabIndex={0}
                     >
                       <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                    </button>
+                    </span>
                   </Badge>
                 ))}
                 {selected.length > maxDisplay && (
@@ -113,12 +115,19 @@ export function MultiSelect({
             )}
           </div>
           {selected.length > 0 && (
-            <button
-              className="ml-2 text-muted-foreground hover:text-foreground"
+            <span
+              className="ml-2 text-muted-foreground hover:text-foreground cursor-pointer inline-flex items-center justify-center"
               onClick={handleClear}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleClear(e as any)
+                }
+              }}
             >
               <X className="h-4 w-4" />
-            </button>
+            </span>
           )}
         </Button>
       </PopoverTrigger>
