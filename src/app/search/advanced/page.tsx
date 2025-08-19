@@ -2003,14 +2003,6 @@ function AdvancedSearchContent() {
         )}
       </main>
 
-      {/* モバイルフィルタートグル */}
-      <button
-        className={styles.mobileFilterToggle}
-        onClick={() => setShowMobileFilter(!showMobileFilter)}
-      >
-        <Filter className="w-6 h-6" />
-      </button>
-
       {/* モバイルオーバーレイ */}
       {showMobileFilter && (
         <div
@@ -2019,19 +2011,25 @@ function AdvancedSearchContent() {
         />
       )}
 
-      {/* 絞り込み検索ボタン */}
+      {/* 絞り込み検索ボタン（フィルターパネルの表示切り替え機能付き） */}
       <button
         className={styles.applyFilterButton}
         onClick={() => {
-          setSearchQuery(searchQueryInput) // 検索を実行
-          setFiltersApplied(true)
-          toast({
-            title: "フィルターを適用しました",
-            description: `${filteredTotalCount}名の候補が見つかりました`
-          })
+          // モバイルの場合はフィルターパネルを表示
+          if (window.innerWidth <= 1024) {
+            setShowMobileFilter(!showMobileFilter)
+          } else {
+            // デスクトップの場合は検索を実行
+            setSearchQuery(searchQueryInput)
+            setFiltersApplied(true)
+            toast({
+              title: "フィルターを適用しました",
+              description: `${filteredTotalCount}名の候補が見つかりました`
+            })
+          }
         }}
       >
-        <Search className="w-5 h-5" />
+        <Filter className="w-5 h-5" />
         絞り込み検索
       </button>
     </div>
