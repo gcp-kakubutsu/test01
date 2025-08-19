@@ -400,7 +400,11 @@ export default function ProfilePage() {
                 無制限のいいね、メッセージの既読確認など
               </p>
             </div>
-            <Button variant="secondary" className="bg-white text-[#F0306A] hover:bg-gray-100">
+            <Button 
+              variant="secondary" 
+              className="bg-white text-[#F0306A] hover:bg-gray-100"
+              onClick={() => router.push('/subscription')}
+            >
               詳細を見る
             </Button>
           </div>
