@@ -900,9 +900,9 @@ export default function LandingPage() {
       <section className={`${styles.section} ${styles.cta} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <div className={styles.ctaContent}>
-            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖に正直な出会いを。</h2>
+            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖、嗜好に正直な出会いを</h2>
             <p className={`${styles.ctaSubtitle} ${styles.scrollFadeIn}`}>
-              今すぐNukuneに参加して、より充実した関係を築くための一歩を踏み出しましょう。
+            今すぐ、NUKUNE(ヌクネ)に参加して、自分の理想とする素敵なキャストとの<br />出会いに踏み出しましょう
             </p>
             <Link 
               href="/signup" 
