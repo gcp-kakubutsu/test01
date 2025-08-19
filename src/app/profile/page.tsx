@@ -218,7 +218,7 @@ export default function ProfilePage() {
                   stats?.matchesCount || 0
                 )}
               </p>
-              <p className="text-xs text-gray-600">マッチ</p>
+              <p className="text-xs text-gray-600">プレイ数</p>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <MessageCircle className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />

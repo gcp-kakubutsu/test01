@@ -7,11 +7,15 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Search, Loader2, StickyNote } from 'lucide-react';
+import { FileText, Search, Loader2, StickyNote, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { useMemos } from '@/hooks/useMemos';
+import { useCombinedMemos } from '@/hooks/useCombinedMemos';
+import MemoHistoryDialog from '@/components/MemoHistoryDialog';
+import { deleteMemo } from '@/lib/firebase/memos';
+import { deleteMemoFromHistory } from '@/lib/firebase/memoHistory';
+import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -23,7 +27,7 @@ interface MemoDisplay {
   name: string;
   content: string;
   avatarUrl: string | null;
-  lastUpdated?: string | null;
+  lastUpdated?: Date | null;
 }
 
 export default function MemosPage() {
@@ -44,9 +48,11 @@ export default function MemosPage() {
       return () => clearTimeout(timer);
     }
   }, [currentUser, subscriptionLoading, router]);
-  const { memos, loading: memosLoading } = useMemos();
+  const { latestMemos, allMemos, getMemosForTarget, loading: memosLoading } = useCombinedMemos();
   const [searchTerm, setSearchTerm] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
+  const [selectedMemoTarget, setSelectedMemoTarget] = useState<{id: string; name?: string; imageUrl?: string} | null>(null);
+  const [deletingMemoId, setDeletingMemoId] = useState<string | null>(null);
   
   // Check premium status
   useEffect(() => {
@@ -55,28 +61,64 @@ export default function MemosPage() {
     }
   }, [subscriptionLoading, isPremium, isLineBrowser, isAuthenticated]);
 
-  // Convert memos to display format
+  // Convert latest memos to display format
   useEffect(() => {
-    if (!memos || memosLoading) return;
+    if (!latestMemos || memosLoading) return;
     
-    const displays: MemoDisplay[] = memos.map(memo => ({
-      id: memo.id,
+    const displays: MemoDisplay[] = latestMemos.map(memo => ({
+      id: memo.id || '',
       targetId: memo.targetId,
       name: memo.targetName || '名前未設定',
       content: memo.content || 'メモを追加してください',
       avatarUrl: memo.targetImage || null,
-      lastUpdated: memo.updatedAt ? 
-        formatDistanceToNow(memo.updatedAt.toDate(), { addSuffix: true, locale: ja }) : 
-        null
+      lastUpdated: memo.createdAt // Already a Date object from useCombinedMemos
     }));
     
     setMemoDisplays(displays);
-  }, [memos, memosLoading]);
+  }, [latestMemos, memosLoading]);
 
   const filteredMemos = memoDisplays.filter(memo =>
     memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     memo.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Delete memo function
+  const handleDeleteMemo = async (memo: MemoDisplay, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the dialog
+    
+    if (!window.confirm(`${memo.name}のメモを削除しますか？`)) return;
+    
+    setDeletingMemoId(memo.id);
+    try {
+      // Find the original memo from allMemos to determine if it's from history
+      const originalMemo = allMemos.find(m => m.id === memo.id);
+      
+      if (originalMemo?.isFromHistory) {
+        // Delete from memo history
+        await deleteMemoFromHistory(memo.id);
+      } else {
+        // Delete single memo
+        await deleteMemo(currentUser?.uid || '', memo.targetId);
+      }
+      
+      toast({
+        title: '削除完了',
+        description: 'メモを削除しました'
+      });
+      
+      // Reload memos
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to delete memo:', error);
+      toast({
+        title: 'エラー',
+        description: 'メモの削除に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeletingMemoId(null);
+    }
+  };
   
   // データ取得中の表示
 
@@ -138,28 +180,64 @@ export default function MemosPage() {
           {isPremium && !subscriptionLoading ? (
             filteredMemos.length > 0 ? (
               <ul className="space-y-4">
-                {filteredMemos.map(memo => (
-                  <li key={memo.id}>
-                    <Link href={`/messages/${memo.targetId}`} className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={memo.avatarUrl || undefined} alt={memo.name} />
-                          <AvatarFallback>{memo.name.substring(0, 1).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="text-base font-semibold line-clamp-1">{memo.name}</p>
-                            {memo.lastUpdated && (
-                              <span className="text-xs text-muted-foreground">{memo.lastUpdated}</span>
-                            )}
+                {filteredMemos.map(memo => {
+                  // Count how many memos exist for this target
+                  const memoCount = getMemosForTarget(memo.targetId).length;
+                  
+                  return (
+                    <li key={memo.id}>
+                      <div 
+                        className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border cursor-pointer"
+                        onClick={() => setSelectedMemoTarget({
+                          id: memo.targetId,
+                          name: memo.name,
+                          imageUrl: memo.avatarUrl || undefined
+                        })}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={memo.avatarUrl || undefined} alt={memo.name} />
+                            <AvatarFallback>{memo.name.substring(0, 1).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <p className="text-base font-semibold line-clamp-1">{memo.name}</p>
+                                {memoCount > 1 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {memoCount}件
+                                  </Badge>
+                                )}
+                              </div>
+                              {memo.lastUpdated && (
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(memo.lastUpdated, { addSuffix: true, locale: ja })}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{memo.content}</p>
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">{memo.content}</p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-700 p-1"
+                              onClick={(e) => handleDeleteMemo(memo, e)}
+                              disabled={deletingMemoId === memo.id}
+                            >
+                              {deletingMemoId === memo.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <StickyNote className="h-5 w-5 text-muted-foreground" />
+                          </div>
                         </div>
-                        <FileText className="h-5 w-5 text-muted-foreground" />
                       </div>
-                    </Link>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <div className="text-center py-10">
@@ -176,6 +254,18 @@ export default function MemosPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Memo History Dialog */}
+      {selectedMemoTarget && currentUser && (
+        <MemoHistoryDialog
+          open={Boolean(selectedMemoTarget)}
+          onOpenChange={(open) => !open && setSelectedMemoTarget(null)}
+          userId={currentUser.uid}
+          targetId={selectedMemoTarget.id}
+          targetName={selectedMemoTarget.name}
+          targetImage={selectedMemoTarget.imageUrl}
+        />
+      )}
     </div>
   );
 }

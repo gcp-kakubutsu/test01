@@ -168,6 +168,26 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
     
+    // Memo History collection rules - History of memos about girls
+    match /memoHistory/{memoId} {
+      // Users can read their own memo history
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Users can create memo history for themselves
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own memo history
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own memo history
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
     // Public stats collection - 統計情報は誰でも読める
     match /publicStats/{document=**} {
       allow read: if true;

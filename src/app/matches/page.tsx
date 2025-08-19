@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin, MessageSquare } from 'lucide-react';
+import { Heart, MessageCircle, Clock, Sparkles, Loader2, User, MapPin, MessageSquare, StickyNote } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -15,6 +15,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
+import MemoHistoryDialog from '@/components/MemoHistoryDialog';
 
 interface Match {
   id: string;
@@ -53,6 +54,7 @@ export default function MatchesPage() {
   const [isProcessingLike, setIsProcessingLike] = useState(false);
   const [processingLikes, setProcessingLikes] = useState<Set<string>>(new Set());
   const [likedBackUsers, setLikedBackUsers] = useState<Set<string>>(new Set());
+  const [selectedMemoTarget, setSelectedMemoTarget] = useState<{id: string; name?: string; imageUrl?: string} | null>(null);
 
 
   // Load matches and likes
@@ -322,8 +324,7 @@ export default function MatchesPage() {
 
   const MatchCard = ({ match, showMessage = true }: { match: Match; showMessage?: boolean }) => (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => showMessage && router.push(`/messages/${match.id}`)}
+      className="hover:shadow-md transition-shadow"
     >
       <CardContent className="p-4">
         <div className="flex items-center space-x-4">
@@ -351,7 +352,7 @@ export default function MatchesPage() {
             {match.lastMessage ? (
               <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{match.lastMessage}</p>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-500">メッセージを送ってみましょう</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">メモを残しましょう</p>
             )}
             
             <div className="flex items-center gap-1 mt-1">
@@ -360,19 +361,36 @@ export default function MatchesPage() {
             </div>
           </div>
           
-          {showMessage && (
+          <div className="flex gap-2">
             <Button
               size="sm"
               variant="ghost"
               className="text-[#F0306A]"
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(`/messages/${match.id}`);
+                setSelectedMemoTarget({
+                  id: match.id,
+                  name: match.name,
+                  imageUrl: match.imageUrl
+                });
               }}
             >
-              <MessageCircle className="h-5 w-5" />
+              <StickyNote className="h-5 w-5" />
             </Button>
-          )}
+            {showMessage && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-[#F0306A]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/messages/${match.id}`);
+                }}
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -466,7 +484,7 @@ export default function MatchesPage() {
     }
   };
 
-  const LikeCard = ({ like, showLikeButton = false, clickable = false }: { like: Like; showLikeButton?: boolean; clickable?: boolean }) => {
+  const LikeCard = ({ like, showLikeButton = false, clickable = false, showMemoButton = false }: { like: Like; showLikeButton?: boolean; clickable?: boolean; showMemoButton?: boolean }) => {
     const handleCardClick = () => {
       if (clickable) {
         if (like.isGirlProfile && like.girlId) {
@@ -528,6 +546,27 @@ export default function MatchesPage() {
             </div>
           </div>
           
+          {showMemoButton && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-[#F0306A]"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Use girlId for MySQL girls or userId for Firebase users
+                const targetId = like.isGirlProfile && like.girlId ? `mysql_girl_${like.girlId}` : like.userId;
+                setSelectedMemoTarget({
+                  id: targetId,
+                  name: like.name,
+                  imageUrl: like.imageUrl
+                });
+              }}
+            >
+              <StickyNote className="h-5 w-5" />
+            </Button>
+          )}
+            
+          
           {showLikeButton && !like.isGirlProfile && (
             <div>
               {likedBackUsers.has(like.userId) ? (
@@ -572,22 +611,23 @@ export default function MatchesPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-center mb-6">マッチ</h1>
+    <>
+      <div className="max-w-2xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-center mb-6">リクエスト</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="matches" className="flex items-center gap-1">
             <Heart className="h-4 w-4" />
-            マッチ ({displayMatches.length})
+            プレイ数 ({displayMatches.length})
           </TabsTrigger>
           <TabsTrigger value="sent" className="flex items-center gap-1">
             <Heart className="h-4 w-4" />
-            送った ({sentLikes.length})
+            いいね ({sentLikes.length})
           </TabsTrigger>
           <TabsTrigger value="received" className="flex items-center gap-1">
             <Heart className="h-4 w-4" fill="currentColor" />
-            もらった ({receivedLikes.length})
+            マッチ ({receivedLikes.length})
           </TabsTrigger>
         </TabsList>
         
@@ -596,7 +636,7 @@ export default function MatchesPage() {
             <>
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  マッチした人たちです。メッセージを送って会話を始めましょう！
+                  プレイした女の子たちです。メモを残して履歴を管理しましょう！
                 </p>
               </div>
               {displayMatches.map(match => (
@@ -621,7 +661,7 @@ export default function MatchesPage() {
                 </p>
               </div>
               {sentLikes.map(like => (
-                <LikeCard key={like.id} like={like} clickable={true} />
+                <LikeCard key={like.id} like={like} clickable={true} showMemoButton={true} />
               ))}
             </>
           ) : (
@@ -642,7 +682,7 @@ export default function MatchesPage() {
                 </p>
               </div>
               {receivedLikes.map(like => (
-                <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} />
+                <LikeCard key={like.id} like={like} showLikeButton={true} clickable={true} showMemoButton={true} />
               ))}
             </>
           ) : (
@@ -655,5 +695,18 @@ export default function MatchesPage() {
         </TabsContent>
       </Tabs>
     </div>
+    
+    {/* Memo History Dialog */}
+    {selectedMemoTarget && currentUser && (
+      <MemoHistoryDialog
+        open={Boolean(selectedMemoTarget)}
+        onOpenChange={(open) => !open && setSelectedMemoTarget(null)}
+        userId={currentUser.uid}
+        targetId={selectedMemoTarget.id}
+        targetName={selectedMemoTarget.name}
+        targetImage={selectedMemoTarget.imageUrl}
+      />
+    )}
+    </>
   );
 }
