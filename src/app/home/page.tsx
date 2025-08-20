@@ -226,14 +226,14 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  // 認証完了時にデータを再ソート
+  // 認証＆プロフィール取得完了時にデータを再ソート
   useEffect(() => {
     // ソート中の場合はスキップ（競合を防ぐ）
     if (isSorting) return;
     
-    // 認証が完了し、データがある場合は再ソート
-    if (currentUser && sortedGirlsCache && sortedGirlsCache.length > 0 && !userProfile) {
-      console.log('🔐 [useEffect] User authenticated, re-sorting data...');
+    // 認証が完了し、プロフィールも取得され、データがある場合は再ソート
+    if (currentUser && userProfile && sortedGirlsCache && sortedGirlsCache.length > 0) {
+      console.log('🔄 [useEffect] User authenticated with profile, re-sorting data...');
       const resortGirls = async () => {
         setIsSorting(true); // ソート開始
         try {
@@ -241,36 +241,7 @@ export default function HomePage() {
             sortedGirlsCache, // キャッシュされたデータを使用
             currentUser.uid,
             userLocation,
-            userProfile?.location
-          );
-          setGirlsFromDB(resortedGirls);
-          setSortedGirlsCache(resortedGirls);
-          console.log('✅ [useEffect] Data re-sorted with authenticated user');
-        } finally {
-          setIsSorting(false); // ソート終了
-        }
-      };
-      resortGirls();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]); // currentUserの変更を監視
-
-  // ユーザープロフィール更新時にデータを再ソート
-  useEffect(() => {
-    // ソート中の場合はスキップ（競合を防ぐ）
-    if (isSorting) return;
-    
-    // プロフィールが読み込まれ、データがある場合は再ソート
-    if (userProfile && sortedGirlsCache && sortedGirlsCache.length > 0) {
-      console.log('🔄 [useEffect] User profile updated, re-sorting data...');
-      const resortGirls = async () => {
-        setIsSorting(true); // ソート開始
-        try {
-          const resortedGirls = await sortGirlsByPreference(
-            sortedGirlsCache, // キャッシュされたデータを使用
-            currentUser?.uid || '',
-            userLocation,
-            userProfile?.location
+            userProfile.location || ''
           );
           setGirlsFromDB(resortedGirls);
           setSortedGirlsCache(resortedGirls);
@@ -282,7 +253,7 @@ export default function HomePage() {
       resortGirls();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile]); // userProfileの変更を監視
+  }, [currentUser, userProfile]); // currentUserとuserProfileの両方を監視
   
   // 位置情報が更新されたらデータを再ソート
   useEffect(() => {
@@ -679,17 +650,18 @@ export default function HomePage() {
                 };
               });
               
-              // 初回取得時も基本的なソートを実行（ユーザー情報がなくてもデフォルトソート）
+              // 初回取得時も基本的なソートを実行（デフォルトソートのみ、認証待ちしない）
               try {
+                // 初回は常にデフォルトソート（認証情報は後のuseEffectで再ソート）
                 const sortedGirls = await sortGirlsByPreference(
                   girlsWithDetails,
-                  currentUser?.uid || '',
-                  userLocation,
-                  userProfile?.location
+                  '', // 初回は空のユーザーID
+                  null, // 位置情報もなし
+                  '' // プロフィール位置情報もなし
                 );
                 setGirlsFromDB(sortedGirls);
                 setSortedGirlsCache(sortedGirls); // ソート済みデータをキャッシュに保存
-                console.log('[useEffect] Initial data sorted and set successfully');
+                console.log('[useEffect] Initial data sorted with default order');
               } catch (sortError) {
                 console.error('[useEffect] Initial sort failed:', sortError);
                 // ソート失敗時はそのまま設定
