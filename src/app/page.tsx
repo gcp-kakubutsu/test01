@@ -492,11 +492,11 @@ export default function LandingPage() {
           <div className={styles.problemsGrid}>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>風俗サイトでの検索は時間がかかる</p>
+              <p>風俗サイトでの情報検索は時間がかかる</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>無料案内所に行くのは面倒</p>
+              <p>見知らぬ土地だと遊びに行く場所を迷ってしまう</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
