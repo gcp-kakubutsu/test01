@@ -736,8 +736,12 @@ function AdvancedSearchContent() {
       filtered = filtered.filter(user => {
         if (!user.girlTypes || user.girlTypes.length === 0) return false
         // Check if any selected type matches
-        return selectedGirlTypes.some(type => 
-          user.girlTypes!.includes(type)
+        return selectedGirlTypes.some(selectedType => 
+          user.girlTypes!.some(userType => {
+            // Handle both string and object formats
+            const userTypeName = typeof userType === 'object' ? userType.name : userType
+            return userTypeName === selectedType
+          })
         )
       })
     }
@@ -891,9 +895,18 @@ function AdvancedSearchContent() {
           if (user.girlTypes && user.girlTypes.length > 0) {
             score += user.girlTypes.length * 15
             // Bonus for popular types
-            if (user.girlTypes.some(type => type.includes('エロ'))) score += 20
-            if (user.girlTypes.some(type => type.includes('巨乳'))) score += 15
-            if (user.girlTypes.some(type => type.includes('癒し'))) score += 12
+            if (user.girlTypes.some(type => {
+              const typeName = typeof type === 'object' ? type.name : type
+              return typeName.includes('エロ')
+            })) score += 20
+            if (user.girlTypes.some(type => {
+              const typeName = typeof type === 'object' ? type.name : type
+              return typeName.includes('巨乳')
+            })) score += 15
+            if (user.girlTypes.some(type => {
+              const typeName = typeof type === 'object' ? type.name : type
+              return typeName.includes('癒し')
+            })) score += 12
           }
           
           // 年齢が設定されている人を優先
@@ -919,7 +932,10 @@ function AdvancedSearchContent() {
             if (user.location && user.location.toLowerCase().includes(query)) score += 8
             if (user.interests && user.interests.some(i => i && i.toLowerCase().includes(query))) score += 5
             // Check girl types for query match
-            if (user.girlTypes && user.girlTypes.some(type => type.toLowerCase().includes(query))) score += 25
+            if (user.girlTypes && user.girlTypes.some(type => {
+              const typeName = typeof type === 'object' ? type.name : type
+              return typeName.toLowerCase().includes(query)
+            })) score += 25
           }
           
           // 選択されたタグとのマッチ
@@ -928,7 +944,12 @@ function AdvancedSearchContent() {
           
           // Selected girl types matching
           if (selectedGirlTypes.length > 0 && user.girlTypes) {
-            const matchedTypes = selectedGirlTypes.filter(type => user.girlTypes!.includes(type))
+            const matchedTypes = selectedGirlTypes.filter(selectedType => 
+              user.girlTypes!.some(userType => {
+                const userTypeName = typeof userType === 'object' ? userType.name : userType
+                return userTypeName === selectedType
+              })
+            )
             score += matchedTypes.length * 30
           }
           
@@ -1823,11 +1844,11 @@ function AdvancedSearchContent() {
                   {/* Girl Types with special styling */}
                   {user.girlTypes && user.girlTypes.slice(0, 2).map(type => (
                     <Badge 
-                      key={`type-${type}`} 
+                      key={`type-${typeof type === 'object' ? type.id : type}`} 
                       variant="secondary" 
                       className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/40 text-pink-300"
                     >
-                      ✨ {type}
+                      ✨ {typeof type === 'object' ? type.name : type}
                     </Badge>
                   ))}
                   {/* Regular interests */}
