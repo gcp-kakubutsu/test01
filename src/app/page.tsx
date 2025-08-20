@@ -484,8 +484,9 @@ export default function LandingPage() {
           </h2>
           <div className={styles.solutionsIntro}>
             <p className={styles.solutionsProblem}>
-              急に時間ができたとき、知らない土地で遊びたいとき、<br />
-              「どこに行けばいいのかわからない…」そんな経験はありませんか？
+              急に時間ができたから、今すぐ遊びたい！今すぐNUKIたい！<br />
+              そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。<br />
+              そんな経験はありませんか？
             </p>
           </div>
 
