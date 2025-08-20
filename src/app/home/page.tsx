@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ChevronLeft, ChevronRight, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAdminGirls, type UserProfile } from '@/lib/firebase/user-utils';
 import { GirlWithDetails } from '@/types/database';
 import { sortGirlsByPreference } from '@/lib/utils/girlSorting';
@@ -47,6 +47,13 @@ export default function HomePage() {
   const [initialFetchDone, setInitialFetchDone] = useState(false); // 初回データ取得完了フラグ
   const [sortedGirlsCache, setSortedGirlsCache] = useState<GirlWithDetails[] | null>(null); // ソート済みデータのキャッシュ
   const [isSorting, setIsSorting] = useState(false); // ソート処理中フラグ
+  const [hasInitialSort, setHasInitialSort] = useState(false); // 初回ソート完了フラグ
+  const authStateRef = useRef({ currentUser, userProfile }); // 認証状態の参照
+  
+  // 認証状態の参照を更新
+  useEffect(() => {
+    authStateRef.current = { currentUser, userProfile };
+  }, [currentUser, userProfile]);
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
@@ -226,13 +233,60 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  // 認証＆プロフィール取得完了時にデータを再ソート
+  // データがキャッシュされたら、認証状態に応じて初回ソート
   useEffect(() => {
-    // ソート中の場合はスキップ（競合を防ぐ）
-    if (isSorting) return;
+    // データがない、または既にソート済みの場合はスキップ
+    if (!sortedGirlsCache || sortedGirlsCache.length === 0 || hasInitialSort) return;
     
-    // 認証が完了し、プロフィールも取得され、データがある場合は再ソート
-    if (currentUser && userProfile && sortedGirlsCache && sortedGirlsCache.length > 0) {
+    console.log('📊 [useEffect] Data cached, performing initial sort...');
+    
+    const performInitialSort = async () => {
+      setIsSorting(true);
+      
+      // 認証を少し待つ（最大3秒）
+      let waitCount = 0;
+      const maxWait = 30; // 100ms x 30 = 3秒
+      
+      console.log('[useEffect] Waiting for authentication...');
+      while ((!authStateRef.current.currentUser || !authStateRef.current.userProfile) && waitCount < maxWait) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+      }
+      
+      const { currentUser: authUser, userProfile: authProfile } = authStateRef.current;
+      console.log(`[useEffect] Auth ${authUser ? 'ready' : 'timeout'}, Profile ${authProfile ? 'ready' : 'timeout'} after ${waitCount * 100}ms`);
+      
+      try {
+        const sortedGirls = await sortGirlsByPreference(
+          sortedGirlsCache,
+          authUser?.uid || '',
+          userLocation,
+          authProfile?.location || ''
+        );
+        setGirlsFromDB(sortedGirls);
+        setSortedGirlsCache(sortedGirls);
+        setHasInitialSort(true); // 初回ソート完了
+        console.log(`✅ [useEffect] Initial sort completed ${authUser ? 'with user preferences' : 'with default order'}`);
+      } catch (error) {
+        console.error('Initial sort failed:', error);
+        setGirlsFromDB(sortedGirlsCache);
+        setHasInitialSort(true); // エラーでも完了扱い
+      } finally {
+        setIsSorting(false);
+      }
+    };
+    
+    performInitialSort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedGirlsCache]); // データがキャッシュされたときに実行
+
+  // 認証完了時にデータを再ソート（初回ソートが未認証だった場合のみ）
+  useEffect(() => {
+    // ソート中、または既に認証済みで初回ソートした場合、またはデータがない場合はスキップ
+    if (isSorting || hasInitialSort || !sortedGirlsCache || sortedGirlsCache.length === 0) return;
+    
+    // 認証が完了し、プロフィールも取得された場合は再ソート
+    if (currentUser && userProfile) {
       console.log('🔄 [useEffect] User authenticated with profile, re-sorting data...');
       const resortGirls = async () => {
         setIsSorting(true); // ソート開始
@@ -245,6 +299,7 @@ export default function HomePage() {
           );
           setGirlsFromDB(resortedGirls);
           setSortedGirlsCache(resortedGirls);
+          setHasInitialSort(true); // 認証済みソート完了フラグを立てる
           console.log('✅ [useEffect] Data re-sorted with user profile');
         } finally {
           setIsSorting(false); // ソート終了
@@ -564,7 +619,7 @@ export default function HomePage() {
     fetchGirlTypes();
   }, []);
 
-  // LINEブラウザ対応: コンポーネントマウント時に即座にデータ取得
+  // LINEブラウザ対応: コンポーネントマウント時に認証を待ってからデータ取得
   useEffect(() => {
     if (!initialFetchDone) {
       console.log('[useEffect] Starting initial data fetch...');
@@ -650,24 +705,9 @@ export default function HomePage() {
                 };
               });
               
-              // 初回取得時も基本的なソートを実行（デフォルトソートのみ、認証待ちしない）
-              try {
-                // 初回は常にデフォルトソート（認証情報は後のuseEffectで再ソート）
-                const sortedGirls = await sortGirlsByPreference(
-                  girlsWithDetails,
-                  '', // 初回は空のユーザーID
-                  null, // 位置情報もなし
-                  '' // プロフィール位置情報もなし
-                );
-                setGirlsFromDB(sortedGirls);
-                setSortedGirlsCache(sortedGirls); // ソート済みデータをキャッシュに保存
-                console.log('[useEffect] Initial data sorted with default order');
-              } catch (sortError) {
-                console.error('[useEffect] Initial sort failed:', sortError);
-                // ソート失敗時はそのまま設定
-                setGirlsFromDB(girlsWithDetails);
-                setSortedGirlsCache(girlsWithDetails);
-              }
+              // データを一旦キャッシュに保存（ソートは別のuseEffectで行う）
+              setSortedGirlsCache(girlsWithDetails);
+              console.log('[useEffect] Initial data cached, waiting for authentication to sort...');
             }
           } else {
             console.error('[useEffect] API request failed:', response.status);
