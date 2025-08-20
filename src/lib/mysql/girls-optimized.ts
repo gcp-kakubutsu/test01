@@ -47,7 +47,7 @@ export async function fetchOptimizedGirls(
           FROM girl_status gs
           INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
           WHERE gs.girl_profile_id = g.id
-        ) as girl_types_names
+        ) as girl_types_json
       FROM girl_profiles g
       LEFT JOIN shop_profiles s ON g.shop_profile_id = s.id
       LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
@@ -190,11 +190,11 @@ export async function fetchOptimizedGirls(
         LIMIT 1
       ) as imageUrl,
       (
-        SELECT GROUP_CONCAT(gt.name SEPARATOR ',')
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', gt.id, 'name', gt.name))
         FROM girl_status gs
         INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
         WHERE gs.girl_profile_id = g.id
-      ) as girl_types_names
+      ) as girl_types_json
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
@@ -266,8 +266,21 @@ export async function fetchOptimizedGirls(
       latitude: row.latitude,
       longitude: row.longitude
     },
-    // Girl types from girl_status table
-    girlTypes: row.girl_types_names ? row.girl_types_names.split(',') : []
+    // Girl types from girl_status table (parse JSON if string, otherwise use as-is)
+    girlTypes: (() => {
+      if (!row.girl_types_json) return [];
+      // MySQLのJSON型は自動的にパースされることがある
+      if (typeof row.girl_types_json === 'string') {
+        try {
+          return JSON.parse(row.girl_types_json);
+        } catch (e) {
+          console.error('Failed to parse girl_types_json:', row.girl_types_json);
+          return [];
+        }
+      }
+      // 既にオブジェクト/配列の場合はそのまま使用
+      return Array.isArray(row.girl_types_json) ? row.girl_types_json : [];
+    })()
   }));
   
   const total = countResult[0]?.total || 0;
@@ -333,11 +346,11 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
         LIMIT 1
       ) as imageUrl,
       (
-        SELECT GROUP_CONCAT(gt.name SEPARATOR ',')
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', gt.id, 'name', gt.name))
         FROM girl_status gs
         INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
         WHERE gs.girl_profile_id = g.id
-      ) as girl_types_names
+      ) as girl_types_json
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
@@ -369,8 +382,21 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
     is_sake: row.is_sake === 1 || row.is_sake === true,
     is_tobacco: row.is_tobacco === 1 || row.is_tobacco === true,
     shopName: row.shop_name,
-    // Girl types from girl_status table
-    girlTypes: row.girl_types_names ? row.girl_types_names.split(',') : []
+    // Girl types from girl_status table (parse JSON if string, otherwise use as-is)
+    girlTypes: (() => {
+      if (!row.girl_types_json) return [];
+      // MySQLのJSON型は自動的にパースされることがある
+      if (typeof row.girl_types_json === 'string') {
+        try {
+          return JSON.parse(row.girl_types_json);
+        } catch (e) {
+          console.error('Failed to parse girl_types_json:', row.girl_types_json);
+          return [];
+        }
+      }
+      // 既にオブジェクト/配列の場合はそのまま使用
+      return Array.isArray(row.girl_types_json) ? row.girl_types_json : [];
+    })()
   }));
 }
 

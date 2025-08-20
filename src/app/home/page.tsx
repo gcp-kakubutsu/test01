@@ -52,6 +52,9 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
+  const [girlTypes, setGirlTypes] = useState<any[]>([]); // 女の子タイプのマスターデータ
+  const [selectedGirlTypes, setSelectedGirlTypes] = useState<number[]>([]); // 選択された女の子タイプID
+  const [showTypeFilter, setShowTypeFilter] = useState(false); // タイプフィルター表示フラグ
 
   // search/advancedと同様、認証チェックを無効化（LINEブラウザ対応）
   // ログインしていなくてもページを表示
@@ -200,10 +203,10 @@ export default function HomePage() {
     }
   };
 
-  // Reset page to 1 when search keyword changes
+  // Reset page to 1 when search keyword or selected types change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchKeyword]);
+  }, [searchKeyword, selectedGirlTypes]);
 
   // 位置情報を取得
   useEffect(() => {
@@ -545,6 +548,22 @@ export default function HomePage() {
     }
   }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
+  // 女の子タイプのマスターデータを取得
+  useEffect(() => {
+    const fetchGirlTypes = async () => {
+      try {
+        const response = await fetch('/api/girl-types');
+        if (response.ok) {
+          const data = await response.json();
+          setGirlTypes(data.allTypes || []);
+        }
+      } catch (error) {
+        console.error('Error fetching girl types:', error);
+      }
+    };
+    fetchGirlTypes();
+  }, []);
+
   // LINEブラウザ対応: コンポーネントマウント時に即座にデータ取得
   useEffect(() => {
     if (!initialFetchDone) {
@@ -740,59 +759,121 @@ export default function HomePage() {
   // LINEブラウザ対応: データが空でもページを表示
   // loadingUsersに関係なく常にページを表示
 
-  // Apply search filter and sort to all data first
+  // Apply type filter and sort to all data
   const filteredAndSortedData = displayData
     .filter((item: any) => {
       // Apply keyword filter
-      if (!searchKeyword) return true;
+      if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
+        const name = item.name?.toLowerCase() || '';
+        const bio = (item.bio || item.pr_message || '').toLowerCase();
+        const interests = (item.interests || []).join(' ').toLowerCase();
+        const girlTypesText = (item.girlTypes || []).map((t: any) => typeof t === 'object' ? t.name : t).join(' ').toLowerCase();
+        const playTypes = (item.play_types || []).join(' ').toLowerCase();
+        const options = (item.options || []).join(' ').toLowerCase();
+        const tags = (item.tags || []).join(' ').toLowerCase();
+        
+        // Check all fields for keyword
+        const matchesKeyword = name.includes(keyword) ||
+               bio.includes(keyword) ||
+               interests.includes(keyword) ||
+               girlTypesText.includes(keyword) ||
+               playTypes.includes(keyword) ||
+               options.includes(keyword) ||
+               tags.includes(keyword);
+        
+        if (!matchesKeyword) return false;
+      }
       
-      const keyword = searchKeyword.toLowerCase();
-      const name = item.name?.toLowerCase() || '';
-      const bio = (item.bio || item.pr_message || '').toLowerCase();
-      const interests = (item.interests || []).join(' ').toLowerCase();
-      const girlTypes = (item.girlTypes || []).join(' ').toLowerCase();
-      const playTypes = (item.play_types || []).join(' ').toLowerCase();
-      const options = (item.options || []).join(' ').toLowerCase();
-      const tags = (item.tags || []).join(' ').toLowerCase();
+      // Apply girl type filter
+      if (selectedGirlTypes.length > 0) {
+        // girlTypesフィールドの構造を確認
+        if (!item.girlTypes || !Array.isArray(item.girlTypes)) {
+          return false;
+        }
+        
+        // girlTypesの各要素からIDを抽出（オブジェクトまたは数値の両方に対応）
+        const itemGirlTypeIds = item.girlTypes.map((type: any) => {
+          if (typeof type === 'object' && type !== null) {
+            // オブジェクトの場合、idフィールドを取得
+            return type.id || type.girl_type_id || null;
+          } else if (typeof type === 'number') {
+            // 数値の場合、そのまま使用
+            return type;
+          } else {
+            return null;
+          }
+        }).filter((id: any) => id !== null);
+        
+        // Check if item has at least one of the selected types
+        const hasSelectedType = selectedGirlTypes.some(typeId => 
+          itemGirlTypeIds.includes(typeId)
+        );
+        
+        if (!hasSelectedType) return false;
+      }
       
-      // Check all fields for keyword
-      return name.includes(keyword) ||
-             bio.includes(keyword) ||
-             interests.includes(keyword) ||
-             girlTypes.includes(keyword) ||
-             playTypes.includes(keyword) ||
-             options.includes(keyword) ||
-             tags.includes(keyword);
+      return true;
     })
     .sort((a: any, b: any) => {
-      // Sort by keyword relevance if keyword exists
-      if (!searchKeyword) return 0;
-      
-      const keyword = searchKeyword.toLowerCase();
-      
-      // Calculate relevance score for each item
-      const getRelevanceScore = (item: any) => {
-        let score = 0;
-        const name = item.name?.toLowerCase() || '';
-        const girlTypes = (item.girlTypes || []).join(' ').toLowerCase();
-        const playTypes = (item.play_types || []).join(' ').toLowerCase();
+      // Sort by selected type match count first
+      if (selectedGirlTypes.length > 0) {
+        const getTypeMatchScore = (item: any) => {
+          if (!item.girlTypes || !Array.isArray(item.girlTypes)) {
+            return 0;
+          }
+          
+          const itemGirlTypeIds = item.girlTypes.map((type: any) => {
+            if (typeof type === 'object' && type !== null) {
+              return type.id || type.girl_type_id || null;
+            } else if (typeof type === 'number') {
+              return type;
+            }
+            return null;
+          }).filter((id: any) => id !== null);
+          
+          // Count how many selected types this item has
+          const matchCount = selectedGirlTypes.filter(typeId => 
+            itemGirlTypeIds.includes(typeId)
+          ).length;
+          
+          return matchCount;
+        };
         
-        // Higher score for exact matches in important fields
-        if (name.includes(keyword)) score += 10;
-        if (girlTypes.includes(keyword)) score += 8;
-        if (playTypes.includes(keyword)) score += 6;
+        const scoreA = getTypeMatchScore(a);
+        const scoreB = getTypeMatchScore(b);
         
-        // Bonus for exact type match
-        if (item.girlTypes?.some((type: string) => type.toLowerCase() === keyword)) score += 15;
-        if (item.play_types?.some((type: string) => type.toLowerCase() === keyword)) score += 12;
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA; // More matches = higher priority
+        }
+      }
+      
+      // Then sort by keyword relevance if keyword exists
+      if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
         
-        return score;
-      };
+        // Calculate relevance score for each item
+        const getRelevanceScore = (item: any) => {
+          let score = 0;
+          const name = item.name?.toLowerCase() || '';
+          const girlTypesText = (item.girlTypes || []).map((t: any) => typeof t === 'object' ? t.name : t).join(' ').toLowerCase();
+          const playTypes = (item.play_types || []).join(' ').toLowerCase();
+          
+          // Higher score for exact matches in important fields
+          if (name.includes(keyword)) score += 10;
+          if (girlTypesText.includes(keyword)) score += 8;
+          if (playTypes.includes(keyword)) score += 6;
+          
+          return score;
+        };
+        
+        const scoreA = getRelevanceScore(a);
+        const scoreB = getRelevanceScore(b);
+        
+        return scoreB - scoreA; // Sort by descending score
+      }
       
-      const scoreA = getRelevanceScore(a);
-      const scoreB = getRelevanceScore(b);
-      
-      return scoreB - scoreA; // Sort by descending score
+      return 0;
     });
 
   // Calculate pagination based on filtered data
@@ -855,13 +936,76 @@ export default function HomePage() {
       <div className="px-4 pb-6">
         {/* Search and View mode controls */}
         <div className="flex justify-between items-center mb-4">
-          {/* Search input or button */}
+          {/* Type filter or keyword search */}
           <div className="flex-1 mr-2">
-            {showSearchInput ? (
+            {showTypeFilter ? (
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-white">女の子タイプで絞り込み</span>
+                  <div className="flex gap-2">
+                    {selectedGirlTypes.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedGirlTypes([]);
+                        }}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        クリア
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowTypeFilter(false);
+                        // バツボタンはパネルを閉じるだけ（選択は維持）
+                      }}
+                      className="hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {girlTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => {
+                        setSelectedGirlTypes(prev => 
+                          prev.includes(type.id) 
+                            ? prev.filter(id => id !== type.id)
+                            : [...prev, type.id]
+                        );
+                        // 選択と同時に即座にフィルタリングが適用される（useEffectで自動処理）
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs transition-all ${
+                        selectedGirlTypes.includes(type.id)
+                          ? 'bg-pink-500 text-white border border-pink-500'
+                          : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
+                      }`}
+                    >
+                      {type.name}
+                    </button>
+                  ))}
+                </div>
+                {selectedGirlTypes.length > 0 && (
+                  <div className="mt-2 flex justify-between items-center">
+                    <span className="text-xs text-gray-400">
+                      {selectedGirlTypes.length}個のタイプを選択中
+                    </span>
+                    <span className="text-xs text-pink-400">
+                      ※選択したタイプが上位に表示されます
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : showSearchInput ? (
               <div className="flex items-center gap-2">
                 <Input
                   type="text"
-                  placeholder="キーワード検索（エロい、巨乳、癒し系など）"
+                  placeholder="キーワード検索（名前、メッセージなど）"
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
@@ -889,21 +1033,40 @@ export default function HomePage() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => setShowSearchInput(true)}
-                  className="flex-1 bg-gray-800 border-gray-700 hover:text-white hover:bg-gray-700"
+                  onClick={() => setShowTypeFilter(true)}
+                  className={`hover:bg-gray-700 hover:text-white px-4 py-2 ${
+                    selectedGirlTypes.length > 0 
+                      ? 'bg-pink-500/20 border-pink-500 text-pink-400' 
+                      : 'bg-gray-800 border-gray-700 text-gray-300'
+                  }`}
                 >
-                  <Search className="w-4 h-4 mr-2" />
-                  {searchKeyword || 'キーワード検索'}
+                  <Grid3x3 className="w-4 h-4 mr-2" />
+                  <span className="text-sm">絞り込み</span>
+                  {selectedGirlTypes.length > 0 && (
+                    <span className="ml-1 text-sm">({selectedGirlTypes.length})</span>
+                  )}
                 </Button>
-                {searchKeyword && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSearchInput(true)}
+                  className="bg-gray-800 border-gray-700 hover:text-white hover:bg-gray-700 px-3 py-1.5"
+                  title="キーワード検索"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+                {(searchKeyword || selectedGirlTypes.length > 0) && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setSearchKeyword('')}
+                    onClick={() => {
+                      setSearchKeyword('');
+                      setSelectedGirlTypes([]);
+                    }}
                     className="hover:text-white"
-                    title="検索をクリア"
+                    title="フィルターをクリア"
                   >
-                    <X className="w-4 h-4" />
+                    <RotateCcw className="w-4 h-4" />
                   </Button>
                 )}
               </div>
@@ -1069,14 +1232,18 @@ export default function HomePage() {
                 {/* Tags & Play Types */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   {/* Girl Types (明るい、癒し系、巨乳など) */}
-                  {girlTypes.slice(0, 3).map((type: string) => (
-                    <span 
-                      key={`type-${type}`} 
-                      className="px-3 py-1 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/40 rounded-full text-xs text-pink-300 font-medium"
-                    >
-                      ✨ {type}
-                    </span>
-                  ))}
+                  {girlTypes.slice(0, 3).map((type: any, index: number) => {
+                    const typeName = typeof type === 'object' ? type.name : type;
+                    const typeId = typeof type === 'object' ? type.id : index;
+                    return (
+                      <span 
+                        key={`type-${typeId}`} 
+                        className="px-3 py-1 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/40 rounded-full text-xs text-pink-300 font-medium"
+                      >
+                        ✨ {typeName}
+                      </span>
+                    );
+                  })}
                   
                   {/* Interests */}
                   {interests.slice(0, 2).map((interest: string) => (
