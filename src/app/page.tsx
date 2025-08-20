@@ -480,7 +480,7 @@ export default function LandingPage() {
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>こんなとき、</span>
-            <span className={styles.titleLine2}>NUKUNEが解決します</span>
+            <span className={styles.titleLine2}>NUKUNEが一発解決</span>
           </h2>
           <div className={styles.solutionsIntro}>
             <p className={styles.solutionsProblem}>
@@ -500,15 +500,15 @@ export default function LandingPage() {
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>飛び込みで店に行く勇気がない</p>
+              <p>新規店に行く勇気がない</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>やっと見つけたお目当ての嬢が予約完売</p>
+              <p>やっと見つけたキャストが予約完売してしまった</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>時間や性癖が合わずに断念</p>
+              <p>性癖、嗜好が合わずに遊びを断念した</p>
             </div>
           </div>
 
@@ -518,10 +518,10 @@ export default function LandingPage() {
 
           <div className={styles.solutionCard}>
             <div className={styles.solutionHeader}>
-              <span className={styles.solutionBadge}>Solution</span>
               <h3 className={styles.solutionTitle}>
-                NUKUNE（ヌクネ）は、そんな悩みを解消する<br />
-                <span className={styles.solutionHighlight}>"性癖コンシェルジュ"</span>です
+                <div>NUKUNEは、</div>
+                <div>そんな悩みを解消する</div>
+                <div><span className={styles.solutionHighlight}>"性癖コンシェルジュ"</span>です</div>
               </h3>
             </div>
             

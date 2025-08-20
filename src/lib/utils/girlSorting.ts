@@ -87,17 +87,23 @@ export async function sortGirlsByPreference(
       let score = 0;
       const reasons: string[] = [];
 
-      // Girl type preference scoring (weight: 100) - 最重要
+      // Girl type preference scoring (weight: 300-500) - 最重要！！
       if (preferences.girlTypeIds && preferences.girlTypeIds.length > 0 && girl.girlTypes) {
         const matchingTypes = girl.girlTypes.filter((girlType: any) => 
           preferences.girlTypeIds?.includes(girlType.id)
         );
         
         if (matchingTypes.length > 0) {
-          // マッチするタイプの数に応じてスコアを増やす
-          score += 100 + (matchingTypes.length * 20);
+          // マッチするタイプの数に応じて大幅にスコアを増やす（基礎300点 + 追加100点/タイプ）
+          score += 300 + (matchingTypes.length * 100);
           const typeNames = matchingTypes.map((t: any) => t.name).join('、');
-          reasons.push(`タイプが完全一致（${typeNames}）`);
+          reasons.push(`✨タイプが完全一致（${typeNames}）`);
+          
+          // 全タイプ一致でボーナス
+          if (matchingTypes.length >= 3) {
+            score += 100;
+            reasons.push('複数タイプ完全一致ボーナス');
+          }
         } else {
           // 部分的な類似性をチェック（関連するタイプ）
           const hasRelatedType = girl.girlTypes.some((girlType: any) => {
@@ -109,16 +115,16 @@ export async function sortGirlsByPreference(
           });
           
           if (hasRelatedType) {
-            score += 30;
+            score += 50;
             reasons.push('タイプが部分的に一致');
           }
         }
       }
 
-      // Age preference scoring (weight: 30)
+      // Age preference scoring (weight: 20) - 重要度を下げる
       if (girl.age && preferences.partnerAgeMin && preferences.partnerAgeMax) {
         if (girl.age >= preferences.partnerAgeMin && girl.age <= preferences.partnerAgeMax) {
-          score += 30;
+          score += 20;
           reasons.push('年齢が希望範囲内');
         } else {
           // Partial score for close ages
@@ -127,13 +133,13 @@ export async function sortGirlsByPreference(
             Math.abs(girl.age - preferences.partnerAgeMax)
           );
           if (ageDiff <= 5) {
-            score += 15;
+            score += 10;
             reasons.push('年齢が希望に近い');
           }
         }
       }
 
-      // Height preference scoring (weight: 20)
+      // Height preference scoring (weight: 15) - 重要度を下げる
       if (girl.height && preferences.partnerHeight) {
         // Parse height preference (e.g., "150-160cm" or "any")
         if (preferences.partnerHeight !== 'こだわらない' && preferences.partnerHeight !== 'any') {
@@ -142,7 +148,7 @@ export async function sortGirlsByPreference(
             const minHeight = parseInt(match[1]);
             const maxHeight = parseInt(match[2]);
             if (girl.height >= minHeight && girl.height <= maxHeight) {
-              score += 20;
+              score += 15;
               reasons.push('身長が希望範囲内');
             } else {
               const heightDiff = Math.min(
@@ -150,7 +156,7 @@ export async function sortGirlsByPreference(
                 Math.abs(girl.height - maxHeight)
               );
               if (heightDiff <= 10) {
-                score += 10;
+                score += 7;
                 reasons.push('身長が希望に近い');
               }
             }
@@ -158,7 +164,7 @@ export async function sortGirlsByPreference(
         }
       }
 
-      // Body type preference scoring (weight: 25)
+      // Body type preference scoring (weight: 20) - 重要度を下げる
       if (preferences.partnerBodyTypes && preferences.partnerBodyTypes.length > 0) {
         if (girl.bust && girl.waist && girl.hip) {
           const bustWaistRatio = girl.bust / girl.waist;
@@ -193,20 +199,20 @@ export async function sortGirlsByPreference(
           
           if (preferences.partnerBodyTypes.includes(estimatedBodyType) || 
               preferences.partnerBodyTypes.includes('こだわらない')) {
-            score += 25;
+            score += 20;
             reasons.push(`体型(${estimatedBodyType})が好みに合致`);
           } else {
             // 部分的な一致でも少しスコアを付与
             if ((estimatedBodyType === 'やや細め' && preferences.partnerBodyTypes.includes('スリム')) ||
                 (estimatedBodyType === 'スリム' && preferences.partnerBodyTypes.includes('やや細め'))) {
-              score += 10;
+              score += 8;
               reasons.push('体型が好みに近い');
             }
           }
         }
       }
 
-      // Cup size and bust preference scoring (weight: 15)
+      // Cup size and bust preference scoring (weight: 10) - 重要度を下げる
       if (girl.cup && girl.bust) {
         // カップサイズのスコアリング
         const cupValue = {
@@ -216,26 +222,26 @@ export async function sortGirlsByPreference(
         // ユーザーの好みに基づいてスコアリング（グラマー好きは大きめを好む）
         if (preferences.partnerBodyTypes?.includes('グラマー')) {
           if (cupValue >= 4) { // D cup以上
-            score += 15;
+            score += 10;
             reasons.push(`バスト(${girl.cup})が好みに合致`);
           } else if (cupValue >= 3) {
-            score += 7;
+            score += 5;
           }
         } else if (preferences.partnerBodyTypes?.includes('スリム') || 
                    preferences.partnerBodyTypes?.includes('やや細め')) {
           if (cupValue <= 3) { // C cup以下
-            score += 15;
+            score += 10;
             reasons.push(`バスト(${girl.cup})が好みに合致`);
           } else if (cupValue <= 4) {
-            score += 7;
+            score += 5;
           }
         } else {
           // 特に好みがない場合は少しボーナス
-          score += 5;
+          score += 3;
         }
       }
 
-      // Location scoring (weight: 50) - 位置情報の重要度を高める
+      // Location scoring (weight: 30) - 位置情報の重要度を下げる（タイプ優先）
       let distanceValue = Infinity;
       if (userLocation && girl.shop?.latitude && girl.shop?.longitude) {
         const distance = calculateDistance(
@@ -248,25 +254,25 @@ export async function sortGirlsByPreference(
         
         // より細かい距離スコアリング
         if (distance <= 1) {
-          score += 50;
+          score += 30;
           reasons.push('とても近い（1km以内）');
         } else if (distance <= 3) {
-          score += 45;
+          score += 27;
           reasons.push('非常に近い（3km以内）');
         } else if (distance <= 5) {
-          score += 40;
+          score += 24;
           reasons.push('近い（5km以内）');
         } else if (distance <= 10) {
-          score += 30;
+          score += 18;
           reasons.push('アクセス良好（10km以内）');
         } else if (distance <= 15) {
-          score += 20;
+          score += 12;
           reasons.push('アクセス可能（15km以内）');
         } else if (distance <= 25) {
-          score += 10;
+          score += 6;
           reasons.push('やや遠い（25km以内）');
         } else if (distance <= 50) {
-          score += 5;
+          score += 3;
           reasons.push('遠い（50km以内）');
         }
       }

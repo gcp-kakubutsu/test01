@@ -1000,20 +1000,46 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTitle {
-  font-size: 1.8rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #e8e5df;
   margin: 0;
+  text-align: center;
+  
+  // div要素を縦に並べて中央揃え
+  div {
+    display: block;
+    text-align: center;
+    margin: 0.3rem 0;
+    white-space: nowrap; // 改行を防ぐ
+    
+    // 最後のdiv（"性癖コンシェルジュ"です）は特別扱い
+    &:last-child {
+      white-space: nowrap; // 改行を防ぐ
+      
+      // spanとテキストを同じ行に保つ
+      span {
+        display: inline;
+      }
+    }
+  }
   
   :global(.light) & {
     color: #1F2937;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.6rem;
-    line-height: 1.4;
+    font-size: 1.8rem;
+    line-height: 1.5;
     margin-bottom: 1.5rem;
+    
+    div {
+      white-space: normal; // モバイルでは改行を許可
+      font-size: 1.6rem; // 文字サイズを調整
+      margin: 0.2rem 0;
+    }
+    
     br {
       display: none;
     }
