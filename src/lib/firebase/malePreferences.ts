@@ -73,7 +73,10 @@ export const defaultMalePreferences: Partial<MalePreferences> = {
 
 // 男性ユーザーの詳細設定を取得
 export async function getMalePreferences(userId: string): Promise<MalePreferences | null> {
-  if (!db) throw new Error('Firestore is not initialized');
+  if (!db) {
+    console.warn('getMalePreferences: Firestore is not initialized');
+    return null;
+  }
   
   // userIdが空または無効な場合はnullを返す
   if (!userId || typeof userId !== 'string' || userId.trim() === '') {
@@ -89,9 +92,17 @@ export async function getMalePreferences(userId: string): Promise<MalePreference
       return preferencesDoc.data() as MalePreferences;
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
+    // 権限エラーの場合は警告ログのみ出力してnullを返す
+    if (error?.code === 'permission-denied' || 
+        error?.message?.includes('Missing or insufficient permissions')) {
+      console.warn('getMalePreferences: Permission denied for user:', userId);
+      return null;
+    }
+    
     console.error('Error fetching male preferences:', error);
-    throw error;
+    // その他のエラーの場合もnullを返す（エラーをthrowしない）
+    return null;
   }
 }
 

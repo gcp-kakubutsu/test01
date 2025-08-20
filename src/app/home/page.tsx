@@ -226,6 +226,35 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
+  // 認証完了時にデータを再ソート
+  useEffect(() => {
+    // ソート中の場合はスキップ（競合を防ぐ）
+    if (isSorting) return;
+    
+    // 認証が完了し、データがある場合は再ソート
+    if (currentUser && sortedGirlsCache && sortedGirlsCache.length > 0 && !userProfile) {
+      console.log('🔐 [useEffect] User authenticated, re-sorting data...');
+      const resortGirls = async () => {
+        setIsSorting(true); // ソート開始
+        try {
+          const resortedGirls = await sortGirlsByPreference(
+            sortedGirlsCache, // キャッシュされたデータを使用
+            currentUser.uid,
+            userLocation,
+            userProfile?.location
+          );
+          setGirlsFromDB(resortedGirls);
+          setSortedGirlsCache(resortedGirls);
+          console.log('✅ [useEffect] Data re-sorted with authenticated user');
+        } finally {
+          setIsSorting(false); // ソート終了
+        }
+      };
+      resortGirls();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]); // currentUserの変更を監視
+
   // ユーザープロフィール更新時にデータを再ソート
   useEffect(() => {
     // ソート中の場合はスキップ（競合を防ぐ）
@@ -687,14 +716,6 @@ export default function HomePage() {
       
       // 即座に実行
       fetchDataDirectly();
-      
-      // 2秒後に再試行
-      setTimeout(() => {
-        if (girlsFromDB.length === 0) {
-          console.log('[useEffect] Retrying after 2 seconds...');
-          fetchDataDirectly();
-        }
-      }, 2000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初回のみ実行

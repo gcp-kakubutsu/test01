@@ -35,7 +35,7 @@ export default function MatchingSearch() {
   const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([])
   const [girlTypeOptions, setGirlTypeOptions] = useState<Option[]>([])
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
-  const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(false)
+  const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
