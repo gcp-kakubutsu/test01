@@ -454,7 +454,7 @@ export default function LandingPage() {
               <div className={styles.featureIcon}>
                 <Brain />
               </div>
-              <h3 className={styles.featureTitle}>AIによる最適なマッチング</h3>
+              <h3 className={styles.featureTitle}>AIによる最適マッチング</h3>
               <p className={styles.featureDescription}>AIが相性や好みを分析し、理想の相手を提案。あなたの出会い探しをスムーズにサポートします。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
