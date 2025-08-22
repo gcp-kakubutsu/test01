@@ -722,7 +722,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className={styles.safetyTitle}>公的機関への届出済み</h3>
               </div>
-              <p className={styles.safetyDescription}>NUKUNEでは、法令遵守に基づきインターネット異性紹介事業の届出しております。(受理番号54250003000)<br /></p>
+              <p className={styles.safetyDescription}>NUKUNEでは、法令遵守に基づきインターネット異性紹介事業の届出しております。<br />(受理番号54250003000)<br /></p>
             </div>
           </div>
         </div>

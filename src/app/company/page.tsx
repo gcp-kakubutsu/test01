@@ -39,7 +39,7 @@ export default function CompanyPage() {
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}></span>
-                <span className={styles.infoValue}>インターネット異性紹介事業届出済</span>
+                <span className={styles.infoValue}>インターネット異性紹介事業<br />(届出受理番号 54250003000)</span>
               </div>
             </div>
           </div>
@@ -49,23 +49,19 @@ export default function CompanyPage() {
             <ul className={styles.businessList}>
               <li>
                 <CheckCircle size={16} />
-                風俗業界の情報提供
+                サイト名：NUKUNE（ヌクネ）
               </li>
               <li>
                 <CheckCircle size={16} />
-                優良店舗や女性の評価システム
+                運営者：NUKUNE運営事務局
               </li>
               <li>
                 <CheckCircle size={16} />
-                各種イベントの企画・運営
+                サービス内容：<br />性癖マッチングサービス<br />NUKUNEの運営
               </li>
               <li>
                 <CheckCircle size={16} />
-                マッチングサービス「NUKUNE」の運営
-              </li>
-              <li>
-                <CheckCircle size={16} />
-                業界向けコンサルティング
+                連絡先：info@nukune.com
               </li>
             </ul>
           </div>
