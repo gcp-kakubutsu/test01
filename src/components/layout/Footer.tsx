@@ -20,6 +20,7 @@ export function Footer() {
             <Link href="/terms" className={styles.footerLink}>利用規約</Link>
             <Link href="/contact" className={styles.footerLink}>お問い合わせ</Link>
             <Link href="/company" className={styles.footerLink}>会社概要</Link>
+            <Link href="/legal" className={styles.footerLink}>特定商取引法に基づく表示</Link>
           </div>
           <p className={styles.footerNotice}>Nukuneは成人（18歳以上）のみを対象としています。</p>
           <p className={styles.footerCopyright}>
