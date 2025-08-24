@@ -393,10 +393,11 @@ export default function LandingPage() {
           <div className={styles.heroLocationInfo}>
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
-              <p className={styles.locationInfoLine2}>
-                現在地・希望条件・90分以内の空き枠をもとに<br className={styles.locationInfoBreak} />
-                最短、最速にご案内します
-              </p>
+              <div className={styles.locationInfoLine2}>
+                <span className={styles.locationLine2_1}>現在地・希望条件・60分以内の</span>
+                <span className={styles.locationLine2_2}>空き枠をもとに</span>
+                <span className={styles.locationLine2_3}>最短、最速にご案内します</span>
+              </div>
             </div>
           </div>
         </div>
@@ -471,7 +472,7 @@ export default function LandingPage() {
                 <Shield />
               </div>
               <h3 className={styles.featureTitle}>事前確認システム</h3>
-              <p className={styles.featureDescription}>会う前に女性のプレイスタイル・対応可能な内容・性格の詳細。希望に100%応えられる女性だけと出会えます。</p>
+              <p className={styles.featureDescription}>事前確認システム会う前に女性のプレイスタイル・対応可能な内容・性格の詳細がわかります。希望に応えられる女性だけと出会えます。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.featureIcon}>

@@ -248,15 +248,42 @@ $border-color-light: #E5E7EB;
 }
 
 .locationInfoLine2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.9);
-  line-height: 1.6;
-  text-align: center;
+  line-height: 1.8;
   font-weight: 400;
   
   @media (max-width: 768px) {
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.6;
+  }
+}
+
+.locationLine2_1 {
+  display: block;
+  text-align: center;
+}
+
+.locationLine2_2 {
+  display: block;
+  text-align: center;
+  padding-left: 2rem;
+  
+  @media (max-width: 768px) {
+    padding-left: 1.5rem;
+  }
+}
+
+.locationLine2_3 {
+  display: block;
+  text-align: center;
+  padding-left: 1rem;
+  
+  @media (max-width: 768px) {
+    padding-left: 0.75rem;
   }
 }
 
