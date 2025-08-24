@@ -256,6 +256,10 @@ $border-color-light: #E5E7EB;
   line-height: 1.8;
   font-weight: 400;
   
+  :global(.light) & {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
   @media (max-width: 768px) {
     font-size: 0.95rem;
     line-height: 1.6;
@@ -265,12 +269,22 @@ $border-color-light: #E5E7EB;
 .locationLine2_1 {
   display: block;
   text-align: center;
+  color: inherit;
+  
+  :global(.light) & {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
 }
 
 .locationLine2_2 {
   display: block;
   text-align: center;
   padding-left: 2rem;
+  color: inherit;
+  
+  :global(.light) & {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
   
   @media (max-width: 768px) {
     padding-left: 1.5rem;
@@ -281,6 +295,11 @@ $border-color-light: #E5E7EB;
   display: block;
   text-align: center;
   padding-left: 1rem;
+  color: inherit;
+  
+  :global(.light) & {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
   
   @media (max-width: 768px) {
     padding-left: 0.75rem;
