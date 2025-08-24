@@ -390,6 +390,15 @@ export default function LandingPage() {
               <span>ログイン</span>
             </Link>
           </div>
+          <div className={styles.heroLocationInfo}>
+            <div className={styles.locationInfoContent}>
+              <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
+              <p className={styles.locationInfoLine2}>
+                現在地・希望条件・90分以内の空き枠をもとに<br className={styles.locationInfoBreak} />
+                最短、最速にご案内します
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -413,7 +422,7 @@ export default function LandingPage() {
                   インターネット異性紹介事業（届出受理番号 54250003000）として、法令を遵守し、安全・安心な出会いの場を提供しています。
                 </p>
                 <p>
-                  大手風俗情報サイトと提携し、当日案内可能なキャスト情報をリアルタイムでお届けします。
+                  大手風俗情報サイトと提携し、当日すぐ案内可能な性癖、嗜好のあうキャストのみ常時提示しています。当日承認率には自信があります。
                 </p>
               </div>
               
@@ -543,7 +552,7 @@ export default function LandingPage() {
                 </div>
                 <div className={styles.solutionFeatureText}>
                   <h4>GPS検索</h4>
-                  <p>最短で遊びに行けるキャストをすぐにご案内</p>
+                  <p>今いる場所から、最短60分以内の空き枠がある優先キャストのみ表示しています</p>
                 </div>
               </div>
               

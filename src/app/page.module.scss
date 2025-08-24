@@ -205,6 +205,69 @@ $border-color-light: #E5E7EB;
   }
 }
 
+// Location Info Section (below the login button)
+.heroLocationInfo {
+  margin-top: 3rem;
+  animation: fadeInUp 1s ease-out 0.8s both;
+  
+  @media (max-width: 768px) {
+    margin-top: 2.5rem;
+  }
+}
+
+.locationInfoContent {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(240, 48, 106, 0.3);
+  border-radius: 20px;
+  padding: 1.5rem 2.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    padding: 1.25rem 1.5rem;
+    border-radius: 15px;
+    margin: 0 1rem;
+  }
+}
+
+.locationInfoLine1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f3e5c1, #caa35b, #F0306A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+    margin-bottom: 0.6rem;
+  }
+}
+
+.locationInfoLine2 {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  text-align: center;
+  font-weight: 400;
+  
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+}
+
+.locationInfoBreak {
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: inline;
+  }
+}
+
 .btn {
   padding: 1rem 2rem;
   border: none;
