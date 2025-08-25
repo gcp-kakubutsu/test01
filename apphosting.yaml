@@ -1,8 +1,23 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  minInstances: 1  # 最低1インスタンスで待機時間を短縮
-  maxInstances: 50  # より多くのリクエストに対応
-  concurrency: 200  # 同時実行数を大幅に増加
-  cpu: 4  # CPUパワーを4倍に増強
-  memoryMiB: 4096  # メモリを4GBに大幅増量でパフォーマンス向上
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Environment variables and secrets.
+# env:
+  # Configure environment variables.
+  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
+  # - variable: MESSAGE
+  #   value: Hello world!
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
+
+  # Grant access to secrets in Cloud Secret Manager.
+  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  # - variable: MY_SECRET
+  #   secret: mySecretRef
