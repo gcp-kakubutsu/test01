@@ -1,0 +1,6 @@
+{
+  "frameworkOptions": {
+    "buildCommand": "npm run build",
+    "skipBuiltinNextjsOptimizations": false
+  }
+}

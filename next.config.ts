@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    };
+    return config;
+  },
   
   // Performance optimizations
   compress: true,
