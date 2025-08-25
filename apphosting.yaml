@@ -11,14 +11,7 @@ runConfig:
 env:
   # Configure environment variables.
   # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  - variable: PORT
-    value: "8080"
-    availability:
-      - RUNTIME
-  - variable: HOSTNAME
-    value: "0.0.0.0"
-    availability:
-      - RUNTIME
+  # PORT and HOSTNAME are reserved by Firebase App Hosting - do not set them
   - variable: NODE_ENV
     value: production
     availability:
