@@ -19,7 +19,7 @@ export default function LegalPage() {
           </Section>
 
           <Section title="所在地">
-            <p className="text-[#F9FAFB]">〒464-0075<br />名古屋市千種区内山1-9-2</p>
+            <p className="text-[#F9FAFB]">〒464-0075<br />愛知県名古屋市千種区<br />内山1丁目9番2号</p>
           </Section>
 
           <Section title="電話番号">

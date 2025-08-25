@@ -31,7 +31,7 @@ export default function CompanyPage() {
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>所在地</span>
-                <span className={styles.infoValue}>名古屋市千種区内山1-9-2</span>
+                <span className={styles.infoValue}>〒464-0075<br />愛知県名古屋市千種区<br />内山1丁目9番2号</span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>メール</span>
