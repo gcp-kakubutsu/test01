@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Building, Mail, CheckCircle } from 'lucide-react';
+import { Building, CheckCircle } from 'lucide-react';
 import styles from './company.module.scss';
 
 export default function CompanyPage() {
