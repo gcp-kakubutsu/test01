@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 export default function LegalPage() {
   return (
     <main className="py-2 min-h-[calc(100vh-80px)]">
