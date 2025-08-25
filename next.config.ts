@@ -1,23 +1,11 @@
 import type {NextConfig} from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  // output: 'standalone', // Firebase App Hostingは自動管理するため無効化
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  
-  // Firebase App Hostingのビルドでパスエイリアスを解決
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.join(__dirname, 'src'),
-    };
-    return config;
   },
   
   // Performance optimizations
