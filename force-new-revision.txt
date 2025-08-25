@@ -1,0 +1,4 @@
+Force new revision: 2025-08-26 03:58:00
+This file forces Firebase App Hosting to create a new revision.
+Random: ${Math.random()}
+Timestamp: ${Date.now()}
