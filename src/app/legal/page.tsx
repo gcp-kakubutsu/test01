@@ -20,6 +20,10 @@ export default function LegalPage() {
             <p className="text-[#F9FAFB]">代表取締役 桐山 一喜</p>
           </Section>
 
+          <Section title="所在地">
+            <p className="text-[#F9FAFB]">〒464-0075<br />名古屋市千種区内山1-9-2</p>
+          </Section>
+
           <Section title="電話番号">
             <p className="text-[#F9FAFB]">050-8886-7777</p>
             <p className="text-gray-400 text-sm mt-1">
