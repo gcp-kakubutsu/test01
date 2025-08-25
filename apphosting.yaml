@@ -7,10 +7,6 @@ runConfig:
   cpu: 2
   memoryMiB: 2048
 
-# Build and run scripts
-scripts:
-  runCommand: npx next start -H 0.0.0.0
-
 # Environment variables and secrets.
 # env:
   # Configure environment variables.
