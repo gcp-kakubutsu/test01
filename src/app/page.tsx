@@ -367,20 +367,10 @@ export default function LandingPage() {
           playsInline 
           className={styles.heroVideo}
           preload="auto"
-          poster="/img/woman.jpeg"
         >
-          <source src="/img/girl.webm" type="video/webm" />
           <source src="/img/girl.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
-        {/* Fallback image for browsers that don't support video */}
-        <Image
-          src="/img/woman.jpeg"
-          alt="Hero background"
-          fill
-          className={styles.heroFallbackImage}
-          priority
-          quality={75}
-        />
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
