@@ -6,7 +6,17 @@ runConfig:
   concurrency: 80
   cpu: 2
   memoryMiB: 2048
-  
+
+# Build configuration for Next.js standalone
+env:
+  - variable: HOSTNAME
+    value: "0.0.0.0"
+    availability:
+      - RUNTIME
+
+# Override commands for standalone build
+buildCommand: npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+runCommand: node .next/standalone/server.js
 
 # Environment variables and secrets.
 # env:
