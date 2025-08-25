@@ -7,6 +7,7 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
+
 # Environment variables and secrets.
 env:
   # Configure environment variables.
