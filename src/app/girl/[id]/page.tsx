@@ -316,7 +316,7 @@ export default function GirlProfilePage() {
     } finally {
       setIsProcessingLike(false);
     }
-  }, [currentUser, girl, isProcessingLike, isAuthenticated, router]);
+  }, [currentUser, girl, isProcessingLike, isAuthenticated, router, isPremium, subscriptionLoading]);
 
   // 無料ユーザーにアクセス拒否メッセージを表示
   if (showAccessDenied && !isPremium && !subscriptionLoading) {

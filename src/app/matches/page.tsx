@@ -429,7 +429,7 @@ export default function MatchesPage() {
     };
     
     loadMatchesAndLikes();
-  }, [matches, matchesLoading, currentUser]);
+  }, [matches, matchesLoading, currentUser, router]);
 
   // データ取得中の表示（認証状態に関係なく表示）
 

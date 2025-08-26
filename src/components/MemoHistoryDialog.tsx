@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -56,16 +56,7 @@ export default function MemoHistoryDialog({
   const [deletingMemoId, setDeletingMemoId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load memo history and single memo when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadMemoHistory();
-      checkTodaysMemo();
-      loadSingleMemo();
-    }
-  }, [open, userId, targetId]);
-
-  const loadMemoHistory = async () => {
+  const loadMemoHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
       const memos = await getMemoHistory(userId, targetId);
@@ -80,18 +71,18 @@ export default function MemoHistoryDialog({
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [userId, targetId, toast]);
 
-  const loadSingleMemo = async () => {
+  const loadSingleMemo = useCallback(async () => {
     try {
       const memo = await getMemo(userId, targetId);
       setSingleMemo(memo);
     } catch (error) {
       console.error('Failed to load single memo:', error);
     }
-  };
+  }, [userId, targetId]);
 
-  const checkTodaysMemo = async () => {
+  const checkTodaysMemo = useCallback(async () => {
     try {
       const memo = await getTodaysMemo(userId, targetId);
       if (memo) {
@@ -106,7 +97,16 @@ export default function MemoHistoryDialog({
     } catch (error) {
       console.error('Failed to check today\'s memo:', error);
     }
-  };
+  }, [userId, targetId]);
+
+  // Load memo history and single memo when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadMemoHistory();
+      checkTodaysMemo();
+      loadSingleMemo();
+    }
+  }, [open, loadMemoHistory, checkTodaysMemo, loadSingleMemo]);
 
   const handleSave = async () => {
     if (!content.trim()) {

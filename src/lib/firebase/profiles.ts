@@ -8,6 +8,9 @@ import { db } from './client';
  */
 export async function updateProfile(userId: string, data: Record<string, any>) {
   try {
+    if (!db) {
+      throw new Error('Firestore is not initialized');
+    }
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       ...data,

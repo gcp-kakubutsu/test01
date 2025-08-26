@@ -125,4 +125,5 @@ export interface GirlWithDetails extends GirlProfile {
   images: GirlImageUrl[];
   location?: string;
   photoDiaries?: PhotoDiary[];
+  girlTypes?: Array<{id: number, name: string} | string>; // Girl types can be objects or strings
 }

@@ -27,6 +27,11 @@ import Image from 'next/image'
 import styles from './search.module.scss'
 import './search-dialog.css'
 
+interface GirlType {
+  id?: number
+  name: string
+}
+
 interface UserProfile {
   id: string
   name: string
@@ -51,7 +56,7 @@ interface UserProfile {
   createdAt?: string
   matchScore?: number // おすすめ度スコア
   isGirlProfile?: boolean // MySQLの女の子データかどうか
-  girlTypes?: string[] // Girl types from database
+  girlTypes?: (string | GirlType)[] // Girl types from database - can be string or object
 }
 
 // 性癖・プレイスタイルのタグ
@@ -538,7 +543,7 @@ function AdvancedSearchContent() {
     } finally {
       setLoading(false)
     }
-  }, [LIMIT, hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
+  }, [hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
 
   // データ取得のタイミングを制御
   useEffect(() => {
@@ -739,7 +744,7 @@ function AdvancedSearchContent() {
         return selectedGirlTypes.some(selectedType => 
           user.girlTypes!.some(userType => {
             // Handle both string and object formats
-            const userTypeName = typeof userType === 'object' ? userType.name : userType
+            const userTypeName = typeof userType === 'object' && userType !== null && 'name' in userType ? userType.name : userType
             return userTypeName === selectedType
           })
         )
@@ -896,15 +901,15 @@ function AdvancedSearchContent() {
             score += user.girlTypes.length * 15
             // Bonus for popular types
             if (user.girlTypes.some(type => {
-              const typeName = typeof type === 'object' ? type.name : type
+              const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.includes('エロ')
             })) score += 20
             if (user.girlTypes.some(type => {
-              const typeName = typeof type === 'object' ? type.name : type
+              const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.includes('巨乳')
             })) score += 15
             if (user.girlTypes.some(type => {
-              const typeName = typeof type === 'object' ? type.name : type
+              const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.includes('癒し')
             })) score += 12
           }
@@ -933,7 +938,7 @@ function AdvancedSearchContent() {
             if (user.interests && user.interests.some(i => i && i.toLowerCase().includes(query))) score += 5
             // Check girl types for query match
             if (user.girlTypes && user.girlTypes.some(type => {
-              const typeName = typeof type === 'object' ? type.name : type
+              const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.toLowerCase().includes(query)
             })) score += 25
           }
@@ -946,7 +951,7 @@ function AdvancedSearchContent() {
           if (selectedGirlTypes.length > 0 && user.girlTypes) {
             const matchedTypes = selectedGirlTypes.filter(selectedType => 
               user.girlTypes!.some(userType => {
-                const userTypeName = typeof userType === 'object' ? userType.name : userType
+                const userTypeName = typeof userType === 'object' && userType !== null && 'name' in userType ? userType.name : userType
                 return userTypeName === selectedType
               })
             )
@@ -964,7 +969,7 @@ function AdvancedSearchContent() {
     
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [users, searchQuery, selectedTags, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas])
+  }, [users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*
@@ -1844,11 +1849,11 @@ function AdvancedSearchContent() {
                   {/* Girl Types with special styling */}
                   {user.girlTypes && user.girlTypes.slice(0, 2).map(type => (
                     <Badge 
-                      key={`type-${typeof type === 'object' ? type.id : type}`} 
+                      key={`type-${typeof type === 'object' && type !== null && 'id' in type ? type.id : type}`} 
                       variant="secondary" 
                       className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/40 text-pink-300"
                     >
-                      ✨ {typeof type === 'object' ? type.name : type}
+                      ✨ {typeof type === 'object' && type !== null && 'name' in type ? type.name : type}
                     </Badge>
                   ))}
                   {/* Regular interests */}

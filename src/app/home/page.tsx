@@ -563,7 +563,7 @@ export default function HomePage() {
       // LINEブラウザ対応: エラー時も既存データを保持
       // setGirlsFromDB([]);
     }
-  }, [currentUser, userLocation, userProfile, baseUrl]);
+  }, [currentUser, userLocation, userProfile, baseUrl, isSorting]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示

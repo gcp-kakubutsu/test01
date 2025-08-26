@@ -532,7 +532,7 @@ export default function LandingPage() {
               <h3 className={styles.solutionTitle}>
                 <div>NUKUNEは、</div>
                 <div>そんな悩みを解消する</div>
-                <div><span className={styles.solutionHighlight}>"性癖コンシェルジュ"</span>です</div>
+                <div><span className={styles.solutionHighlight}>&ldquo;性癖コンシェルジュ&rdquo;</span>です</div>
               </h3>
             </div>
             
@@ -807,7 +807,7 @@ export default function LandingPage() {
             </h2>
             <p className={`${styles.pricingSubtitle} ${styles.scrollFadeIn}`}>
               NUKUNEは、登録無料でご利用いただけます。<br />
-              さらに、あなたに合ったキャストを"すぐに"探せる「性癖マッチング検索」は、男性会員様限定の月額プランにてご提供しています。<br />
+              さらに、あなたに合ったキャストを&ldquo;すぐに&rdquo;探せる「性癖マッチング検索」は、男性会員様限定の月額プランにてご提供しています。<br />
               安心して始められる無料登録から、目的に合わせて最適なプランをお選びください。
             </p>
           </div>

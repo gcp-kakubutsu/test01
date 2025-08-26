@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       clearTimeout(timer);
     };
-  }, [currentUser?.uid]); // currentUser.uidの変更時のみ実行
+  }, [currentUser, hasInitialized]); // currentUser.uidの変更時のみ実行
 
   // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {

@@ -59,7 +59,7 @@ export default function MatchingSearch() {
       if (currentUser) {
         try {
           const prefs = await getMalePreferences(currentUser.uid)
-          setHasPreferences(prefs?.isComplete === true && prefs?.girlTypeIds?.length > 0)
+          setHasPreferences(prefs?.isComplete === true && (prefs?.girlTypeIds?.length || 0) > 0)
         } catch (error) {
           console.error('Failed to check preferences:', error)
         }
