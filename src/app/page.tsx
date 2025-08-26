@@ -810,9 +810,9 @@ export default function LandingPage() {
               <span className={styles.titleLine2}>（男性会員様）</span>
             </h2>
             <p className={`${styles.pricingSubtitle} ${styles.scrollFadeIn}`}>
-              NUKUNEは登録無料でお使いいただけます。<br />
-              ただし、良質な出会いを提供するため、男性会員様のキャスト検索機能は<br />
-              月額定額制の有料プランで提供しています。
+              NUKUNEは、登録無料でご利用いただけます。<br />
+              さらに、あなたに合ったキャストを"すぐに"探せる「性癖マッチング検索」は、男性会員様限定の月額プランにてご提供しています。<br />
+              安心して始められる無料登録から、目的に合わせて最適なプランをお選びください。
             </p>
           </div>
 
