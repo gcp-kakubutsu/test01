@@ -13,6 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CreditCard, MapPin, Lock, Loader2, Crown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import DocumentModal from '@/components/DocumentModal';
+import { TERMS_CONTENT, PRIVACY_CONTENT } from '@/utils/documents';
 import styles from './subscription.module.scss';
 
 interface PlanConfig {
@@ -129,6 +131,12 @@ export default function SubscriptionClient() {
   const [cardDisplay, setCardDisplay] = useState('•••• •••• •••• ••••');
   const [cardBrand, setCardBrand] = useState('CARD');
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  
+  // Document modal states
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [hasReadTerms, setHasReadTerms] = useState(false);
+  const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -283,6 +291,29 @@ export default function SubscriptionClient() {
         setIsLoadingAddress(false);
       }
     }
+  };
+
+  const handleTermsCheckboxChange = (checked: boolean) => {
+    if (checked && (!hasReadTerms || !hasReadPrivacy)) {
+      // Prevent checking if documents haven't been read
+      toast({
+        title: "ご確認ください",
+        description: "利用規約とプライバシーポリシーを最後までお読みください。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setFormData(prev => ({ ...prev, termsAccepted: checked }));
+  };
+
+  const handleTermsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowTermsModal(true);
+  };
+
+  const handlePrivacyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowPrivacyModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -703,13 +734,31 @@ export default function SubscriptionClient() {
                         <Checkbox
                           id="terms"
                           checked={formData.termsAccepted}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, termsAccepted: !!checked }))}
+                          onCheckedChange={(checked) => handleTermsCheckboxChange(!!checked)}
+                          disabled={!hasReadTerms || !hasReadPrivacy}
                           required
                         />
                         <label htmlFor="terms" className={styles.checkboxLabel}>
-                          <Link href="/terms" target="_blank">利用規約</Link>および
-                          <Link href="/privacy" target="_blank">プライバシーポリシー</Link>に同意します
+                          <a 
+                            href="#" 
+                            onClick={handleTermsClick}
+                            className={hasReadTerms ? styles.readLink : styles.unreadLink}
+                          >
+                            利用規約
+                          </a>
+                          および
+                          <a 
+                            href="#" 
+                            onClick={handlePrivacyClick}
+                            className={hasReadPrivacy ? styles.readLink : styles.unreadLink}
+                          >
+                            プライバシーポリシー
+                          </a>
+                          に同意します
                           <span className={styles.required}>*</span>
+                          {(!hasReadTerms || !hasReadPrivacy) && (
+                            <span className={styles.readHint}>（クリックして最後まで読んでください）</span>
+                          )}
                         </label>
                       </div>
                       <div className={styles.checkboxGroup}>
@@ -789,6 +838,25 @@ export default function SubscriptionClient() {
           </>
         )}
       </div>
+
+      {/* Document Modals */}
+      <DocumentModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="利用規約"
+        content={TERMS_CONTENT}
+        onFullyRead={() => setHasReadTerms(true)}
+        documentType="terms"
+      />
+      
+      <DocumentModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="プライバシーポリシー"
+        content={PRIVACY_CONTENT}
+        onFullyRead={() => setHasReadPrivacy(true)}
+        documentType="privacy"
+      />
     </div>
   );
 }
