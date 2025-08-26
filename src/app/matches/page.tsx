@@ -89,17 +89,18 @@ export default function MatchesPage() {
     scrollToTop();
   }, [currentPageMatches, currentPageSent, currentPageReceived]);
 
+  // 認証チェック: ログインしていない場合は即座にログインページへリダイレクト
+  useEffect(() => {
+    if (!isAuthenticated && !currentUser) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, currentUser, router]);
+
   // Load matches and likes
   useEffect(() => {
     const loadMatchesAndLikes = async () => {
       // 認証されていない場合はデータを取得しない
       if (!currentUser || !db) {
-        // 認証待ちのタイムアウトを1秒に短縮
-        setTimeout(() => {
-          if (!currentUser) {
-            router.push('/login');
-          }
-        }, 1000);
         return;
       }
       

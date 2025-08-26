@@ -63,8 +63,12 @@ export default function HomePage() {
   const [selectedGirlTypes, setSelectedGirlTypes] = useState<number[]>([]); // 選択された女の子タイプID
   const [showTypeFilter, setShowTypeFilter] = useState(false); // タイプフィルター表示フラグ
 
-  // search/advancedと同様、認証チェックを無効化（LINEブラウザ対応）
-  // ログインしていなくてもページを表示
+  // 認証チェック: ログインしていない場合はログインページへリダイレクト
+  useEffect(() => {
+    if (!isAuthenticated && !currentUser) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, currentUser, router]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
