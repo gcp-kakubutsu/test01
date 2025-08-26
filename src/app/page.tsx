@@ -793,9 +793,10 @@ export default function LandingPage() {
               <span className={styles.goldAccent}>完全定額制</span>で安心
             </h2>
             <p className={styles.fixedPriceDescription}>
-              NUKUNEは月額料金だけで利用できる、完全定額制のマッチングサービスです。<br />
-              メッセージのやり取りや閲覧に追加課金が発生することはありません。<br />
-              登録からマッチング、やり取り、予約まで、すべて月額料金に含まれています。
+              完全定額制で、追加料金なし。<br />
+              <br />
+              NUKUNEは、月額料金だけで使える安心のマッチングサービス。<br />
+              登録から検索・予約まで、すべてがワンストップで完結します。
             </p>
           </div>
         </div>
