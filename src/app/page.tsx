@@ -439,7 +439,9 @@ export default function LandingPage() {
               </div>
               
               <div className={styles.aboutTagline}>
-                <p>あなたの特別な時間を演出する、<br className="sp" />信頼できるパートナー。</p>
+                <p>検索から予約まで、スムーズに完結。<br />
+                あなたの特別な時間を演出する、<br />
+                信頼できるパートナー。</p>
                 <p className={styles.brandStatement}>それがNUKUNEです。</p>
               </div>
             </div>
