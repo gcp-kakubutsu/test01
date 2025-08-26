@@ -410,20 +410,18 @@ export default function LandingPage() {
           <div className={styles.aboutContent}>
             <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
               <p className={styles.aboutLead}>
-                あなたの性癖や嗜好に寄り添い、<br className={styles.mobileBreak} />
-                最適なキャストをご案内する
+                あなたの性癖や嗜好に寄り添い、最適なキャストをご案内する性癖マッチングコンシェルジュ「NUKUNE」
               </p>
-              <h3 className={styles.aboutBrand}>
-                <span className={styles.brandLine1}>性癖マッチングコンシェルジュ</span>
-                <span className={styles.brandLine2}>「NUKUNE」</span>
+              <h3 className={styles.aboutBrand} style={{ color: '#D4AF37', fontSize: '1.5em', fontWeight: 'bold', margin: '20px 0' }}>
+                条件入力は一度だけ。<br />すぐに会える、<br />新しい体験。
               </h3>
               
               <div className={styles.aboutSection}>
                 <p>
-                  インターネット異性紹介事業（届出受理番号 54250003000）として、法令を遵守し、安全・安心な出会いの場を提供しています。
+                  NUKUNEは「風俗情報サイトのデータ」と「NUKIPEDIA」を活用し、検索から予約までをワンストップで実現します。
                 </p>
                 <p>
-                  大手風俗情報サイトと提携し、当日すぐ案内可能な性癖、嗜好のあうキャストのみ常時提示しています。当日承認率には自信があります。
+                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供しています。
                 </p>
               </div>
               
