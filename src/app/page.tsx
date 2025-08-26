@@ -442,7 +442,7 @@ export default function LandingPage() {
                 <p>検索から予約まで、スムーズに完結。<br />
                 あなたの特別な時間を演出する、<br />
                 信頼できるパートナー。</p>
-                <p className={styles.brandStatement}>それがNUKUNEです。</p>
+                <p className={styles.brandStatement} style={{ fontSize: '1.5em', fontWeight: 'bold', marginTop: '15px' }}>それがNUKUNEです。</p>
               </div>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
@@ -624,17 +624,17 @@ export default function LandingPage() {
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <h3 className={styles.reasonTitle}>安心安全なプレイ</h3>
+              <h3 className={styles.reasonTitle}>検索から予約</h3>
               <p className={styles.reasonText}>
-                <span className={styles.reasonOld}>従来：女性とメッセージは不可</span>
-                <span className={styles.reasonNew}>Nukune：LINEなどのアプリは不要。Nukune内で全てのやり取りが完結します。</span>
+                <span className={styles.reasonOld}>従来：情報検索に時間がかかる</span>
+                <span className={styles.reasonNew}>NUKUNE：現在地・年齢・スタイル・性癖から、最短で検索＆予約まで完了</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <h3 className={styles.reasonTitle}>匿名性の確保</h3>
               <p className={styles.reasonText}>
                 <span className={styles.reasonOld}>従来：個人情報の登録が必須</span>
-                <span className={styles.reasonNew}>Nukune：完全匿名で安心して利用可能</span>
+                <span className={styles.reasonNew}>NUKUNE：本人確認は運営のみ。他ユーザーには完全匿名で安心利用</span>
               </p>
             </div>
           </div>
