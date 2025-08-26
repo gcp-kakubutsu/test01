@@ -612,15 +612,15 @@ export default function LandingPage() {
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <h3 className={styles.reasonTitle}>リアルタイムマッチング</h3>
               <p className={styles.reasonText}>
-                <span className={styles.reasonOld}>従来：店舗の空き状況のみ確認</span>
-                <span className={styles.reasonNew}>Nukune：今すぐ会える相性の良い女性を即座に検索</span>
+                <span className={styles.reasonOld}>従来：店舗の空き状況だけ確認</span>
+                <span className={styles.reasonNew}>NUKUNE：今すぐ会える、相性の合う女性をリアルタイムでご案内</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <h3 className={styles.reasonTitle}>性癖完全対応</h3>
               <p className={styles.reasonText}>
-                <span className={styles.reasonOld}>従来：一般的なサービスのみ</span>
-                <span className={styles.reasonNew}>Nukune：あなたの性癖に100%対応できる女性を厳選</span>
+                <span className={styles.reasonOld}>従来：検索に時間がかかる</span>
+                <span className={styles.reasonNew}>NUKUNE：あなたの容姿・性癖・嗜好に合うキャストをすぐに提案</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
