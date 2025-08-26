@@ -766,7 +766,7 @@ export default function LandingPage() {
               },
               {
                 question: 'どのような人が利用していますか？',
-                answer: '真剣な出会いを求める18歳以上の大人の方々に\nご利用いただいております。\n\n幅広い年齢層の方が、\n理想のパートナー探しにご活用されています。'
+                answer: '「今夜は誰かに会いたい」「空いた時間を楽しみたい」──そんな気分の時に。\nNUKUNEなら、あなたの好みに合うキャストをすぐに見つけ、\nシンプルな手順で予約まで完結できます。\n多くの大人の男性に選ばれている、安心のマッチングサービスです。'
               }
             ].map((item, index) => (
               <div key={index} className={`${styles.faqItem} ${styles.scrollStagger}`} ref={(el) => {
