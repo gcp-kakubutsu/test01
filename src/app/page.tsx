@@ -651,24 +651,19 @@ export default function LandingPage() {
             </div>
             <div className={styles.stepsContainer}>
               <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-                <div className={styles.stepNumber}>1</div>
-                <h3 className={styles.stepTitle}>プロフィール設定</h3>
-                <p className={styles.stepDescription}>理想のマッチングのため、プロフィールを詳細に記入しましょう。</p>
-              </div>
-              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-                <div className={styles.stepNumber}>2</div>
-                <h3 className={styles.stepTitle}>本人確認</h3>
-                <p className={styles.stepDescription}>信頼できるコミュニティのため、本人確認にご協力ください。</p>
-              </div>
-              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-                <div className={styles.stepNumber}>3</div>
-                <h3 className={styles.stepTitle}>プラン選択</h3>
-                <p className={styles.stepDescription}>プレミアムプランに登録して、全ての機能を利用しましょう。</p>
-              </div>
-              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-                <div className={styles.stepNumber}>4</div>
-                <h3 className={styles.stepTitle}>積極的なアプローチ</h3>
-                <p className={styles.stepDescription}>マッチを待つだけでなく、積極的に検索したり投稿したりしましょう！</p>
+                <h3 className={styles.stepTitle}>プロフィール設定について</h3>
+                <div className={styles.stepDescription}>
+                  <p>理想の出会いを探すなら、プロフィールは詳しく入力しましょう。<br />
+                  NUKUNEでは、以下の機能を活用できます。</p>
+                  
+                  <div className={styles.stepPoints}>
+                    <p className={styles.stepPoint}>⑴いいね・メモ機能で気になるキャストを自分だけで管理</p>
+                    <p className={styles.stepPoint}>⑵気分に合わせてプロフィールを変更 → 新しいタイプを即提案</p>
+                    <p className={styles.stepPoint}>⑶マッチ履歴や投稿機能で、自分だけの出会い記録を作成</p>
+                  </div>
+                  
+                  <p className={styles.stepEmphasis}>あなたのプロフィールが充実するほど、精度の高いマッチングが実現します。</p>
+                </div>
               </div>
             </div>
           </div>

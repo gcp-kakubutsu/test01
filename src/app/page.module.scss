@@ -1530,14 +1530,41 @@ $border-color-light: #E5E7EB;
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+
+  // カードが1枚のみの場合は中央・広めで表示
+  .stepCard:only-child {
+    grid-column: 1 / -1;
+    max-width: 760px;
+    margin: 0 auto;
+  }
 }
 
 .stepCard {
   text-align: center;
-  padding: 1.5rem 1rem;
-  border-radius: 15px;
+  padding: 2rem 1.5rem;
+  border-radius: 18px;
   transition: all 0.3s ease;
-  background: transparent;
+  background: linear-gradient(180deg, #141414, #0f0f0f);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 2px 0 rgba(255, 255, 255, 0.02) inset;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.35), transparent);
+    animation: shimmer 3s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
   
   @media (max-width: 1200px) {
     padding: 1.2rem 0.8rem;
@@ -1545,17 +1572,18 @@ $border-color-light: #E5E7EB;
   
   :global(.light) & {
     background: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(240, 48, 106, 0.25);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
   }
 
   &:hover {
-    background: rgba(212, 175, 55, 0.05);
-    transform: translateY(-5px);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(212, 175, 55, 0.22);
+    border-color: rgba(212, 175, 55, 0.35);
     
     :global(.light) & {
-      background: rgba(240, 48, 106, 0.05);
-      border-color: rgba(240, 48, 106, 0.1);
+      box-shadow: 0 14px 40px rgba(240, 48, 106, 0.18);
+      border-color: rgba(240, 48, 106, 0.35);
     }
   }
 }
@@ -1580,9 +1608,13 @@ $border-color-light: #E5E7EB;
 }
 
 .stepTitle {
-  font-size: 1.1rem;
-  margin-bottom: 0.8rem;
-  color: $text-light;
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f3e5c1, #caa35b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 
   @media (max-width: 1200px) {
     font-size: 1rem;
@@ -1595,7 +1627,10 @@ $border-color-light: #E5E7EB;
   }
 
   :global(.light) & {
-    color: $text-dark;
+    background: linear-gradient(135deg, #F0306A, #FF6B9D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
@@ -1603,6 +1638,9 @@ $border-color-light: #E5E7EB;
   color: $text-gray;
   line-height: 1.5;
   font-size: 0.9rem;
+  text-align: left;
+  max-width: 560px;
+  margin: 0 auto;
 
   @media (max-width: 1200px) {
     font-size: 0.85rem;
@@ -1618,14 +1656,52 @@ $border-color-light: #E5E7EB;
   }
 }
 
+// Step description detail points (replaces inline styles)
+.stepPoints {
+  margin-top: 20px;
+  text-align: left;
+  padding-left: 1rem;
+  border-left: 2px solid rgba($accent-gold, 0.25);
+
+  @media (max-width: 768px) {
+    margin-top: 16px;
+  }
+}
+
+.stepPoint {
+  margin-bottom: 12px;
+  line-height: 1.7;
+  color: inherit;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.stepEmphasis {
+  margin-top: 20px;
+  color: $accent-gold;
+  font-weight: 700;
+
+  :global(.light) & {
+    color: $accent-burgundy;
+  }
+
+  @media (max-width: 768px) {
+    margin-top: 16px;
+  }
+}
+
 // Safety Section
 .safety {
   width: 100%;
-  background-color: #0a0a0a;
   padding: 4rem 0;
+  background: radial-gradient(900px 500px at 80% -10%, rgba(212, 175, 55, 0.10), transparent 60%),
+              #0a0a0a;
 
   :global(.light) & {
-    background-color: #FFFFFF;
+    background: radial-gradient(900px 500px at 80% -10%, rgba(240, 48, 106, 0.08), transparent 60%),
+                #FFFFFF;
   }
 }
 
@@ -1641,28 +1717,77 @@ $border-color-light: #E5E7EB;
 }
 
 .safetyCard {
-  background: $card-bg;
-  border: 1px solid $border-color;
-  border-radius: 15px;
+  background: linear-gradient(180deg, #141414, #0f0f0f);
+  border: 1px solid rgba($accent-gold, 0.25);
+  border-radius: 18px;
   padding: 2rem;
   transition: all 0.3s ease;
   color: $text-light;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 2px 0 rgba(255, 255, 255, 0.02) inset;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.35), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)) border-box,
+      conic-gradient(from var(--angle, 0deg), transparent, rgba(202,163,91,.35), transparent) border-box;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
 
   :global(.light) & {
     background: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    border: 1px solid rgba(240, 48, 106, 0.25);
     color: $text-dark;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+
+    &::before {
+      background: linear-gradient(90deg, transparent, rgba(240, 48, 106, 0.25), transparent);
+    }
+
+    &::after {
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,0)) border-box,
+        conic-gradient(from var(--angle, 0deg), transparent, rgba(240, 48, 106, .3), transparent) border-box;
+    }
   }
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-    border-color: $accent-gold;
-    
+    transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(212, 175, 55, 0.22);
+    border-color: rgba($accent-gold, 0.35);
+
+    &::after { opacity: 1; }
+
     :global(.light) & {
-      box-shadow: 0 10px 30px rgba(240, 48, 106, 0.15);
-      border-color: $accent-burgundy;
+      box-shadow: 0 14px 40px rgba(240, 48, 106, 0.18);
+      border-color: rgba(240, 48, 106, 0.35);
     }
   }
 }
@@ -1675,32 +1800,44 @@ $border-color-light: #E5E7EB;
 }
 
 .safetyIcon {
-  width: 40px;
-  height: 40px;
-  background: rgba(212, 175, 55, 0.1);
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: $accent-gold;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
   
   :global(.light) & {
-    background: rgba(240, 48, 106, 0.1);
+    background: linear-gradient(135deg, rgba(240, 48, 106, 0.25), rgba(240, 48, 106, 0.1));
+    border: 1px solid rgba(240, 48, 106, 0.35);
     color: $accent-burgundy;
+    box-shadow: 0 4px 12px rgba(240, 48, 106, 0.2);
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 }
 
 .safetyTitle {
   font-size: 1.1rem;
-  color: $text-light;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f3e5c1, #caa35b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.01em;
 
   :global(.light) & {
-    color: $text-dark;
+    background: linear-gradient(135deg, #F0306A, #FF6B9D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
   @media (max-width: 768px) {
