@@ -43,12 +43,15 @@ export function Header() {
                 <div className={styles.mobileNav}>
                   <Link href="/home" className={styles.iconLink}>
                     <Home size={24} />
+                    <span className={styles.iconLabel}>ホーム</span>
                   </Link>
                   <Link href="/profile/edit" className={styles.iconLink}>
                     <User size={24} />
+                    <span className={styles.iconLabel}>プロフィール</span>
                   </Link>
                   <button onClick={handleLogout} className={styles.iconButton}>
                     <LogOut size={24} />
+                    <span className={styles.iconLabel}>ログアウト</span>
                   </button>
                 </div>
               </>
