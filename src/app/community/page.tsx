@@ -953,6 +953,9 @@ export default function CommunityPage() {
       if (newCommunityImageFile) {
         setIsUploadingImage(true);
         try {
+          if (!storage) {
+            throw new Error('Storage is not initialized');
+          }
           const storageRef = ref(storage, `community-images/${Date.now()}_${newCommunityImageFile.name}`);
           const snapshot = await uploadBytes(storageRef, newCommunityImageFile);
           imageUrl = await getDownloadURL(snapshot.ref);

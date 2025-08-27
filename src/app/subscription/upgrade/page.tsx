@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -89,7 +89,7 @@ const PLAN_OPTIONS = [
   }
 ];
 
-export default function UpgradePage() {
+function UpgradeContent() {
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -808,5 +808,17 @@ export default function UpgradePage() {
         documentType="privacy"
       />
     </div>
+  );
+}
+
+export default function UpgradePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <UpgradeContent />
+    </Suspense>
   );
 }

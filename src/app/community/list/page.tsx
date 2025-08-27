@@ -119,7 +119,7 @@ export default function CommunityListPage() {
       isMounted = false;
       if (unsubscribe) unsubscribe();
     };
-  }, [currentUser?.uid, isPremium, subscriptionLoading]);
+  }, [currentUser, currentUser?.uid, isPremium, subscriptionLoading]);
 
   const handleJoinCommunity = async (communityId: string, isJoined: boolean) => {
     if (!currentUser) return;

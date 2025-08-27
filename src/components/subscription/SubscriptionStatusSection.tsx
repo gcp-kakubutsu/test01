@@ -43,6 +43,9 @@ export function SubscriptionStatusSection() {
       const db = getFirebaseDb();
       if (!db) throw new Error('Database not initialized');
       
+      if (!auth) {
+        throw new Error('Auth is not initialized');
+      }
       const user = auth.currentUser;
       if (!user) throw new Error('User not authenticated');
       

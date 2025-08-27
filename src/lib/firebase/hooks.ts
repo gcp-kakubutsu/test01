@@ -318,6 +318,7 @@ export function useUserStats(userId?: string) {
         let newStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 };
 
         // Get likes sent BY this user (送信したいいね)
+        if (!db) throw new Error('Firestore is not initialized');
         const likesRef = collection(db, 'likes');
         const sentLikesQuery = query(likesRef, where('from', '==', targetUserId));
         
@@ -329,6 +330,7 @@ export function useUserStats(userId?: string) {
         }
 
         // Get ALL matches where user is involved
+        if (!db) throw new Error('Firestore is not initialized');
         const matchesRef = collection(db, 'matches');
         const matchesQuery = query(matchesRef, where('users', 'array-contains', targetUserId));
         
@@ -340,6 +342,7 @@ export function useUserStats(userId?: string) {
         }
 
         // Get profile views (リクエスト)
+        if (!db) throw new Error('Firestore is not initialized');
         const viewsRef = collection(db, 'profileViews');
         const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
         

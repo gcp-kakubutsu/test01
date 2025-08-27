@@ -39,7 +39,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // サブスクリプション情報を取得
-  const fetchSubscription = async () => {
+  const fetchSubscription = React.useCallback(async () => {
     if (!currentUser?.uid) {
       setUserSubscription(null);
       setIsLoading(false);
@@ -74,12 +74,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser?.uid]);
 
   // currentUserが変更されたら再取得
   useEffect(() => {
     fetchSubscription();
-  }, [currentUser?.uid]);
+  }, [fetchSubscription]);
 
   // 定期的にトライアル状態をチェック（1分ごと）
   useEffect(() => {
