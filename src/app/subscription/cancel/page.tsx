@@ -39,11 +39,11 @@ const CANCEL_REASONS = [
 ];
 
 const PREMIUM_FEATURES = [
-  { icon: Heart, label: '無制限のいいね', description: '1日10回の制限がかかります' },
-  { icon: Eye, label: '詳細プロフィール閲覧', description: '基本情報のみ表示されます' },
-  { icon: MessageCircle, label: 'メッセージ既読確認', description: '既読状態が分からなくなります' },
-  { icon: Search, label: '高度な検索フィルター', description: '基本的な検索のみ利用可能' },
-  { icon: Users, label: '無制限マッチング', description: '月10人までの制限' }
+  { icon: Search, label: 'キャスト検索機能', description: '男性会員はキャスト検索ができなくなります' },
+  { icon: Eye, label: 'プロフィール写真', description: '写真にモザイクがかかり、顔が見えなくなります' },
+  { icon: Users, label: 'マッチング機能', description: 'マッチング機能が制限されます' },
+  { icon: MessageCircle, label: 'カスタマーサポート', description: '優先サポートが受けられなくなります' },
+  { icon: Heart, label: '全ての基本機能', description: '一部の基本機能が制限されます' }
 ];
 
 export default function CancelPage() {
@@ -196,6 +196,11 @@ export default function CancelPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg p-3 mb-4">
+                <p className="text-orange-800 dark:text-orange-300 text-sm font-semibold">
+                  ※ このサービスは男性会員様のみご利用いただけます
+                </p>
+              </div>
               <p className="text-yellow-700 dark:text-yellow-400 font-semibold mb-2">
                 解約すると以下の機能が制限されます：
               </p>
@@ -291,28 +296,6 @@ export default function CancelPage() {
           </CardContent>
         </Card>
 
-        {/* Special Offer */}
-        <Card className="border-pink-300 dark:border-pink-400 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-gray-800 dark:text-gray-100 mb-1">
-                  🎁 解約を再検討していただけませんか？
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  今なら特別割引をご用意しています
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/subscription/offers')}
-                className="border-pink-300 hover:bg-pink-50 dark:hover:bg-pink-900/20"
-              >
-                オファーを見る
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Action Buttons */}
         <div className="flex gap-3">

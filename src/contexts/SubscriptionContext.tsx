@@ -63,8 +63,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         const updatedData = await getUserSubscriptionData(currentUser.uid);
         setUserSubscription(updatedData);
       }
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
+    } catch (error: any) {
+      // 権限エラーの場合は静かに処理
+      if (error?.code !== 'permission-denied' && 
+          !error?.message?.includes('Missing or insufficient permissions')) {
+        // 権限エラー以外の場合のみログ出力
+        console.error('Error fetching subscription:', error);
+      }
       setUserSubscription(null);
     } finally {
       setIsLoading(false);

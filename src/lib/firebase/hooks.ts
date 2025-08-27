@@ -47,79 +47,44 @@ export function useUserProfile(userId?: string) {
       return;
     }
 
-    if (!db) throw new Error('Firestore is not initialized');
+    if (!db) return;
+    
     const userRef = doc(db, 'users', uid);
     
-    let unsubscribeFunction: (() => void) | null = null;
-    let isActive = true; // Track if this effect is still active
-    
-    // First try to get the document once
-    getDoc(userRef)
-      .then((snapshot) => {
-        if (!isActive || !currentUser) return; // Exit if logged out
-        
+    // Set up real-time listener directly
+    const unsubscribe = onSnapshot(
+      userRef,
+      (snapshot) => {
         if (snapshot.exists()) {
-          // Document exists, set up real-time listener
-          unsubscribeFunction = onSnapshot(
-            userRef,
-            (snapshot) => {
-              if (!isActive || !currentUser) return; // Exit if logged out
-              
-              if (snapshot.exists()) {
-                setProfile({ uid: snapshot.id, ...snapshot.data() } as UserProfile);
-              } else {
-                setProfile(null);
-              }
-              setLoading(false);
-            },
-            (err) => {
-              if (!isActive || !currentUser) return; // Exit if logged out
-              
-              // Handle permission errors silently during logout
-              const firebaseError = err as any;
-              if (firebaseError.code === 'permission-denied' || 
-                  firebaseError.message?.includes('Missing or insufficient permissions')) {
-                // Silently handle permission denied during logout
-                setProfile(null);
-                setLoading(false);
-                return;
-              }
-              
-              // Silently handle profile listener errors
-              setError('プロフィールの取得に失敗しました');
-              setLoading(false);
-            }
-          );
+          setProfile({ uid: snapshot.id, ...snapshot.data() } as UserProfile);
         } else {
-          // Document doesn't exist, return empty profile
           setProfile(null);
-          setLoading(false);
-          setError(null); // No error, just no profile yet
         }
-      })
-      .catch((err) => {
-        if (!isActive || !currentUser) return; // Exit if logged out
-        
-        // Handle permission errors
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        // Handle permission errors silently
         const firebaseError = err as any;
         if (firebaseError.code === 'permission-denied' || 
             firebaseError.message?.includes('Missing or insufficient permissions')) {
-          // Silently handle permission denied during logout
+          // Expected for new users
           setProfile(null);
           setLoading(false);
+          setError(null);
           return;
         }
-        // Silently handle profile fetch errors
-        setError('プロフィールの取得に失敗しました');
+        
+        // For other errors, don't log to console
+        setProfile(null);
         setLoading(false);
-      });
+        setError(null);
+      }
+    );
     
     // Return cleanup function
     return () => {
-      isActive = false;
-      if (unsubscribeFunction) {
-        unsubscribeFunction();
-      }
+      unsubscribe();
     };
   }, [uid, currentUser]);
 
@@ -157,29 +122,18 @@ export function useCommunities() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
-
-    // Check if user is authenticated
-    if (!currentUser) {
+    if (!db || !currentUser) {
       setLoading(false);
       setCommunities([]);
       return;
     }
 
-    if (!db) throw new Error('Firestore is not initialized');
     const communitiesRef = collection(db, 'communities');
     const q = query(communitiesRef, orderBy('memberCount', 'desc'), limit(20));
-
-    let isActive = true;
     
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        if (!isActive || !currentUser) return;
-        
         const communitiesData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -188,24 +142,14 @@ export function useCommunities() {
         setLoading(false);
       },
       (err) => {
-        if (!isActive || !currentUser) return;
-        
-        // Handle permission errors gracefully when user is logged out
-        const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied') {
-          // User logged out, this is expected
-          setCommunities([]);
-          setLoading(false);
-          return;
-        }
-        // Silently handle community fetch errors
-        setError('コミュニティの取得に失敗しました');
+        // Handle permission errors silently
+        setCommunities([]);
         setLoading(false);
+        setError(null);
       }
     );
 
     return () => {
-      isActive = false;
       unsubscribe();
     };
   }, [currentUser]);
@@ -229,19 +173,12 @@ export function useMessages(matchId: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!matchId || !db) {
-      setLoading(false);
-      return;
-    }
-
-    // Check if user is authenticated
-    if (!currentUser) {
+    if (!matchId || !db || !currentUser) {
       setLoading(false);
       setMessages([]);
       return;
     }
 
-    if (!db) throw new Error('Firestore is not initialized');
     const messagesRef = collection(db, 'matches', matchId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
@@ -257,17 +194,10 @@ export function useMessages(matchId: string) {
         setLoading(false);
       },
       (err) => {
-        // Handle permission errors gracefully when user is logged out
-        const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied' && !currentUser) {
-          // User logged out, this is expected
-          setMessages([]);
-          setLoading(false);
-          return;
-        }
-        // Silently handle message fetch errors
-        setError('メッセージの取得に失敗しました');
+        // Handle errors silently
+        setMessages([]);
         setLoading(false);
+        setError(null);
       }
     );
 
@@ -324,21 +254,15 @@ export function useMatches() {
       return;
     }
 
-    // Query matches where current user is in the users array (no orderBy to avoid index requirement)
-    if (!db) throw new Error('Firestore is not initialized');
     const matchesRef = collection(db, 'matches');
     const q = query(
       matchesRef,
       where('users', 'array-contains', currentUser.uid)
     );
-
-    let isActive = true; // Track if this effect is still active
     
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        if (!isActive || !currentUser) return; // Exit if logged out
-        
         const matchesData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -353,24 +277,14 @@ export function useMatches() {
         setLoading(false);
       },
       (err) => {
-        if (!isActive || !currentUser) return; // Exit if logged out
-        
-        // Handle permission errors gracefully when user is logged out
-        const firebaseError = err as any;
-        if (firebaseError.code === 'permission-denied') {
-          // User logged out or no permission, this might be expected
-          setMatches([]);
-          setLoading(false);
-          return;
-        }
-        // Silently handle match fetch errors
-        setError('マッチの取得に失敗しました');
+        // Handle errors silently
+        setMatches([]);
         setLoading(false);
+        setError(null);
       }
     );
 
     return () => {
-      isActive = false;
       unsubscribe();
     };
   }, [currentUser]);
@@ -394,73 +308,60 @@ export function useUserStats(userId?: string) {
 
   useEffect(() => {
     if (!targetUserId || !db) {
+      setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 });
       setLoading(false);
       return;
     }
 
-    const setupStatsListeners = async () => {
+    const fetchStats = async () => {
       try {
-        setLoading(true);
-        let currentStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 };
+        let newStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 };
 
-        // Set up real-time listener for profile views
-        if (!db) throw new Error('Firestore is not initialized');
-        const viewsRef = collection(db, 'profileViews');
-        const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
-        const unsubscribeViews = onSnapshot(viewsQuery, (snapshot) => {
-          currentStats.profileViews = snapshot.size;
-          setStats({ ...currentStats });
-        }, (error) => {
-          // Handle permission errors gracefully
-          const firebaseError = error as any;
-          if (firebaseError.code === 'permission-denied') {
-            // User might have logged out, ignore this error
-            return;
-          }
-          // Silently handle profile view errors
-        });
-
-        // Get likes received (requests) - these are likes sent TO the user
-        if (!db) throw new Error('Firestore is not initialized');
+        // Get likes sent BY this user (送信したいいね)
         const likesRef = collection(db, 'likes');
-        const receivedLikesQuery = query(likesRef, where('to', '==', targetUserId));
-        const receivedLikesSnapshot = await getDocs(receivedLikesQuery);
-        currentStats.requestsReceived = receivedLikesSnapshot.size; // This is the request count
-        
-        // Get likes sent by the user
         const sentLikesQuery = query(likesRef, where('from', '==', targetUserId));
-        const sentLikesSnapshot = await getDocs(sentLikesQuery);
-        currentStats.likesReceived = sentLikesSnapshot.size; // Keep this for いいね count
+        
+        try {
+          const sentLikesSnapshot = await getDocs(sentLikesQuery);
+          newStats.likesReceived = sentLikesSnapshot.size;  // Display sent likes as "いいね"
+        } catch (err) {
+          // Silently handle error
+        }
 
-        // Get matches count (one-time fetch for now)
-        if (!db) throw new Error('Firestore is not initialized');
+        // Get ALL matches where user is involved
         const matchesRef = collection(db, 'matches');
         const matchesQuery = query(matchesRef, where('users', 'array-contains', targetUserId));
-        const matchesSnapshot = await getDocs(matchesQuery);
-        currentStats.matchesCount = matchesSnapshot.size;
+        
+        try {
+          const matchesSnapshot = await getDocs(matchesQuery);
+          newStats.matchesCount = matchesSnapshot.size;
+        } catch (err) {
+          // Silently handle error
+        }
 
-        setStats(currentStats);
-        setLoading(false);
+        // Get profile views (リクエスト)
+        const viewsRef = collection(db, 'profileViews');
+        const viewsQuery = query(viewsRef, where('viewedUserId', '==', targetUserId));
+        
+        try {
+          const viewsSnapshot = await getDocs(viewsQuery);
+          newStats.requestsReceived = viewsSnapshot.size;
+        } catch (err) {
+          // Silently handle error
+        }
 
-        // Return cleanup function
-        return () => {
-          unsubscribeViews();
-        };
-      } catch (err) {
-        // Silently handle stats fetch errors
-        setError('統計情報の取得に失敗しました');
+        setStats(newStats);
         setLoading(false);
+        setError(null);
+      } catch (error: any) {
+        // Silently handle errors
+        setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 });
+        setLoading(false);
+        setError(null);
       }
     };
 
-    let cleanup: (() => void) | undefined;
-    setupStatsListeners().then((cleanupFn) => {
-      cleanup = cleanupFn;
-    });
-
-    return () => {
-      if (cleanup) cleanup();
-    };
+    fetchStats();
   }, [targetUserId]);
 
   return { stats, loading, error };

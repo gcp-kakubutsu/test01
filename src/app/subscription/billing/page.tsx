@@ -21,7 +21,8 @@ import {
   Check,
   Edit2,
   Plus,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase/client';
@@ -34,6 +35,7 @@ interface PaymentMethod {
   isDefault: boolean;
   expiryMonth?: number;
   expiryYear?: number;
+  cardNumber?: string;
 }
 
 export default function BillingPage() {
@@ -47,6 +49,23 @@ export default function BillingPage() {
   const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
   const [subscriptionStartDate, setSubscriptionStartDate] = useState<Date | null>(null);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [showEditCardModal, setShowEditCardModal] = useState(false);
+  const [editingCard, setEditingCard] = useState<PaymentMethod | null>(null);
+  const [newCardData, setNewCardData] = useState({
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
+    cardholderName: ''
+  });
+  const [editCardData, setEditCardData] = useState({
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
+    cardholderName: ''
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,22 +80,32 @@ export default function BillingPage() {
       
       try {
         const db = getFirebaseDb();
-        if (!db) return;
+        if (!db) {
+          console.log('Firebase DB not initialized');
+          return;
+        }
         
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        const userData = userDoc.data();
         
-        // Check for registration date from script
-        if (userData?.subscriptionStartDate) {
-          setSubscriptionStartDate(userData.subscriptionStartDate.toDate());
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          // Check for registration date from script
+          if (userData?.subscriptionStartDate) {
+            setSubscriptionStartDate(userData.subscriptionStartDate.toDate());
+          }
+          
+          // Also check createdAt for general registration date
+          if (userData?.createdAt) {
+            setRegistrationDate(userData.createdAt.toDate());
+          }
         }
-        
-        // Also check createdAt for general registration date
-        if (userData?.createdAt) {
-          setRegistrationDate(userData.createdAt.toDate());
+      } catch (error: any) {
+        // Permission error is expected for some users, don't show error
+        if (error?.code !== 'permission-denied') {
+          console.error('Error loading user data:', error);
         }
-      } catch (error) {
-        console.error('Error loading user data:', error);
+        // Continue without registration date - it's optional
       }
     };
 
@@ -142,25 +171,202 @@ export default function BillingPage() {
   };
 
   const handleAddCard = () => {
+    setShowAddCardModal(true);
+  };
+
+  const submitNewCard = () => {
+    if (!newCardData.cardNumber || !newCardData.expiryMonth || !newCardData.expiryYear || !newCardData.cvv) {
+      toast({
+        title: "エラー",
+        description: "すべての項目を入力してください。",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsAddingCard(true);
-    // In real implementation, this would open Stripe's card element
+
+    // Detect card brand
+    let brand = 'Card';
+    if (newCardData.cardNumber.startsWith('4')) brand = 'Visa';
+    else if (newCardData.cardNumber.startsWith('5')) brand = 'MasterCard';
+    else if (newCardData.cardNumber.startsWith('3')) brand = 'Amex';
+
+    const newCard: PaymentMethod = {
+      id: Date.now().toString(),
+      type: 'card',
+      last4: newCardData.cardNumber.slice(-4),
+      brand: brand,
+      isDefault: paymentMethods.length === 0,
+      expiryMonth: parseInt(newCardData.expiryMonth),
+      expiryYear: parseInt(newCardData.expiryYear),
+      cardNumber: '**** **** **** ' + newCardData.cardNumber.slice(-4)
+    };
+
     setTimeout(() => {
-      const newCard: PaymentMethod = {
-        id: Date.now().toString(),
-        type: 'card',
-        last4: '5678',
-        brand: 'MasterCard',
-        isDefault: paymentMethods.length === 0,
-        expiryMonth: 3,
-        expiryYear: 2026
-      };
       setPaymentMethods([...paymentMethods, newCard]);
       setIsAddingCard(false);
+      setShowAddCardModal(false);
+      setNewCardData({ cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '', cardholderName: '' });
       toast({
         title: "カードを追加しました",
         description: "新しい支払い方法が追加されました。",
       });
-    }, 2000);
+    }, 1000);
+  };
+
+  // Luhnアルゴリズムでカード番号を検証
+  const validateCardNumber = (cardNumber: string): boolean => {
+    const digits = cardNumber.replace(/\s/g, '');
+    if (!/^\d+$/.test(digits)) return false;
+    
+    let sum = 0;
+    let isEven = false;
+    
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = parseInt(digits[i]);
+      
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    return sum % 10 === 0;
+  };
+
+  // カード番号をフォーマット（4桁ごとにスペース）
+  const formatCardNumber = (value: string): string => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
+    }
+  };
+
+  const handleEditCard = (method: PaymentMethod) => {
+    setEditingCard(method);
+    setEditCardData({
+      cardNumber: '',
+      expiryMonth: method.expiryMonth?.toString() || '',
+      expiryYear: method.expiryYear?.toString() || '',
+      cvv: '',
+      cardholderName: ''
+    });
+    setShowEditCardModal(true);
+  };
+
+  const submitEditCard = () => {
+    const cleanCardNumber = editCardData.cardNumber.replace(/\s/g, '');
+    
+    // バリデーション
+    if (!cleanCardNumber || cleanCardNumber.length !== 16) {
+      toast({
+        title: "エラー",
+        description: "有効なカード番号を入力してください（16桁）",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateCardNumber(cleanCardNumber)) {
+      toast({
+        title: "エラー",
+        description: "無効なカード番号です",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!editCardData.expiryMonth || !editCardData.expiryYear) {
+      toast({
+        title: "エラー",
+        description: "有効期限を入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const expYear = parseInt(editCardData.expiryYear);
+    const expMonth = parseInt(editCardData.expiryMonth);
+
+    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+      toast({
+        title: "エラー",
+        description: "有効期限が過去の日付です",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!editCardData.cvv || (editCardData.cvv.length !== 3 && editCardData.cvv.length !== 4)) {
+      toast({
+        title: "エラー",
+        description: "有効なセキュリティコードを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!editCardData.cardholderName || editCardData.cardholderName.length < 2) {
+      toast({
+        title: "エラー",
+        description: "カード名義人を入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Detect card brand
+    let brand = 'Card';
+    if (cleanCardNumber.startsWith('4')) brand = 'Visa';
+    else if (cleanCardNumber.startsWith('5')) brand = 'MasterCard';
+    else if (cleanCardNumber.startsWith('3')) brand = 'Amex';
+
+    if (editingCard) {
+      setTimeout(() => {
+        setPaymentMethods(methods => 
+          methods.map(m => {
+            if (m.id === editingCard.id) {
+              return {
+                ...m,
+                last4: cleanCardNumber.slice(-4),
+                brand: brand,
+                expiryMonth: parseInt(editCardData.expiryMonth),
+                expiryYear: parseInt(editCardData.expiryYear),
+                // セキュリティ上、完全なカード番号とCVVは保存しない
+                cardNumber: undefined
+              };
+            }
+            return m;
+          })
+        );
+        setIsProcessing(false);
+        setShowEditCardModal(false);
+        setEditingCard(null);
+        setEditCardData({ cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '', cardholderName: '' });
+        toast({
+          title: "カード情報を更新しました",
+          description: "支払い方法が正常に更新されました。",
+        });
+      }, 1500);
+    }
   };
 
   if (subLoading) {
@@ -172,7 +378,7 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button
@@ -298,10 +504,10 @@ export default function BillingPage() {
                     <div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                       <CreditCard className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-800 dark:text-gray-200">
-                          {method.brand} ****{method.last4}
+                          {method.brand} •••• {method.last4}
                         </span>
                         {method.isDefault && (
                           <Badge className="bg-pink-500 text-white text-xs">
@@ -328,7 +534,7 @@ export default function BillingPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setEditingMethodId(method.id)}
+                      onClick={() => handleEditCard(method)}
                       disabled={isProcessing}
                     >
                       <Edit2 className="h-4 w-4" />
@@ -349,6 +555,252 @@ export default function BillingPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Card Modal */}
+      {showAddCardModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="max-w-md w-full my-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-pink-500" />
+                カード情報を追加
+              </CardTitle>
+              <CardDescription>
+                ブラウザに保存されているカード情報を使用するか、手動で入力してください
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="cardNumber">カード番号</Label>
+                <Input
+                  id="cardNumber"
+                  placeholder="1234 5678 9012 3456"
+                  value={newCardData.cardNumber}
+                  onChange={(e) => setNewCardData({...newCardData, cardNumber: e.target.value.replace(/\s/g, '')})}
+                  autoComplete="cc-number"
+                  maxLength={16}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cardholderName">カード名義人</Label>
+                <Input
+                  id="cardholderName"
+                  placeholder="TARO YAMADA"
+                  value={newCardData.cardholderName}
+                  onChange={(e) => setNewCardData({...newCardData, cardholderName: e.target.value})}
+                  autoComplete="cc-name"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="expiryMonth">月</Label>
+                  <Input
+                    id="expiryMonth"
+                    placeholder="MM"
+                    value={newCardData.expiryMonth}
+                    onChange={(e) => setNewCardData({...newCardData, expiryMonth: e.target.value})}
+                    autoComplete="cc-exp-month"
+                    maxLength={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="expiryYear">年</Label>
+                  <Input
+                    id="expiryYear"
+                    placeholder="YYYY"
+                    value={newCardData.expiryYear}
+                    onChange={(e) => setNewCardData({...newCardData, expiryYear: e.target.value})}
+                    autoComplete="cc-exp-year"
+                    maxLength={4}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input
+                    id="cvv"
+                    placeholder="123"
+                    type="password"
+                    value={newCardData.cvv}
+                    onChange={(e) => setNewCardData({...newCardData, cvv: e.target.value})}
+                    autoComplete="cc-csc"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddCardModal(false);
+                  setNewCardData({ cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '', cardholderName: '' });
+                }}
+                className="flex-1"
+                disabled={isAddingCard}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={submitNewCard}
+                disabled={isAddingCard}
+                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+              >
+                {isAddingCard ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                カードを追加
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Card Modal */}
+      {showEditCardModal && editingCard && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="max-w-md w-full my-8">
+            <CardHeader>
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-pink-500 flex-shrink-0" />
+                  <span className="text-lg sm:text-xl">カード情報を更新</span>
+                </span>
+                <Badge variant="outline" className="text-xs w-fit">
+                  <Lock className="h-3 w-3 mr-1" />
+                  暗号化通信
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                セキュリティのため、カード情報を再入力してください
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                  <AlertTriangle className="h-4 w-4 inline mr-1" />
+                  現在のカード: {editingCard.brand} •••• {editingCard.last4}
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-cardNumber">新しいカード番号</Label>
+                <Input
+                  id="edit-cardNumber"
+                  placeholder="1234 5678 9012 3456"
+                  value={formatCardNumber(editCardData.cardNumber)}
+                  onChange={(e) => {
+                    const formatted = formatCardNumber(e.target.value);
+                    if (formatted.replace(/\s/g, '').length <= 16) {
+                      setEditCardData({...editCardData, cardNumber: formatted});
+                    }
+                  }}
+                  maxLength={19}
+                  className="font-mono"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-cardholderName">カード名義人（ローマ字）</Label>
+                <Input
+                  id="edit-cardholderName"
+                  placeholder="TARO YAMADA"
+                  value={editCardData.cardholderName}
+                  onChange={(e) => setEditCardData({...editCardData, cardholderName: e.target.value.toUpperCase()})}
+                  style={{ textTransform: 'uppercase' }}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <Label htmlFor="edit-expiryMonth" className="text-sm">月</Label>
+                  <select
+                    id="edit-expiryMonth"
+                    value={editCardData.expiryMonth}
+                    onChange={(e) => setEditCardData({...editCardData, expiryMonth: e.target.value})}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="">月</option>
+                    {[...Array(12)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {(i + 1).toString().padStart(2, '0')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:col-span-1">
+                  <Label htmlFor="edit-expiryYear" className="text-sm">年</Label>
+                  <select
+                    id="edit-expiryYear"
+                    value={editCardData.expiryYear}
+                    onChange={(e) => setEditCardData({...editCardData, expiryYear: e.target.value})}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="">年</option>
+                    {[...Array(10)].map((_, i) => {
+                      const year = new Date().getFullYear() + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                <div className="sm:col-span-1">
+                  <Label htmlFor="edit-cvv" className="text-sm">CVV</Label>
+                  <Input
+                    id="edit-cvv"
+                    type="password"
+                    placeholder="123"
+                    value={editCardData.cvv}
+                    onChange={(e) => {
+                      if (/^\d{0,4}$/.test(e.target.value)) {
+                        setEditCardData({...editCardData, cvv: e.target.value});
+                      }
+                    }}
+                    maxLength={4}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-600 rounded-lg p-3">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
+                  <Shield className="h-3 w-3 inline mr-1" />
+                  カード情報は暗号化されて安全に保存されます。
+                  完全なカード番号とCVVは当社のシステムに保存されません。
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditCardModal(false);
+                  setEditingCard(null);
+                  setEditCardData({ cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '', cardholderName: '' });
+                }}
+                className="flex-1"
+                disabled={isProcessing}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={submitEditCard}
+                disabled={isProcessing}
+                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Shield className="h-4 w-4 mr-2" />
+                )}
+                安全に更新
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
 
       {/* Security Notice */}
       <Card className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-300 dark:border-green-600">

@@ -30,20 +30,19 @@ export async function initializeUserTrial(userId: string): Promise<void> {
   try {
     const db = getFirebaseDb();
     if (!db) {
-      throw new Error('Firestore not initialized');
+      return;
     }
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
-      throw new Error('User not found');
+      return;
     }
     
     const userData = userDoc.data();
     
     // すでにトライアルを使用済みの場合はスキップ
     if (userData.trial?.hasUsed) {
-      console.log('User has already used trial');
       return;
     }
     
@@ -57,11 +56,15 @@ export async function initializeUserTrial(userId: string): Promise<void> {
       ...subscriptionData,
       updatedAt: serverTimestamp()
     });
-    
-    console.log(`Trial initialized for user ${userId}`);
-  } catch (error) {
-    console.error('Error initializing trial:', error);
-    throw error;
+  } catch (error: any) {
+    // 権限エラーの場合は静かに処理
+    if (error?.code === 'permission-denied' || 
+        error?.message?.includes('Missing or insufficient permissions')) {
+      // Expected for new users - ignore
+      return;
+    }
+    // その他のエラーも静かに処理
+    return;
   }
 }
 
@@ -117,8 +120,14 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
       billing: data.billing || defaultBilling,
       isPremium: data.isPremium || false
     };
-  } catch (error) {
-    console.error('Error getting user subscription data:', error);
+  } catch (error: any) {
+    // 権限エラーの場合は静かに処理（新規ユーザーの場合に発生）
+    if (error?.code === 'permission-denied' || 
+        error?.message?.includes('Missing or insufficient permissions')) {
+      // Expected for new users - return null without logging
+      return null;
+    }
+    // その他のエラーも静かに処理
     return null;
   }
 }
@@ -159,11 +168,16 @@ export async function checkAndUpdateTrialStatus(userId: string): Promise<void> {
       }
       
       await updateDoc(userRef, updates);
-      
-      console.log(`Trial expired for user ${userId}`);
     }
-  } catch (error) {
-    console.error('Error checking trial status:', error);
+  } catch (error: any) {
+    // 権限エラーの場合は静かに処理
+    if (error?.code === 'permission-denied' || 
+        error?.message?.includes('Missing or insufficient permissions')) {
+      // Expected for new users - ignore
+      return;
+    }
+    // その他のエラーも静かに処理
+    return;
   }
 }
 

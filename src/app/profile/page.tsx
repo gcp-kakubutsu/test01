@@ -29,10 +29,17 @@ import { SubscriptionStatusSection } from '@/components/subscription/Subscriptio
 
 
 export default function ProfilePage() {
-  const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
+  const { isAuthenticated, currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { profile, loading: profileLoading, error } = useUserProfile();
   const { stats, loading: statsLoading, error: statsError } = useUserStats();
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
   
   // Refresh stats when profile data changes to ensure accurate counts
   useEffect(() => {
@@ -90,6 +97,20 @@ export default function ProfilePage() {
   const occupation = profile?.occupation || '未設定';
   const bio = profile?.bio || 'まだ自己紹介がありません';
   const interests = profile?.interests || [];
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+      </div>
+    );
+  }
+
+  // If not authenticated, don't show anything (redirect will happen)
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const profilePhoto = profile?.profilePhotoUrl || 'https://placehold.co/400x400/FFB6C1/FFFFFF?text=No+Photo';
 
   return (

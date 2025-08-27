@@ -2,13 +2,16 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { UserSubscriptionStatus } from '@/types/subscription';
+import { useToast } from '@/hooks/use-toast';
+import { getFirebaseDb, auth } from '@/lib/firebase/client';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   Gift, 
   Crown, 
@@ -21,12 +24,58 @@ import {
   CheckCircle2,
   User,
   Receipt,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 
 export function SubscriptionStatusSection() {
   const router = useRouter();
   const { status, trialInfo, subscriptionInfo, userSubscription, isLoading } = useSubscription();
+  const [showReactivateModal, setShowReactivateModal] = React.useState(false);
+  const [isReactivating, setIsReactivating] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleReactivate = async () => {
+    if (status !== UserSubscriptionStatus.PREMIUM_CANCELED) return;
+    setIsReactivating(true);
+    
+    try {
+      const db = getFirebaseDb();
+      if (!db) throw new Error('Database not initialized');
+      
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+      
+      const userRef = doc(db, 'users', user.uid);
+      
+      // 解約を取り消す
+      await updateDoc(userRef, {
+        'subscription.cancelAtPeriodEnd': false,
+        'subscription.canceledAt': null,
+        'subscription.cancelReason': null,
+        'subscription.cancelFeedback': null,
+        updatedAt: serverTimestamp()
+      });
+
+      toast({
+        title: "解約を取り消しました",
+        description: "プレミアムプランの継続をありがとうございます。",
+      });
+
+      setShowReactivateModal(false);
+      // ページをリフレッシュして状態を更新
+      window.location.reload();
+    } catch (error) {
+      console.error('Error reactivating subscription:', error);
+      toast({
+        title: "エラー",
+        description: "解約の取り消し中にエラーが発生しました。",
+        variant: "destructive"
+      });
+    } finally {
+      setIsReactivating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -265,35 +314,81 @@ export function SubscriptionStatusSection() {
   // 有料会員（解約予定）
   if (status === UserSubscriptionStatus.PREMIUM_CANCELED && subscriptionInfo) {
     return (
-      <Card className="border-2 border-gray-300">
-        <CardHeader className="bg-gray-50">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-gray-500" />
-              解約予定
+      <>
+        <Card className="border-2 border-orange-400 dark:border-orange-500">
+          <CardHeader className="bg-orange-100 dark:bg-orange-900/30">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                解約予定
+              </div>
+              <Badge className="bg-orange-500 text-white dark:bg-orange-600">残り{subscriptionInfo.daysRemaining}日</Badge>
+            </CardTitle>
+            <CardDescription className="text-gray-700 dark:text-gray-300">
+              {subscriptionInfo.cancelationDate?.toLocaleDateString('ja-JP')}にプレミアム会員が終了します
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
+              <p className="text-sm text-gray-800 dark:text-gray-200">
+                解約日までは引き続きプレミアム機能をご利用いただけます。
+              </p>
             </div>
-            <Badge variant="secondary">残り{subscriptionInfo.daysRemaining}日</Badge>
-          </CardTitle>
-          <CardDescription>
-            {subscriptionInfo.cancelationDate?.toLocaleDateString('ja-JP')}にプレミアム会員が終了します
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-sm">
-              解約日までは引き続きプレミアム機能をご利用いただけます。
-            </p>
-          </div>
 
-          <Button 
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
-            onClick={() => router.push('/subscription/reactivate')}
-          >
-            解約を取り消す
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </CardContent>
-      </Card>
+            <Button 
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+              onClick={() => setShowReactivateModal(true)}
+            >
+              解約を取り消す
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Reactivate Modal */}
+        {showReactivateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-pink-500" />
+                  解約を取り消す
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                  プレミアムプランの解約を取り消しますか？
+                </p>
+                <div className="bg-pink-50 dark:bg-pink-900/20 border border-pink-300 dark:border-pink-600 rounded-lg p-4">
+                  <p className="text-sm text-pink-700 dark:text-pink-300">
+                    解約を取り消すと、現在のプランが継続され、次回の請求日に自動更新されます。
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReactivateModal(false)}
+                  className="flex-1"
+                  disabled={isReactivating}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  onClick={handleReactivate}
+                  disabled={isReactivating}
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                >
+                  {isReactivating ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  解約を取り消す
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        )}
+      </>
     );
   }
 
