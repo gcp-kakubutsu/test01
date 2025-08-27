@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, onSnapshot, where, addDoc, serverTimestamp, updateDoc, doc, increment, deleteDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { db, functions, storage } from '@/lib/firebase/client';
 import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -136,6 +136,11 @@ export default function CommunityPage() {
   const { trends, loading: trendsLoading } = useTrends(5);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [communitySearchQuery, setCommunitySearchQuery] = useState('');
+  const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
+  const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
+  const [showJoinButton, setShowJoinButton] = useState(false);
   
   // Check if current user is admin
   const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
@@ -218,6 +223,13 @@ export default function CommunityPage() {
               } as Community;
             });
             setCommunities(communitiesData);
+            
+            // ユーザーが参加しているコミュニティのIDリストを作成
+            const joined = communitiesData
+              .filter(c => c.isJoined)
+              .map(c => c.id);
+            setJoinedCommunities(joined);
+            
             setLoadingCommunities(false);
           },
           (error) => {
@@ -387,6 +399,23 @@ export default function CommunityPage() {
           likedBy: [...(post.likedBy || []), currentUser.uid],
           likes: increment(1)
         });
+        
+        // 通知を作成（自分の投稿でない場合のみ）
+        const targetAuthorId = post.originalPost ? post.originalPost.authorId : post.authorId;
+        if (targetAuthorId !== currentUser.uid) {
+          const notificationRef = collection(db, 'users', targetAuthorId, 'notifications');
+          await addDoc(notificationRef, {
+            type: 'like',
+            fromUserId: currentUser.uid,
+            fromUserName: profile?.username || currentUser.displayName || 'Anonymous',
+            fromUserImage: profile?.profilePhotoUrl || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+            postId: targetPostId,
+            postContent: post.originalPost ? post.originalPost.content : post.content,
+            timestamp: serverTimestamp(),
+            isRead: false,
+            createdAt: serverTimestamp()
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error updating post like:', error);
@@ -503,6 +532,22 @@ export default function CommunityPage() {
           retweets: increment(1)
         });
         
+        // 通知を作成（自分の投稿でない場合のみ）
+        if (originalPost.authorId !== currentUser.uid) {
+          const notificationRef = collection(db, 'users', originalPost.authorId, 'notifications');
+          await addDoc(notificationRef, {
+            type: 'retweet',
+            fromUserId: currentUser.uid,
+            fromUserName: profile?.username || currentUser.displayName || 'Anonymous',
+            fromUserImage: profile?.profilePhotoUrl || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+            postId: originalPost.id,
+            postContent: originalPost.content,
+            timestamp: serverTimestamp(),
+            isRead: false,
+            createdAt: serverTimestamp()
+          });
+        }
+        
         toast({
           title: "リツイートしました",
           description: "投稿をリツイートしました。",
@@ -607,6 +652,25 @@ export default function CommunityPage() {
       );
       
       setNewComment('');
+      
+      // 通知を作成（自分の投稿でない場合のみ）
+      const post = posts.find(p => p.id === postId);
+      const targetAuthorId = post?.originalPost ? post.originalPost.authorId : post?.authorId;
+      if (targetAuthorId && targetAuthorId !== currentUser.uid) {
+        const notificationRef = collection(db, 'users', targetAuthorId, 'notifications');
+        await addDoc(notificationRef, {
+          type: 'comment',
+          fromUserId: currentUser.uid,
+          fromUserName: profile?.username || currentUser.displayName || 'Anonymous',
+          fromUserImage: profile?.profilePhotoUrl || 'https://placehold.co/40x40/FFB6C1/FFFFFF?text=U',
+          postId: postId,
+          postContent: post?.originalPost ? post.originalPost.content : post?.content,
+          message: newComment,
+          timestamp: serverTimestamp(),
+          isRead: false,
+          createdAt: serverTimestamp()
+        });
+      }
       
       toast({
         title: "コメントを投稿しました",
@@ -767,6 +831,106 @@ export default function CommunityPage() {
     }
   };
 
+  const handleJoinCommunities = async () => {
+    if (!currentUser || selectedCommunities.length === 0) return;
+    
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      
+      for (const communityId of selectedCommunities) {
+        const community = communities.find(c => c.id === communityId);
+        if (!community) continue;
+        
+        const communityRef = doc(db, 'communities', communityId);
+        const members = community.members || [];
+        
+        if (community.isJoined) {
+          // 退会
+          await updateDoc(communityRef, {
+            members: members.filter(uid => uid !== currentUser.uid),
+            memberCount: increment(-1)
+          });
+        } else {
+          // 参加
+          await updateDoc(communityRef, {
+            members: [...members, currentUser.uid],
+            memberCount: increment(1)
+          });
+        }
+      }
+      
+      setSelectedCommunities([]);
+      setShowJoinButton(false);
+      
+      toast({
+        title: "更新完了",
+        description: "コミュニティの参加状態を更新しました。",
+      });
+    } catch (error: any) {
+      console.error('Error updating community membership:', error);
+      toast({
+        title: "エラー",
+        description: "コミュニティの参加更新に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleCommunityCheckboxChange = (communityId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCommunities([...selectedCommunities, communityId]);
+    } else {
+      setSelectedCommunities(selectedCommunities.filter(id => id !== communityId));
+    }
+    setShowJoinButton(true);
+  };
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    const community = communities.find(c => c.id === communityId);
+    if (!community) return;
+    
+    const confirmMessage = isAdmin && community.createdBy !== currentUser?.uid
+      ? `管理者として「${community.name}」を削除しますか？`
+      : `「${community.name}」を削除しますか？この操作は元に戻せません。`;
+    
+    if (!confirm(confirmMessage)) return;
+    
+    try {
+      if (!db) throw new Error('Firestore is not initialized');
+      
+      // コミュニティの投稿を削除
+      const postsQuery = query(
+        collection(db, 'posts'),
+        where('communityId', '==', communityId)
+      );
+      const postsSnapshot = await getDocs(postsQuery);
+      
+      for (const postDoc of postsSnapshot.docs) {
+        await deleteDoc(doc(db, 'posts', postDoc.id));
+      }
+      
+      // コミュニティを削除
+      await deleteDoc(doc(db, 'communities', communityId));
+      
+      toast({
+        title: "削除完了",
+        description: `「${community.name}」を削除しました。`,
+      });
+      
+      // 選択中のコミュニティが削除された場合はリセット
+      if (selectedCommunity === communityId) {
+        setSelectedCommunity(null);
+      }
+    } catch (error: any) {
+      console.error('Error deleting community:', error);
+      toast({
+        title: "エラー",
+        description: "コミュニティの削除に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCreateCommunity = async () => {
     if (!currentUser || !newCommunityName.trim() || !newCommunityDescription.trim()) return;
     
@@ -784,6 +948,25 @@ export default function CommunityPage() {
       if (!db) throw new Error('Firestore is not initialized');
       
       let imageUrl = newCommunityImage;
+      
+      // 画像がアップロードされている場合
+      if (newCommunityImageFile) {
+        setIsUploadingImage(true);
+        try {
+          const storageRef = ref(storage, `community-images/${Date.now()}_${newCommunityImageFile.name}`);
+          const snapshot = await uploadBytes(storageRef, newCommunityImageFile);
+          imageUrl = await getDownloadURL(snapshot.ref);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast({
+            title: "画像アップロードエラー",
+            description: "画像のアップロードに失敗しました。",
+            variant: "destructive",
+          });
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
       
       if (!imageUrl) {
         imageUrl = 'https://placehold.co/400x200/FFB6C1/FFFFFF?text=' + encodeURIComponent(newCommunityName);
@@ -805,6 +988,8 @@ export default function CommunityPage() {
       setNewCommunityDescription('');
       setNewCommunityCategory('');
       setNewCommunityImage('');
+      setNewCommunityImageFile(null);
+      setImagePreview('');
       setShowCreateCommunity(false);
       
       toast({
@@ -822,6 +1007,27 @@ export default function CommunityPage() {
       setIsCreatingCommunity(false);
     }
   };
+  
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB制限
+        toast({
+          title: "ファイルサイズエラー",
+          description: "画像は5MB以下にしてください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setNewCommunityImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCreatePost = async () => {
     if (!currentUser || !newPostContent.trim()) return;
@@ -837,12 +1043,13 @@ export default function CommunityPage() {
     
     if (postDestination !== 'global') {
       const community = communities.find(c => c.id === postDestination);
-      if (community && !community.isJoined && !isAdmin) {
+      if (!community || !community.isJoined) {
         toast({
           title: "参加が必要",
           description: "このコミュニティに投稿するには参加が必要です。",
           variant: "destructive",
         });
+        setPostDestination('global'); // デフォルトに戻す
         return;
       }
     }
@@ -926,6 +1133,102 @@ export default function CommunityPage() {
         />
       )}
       
+      {/* Search Modal */}
+      {showSearchModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl mx-4">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold">コミュニティ内を検索</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowSearchModal(false);
+                    setCommunitySearchQuery('');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="投稿を検索..."
+                  value={communitySearchQuery}
+                  onChange={(e) => setCommunitySearchQuery(e.target.value)}
+                  className="pl-10 pr-4"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-4">
+              {communitySearchQuery.trim() === '' ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  検索キーワードを入力してください
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {posts
+                    .filter(post => {
+                      const content = post.originalPost ? post.originalPost.content : post.content;
+                      const author = post.originalPost ? post.originalPost.author : post.author;
+                      return content.toLowerCase().includes(communitySearchQuery.toLowerCase()) ||
+                             author.toLowerCase().includes(communitySearchQuery.toLowerCase());
+                    })
+                    .map(post => (
+                      <div 
+                        key={post.id} 
+                        className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
+                        onClick={() => {
+                          setShowSearchModal(false);
+                          setCommunitySearchQuery('');
+                          // 該当投稿にスクロール
+                          const element = document.getElementById(`post-${post.id}`);
+                          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                      >
+                        <div className="flex gap-3">
+                          <div className="w-10 h-10 flex-shrink-0">
+                            <Image
+                              src={post.originalPost ? post.originalPost.authorImage : post.authorImage}
+                              alt={post.originalPost ? post.originalPost.author : post.author}
+                              width={40}
+                              height={40}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-sm">{post.originalPost ? post.originalPost.author : post.author}</span>
+                              <span className="text-xs text-gray-500">{formatTimestamp(post.originalPost ? post.originalPost.timestamp : post.timestamp)}</span>
+                            </div>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 line-clamp-2">
+                              {post.originalPost ? post.originalPost.content : post.content}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                  {posts.filter(post => {
+                    const content = post.originalPost ? post.originalPost.content : post.content;
+                    const author = post.originalPost ? post.originalPost.author : post.author;
+                    return content.toLowerCase().includes(communitySearchQuery.toLowerCase()) ||
+                           author.toLowerCase().includes(communitySearchQuery.toLowerCase());
+                  }).length === 0 && (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      「{communitySearchQuery}」に一致する投稿が見つかりませんでした
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-7xl mx-auto flex">
         {/* Left Sidebar - Desktop & Mobile */}
         <div className={`${
@@ -958,7 +1261,10 @@ export default function CommunityPage() {
               <Button 
                 variant="ghost" 
                 className="w-full justify-start text-lg py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  setShowSearchModal(true);
+                  setIsMobileMenuOpen(false);
+                }}
               >
                 <Search className="h-6 w-6 mr-4" />
                 探索
@@ -966,7 +1272,10 @@ export default function CommunityPage() {
               <Button 
                 variant="ghost" 
                 className="w-full justify-start text-lg py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  router.push('/notifications');
+                  setIsMobileMenuOpen(false);
+                }}
               >
                 <Bell className="h-6 w-6 mr-4" />
                 通知
@@ -975,20 +1284,12 @@ export default function CommunityPage() {
                 variant="ghost" 
                 className="w-full justify-start text-lg py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => {
-                  router.push('/messages');
+                  router.push('/community/list');
                   setIsMobileMenuOpen(false);
                 }}
               >
-                <Mail className="h-6 w-6 mr-4" />
-                メッセージ
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-lg py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
                 <Users className="h-6 w-6 mr-4" />
-                コミュニティ
+                コミュニティ一覧
               </Button>
               <Button 
                 variant="ghost" 
@@ -1145,7 +1446,7 @@ export default function CommunityPage() {
                         <SelectContent>
                           <SelectItem value="global">全体の投稿</SelectItem>
                           {communities
-                            .filter(c => c.isJoined || isAdmin)
+                            .filter(c => c.isJoined)
                             .map(community => (
                               <SelectItem key={community.id} value={community.id}>
                                 {community.name}
@@ -1236,6 +1537,53 @@ export default function CommunityPage() {
                         onChange={(e) => setNewCommunityCategory(e.target.value)}
                       />
                     </div>
+                    <div>
+                      <label className="text-sm font-medium">コミュニティ画像</label>
+                      <div className="mt-2 space-y-2">
+                        {imagePreview && (
+                          <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                            <Image
+                              src={imagePreview}
+                              alt="Community preview"
+                              fill
+                              className="object-cover"
+                            />
+                            <button
+                              onClick={() => {
+                                setImagePreview('');
+                                setNewCommunityImageFile(null);
+                              }}
+                              className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <label 
+                            htmlFor="community-image-upload" 
+                            className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <Upload className="h-4 w-4" />
+                            <span className="text-sm">画像を選択</span>
+                            <input
+                              id="community-image-upload"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageSelect}
+                              className="hidden"
+                            />
+                          </label>
+                          {isUploadingImage && (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span className="text-sm">アップロード中...</span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">推奨サイズ: 800x400px, 最大 5MB</p>
+                      </div>
+                    </div>
                     <div className="flex justify-end gap-2">
                       <Button 
                         variant="outline" 
@@ -1281,7 +1629,7 @@ export default function CommunityPage() {
                 </div>
               ) : (
                 posts.map(post => (
-                  <div key={post.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer">
+                  <div key={post.id} id={`post-${post.id}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer">
                     {/* Retweet indicator */}
                     {post.originalPost && (
                       <div className="flex items-center gap-2 mb-2 text-sm text-gray-500 dark:text-gray-400">
@@ -1553,42 +1901,76 @@ export default function CommunityPage() {
                       </div>
                     </button>
                     {communities.slice(0, 5).map((community) => (
-                      <button
-                        key={community.id}
-                        onClick={() => {
-                          setSelectedCommunity(community.id);
-                          setIsRightSidebarOpen(false);
-                        }}
-                        className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                          selectedCommunity === community.id ? 'bg-[#F0306A]/10 text-[#F0306A] font-semibold' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 flex-shrink-0">
-                              <Image
-                                src={community.imageUrl || 'https://placehold.co/24x24/FFB6C1/FFFFFF?text=C'}
-                                alt={community.name}
-                                width={24}
-                                height={24}
-                                className="w-full h-full rounded-full object-cover"
-                              />
+                      <div key={community.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`community-${community.id}`}
+                          checked={selectedCommunities.includes(community.id)}
+                          onChange={(e) => handleCommunityCheckboxChange(community.id, e.target.checked)}
+                          className="w-4 h-4 rounded text-[#F0306A] focus:ring-[#F0306A] focus:ring-offset-0"
+                        />
+                        <div className="flex-1 flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedCommunity(community.id);
+                              setIsRightSidebarOpen(false);
+                            }}
+                            className={`flex-1 text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                              selectedCommunity === community.id ? 'bg-[#F0306A]/10 text-[#F0306A] font-semibold' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 flex-shrink-0">
+                                  <Image
+                                    src={community.imageUrl || 'https://placehold.co/24x24/FFB6C1/FFFFFF?text=C'}
+                                    alt={community.name}
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full rounded-full object-cover"
+                                  />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm truncate">{community.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    {community.isJoined && (
+                                      <Badge variant="secondary" className="text-xs px-1 py-0">参加中</Badge>
+                                    )}
+                                    <span className="text-xs text-gray-500">{community.memberCount}人</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <span className="text-sm truncate">{community.name}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {community.isJoined && (
-                              <Badge variant="secondary" className="text-xs px-1 py-0">参加中</Badge>
-                            )}
-                            <span className="text-xs text-gray-500">{community.memberCount}人</span>
-                          </div>
+                          </button>
+                          {(community.createdBy === currentUser?.uid || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteCommunity(community.id)}
+                              className="p-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+                              title={isAdmin && community.createdBy !== currentUser?.uid ? "管理者として削除" : "削除"}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
-                      </button>
+                      </div>
                     ))}
                     {communities.length > 5 && (
-                      <button className="w-full text-center text-sm text-[#F0306A] hover:underline mt-2">
+                      <button 
+                        className="w-full text-center text-sm text-[#F0306A] hover:underline mt-2"
+                        onClick={() => router.push('/community/list')}
+                      >
                         すべて見る ({communities.length})
                       </button>
+                    )}
+                    {showJoinButton && (
+                      <Button 
+                        onClick={handleJoinCommunities}
+                        className="w-full bg-[#F0306A] hover:bg-[#E02860] text-white mt-2"
+                      >
+                        選択したコミュニティを更新
+                      </Button>
                     )}
                   </>
                 )}
