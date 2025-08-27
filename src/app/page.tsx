@@ -340,7 +340,7 @@ export default function LandingPage() {
           onClick={handleAgeConfirmation}
         >
           <Heart size={18} />
-          <span>Nukuneに参加</span>
+          <span>NUKUNEに参加</span>
         </Link>
         <Link 
           href="/login" 
@@ -374,17 +374,17 @@ export default function LandingPage() {
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            <span className={styles.heroTitleLine1}>あなたの性癖に合う嬢と</span>
-            <span className={styles.heroTitleLine2}>出逢えるマッチングサイト</span>
+            <span className={styles.heroTitleLine1}>相性で選ぶ、最短の出会い</span>
+            <span className={styles.heroTitleLine2}>あなたに合うキャストだけ表示</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            従来の風俗サイトでは実現できなかった<br />
-            革新的なマッチングシステム
+            エリア・来店時間・嗜好を一括判定。<br />
+            従来の風俗サイトより速く・的確に。
           </p>
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
               <Heart size={20} />
-              Nukuneに参加
+              NUKUNEに参加
             </Link>
             <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
               <span>ログイン</span>
