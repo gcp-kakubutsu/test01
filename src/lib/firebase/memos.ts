@@ -19,6 +19,7 @@ export interface Memo {
   targetId: string; // Girl ID or profile ID
   targetName?: string; // Girl name for display
   targetImage?: string; // Girl image for display
+  targetLocation?: string; // Girl location for search
   content: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -32,7 +33,8 @@ export async function saveMemo(
   targetId: string,
   content: string,
   targetName?: string,
-  targetImage?: string
+  targetImage?: string,
+  targetLocation?: string
 ): Promise<void> {
   // LINEブラウザの場合、Firebase初期化を待つ
   const isLineBrowser = typeof window !== 'undefined' && 
@@ -73,13 +75,16 @@ export async function saveMemo(
       updatedAt: serverTimestamp()
     };
     
-    // Only update targetName and targetImage if they are provided
+    // Only update targetName, targetImage, and targetLocation if they are provided
     // This prevents overwriting existing values with undefined
     if (targetName !== undefined && targetName !== null) {
       updateData.targetName = targetName;
     }
     if (targetImage !== undefined && targetImage !== null) {
       updateData.targetImage = targetImage;
+    }
+    if (targetLocation !== undefined && targetLocation !== null) {
+      updateData.targetLocation = targetLocation;
     }
     
     await setDoc(memoRef, updateData, { merge: true });
@@ -91,6 +96,7 @@ export async function saveMemo(
       targetId,
       targetName: targetName || '',
       targetImage: targetImage || '',
+      targetLocation: targetLocation || '',
       content,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()

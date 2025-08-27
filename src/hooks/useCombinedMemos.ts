@@ -8,6 +8,7 @@ export interface CombinedMemo {
   targetId: string;
   targetName: string;
   targetImage?: string;
+  targetLocation?: string;
   content: string;
   createdAt: Date;
   isFromHistory: boolean;
@@ -44,6 +45,7 @@ export function useCombinedMemos() {
           targetId: memo.targetId,
           targetName: memo.targetName || '名前未設定',
           targetImage: memo.targetImage,
+          targetLocation: memo.targetLocation,
           content: memo.content,
           createdAt: memo.updatedAt?.toDate() || memo.createdAt?.toDate() || new Date(),
           isFromHistory: false
@@ -55,6 +57,7 @@ export function useCombinedMemos() {
           targetId: memo.targetId,
           targetName: memo.targetName || '名前未設定',
           targetImage: memo.targetImage,
+          targetLocation: memo.targetLocation,
           content: memo.content,
           createdAt: memo.createdAt?.toDate() || new Date(),
           isFromHistory: true

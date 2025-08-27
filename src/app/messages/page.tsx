@@ -28,6 +28,7 @@ interface MemoDisplay {
   content: string;
   avatarUrl: string | null;
   lastUpdated?: Date | null;
+  location?: string;
 }
 
 export default function MemosPage() {
@@ -50,6 +51,7 @@ export default function MemosPage() {
   }, [currentUser, subscriptionLoading, router]);
   const { latestMemos, allMemos, getMemosForTarget, loading: memosLoading } = useCombinedMemos();
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [memoDisplays, setMemoDisplays] = useState<MemoDisplay[]>([]);
   const [selectedMemoTarget, setSelectedMemoTarget] = useState<{id: string; name?: string; imageUrl?: string} | null>(null);
   const [deletingMemoId, setDeletingMemoId] = useState<string | null>(null);
@@ -61,26 +63,63 @@ export default function MemosPage() {
     }
   }, [subscriptionLoading, isPremium, isLineBrowser, isAuthenticated]);
 
-  // Convert latest memos to display format
+  // Convert latest memos to display format and fetch location data
   useEffect(() => {
     if (!latestMemos || memosLoading) return;
     
-    const displays: MemoDisplay[] = latestMemos.map(memo => ({
-      id: memo.id || '',
-      targetId: memo.targetId,
-      name: memo.targetName || '名前未設定',
-      content: memo.content || 'メモを追加してください',
-      avatarUrl: memo.targetImage || null,
-      lastUpdated: memo.createdAt // Already a Date object from useCombinedMemos
-    }));
+    const fetchLocationsAndSetDisplays = async () => {
+      const displays: MemoDisplay[] = await Promise.all(
+        latestMemos.map(async (memo) => {
+          let location = memo.targetLocation;
+          
+          // If no location, try to fetch from girl data
+          if (!location && memo.targetId) {
+            try {
+              // Extract numeric ID from mysql_girl_ prefix
+              const girlId = memo.targetId.startsWith('mysql_girl_') 
+                ? memo.targetId.replace('mysql_girl_', '')
+                : memo.targetId;
+              
+              const response = await fetch(`/api/mysql-girls-fast?limit=1&girlId=${girlId}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.girls && data.girls.length > 0) {
+                  const girl = data.girls[0];
+                  location = girl.location || girl.municipality || '';
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching girl location:', error);
+            }
+          }
+          
+          return {
+            id: memo.id || '',
+            targetId: memo.targetId,
+            name: memo.targetName || '名前未設定',
+            content: memo.content || 'メモを追加してください',
+            avatarUrl: memo.targetImage || null,
+            lastUpdated: memo.createdAt,
+            location: location
+          };
+        })
+      );
+      
+      setMemoDisplays(displays);
+    };
     
-    setMemoDisplays(displays);
+    fetchLocationsAndSetDisplays();
   }, [latestMemos, memosLoading]);
 
-  const filteredMemos = memoDisplays.filter(memo =>
-    memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    memo.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMemos = memoDisplays.filter(memo => {
+    const matchesSearch = memo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      memo.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesLocation = !locationFilter || 
+      (memo.location && memo.location.includes(locationFilter));
+    
+    return matchesSearch && matchesLocation;
+  });
 
   // Delete memo function
   const handleDeleteMemo = async (memo: MemoDisplay, e: React.MouseEvent) => {
@@ -165,13 +204,20 @@ export default function MemosPage() {
             </div>
           )}
           {isPremium && !subscriptionLoading && (
-            <div className="relative mt-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <div className="space-y-2 mt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  placeholder="メモを検索..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
               <Input
-                placeholder="メモを検索..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="都道府県で検索（例：東京、大阪）"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
               />
             </div>
           )}
@@ -187,7 +233,7 @@ export default function MemosPage() {
                   return (
                     <li key={memo.id}>
                       <div 
-                        className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border cursor-pointer"
+                        className="block hover:bg-secondary/50 p-4 rounded-lg transition-colors border border-gray-200 dark:border-gray-700 cursor-pointer"
                         onClick={() => setSelectedMemoTarget({
                           id: memo.targetId,
                           name: memo.name,
@@ -195,19 +241,37 @@ export default function MemosPage() {
                         })}
                       >
                         <div className="flex items-center space-x-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={memo.avatarUrl || undefined} alt={memo.name} />
-                            <AvatarFallback>{memo.name.substring(0, 1).toUpperCase()}</AvatarFallback>
-                          </Avatar>
+                          <div 
+                            className="relative flex-shrink-0 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // targetIdが mysql_girl_XXX の形式の場合は /girl/XXX に変換
+                              const path = memo.targetId.startsWith('mysql_girl_') 
+                                ? `/girl/${memo.targetId.replace('mysql_girl_', '')}`
+                                : `/girl/${memo.targetId}`;
+                              router.push(path);
+                            }}
+                          >
+                            <Image
+                              src={memo.avatarUrl || 'https://placehold.co/120x160/FFB6C1/FFFFFF?text=' + memo.name.substring(0, 1).toUpperCase()}
+                              alt={memo.name}
+                              width={120}
+                              height={160}
+                              className="rounded-lg object-cover w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-40"
+                            />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                              <div>
                                 <p className="text-base font-semibold line-clamp-1">{memo.name}</p>
-                                {memoCount > 1 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {memoCount}件
-                                  </Badge>
-                                )}
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {memo.location && (
+                                    <span className="text-xs text-muted-foreground">{memo.location}</span>
+                                  )}
+                                  {memoCount > 1 && (
+                                    <span className="text-xs text-muted-foreground">• {memoCount}件</span>
+                                  )}
+                                </div>
                               </div>
                               {memo.lastUpdated && (
                                 <span className="text-xs text-muted-foreground">
@@ -215,7 +279,7 @@ export default function MemosPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{memo.content}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{memo.content}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button

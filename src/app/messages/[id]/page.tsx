@@ -45,7 +45,8 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
             setGirlData({
               id: paramsId,
               name: girl.name || '女の子',
-              imageUrl: girl.imageUrl || girl.images?.[0]?.image_url || girl.images?.[0]?.real_image_url || null
+              imageUrl: girl.imageUrl || girl.images?.[0]?.image_url || girl.images?.[0]?.real_image_url || null,
+              location: girl.location || girl.municipality || ''
             });
           } else {
             // Girl not found, set default
@@ -97,6 +98,7 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
       targetId={paramsId}
       targetName={girlData?.name}
       targetImage={girlData?.imageUrl}
+      targetLocation={girlData?.location}
     />
   );
 }

@@ -19,6 +19,7 @@ export interface MemoHistory {
   targetId: string; // Girl ID or profile ID
   targetName?: string; // Girl name for display
   targetImage?: string; // Girl image for display
+  targetLocation?: string; // Girl location for search
   content: string;
   date: string; // Date in YYYY-MM-DD format for grouping
   createdAt: Timestamp;
@@ -33,7 +34,8 @@ export async function addMemoToHistory(
   targetId: string,
   content: string,
   targetName?: string,
-  targetImage?: string
+  targetImage?: string,
+  targetLocation?: string
 ): Promise<string> {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase not initialized');
@@ -45,6 +47,7 @@ export async function addMemoToHistory(
     targetId,
     targetName: targetName || '',
     targetImage: targetImage || '',
+    targetLocation: targetLocation || '',
     content,
     date: today,
     createdAt: serverTimestamp(),

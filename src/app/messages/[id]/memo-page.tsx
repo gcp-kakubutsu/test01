@@ -18,9 +18,10 @@ interface MemoPageProps {
   targetId: string;
   targetName?: string;
   targetImage?: string;
+  targetLocation?: string;
 }
 
-export default function MemoPage({ targetId, targetName, targetImage }: MemoPageProps) {
+export default function MemoPage({ targetId, targetName, targetImage, targetLocation }: MemoPageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
@@ -77,7 +78,8 @@ export default function MemoPage({ targetId, targetName, targetImage }: MemoPage
         targetId,
         content,
         targetName,
-        targetImage
+        targetImage,
+        targetLocation
       );
       await reload();
       toast({
