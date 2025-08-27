@@ -9,6 +9,8 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { TrialNotificationModal } from '@/components/subscription/TrialNotificationModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const geistSans = Geist({
@@ -37,15 +39,18 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
-              <Header />
-              <LayoutWrapper>
-                <main>
-                  <PageWrapper>
-                    {children}
-                  </PageWrapper>
-                </main>
-              </LayoutWrapper>
-              <Toaster />
+              <SubscriptionProvider>
+                <Header />
+                <LayoutWrapper>
+                  <main>
+                    <PageWrapper>
+                      {children}
+                    </PageWrapper>
+                  </main>
+                </LayoutWrapper>
+                <TrialNotificationModal />
+                <Toaster />
+              </SubscriptionProvider>
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>

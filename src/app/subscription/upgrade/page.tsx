@@ -1,20 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreditCard, MapPin, Lock, Loader2, Crown, Check } from 'lucide-react';
+import { CreditCard, MapPin, Lock, Loader2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 import DocumentModal from '@/components/DocumentModal';
 import { TERMS_CONTENT, PRIVACY_CONTENT } from '@/utils/documents';
-import styles from './subscription.module.scss';
+import styles from './upgrade.module.scss';
 
 interface PlanConfig {
   name: string;
@@ -91,7 +89,7 @@ const PLAN_OPTIONS = [
   }
 ];
 
-export default function SubscriptionClient() {
+export default function UpgradePage() {
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();

@@ -55,7 +55,10 @@ export async function POST(request: NextRequest) {
       // メール送信（Firebase Authの標準メール送信機能を使用）
       console.log('Email verification link generated for LINE browser:', emailVerificationLink);
 
-      // Firestoreにユーザー情報を保存
+      // Firestoreにユーザー情報を保存（トライアルデータ付き）
+      const now = new Date();
+      const trialEndDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7日後
+      
       await db.collection('users').doc(userRecord.uid).set({
         username,
         email,
@@ -64,6 +67,30 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         emailVerified: false,
+        // トライアル関連フィールド
+        trial: {
+          startDate: now,
+          endDate: trialEndDate,
+          isActive: true,
+          hasUsed: true,
+          source: 'campaign_2025'
+        },
+        // サブスクリプション関連フィールド
+        subscription: {
+          status: 'none',
+          currentPeriodStart: null,
+          currentPeriodEnd: null,
+          cancelAtPeriodEnd: false,
+          canceledAt: null,
+          pausedAt: null
+        },
+        billing: {
+          customerId: null,
+          paymentMethodId: null,
+          lastPaymentDate: null,
+          nextBillingDate: null
+        },
+        isPremium: true // トライアル中はプレミアム機能を使える
       });
 
       return NextResponse.json({
@@ -139,6 +166,9 @@ export async function POST(request: NextRequest) {
           const adminFirestore = getAdminFirestore();
           console.log('[Signup] Creating user document in Firestore for REST API signup:', data.email);
           
+          const now = new Date();
+          const trialEndDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7日後
+          
           await adminFirestore.collection('users').doc(data.localId).set({
             username,
             email,
@@ -147,8 +177,30 @@ export async function POST(request: NextRequest) {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             emailVerified: false,
-            isPremium: false, // デフォルトは無料会員
-            subscriptionStatus: 'none',
+            // トライアル関連フィールド
+            trial: {
+              startDate: now,
+              endDate: trialEndDate,
+              isActive: true,
+              hasUsed: true,
+              source: 'campaign_2025'
+            },
+            // サブスクリプション関連フィールド
+            subscription: {
+              status: 'none',
+              currentPeriodStart: null,
+              currentPeriodEnd: null,
+              cancelAtPeriodEnd: false,
+              canceledAt: null,
+              pausedAt: null
+            },
+            billing: {
+              customerId: null,
+              paymentMethodId: null,
+              lastPaymentDate: null,
+              nextBillingDate: null
+            },
+            isPremium: true // トライアル中はプレミアム機能を使える
           });
         }
       } catch (firestoreError) {

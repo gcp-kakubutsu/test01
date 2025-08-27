@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
 import { getMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
+import { SubscriptionStatusSection } from '@/components/subscription/SubscriptionStatusSection';
 
 
 export default function ProfilePage() {
@@ -132,32 +133,32 @@ export default function ProfilePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             
             {/* User Info Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6" style={{ color: 'white' }}>
               <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold">{displayName}</h1>
-                {age && <span className="text-xl sm:text-2xl">{age}歳</span>}
+                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'white' }}>{displayName}</h1>
+                {age && <span className="text-xl sm:text-2xl" style={{ color: 'white' }}>{age}歳</span>}
                 {profile?.accountStatus === 'verified' && (
-                  <Badge className="bg-blue-500/80 backdrop-blur-sm">
-                    <Shield className="h-3 w-3 mr-1" />
+                  <Badge className="bg-blue-500/80 backdrop-blur-sm" style={{ color: 'white' }}>
+                    <Shield className="h-3 w-3 mr-1" style={{ color: 'white' }} />
                     認証済み
                   </Badge>
                 )}
               </div>
               
               <div className="flex items-center gap-4 text-sm mb-2">
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
+                <span className="flex items-center gap-1" style={{ color: 'white' }}>
+                  <MapPin className="h-4 w-4" style={{ color: 'white' }} />
                   {location}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Briefcase className="h-4 w-4" />
+                <span className="flex items-center gap-1" style={{ color: 'white' }}>
+                  <Briefcase className="h-4 w-4" style={{ color: 'white' }} />
                   {occupation}
                 </span>
               </div>
               
               {profile?.gender && (
                 <div>
-                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                  <Badge variant="secondary" className="bg-white/20 border-white/30" style={{ color: 'white' }}>
                     {profile?.gender === 'male' ? '男性' : 
                      profile?.gender === 'female' ? '女性' : 'その他'}
                   </Badge>
@@ -169,9 +170,10 @@ export default function ProfilePage() {
             <Link href="/profile/edit">
               <Button
                 size="sm"
-                className="absolute top-4 right-4 rounded-full h-10 w-10 p-0 bg-[#F0306A]/90 hover:bg-[#E02860] backdrop-blur-sm shadow-lg"
+                className="absolute top-4 right-4 rounded-full h-10 w-10 p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm shadow-lg border border-white/20"
+                style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
               >
-                <Camera className="h-4 w-4 text-white" />
+                <Camera className="h-4 w-4" style={{ color: 'white' }} />
               </Button>
             </Link>
           </div>
@@ -194,9 +196,9 @@ export default function ProfilePage() {
         <CardContent>
           {/* Stats - Real data from Firebase */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <Heart className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {statsLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                 ) : statsError ? (
@@ -205,11 +207,11 @@ export default function ProfilePage() {
                   stats?.likesReceived || 0
                 )}
               </p>
-              <p className="text-xs">いいね</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">いいね</p>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <Users className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {statsLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                 ) : statsError ? (
@@ -218,11 +220,11 @@ export default function ProfilePage() {
                   stats?.matchesCount || 0
                 )}
               </p>
-              <p className="text-xs">プレイ数</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">プレイ数</p>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <MessageCircle className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
-              <p className="text-2xl font-bold">
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {statsLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                 ) : statsError ? (
@@ -231,28 +233,28 @@ export default function ProfilePage() {
                   stats?.requestsReceived || 0
                 )}
               </p>
-              <p className="text-xs">リクエスト</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">リクエスト</p>
             </div>
           </div>
           
           {/* Bio */}
           <div className="mb-6">
-            <h3 className="font-semibold mb-2">自己紹介</h3>
-            <p>{bio}</p>
+            <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">自己紹介</h3>
+            <p className="text-gray-700 dark:text-gray-300">{bio}</p>
           </div>
           
           {/* Interests */}
           <div className="mb-6">
-            <h3 className="font-semibold mb-2">興味・趣味</h3>
+            <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">興味・趣味</h3>
             <div className="flex flex-wrap gap-2">
               {interests.length > 0 ? (
                 interests.map((interest) => (
-                  <Badge key={interest} variant="secondary">
+                  <Badge key={interest} variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600">
                     {interest}
                   </Badge>
                 ))
               ) : (
-                <p className="text-sm">まだ設定されていません</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">まだ設定されていません</p>
               )}
             </div>
           </div>
@@ -289,7 +291,7 @@ export default function ProfilePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
                       {/* Photo Index Badge */}
-                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium shadow-sm">
+                      <div className="absolute top-3 left-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium shadow-sm text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
                         {index + 2}
                       </div>
                     </div>
@@ -305,7 +307,7 @@ export default function ProfilePage() {
                           <Camera className="h-8 w-8 text-[#F0306A]" />
                         </div>
                         <p className="text-sm font-medium text-[#F0306A] text-center">写真を追加</p>
-                        <p className="text-xs text-center mt-1">最大6枚まで</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-1">最大6枚まで</p>
                       </div>
                     </div>
                   </Link>
@@ -320,8 +322,8 @@ export default function ProfilePage() {
                         <Camera className="h-10 w-10 text-[#F0306A]" />
                       </div>
                       <p className="text-base font-semibold text-[#F0306A] text-center mb-2">追加の写真をアップロード</p>
-                      <p className="text-sm text-center">あなたの魅力をもっと伝えましょう</p>
-                      <p className="text-xs text-center mt-1">最大6枚まで追加可能</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 text-center">あなたの魅力をもっと伝えましょう</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-1">最大6枚まで追加可能</p>
                     </div>
                   </div>
                 </Link>
@@ -341,28 +343,28 @@ export default function ProfilePage() {
                 {malePreferences?.isComplete ? "設定完了" : "設定未完了"}
               </Badge>
             </div>
-            <p>相手探しの条件や嗜好の設定</p>
+            <p className="text-gray-600 dark:text-gray-400">相手探しの条件や嗜好の設定</p>
           </CardHeader>
           <CardContent>
             {malePreferences?.isComplete ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm">年齢範囲</p>
-                    <p className="font-medium">{malePreferences.partnerAgeMin}-{malePreferences.partnerAgeMax}歳</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">年齢範囲</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{malePreferences.partnerAgeMin}-{malePreferences.partnerAgeMax}歳</p>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm">体型</p>
-                    <p className="font-medium">{malePreferences.partnerBodyType || '未設定'}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">体型</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{malePreferences.partnerBodyType || '未設定'}</p>
                   </div>
                 </div>
                 
                 {malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0 && (
                   <div>
-                    <p className="text-sm mb-2">希望する相手の体型</p>
+                    <p className="text-sm mb-2 text-gray-700 dark:text-gray-300">希望する相手の体型</p>
                     <div className="flex flex-wrap gap-2">
                       {malePreferences.partnerBodyTypes.map((bodyType) => (
-                        <Badge key={bodyType} variant="outline" className="text-xs">
+                        <Badge key={bodyType} variant="outline" className="text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
                           {bodyType}
                         </Badge>
                       ))}
@@ -377,7 +379,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="mb-4">マッチングを開始するには詳細設定の完了が必要です</p>
+                <p className="mb-4 text-gray-700 dark:text-gray-300">マッチングを開始するには詳細設定の完了が必要です</p>
                 <Button className="bg-[#F0306A] hover:bg-[#E02860] text-lg px-8 py-6" onClick={() => router.push('/profile/preferences')}>
                   詳細設定を開始
                 </Button>
@@ -387,29 +389,10 @@ export default function ProfilePage() {
         </Card>
       )}
 
-      {/* Premium Upsell */}
-      <Card className="bg-gradient-to-r from-[#F0306A] to-[#FF7F50] text-white">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Star className="h-5 w-5 fill-white" />
-                <h3 className="text-lg font-bold">プレミアムメンバー</h3>
-              </div>
-              <p className="text-sm opacity-90">
-                無制限のいいね、メッセージの既読確認など
-              </p>
-            </div>
-            <Button 
-              variant="secondary" 
-              className="bg-white text-[#F0306A] hover:bg-gray-100"
-              onClick={() => router.push('/subscription')}
-            >
-              詳細を見る
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Subscription Status Section */}
+      <div id="subscription">
+        <SubscriptionStatusSection />
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">

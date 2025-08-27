@@ -201,6 +201,47 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
     
+    // Payments collection rules - 支払い履歴
+    match /payments/{paymentId} {
+      // ユーザーは自分の支払い履歴のみ読める
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // 支払い履歴の作成は認証されたユーザーのみ（自分の支払いのみ）
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // 支払い履歴の更新・削除は不可（監査証跡のため）
+      allow update, delete: if false;
+    }
+    
+    // Subscriptions collection rules - サブスクリプション履歴
+    match /subscriptions/{subscriptionId} {
+      // ユーザーは自分のサブスクリプション履歴のみ読める
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // サブスクリプションの作成は認証されたユーザーのみ（自分のサブスクリプションのみ）
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // サブスクリプションの更新は自分のものだけ（キャンセル処理など）
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // サブスクリプション履歴の削除は不可
+      allow delete: if false;
+    }
+    
+    // Trial campaigns collection rules - トライアルキャンペーン
+    match /trial_campaigns/{campaignId} {
+      // 認証されたユーザーは全てのキャンペーン情報を読める
+      allow read: if request.auth != null;
+      
+      // キャンペーンの作成・更新・削除は管理者のみ
+      allow create, update, delete: if isAdmin();
+    }
+    
     // Public stats collection - 統計情報は誰でも読める
     match /publicStats/{document=**} {
       allow read: if true;

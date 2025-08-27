@@ -26,6 +26,7 @@ import '@/styles/blur.css';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { isLineBrowser } from '@/lib/utils/browser-detection';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
 
 const USERS_PER_PAGE = 20;
 
@@ -957,6 +958,9 @@ export default function HomePage() {
 
   return (
     <div className="w-full bg-white dark:bg-black" style={{ minHeight: '100vh' }}>
+      {/* Trial Banner */}
+      <TrialBanner />
+      
       {/* Banner Image */}
       <div className="w-full">
         <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">

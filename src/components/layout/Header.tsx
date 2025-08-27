@@ -34,6 +34,7 @@ export function Header() {
                 {/* Desktop Navigation */}
                 <ThemeToggle />
                 <Link href="/home" className={`${styles.navLink} ${styles.hideOnMobile}`}>ホーム</Link>
+                <Link href="/mypage" className={`${styles.navLink} ${styles.hideOnMobile}`}>マイページ</Link>
                 <Link href="/profile/edit" className={`${styles.navLink} ${styles.hideOnMobile}`}>プロフィール</Link>
                 <button onClick={handleLogout} className={`${styles.navLink} ${styles.primary} ${styles.hideOnMobile}`}>
                   ログアウト
@@ -45,9 +46,9 @@ export function Header() {
                     <Home size={24} />
                     <span className={styles.iconLabel}>ホーム</span>
                   </Link>
-                  <Link href="/profile/edit" className={styles.iconLink}>
+                  <Link href="/mypage" className={styles.iconLink}>
                     <User size={24} />
-                    <span className={styles.iconLabel}>プロフィール</span>
+                    <span className={styles.iconLabel}>マイページ</span>
                   </Link>
                   <button onClick={handleLogout} className={styles.iconButton}>
                     <LogOut size={24} />
