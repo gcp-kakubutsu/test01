@@ -253,16 +253,25 @@ $border-color-light: #E5E7EB;
   display: flex;
   gap: 1rem;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;  // 改行を防ぐ
 
   @media (max-width: 768px) {
     flex-direction: row;  // 横並びを維持
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: nowrap;  // モバイルでも改行を防ぐ
   }
   
   @media (max-width: 480px) {
     gap: 0.5rem;
+    width: 100%;
+    padding: 0 1rem;  // 左右にパディング追加
+    
+    // ボタンを均等に配置
+    > * {
+      flex: 1;  // 均等な幅で配置
+      min-width: 0;  // flexの縮小を許可
+    }
   }
 }
 
@@ -406,15 +415,16 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    padding: 1.2rem 2rem;
-    font-size: 1.1rem;
-    min-width: 150px;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-width: 120px;
   }
   
   @media (max-width: 480px) {
-    padding: 1rem 1.8rem;
-    font-size: 1rem;
-    min-width: 140px;
+    padding: 0.9rem 1rem;
+    font-size: 0.9rem;
+    min-width: unset;  // flexで制御するため最小幅を解除
+    white-space: nowrap;  // テキストの改行を防ぐ
   }
 
   &Primary {
@@ -426,11 +436,11 @@ $border-color-light: #E5E7EB;
     justify-content: center;
     
     @media (max-width: 768px) {
-      min-width: 160px;
+      min-width: 140px;
     }
     
     @media (max-width: 480px) {
-      min-width: 150px;
+      min-width: unset;  // flexで制御
     }
 
     :global(.light) & {
@@ -453,11 +463,11 @@ $border-color-light: #E5E7EB;
     font-weight: 700;
     
     @media (max-width: 768px) {
-      min-width: 120px;
+      min-width: 140px;
     }
     
     @media (max-width: 480px) {
-      min-width: 110px;
+      min-width: unset;  // flexで制御
     }
 
     span {

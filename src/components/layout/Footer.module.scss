@@ -29,8 +29,15 @@
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
-    flex-direction: column;
+    flex-direction: row;  // 横並びを維持
     gap: 1rem;
+    flex-wrap: wrap;  // 必要に応じて改行
+    padding: 0 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+    font-size: 0.85rem;  // 文字サイズを少し小さく
   }
 }
 

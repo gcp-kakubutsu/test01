@@ -387,7 +387,7 @@ export default function LandingPage() {
               NUKUNEに参加
             </Link>
             <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
-              <span>ログイン</span>
+              <span>無料で参加</span>
             </Link>
           </div>
           <div className={styles.heroLocationInfo}>

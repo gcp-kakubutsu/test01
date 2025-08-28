@@ -97,20 +97,6 @@ const CONTACT_OPTIONS = [
     description: "24時間受付中",
     value: "support@nukune.com",
     action: "メールを送る"
-  },
-  {
-    icon: MessageCircle,
-    title: "チャットサポート",
-    description: "平日 10:00-18:00",
-    value: "オンラインチャット",
-    action: "チャットを開始"
-  },
-  {
-    icon: Phone,
-    title: "電話サポート",
-    description: "平日 10:00-17:00",
-    value: "03-1234-5678",
-    action: "電話をかける"
   }
 ];
 
@@ -421,7 +407,7 @@ export default function SupportPage() {
               </h3>
               <p className="text-sm text-red-700 dark:text-red-400 mt-1">
                 アカウントの不正利用や緊急を要する問題については、
-                直接お電話（03-1234-5678）でご連絡ください。
+                メールでご連絡ください。
               </p>
             </div>
           </div>
