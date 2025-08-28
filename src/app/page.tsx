@@ -378,8 +378,8 @@ export default function LandingPage() {
             <span className={styles.heroTitleLine2}>あなたに合うキャストだけ表示</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            エリア・来店時間・嗜好を一括判定。<br />
-            従来の風俗サイトより速く・的確に。
+            エリア・来店時間・嗜好を一括判定<br />
+            従来の風俗サイトより速く・的確に
           </p>
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
