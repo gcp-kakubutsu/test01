@@ -31,7 +31,7 @@ import { TrialBanner } from '@/components/subscription/TrialBanner';
 const USERS_PER_PAGE = 20;
 
 export default function HomePage() {
-  const { isAuthenticated, currentUser } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
+  const { isAuthenticated, currentUser, firebaseSynced } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
@@ -49,12 +49,12 @@ export default function HomePage() {
   const [sortedGirlsCache, setSortedGirlsCache] = useState<GirlWithDetails[] | null>(null); // ソート済みデータのキャッシュ
   const [isSorting, setIsSorting] = useState(false); // ソート処理中フラグ
   const [hasInitialSort, setHasInitialSort] = useState(false); // 初回ソート完了フラグ
-  const authStateRef = useRef({ currentUser, userProfile }); // 認証状態の参照
+  const authStateRef = useRef({ currentUser, userProfile, firebaseSynced }); // 認証状態の参照
   
   // 認証状態の参照を更新
   useEffect(() => {
-    authStateRef.current = { currentUser, userProfile };
-  }, [currentUser, userProfile]);
+    authStateRef.current = { currentUser, userProfile, firebaseSynced };
+  }, [currentUser, userProfile, firebaseSynced]);
   const [currentPage, setCurrentPage] = useState(1);
   const [useFirebaseData] = useState(false); // MySQL only - Firebase disabled
   const [viewMode, setViewMode] = useState<'single' | 'double'>('double'); // Default to 2 columns
@@ -253,13 +253,13 @@ export default function HomePage() {
       const maxWait = 30; // 100ms x 30 = 3秒
       
       console.log('[useEffect] Waiting for authentication...');
-      while ((!authStateRef.current.currentUser || !authStateRef.current.userProfile) && waitCount < maxWait) {
+      while ((!authStateRef.current.currentUser || !authStateRef.current.userProfile || !authStateRef.current.firebaseSynced) && waitCount < maxWait) {
         await new Promise(resolve => setTimeout(resolve, 100));
         waitCount++;
       }
       
-      const { currentUser: authUser, userProfile: authProfile } = authStateRef.current;
-      console.log(`[useEffect] Auth ${authUser ? 'ready' : 'timeout'}, Profile ${authProfile ? 'ready' : 'timeout'} after ${waitCount * 100}ms`);
+      const { currentUser: authUser, userProfile: authProfile, firebaseSynced: authSynced } = authStateRef.current;
+      console.log(`[useEffect] Auth ${authUser ? 'ready' : 'timeout'}, Profile ${authProfile ? 'ready' : 'timeout'}, Firebase ${authSynced ? 'synced' : 'not synced'} after ${waitCount * 100}ms`);
       
       try {
         const sortedGirls = await sortGirlsByPreference(

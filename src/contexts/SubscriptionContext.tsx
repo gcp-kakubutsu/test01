@@ -37,6 +37,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useAuth();
   const [userSubscription, setUserSubscription] = useState<UserWithSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // サブスクリプション情報を取得
   const fetchSubscription = React.useCallback(async () => {
@@ -48,6 +49,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       setIsLoading(true);
+      console.log('🔄 Fetching subscription for user:', currentUser.uid);
       
       // トライアル状態をチェック・更新
       await checkAndUpdateTrialStatus(currentUser.uid);
@@ -78,18 +80,37 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   // currentUserが変更されたら再取得
   useEffect(() => {
-    fetchSubscription();
-  }, [fetchSubscription]);
+    // ユーザーが変更された場合、前のデータをクリア
+    if (!currentUser) {
+      setUserSubscription(null);
+      setIsLoading(false);
+    } else {
+      fetchSubscription();
+    }
+  }, [currentUser?.uid, fetchSubscription]);
 
   // 定期的にトライアル状態をチェック（1分ごと）
   useEffect(() => {
+    // 前のintervalをクリア
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!currentUser?.uid) return;
 
-    const interval = setInterval(() => {
-      checkAndUpdateTrialStatus(currentUser.uid);
+    intervalRef.current = setInterval(() => {
+      checkAndUpdateTrialStatus(currentUser.uid).catch(() => {
+        // エラーを無視
+      });
     }, 60 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [currentUser?.uid]);
 
   // 計算されたプロパティ

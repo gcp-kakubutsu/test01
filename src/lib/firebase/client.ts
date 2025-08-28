@@ -18,6 +18,7 @@ import {
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
 import { isLineBrowser, isIndexedDBAvailable, getBrowserInfo } from '@/lib/utils/browser-detection';
+import { listenerManager } from '@/lib/firebase/listener-manager';
 
 // Firebase設定
 const firebaseConfig = {
@@ -102,11 +103,9 @@ function initializeFirebaseServices(): void {
           } else {
             // 通常のブラウザの場合
             try {
-              // persistentLocalCacheを使用（IndexedDBベース）
+              // シングルタブモードで初期化（マルチタブ同期の問題を回避）
               db = initializeFirestore(app, {
-                localCache: persistentLocalCache({
-                  tabManager: persistentMultipleTabManager()
-                })
+                localCache: persistentLocalCache()
               });
             } catch (persistError: any) {
               console.warn('⚠️ Failed to initialize with persistent cache, falling back to memory cache:', persistError);
@@ -205,6 +204,11 @@ function restoreAuthFromSession() {
 if (typeof window !== 'undefined') {
   // 即座に初期化を実行（DOMを待たない）
   initializeFirebaseServices();
+  
+  // ページアンロード時にリスナーをクリーンアップ
+  window.addEventListener('beforeunload', () => {
+    listenerManager.unregisterAll();
+  });
 }
 
 /**
@@ -252,6 +256,56 @@ export function getFirebaseFunctions(): Functions | undefined {
  */
 export function getInitializationError(): Error | null {
   return initializationError;
+}
+
+/**
+ * Firestore接続をリセット（ユーザー切り替え時用）
+ */
+export async function resetFirestoreConnection(): Promise<void> {
+  console.log('🔄 Resetting Firestore connection...');
+  
+  // すべてのリスナーをクリーンアップ
+  listenerManager.unregisterAll();
+  
+  // Firestoreインスタンスを破棄
+  if (db) {
+    try {
+      const { terminate } = await import('firebase/firestore');
+      await terminate(db);
+      console.log('✅ Firestore terminated');
+    } catch (error) {
+      console.warn('⚠️ Could not terminate Firestore:', error);
+    }
+    db = undefined;
+  }
+  
+  // 再初期化
+  if (app) {
+    try {
+      const browserInfo = getBrowserInfo();
+      
+      // LINEブラウザまたはIndexedDBが使えない環境の場合
+      if (browserInfo.isLine || !browserInfo.hasIndexedDB) {
+        db = initializeFirestore(app, {
+          localCache: memoryLocalCache(),
+          experimentalForceLongPolling: true,
+        });
+      } else {
+        try {
+          db = initializeFirestore(app, {
+            localCache: persistentLocalCache()
+          });
+        } catch (persistError: any) {
+          db = initializeFirestore(app, {
+            localCache: memoryLocalCache()
+          });
+        }
+      }
+      console.log('✅ Firestore reinitialized');
+    } catch (error) {
+      console.error('❌ Failed to reinitialize Firestore:', error);
+    }
+  }
 }
 
 // 既存コードとの互換性

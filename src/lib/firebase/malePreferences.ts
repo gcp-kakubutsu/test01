@@ -1,7 +1,8 @@
 "use client";
 
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from './client';
+import { db, getFirebaseAuth } from './client';
+import { getAuth } from 'firebase/auth';
 
 // 男性ユーザーの詳細設定データ構造
 export interface MalePreferences {
@@ -82,6 +83,18 @@ export async function getMalePreferences(userId: string): Promise<MalePreference
   if (!userId || typeof userId !== 'string' || userId.trim() === '') {
     console.warn('getMalePreferences: Invalid userId provided:', userId);
     return null;
+  }
+
+  // Firebase Authの現在のユーザーを確認
+  const auth = getFirebaseAuth();
+  if (auth?.currentUser) {
+    // IDトークンを強制的にリフレッシュ
+    try {
+      await auth.currentUser.getIdToken(true);
+      console.log('🔄 ID token refreshed for Firestore access');
+    } catch (tokenError) {
+      console.warn('⚠️ Failed to refresh ID token:', tokenError);
+    }
   }
 
   try {
