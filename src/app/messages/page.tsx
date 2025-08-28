@@ -18,7 +18,7 @@ import { deleteMemoFromHistory } from '@/lib/firebase/memoHistory';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
 
 interface MemoDisplay {
@@ -34,7 +34,7 @@ interface MemoDisplay {
 export default function MemosPage() {
   const { isAuthenticated, currentUser, isLoading, hasInitialized } = useAuth();
   const router = useRouter();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
 
   // 認証チェック - 有料会員チェックで判定

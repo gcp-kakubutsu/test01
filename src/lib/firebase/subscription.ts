@@ -95,7 +95,7 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
       source: undefined
     };
     
-    const defaultSubscription: SubscriptionData = {
+    let defaultSubscription: SubscriptionData = {
       status: 'none',
       currentPeriodStart: null,
       currentPeriodEnd: null,
@@ -111,12 +111,44 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
       nextBillingDate: null
     };
     
+    // スクリプト(bulk)で作成されたプレミアムフィールドを正規化
+    // トップレベルに subscriptionStartDate / subscriptionEndDate が存在する場合、
+    // 型に合わせて subscription フィールドへマッピングする
+    const hasScriptSubscriptionEnd = !!(data as any)?.subscriptionEndDate;
+    if (hasScriptSubscriptionEnd) {
+      defaultSubscription = {
+        status: 'active',
+        currentPeriodStart: (data as any)?.subscriptionStartDate || null,
+        currentPeriodEnd: (data as any)?.subscriptionEndDate || null,
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+        pausedAt: null
+      };
+    }
+
+    const normalizedSubscription: SubscriptionData = data.subscription || defaultSubscription;
+
+    // スクリプト由来のisPremiumがtrueの場合は、トライアルを無効として扱う
+    const scriptIsPremium = !!data.isPremium;
+    const trialFromData: TrialData | undefined = data.trial;
+    // トップレベルのsubscriptionEndDateが存在する場合のみ、スクリプト由来のプレミアムと判断してトライアルを無効化
+    const disableTrialForScriptPremium = scriptIsPremium && hasScriptSubscriptionEnd;
+    const normalizedTrial: TrialData = disableTrialForScriptPremium
+      ? {
+          startDate: trialFromData?.startDate || null,
+          endDate: trialFromData?.endDate || null,
+          isActive: false,
+          hasUsed: true,
+          source: trialFromData?.source
+        }
+      : (trialFromData || defaultTrial);
+
     return {
       uid: userId,
       email: data.email || '',
       createdAt: data.createdAt || Timestamp.now(),
-      trial: data.trial || defaultTrial,
-      subscription: data.subscription || defaultSubscription,
+      trial: normalizedTrial,
+      subscription: normalizedSubscription,
       billing: data.billing || defaultBilling,
       isPremium: data.isPremium || false
     };

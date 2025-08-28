@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { GirlWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Navigation, StickyNote, ExternalLink } from 'lucide-react';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 import { toast } from '@/hooks/use-toast';
@@ -37,7 +37,7 @@ import {
 export default function GirlProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [girl, setGirl] = useState<GirlWithDetails | null>(null);

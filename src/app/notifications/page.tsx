@@ -17,7 +17,7 @@ import {
   where, updateDoc, doc, writeBatch, Timestamp 
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface Notification {
   id: string;
@@ -58,7 +58,7 @@ export default function NotificationsPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [filterType, setFilterType] = useState<'all' | 'like' | 'retweet' | 'comment'>('all');

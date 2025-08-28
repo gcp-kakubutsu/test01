@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   getUserSubscriptionData, 
@@ -51,6 +52,58 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log('🔄 Fetching subscription for user:', currentUser.uid);
       
+      // LINEブラウザ対応: セッションベースAPIを使用して簡易的に有料判定を取得
+      const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
+      if (isLineBrowser) {
+        try {
+          const headers: HeadersInit = { 'Accept': 'application/json' };
+          if (typeof window !== 'undefined' && (window.location.hostname.includes('ngrok') || window.location.hostname.includes('ngrok-free'))) {
+            headers['ngrok-skip-browser-warning'] = 'true';
+          }
+          const response = await fetch('/api/subscription/check', { method: 'GET', credentials: 'include', headers });
+          if (response.ok) {
+            const data = await response.json();
+            // トップレベルの subscriptionEndDate が存在する（=スクリプト/サブスク起源の有料）の場合のみ
+            // 最小ユーザーデータを採用する。トライアル起源の isPremium では Firestore 経路にフォールバックする。
+            if (data?.subscriptionEndDate) {
+              const endDate = Timestamp.fromDate(new Date(data.subscriptionEndDate));
+              const minimalUser = {
+                uid: currentUser.uid,
+                email: currentUser.email || '',
+                createdAt: Timestamp.now(),
+                trial: {
+                  startDate: null,
+                  endDate: null,
+                  isActive: false,
+                  hasUsed: true,
+                  source: undefined,
+                },
+                subscription: {
+                  status: 'active' as const,
+                  currentPeriodStart: Timestamp.now(),
+                  currentPeriodEnd: endDate,
+                  cancelAtPeriodEnd: false,
+                  canceledAt: null,
+                  pausedAt: null,
+                },
+                billing: {
+                  customerId: null,
+                  paymentMethodId: null,
+                  lastPaymentDate: null,
+                  nextBillingDate: endDate,
+                },
+                isPremium: true,
+              } as UserWithSubscription;
+              setUserSubscription(minimalUser);
+              setIsLoading(false);
+              return; // LINE分岐はここで終了
+            }
+          }
+        } catch (e) {
+          // LINEでAPI失敗時は通常ルートへフォールバック
+        }
+      }
+      
       // トライアル状態をチェック・更新
       await checkAndUpdateTrialStatus(currentUser.uid);
       
@@ -58,8 +111,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const data = await getUserSubscriptionData(currentUser.uid);
       setUserSubscription(data);
       
-      // 新規ユーザーの場合、トライアルを初期化
-      if (data && !data.trial?.hasUsed && !data.subscription?.status || data?.subscription?.status === 'none') {
+      // 新規ユーザーの場合、トライアルを初期化（論理演算子の優先順位に注意して括弧で明示）
+      if (
+        data &&
+        !data.trial?.hasUsed &&
+        (!data.subscription?.status || data.subscription.status === 'none')
+      ) {
         await initializeUserTrial(currentUser.uid);
         // 再度取得
         const updatedData = await getUserSubscriptionData(currentUser.uid);

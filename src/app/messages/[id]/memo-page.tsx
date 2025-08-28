@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo as useFirebaseMemo } from '@/hooks/useMemos';
 import { saveMemo, deleteMemo } from '@/lib/firebase/memos';
 import { useToast } from '@/hooks/use-toast';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import Image from 'next/image';
 
 interface MemoPageProps {
@@ -23,7 +23,7 @@ interface MemoPageProps {
 
 export default function MemoPage({ targetId, targetName, targetImage, targetLocation }: MemoPageProps) {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();

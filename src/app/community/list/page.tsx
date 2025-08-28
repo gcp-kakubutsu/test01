@@ -14,7 +14,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment, deleteDoc, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import PremiumOnlyCard from '@/components/PremiumOnlyCard';
 
 interface Community {
@@ -34,7 +34,7 @@ export default function CommunityListPage() {
   const { isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

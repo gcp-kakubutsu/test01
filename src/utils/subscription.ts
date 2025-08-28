@@ -12,20 +12,26 @@ import {
 export function getUserStatus(user: UserWithSubscription): UserSubscriptionStatus {
   const now = new Date();
   
+  // トライアルチェック（最優先）
+  // isPremiumがtrueでも、トライアルがアクティブであればTRIAL_ACTIVEを返す
+  if (user.trial?.isActive && user.trial.endDate) {
+    if (user.trial.endDate.toDate() > now) {
+      return UserSubscriptionStatus.TRIAL_ACTIVE;
+    }
+    // 期限切れは次の判定に影響しないので、一旦TRIAL_EXPIREDとして扱う
+    // ただし、下でプレミアムアクティブの可能性も評価する
+  }
+  
   // 有料会員チェック（スクリプトで設定されたisPremiumフィールドも確認）
   if (user.isPremium || user.subscription?.status === 'active') {
-    // スクリプトで設定された場合、subscriptionStatusフィールドもチェック
     if (user.subscription?.cancelAtPeriodEnd) {
       return UserSubscriptionStatus.PREMIUM_CANCELED;
     }
     return UserSubscriptionStatus.PREMIUM_ACTIVE;
   }
   
-  // トライアルチェック
-  if (user.trial?.isActive && user.trial.endDate) {
-    if (user.trial.endDate.toDate() > now) {
-      return UserSubscriptionStatus.TRIAL_ACTIVE;
-    }
+  // トライアルが存在し、かつ期限切れの場合
+  if (user.trial?.endDate && user.trial.endDate.toDate() <= now) {
     return UserSubscriptionStatus.TRIAL_EXPIRED;
   }
   
@@ -123,16 +129,19 @@ export function getSubscriptionInfo(user: UserWithSubscription): SubscriptionInf
   const now = new Date();
   const periodEnd = user.subscription?.currentPeriodEnd?.toDate();
   
-  // スクリプトで設定されたプレミアムユーザーで期間が設定されていない場合
-  if (!periodEnd && user.isPremium) {
+  // 期間が未設定でも、トライアルがアクティブなら7日間の残日数を表示
+  // （課金プレミアム非契約でトライアル中のケース）
+  if (!periodEnd && user.trial?.isActive && user.trial.endDate && user.trial.endDate.toDate() > now) {
+    const remainingMs = user.trial.endDate.toDate().getTime() - now.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
     return {
       isActive: true,
       willRenew: false,
-      daysRemaining: 999, // 無制限として扱う
+      daysRemaining,
       nextBillingDate: null,
       cancelationDate: null,
       amount: 0,
-      message: 'プレミアム会員'
+      message: `トライアル残り${daysRemaining}日`
     };
   }
   

@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location'
 import { getLocationCoordinates } from '@/lib/utils/japanLocations'
 import { useUserProfile } from '@/lib/firebase/hooks'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useSubscription } from '@/contexts/SubscriptionContext'
 import Image from 'next/image'
 import styles from './search.module.scss'
 import './search-dialog.css'
@@ -112,7 +112,7 @@ function AdvancedSearchContent() {
   const searchParams = useSearchParams()
   const { isAuthenticated, currentUser } = useAuth()
   const { profile: userProfile } = useUserProfile()
-  const { isPremium, loading: subscriptionLoading } = useSubscription()
+  const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription()
   const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   

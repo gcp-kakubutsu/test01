@@ -249,9 +249,16 @@ export function SubscriptionStatusSection() {
               </div>
               <span className="font-bold">プレミアム会員</span>
             </div>
-            <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold">
-              アクティブ
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold">
+                アクティブ
+              </Badge>
+              {subscriptionInfo.daysRemaining > 0 && (
+                <Badge className="bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 font-semibold">
+                  残り{subscriptionInfo.daysRemaining}日
+                </Badge>
+              )}
+            </div>
           </CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-300 mt-2">
             すべてのプレミアム機能をご利用いただけます
@@ -269,7 +276,9 @@ export function SubscriptionStatusSection() {
                 次回更新日
               </span>
               <span className="font-semibold text-gray-800 dark:text-gray-200">
-                {subscriptionInfo.nextBillingDate?.toLocaleDateString('ja-JP')}
+                {subscriptionInfo.nextBillingDate
+                  ? `${subscriptionInfo.nextBillingDate.toLocaleDateString('ja-JP')}${subscriptionInfo.daysRemaining > 0 ? `（残り${subscriptionInfo.daysRemaining}日）` : ''}`
+                  : '—'}
               </span>
             </div>
             <div className="flex items-center justify-between">

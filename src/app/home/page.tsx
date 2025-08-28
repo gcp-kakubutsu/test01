@@ -21,7 +21,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
 import Image from 'next/image';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import '@/styles/blur.css';
 import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ const USERS_PER_PAGE = 20;
 export default function HomePage() {
   const { isAuthenticated, currentUser, firebaseSynced } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { hasPremium, isLoading: subscriptionLoading } = useSubscription();
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
@@ -1207,10 +1207,10 @@ export default function HomePage() {
                   src={imageUrl || 'https://placehold.co/400x600/FFB6C1/FFFFFF?text=No+Photo'}
                   alt={name}
                   fill
-                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!isPremium && !subscriptionLoading ? 'blur-image' : ''}`}
+                  className={`object-contain transition-transform duration-300 hover:scale-105 ${!hasPremium && !subscriptionLoading ? 'blur-image' : ''}`}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
-                {!isPremium && !subscriptionLoading && (
+                {!hasPremium && !subscriptionLoading && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 )}
               </div>
@@ -1370,7 +1370,7 @@ export default function HomePage() {
                       }
                       
                       // 有料会員チェック
-                      if (!isPremium && !subscriptionLoading) {
+                      if (!hasPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
                           description: 'いいねを送るには有料会員登録が必要です',
@@ -1441,7 +1441,7 @@ export default function HomePage() {
                       }
                       
                       // 有料会員チェック
-                      if (!isPremium && !subscriptionLoading) {
+                      if (!hasPremium && !subscriptionLoading) {
                         toast({
                           title: '有料会員限定',
                           description: 'メモ機能を使うには有料会員登録が必要です',
