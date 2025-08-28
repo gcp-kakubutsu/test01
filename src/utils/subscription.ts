@@ -21,6 +21,16 @@ export function getUserStatus(user: UserWithSubscription): UserSubscriptionStatu
     // 期限切れは次の判定に影響しないので、一旦TRIAL_EXPIREDとして扱う
     // ただし、下でプレミアムアクティブの可能性も評価する
   }
+
+  // 補強: Firestore上のsubscription.statusが 'trial' の場合も、
+  // trial.endDate を基準にTRIAL_* を返す（フィールド不整合の保険）
+  if (user.subscription?.status === 'trial') {
+    const end = user.trial?.endDate?.toDate();
+    if (end && end > now) {
+      return UserSubscriptionStatus.TRIAL_ACTIVE;
+    }
+    return UserSubscriptionStatus.TRIAL_EXPIRED;
+  }
   
   // 有料会員チェック（スクリプトで設定されたisPremiumフィールドも確認）
   if (user.isPremium || user.subscription?.status === 'active') {

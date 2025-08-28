@@ -35,6 +35,11 @@ export function SubscriptionStatusSection() {
   const [isReactivating, setIsReactivating] = React.useState(false);
   const { toast } = useToast();
 
+  // 追加の安全策: Firestoreの subscription.status が 'trial' かつ trialInfo が有効なら
+  // UI上は必ずトライアル優先で表示する（万一の不整合対策）
+  const isTrialOverride = userSubscription?.subscription?.status === 'trial' && !!trialInfo?.isActive;
+  const effectiveStatus = isTrialOverride ? UserSubscriptionStatus.TRIAL_ACTIVE : status;
+
   const handleReactivate = async () => {
     if (status !== UserSubscriptionStatus.PREMIUM_CANCELED) return;
     setIsReactivating(true);
@@ -95,7 +100,7 @@ export function SubscriptionStatusSection() {
   }
 
   // 無料会員（トライアル未使用）
-  if (status === UserSubscriptionStatus.FREE && !userSubscription?.trial?.hasUsed) {
+  if (effectiveStatus === UserSubscriptionStatus.FREE && !userSubscription?.trial?.hasUsed) {
     return (
       <Card className="border-2 border-pink-300 dark:border-pink-400 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-pink-100 via-pink-50 to-purple-50 dark:from-pink-900/30 dark:via-pink-800/20 dark:to-purple-900/20">
@@ -155,7 +160,7 @@ export function SubscriptionStatusSection() {
   }
 
   // トライアル中
-  if (status === UserSubscriptionStatus.TRIAL_ACTIVE && trialInfo?.isActive) {
+  if (effectiveStatus === UserSubscriptionStatus.TRIAL_ACTIVE && trialInfo?.isActive) {
     const progressPercentage = ((trialInfo.daysUsed / 7) * 100);
     const isLastDay = trialInfo.daysRemaining === 0;
     const isWarning = trialInfo.daysRemaining <= 2;
@@ -238,7 +243,7 @@ export function SubscriptionStatusSection() {
   }
 
   // 有料会員（アクティブ）
-  if (status === UserSubscriptionStatus.PREMIUM_ACTIVE && subscriptionInfo) {
+  if (effectiveStatus === UserSubscriptionStatus.PREMIUM_ACTIVE && subscriptionInfo) {
     return (
       <Card className="border-2 border-pink-300 dark:border-pink-400">
         <CardHeader className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
@@ -324,7 +329,7 @@ export function SubscriptionStatusSection() {
   }
 
   // 有料会員（解約予定）
-  if (status === UserSubscriptionStatus.PREMIUM_CANCELED && subscriptionInfo) {
+  if (effectiveStatus === UserSubscriptionStatus.PREMIUM_CANCELED && subscriptionInfo) {
     return (
       <>
         <Card className="border-2 border-orange-400 dark:border-orange-500">

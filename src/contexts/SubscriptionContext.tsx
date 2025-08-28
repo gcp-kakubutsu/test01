@@ -107,8 +107,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // トライアル状態をチェック・更新
       await checkAndUpdateTrialStatus(currentUser.uid);
       
-      // ユーザーのサブスクリプション情報を取得
-      const data = await getUserSubscriptionData(currentUser.uid);
+      // リスタートや初期化レース対策: データ取得をリトライ
+      const maxAttempts = 5;
+      let attempt = 0;
+      let data = null as UserWithSubscription | null;
+      while (attempt < maxAttempts && !data) {
+        // ユーザーデータを取得
+        data = await getUserSubscriptionData(currentUser.uid);
+        if (data) break;
+        attempt++;
+        // 少し待つ（Firebase初期化待ち）
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
       setUserSubscription(data);
       
       // 新規ユーザーの場合、トライアルを初期化（論理演算子の優先順位に注意して括弧で明示）
@@ -118,8 +128,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         (!data.subscription?.status || data.subscription.status === 'none')
       ) {
         await initializeUserTrial(currentUser.uid);
-        // 再度取得
-        const updatedData = await getUserSubscriptionData(currentUser.uid);
+        // 再度取得（同じくリトライ）
+        let updatedData = null as UserWithSubscription | null;
+        attempt = 0;
+        while (attempt < maxAttempts && !updatedData) {
+          updatedData = await getUserSubscriptionData(currentUser.uid);
+          if (updatedData) break;
+          attempt++;
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
         setUserSubscription(updatedData);
       }
     } catch (error: any) {

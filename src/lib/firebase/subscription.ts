@@ -115,8 +115,11 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
     // トップレベルに subscriptionStartDate / subscriptionEndDate が存在する場合、
     // 型に合わせて subscription フィールドへマッピングする
     const hasScriptSubscriptionEnd = !!(data as any)?.subscriptionEndDate;
-    if (hasScriptSubscriptionEnd) {
-      defaultSubscription = {
+    let normalizedSubscription: SubscriptionData;
+    const isSubscriptionTrial = (data as any)?.subscription?.status === 'trial';
+    if (hasScriptSubscriptionEnd && !isSubscriptionTrial) {
+      // スクリプト起源の有料はトップレベルの期間情報を最優先で採用
+      normalizedSubscription = {
         status: 'active',
         currentPeriodStart: (data as any)?.subscriptionStartDate || null,
         currentPeriodEnd: (data as any)?.subscriptionEndDate || null,
@@ -124,15 +127,15 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
         canceledAt: null,
         pausedAt: null
       };
+    } else {
+      normalizedSubscription = data.subscription || defaultSubscription;
     }
-
-    const normalizedSubscription: SubscriptionData = data.subscription || defaultSubscription;
 
     // スクリプト由来のisPremiumがtrueの場合は、トライアルを無効として扱う
     const scriptIsPremium = !!data.isPremium;
     const trialFromData: TrialData | undefined = data.trial;
     // トップレベルのsubscriptionEndDateが存在する場合のみ、スクリプト由来のプレミアムと判断してトライアルを無効化
-    const disableTrialForScriptPremium = scriptIsPremium && hasScriptSubscriptionEnd;
+    const disableTrialForScriptPremium = scriptIsPremium && hasScriptSubscriptionEnd && !isSubscriptionTrial;
     const normalizedTrial: TrialData = disableTrialForScriptPremium
       ? {
           startDate: trialFromData?.startDate || null,
