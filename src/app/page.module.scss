@@ -201,6 +201,19 @@ $border-color-light: #E5E7EB;
   }
 }
 
+// ヒーロータイトル中の通常テキスト（「で選ぶ」「の出会い」）をスマホ時31pxに
+.heroTitlePlain {
+  @media (max-width: 768px) {
+    font-size: 32px;
+  }
+  @media (max-width: 480px) {
+    font-size: 32px;
+  }
+  @media (max-width: 375px) {
+    font-size: 32px;
+  }
+}
+
 .heroKeyword {
   font-size: 1.2em;  // PCでは少し大きく
   font-weight: 900;
@@ -268,8 +281,8 @@ $border-color-light: #E5E7EB;
 }
 
 .heroSubtitle {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-size: 18.4px;
   margin-bottom: 3rem; // ボタンとの間隔を増やす
   color: rgba(255, 255, 255, 0.95);
   font-weight: 400;
@@ -305,7 +318,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    font-size: 1.05rem;  // 指定サイズに
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.6;
     padding: 0.7rem 1rem;
     margin-bottom: 2rem;
@@ -314,7 +327,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 480px) {
-    font-size: 1.05rem;  // 指定サイズに
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.5;
     padding: 0.6rem 0.9rem;
     margin-bottom: 1.8rem;
@@ -324,7 +337,7 @@ $border-color-light: #E5E7EB;
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.05rem;  // 指定サイズに
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.4;
     padding: 0.5rem 0.75rem;
     margin-bottom: 1.5rem;
@@ -440,7 +453,7 @@ $border-color-light: #E5E7EB;
 
 .locationInfoLine2 {
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   color: rgba(255, 255, 255, 0.95);
   line-height: 1.6;
   font-weight: 400;
@@ -453,7 +466,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.05rem;  // 指定サイズに
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.6;
   }
 }
@@ -469,7 +482,7 @@ $border-color-light: #E5E7EB;
 }
 
 .btn {
-  padding: 1rem 2rem;
+  padding: 1.2rem 2rem; // 縦幅を広く
   border: none;
   border-radius: 50px;
   font-weight: 600;
@@ -479,7 +492,7 @@ $border-color-light: #E5E7EB;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 18px;  // 追尾ボタンと同じサイズに統一
+  font-size: 18.4px;  // 指定サイズ
   position: relative;
   overflow: hidden;
   
@@ -499,26 +512,26 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    padding: 1rem 1.5rem;
-    font-size: 18px;  // 追尾ボタンと同じサイズに
+    padding: 1.1rem 1.5rem; // 縦幅拡大
+    font-size: 18.4px;
     min-width: 120px;
   }
   
   @media (max-width: 640px) {
-    font-size: 16px;  // 追尾ボタンと同じサイズに
+    font-size: 18.4px;
   }
   
   @media (max-width: 480px) {
-    padding: 0.9rem 1rem;
-    font-size: 15px;  // 追尾ボタンと同じサイズに
+    padding: 1rem 1rem; // 縦幅をやや拡大
+    font-size: 18.4px;
     min-width: unset;  // flexで制御するため最小幅を解除
     white-space: nowrap;  // テキストの改行を防ぐ
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    padding: 0.8rem 0.8rem;
-    font-size: 15px;  // 480px以下と同じサイズを維持
+    padding: 0.95rem 0.8rem;
+    font-size: 18.4px;
   }
 
   &Primary {
@@ -690,7 +703,7 @@ $border-color-light: #E5E7EB;
 }
 
 .sectionSubtitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   text-align: center;
   font-size: 1.1rem;
   color: $text-gray;
@@ -754,10 +767,10 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutText {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   
   p {
-    font-family: 'Noto Serif JP', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -786,8 +799,8 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutLead {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-size: 18.4px;
   line-height: 1.7;
   color: rgba($text-gray, 0.9);
   margin-bottom: 0.5rem;
@@ -797,7 +810,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 18.4px;
     line-height: 1.75;
   }
 }
@@ -856,7 +869,8 @@ $border-color-light: #E5E7EB;
   margin-bottom: 2rem;
   
   p {
-    font-family: 'Noto Serif JP', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+    font-size: 18.4px;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -920,7 +934,7 @@ $border-color-light: #E5E7EB;
   text-align: center;
   
   p {
-    font-size: 1.15rem;
+    font-size: 18.4px;
     line-height: 1.8;
     color: $text-light;
     margin-bottom: 0.5rem;
@@ -930,7 +944,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.05rem;
+      font-size: 18.4px;
     }
   }
   
@@ -1084,7 +1098,7 @@ $border-color-light: #E5E7EB;
 }
 
 .featureTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 1.3rem;
   margin-bottom: 1rem;
   color: $text-light;
@@ -1108,7 +1122,7 @@ $border-color-light: #E5E7EB;
 }
 
 .featureDescription {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   color: $text-gray;
   line-height: 1.6;
   font-size: 1rem;
@@ -1353,7 +1367,7 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.6;
@@ -1485,6 +1499,7 @@ $border-color-light: #E5E7EB;
   flex: 1;
   
   h4 {
+    font-family: 'Noto Serif JP', serif;
     margin: 0 0 0.5rem;
     font-size: 1.1rem;
     font-weight: 700;
@@ -1552,6 +1567,7 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionBrand {
+  font-family: 'Noto Serif JP', serif;
   display: inline-block;
   margin-top: 0.5rem;
   font-size: 1.5rem;
@@ -1669,7 +1685,7 @@ $border-color-light: #E5E7EB;
 }
 
 .reasonText {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -2086,6 +2102,7 @@ $border-color-light: #E5E7EB;
 }
 
 .safetyTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.1rem;
   font-weight: 700;
   background: linear-gradient(135deg, #f3e5c1, #caa35b);
@@ -2188,7 +2205,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqQuestion {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   padding: 1.5rem;
   cursor: pointer;
   display: flex;
@@ -2230,7 +2247,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqAnswer {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   padding: 0 1.5rem 1.5rem;
   color: $text-gray;
   line-height: 1.8;
@@ -2568,7 +2585,7 @@ $border-color-light: #E5E7EB;
 }
 
 .planTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   color: #e8e5df;
@@ -2621,7 +2638,7 @@ $border-color-light: #E5E7EB;
 }
 
 .priceAmount {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 2.8rem;
   font-weight: 800;
   background: linear-gradient(180deg, #f3e5c1, #caa35b);
@@ -2751,6 +2768,7 @@ $border-color-light: #E5E7EB;
 }
 
 .commonFeaturesTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: #caa35b;
@@ -2932,7 +2950,7 @@ $border-color-light: #E5E7EB;
 }
 
 .ctaTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 3rem;
   margin-bottom: 1.5rem;
   background: linear-gradient(135deg, $text-light, $accent-gold);
@@ -2966,7 +2984,7 @@ $border-color-light: #E5E7EB;
 }
 
 .ctaSubtitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 1.2rem;
   color: $text-gray;
   margin-bottom: 3rem;

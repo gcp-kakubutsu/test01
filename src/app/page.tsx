@@ -375,7 +375,10 @@ export default function LandingPage() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             <span className={styles.heroTitleLine1}>
-              <span className={styles.heroKeyword}>相性</span>で選ぶ<span className={styles.heroKeyword}>最短</span>の出会い
+              <span className={styles.heroKeyword}>相性</span>
+              <span className={styles.heroTitlePlain}>で選ぶ</span>
+              <span className={styles.heroKeyword}>最短</span>
+              <span className={styles.heroTitlePlain}>の出会い</span>
             </span>
             <span className={styles.heroTitleLine2}>
               <span className={styles.mobilePart1}>あなたに合う</span>
@@ -399,7 +402,7 @@ export default function LandingPage() {
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
               <div className={styles.locationInfoLine2}>
-                現在地・希望条件・60分以内の空き枠をもとに最短、最速にご案内します
+                現在地・希望条件・60分以内の空き枠をもとに最速にご案内します
               </div>
             </div>
           </div>
@@ -421,10 +424,10 @@ export default function LandingPage() {
               
               <div className={styles.aboutSection}>
                 <p>
-                  NUKUNEは「風俗情報サイトのデータ」と「NUKIPEDIA」を活用し、検索から予約までをワンストップで実現します。
+                  NUKUNEは「風俗情報サイトのデータ」を活用し、検索から予約までをワンストップで実現します。
                 </p>
                 <p>
-                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供しています。
+                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供します。
                 </p>
               </div>
               
@@ -442,7 +445,7 @@ export default function LandingPage() {
               </div>
               
               <div className={styles.aboutTagline}>
-                <p>検索から予約まで、スムーズに完結。<br />
+                <p>検索~予約までスムーズに完結。<br />
                 あなたの特別な時間を演出する、<br />
                 信頼できるパートナー。</p>
                 <p className={styles.brandStatement} style={{ fontSize: '1.5em', fontWeight: 'bold', marginTop: '15px' }}>それがNUKUNEです。</p>
@@ -535,8 +538,8 @@ export default function LandingPage() {
             <div className={styles.solutionHeader}>
               <h3 className={styles.solutionTitle}>
                 <div>NUKUNEは、</div>
-                <div>そんな悩みを解消する</div>
-                <div><span className={styles.solutionHighlight}>&ldquo;性癖コンシェルジュ&rdquo;</span>です</div>
+                <div>そんな悩みを解決する</div>
+                <div><span className={styles.solutionHighlight}>&ldquo;性癖コンシェルジュ&rdquo;</span></div>
               </h3>
             </div>
             
@@ -792,10 +795,10 @@ export default function LandingPage() {
               <span className={styles.goldAccent}>完全定額制</span>で安心
             </h2>
             <p className={styles.fixedPriceDescription}>
-              完全定額制で、追加料金なし。<br />
+              完全定額制で追加料金なし。<br />
               <br />
-              NUKUNEは、月額料金だけで使える安心のマッチングサービス。<br />
-              登録から検索・予約まで、すべてがワンストップで完結します。
+              NUKUNEは月額料金だけで使える安心のマッチングサービス。<br />
+              登録から検索・予約まですべてがワンストップで完結します。
             </p>
           </div>
         </div>

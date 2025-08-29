@@ -41,7 +41,7 @@ html {
 }
 
 body {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-dark);
@@ -53,7 +53,7 @@ body {
 
 // Typography
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-light);
@@ -63,6 +63,7 @@ h1, h2, h3, h4, h5, h6 {
 p {
   color: var(--text-light);
   line-height: 1.6;
+  font-size: 18.4px;
   transition: color 0.3s ease;
 }
 
