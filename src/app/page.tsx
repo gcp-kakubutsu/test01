@@ -346,7 +346,7 @@ export default function LandingPage() {
           href="/login" 
           className={`${styles.stickyBtn} ${styles.stickyBtnSecondary}`}
         >
-          <span>ログイン</span>
+          <span>無料で参加</span>
         </Link>
       </div>
 
