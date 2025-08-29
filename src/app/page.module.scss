@@ -182,27 +182,27 @@ $border-color-light: #E5E7EB;
   white-space: nowrap;  // 常に一行表示
   
   @media (max-width: 768px) {
-    font-size: 2.1rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.02em;
     line-height: 1.2;
   }
   
   @media (max-width: 480px) {
-    font-size: 1.75rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.03em;
     line-height: 1.2;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.5rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.04em;
     line-height: 1.15;
   }
 }
 
 .heroKeyword {
-  font-size: 1.3em;  // 30%大きく
+  font-size: 1.2em;  // PCでは少し大きく
   font-weight: 900;
   background: linear-gradient(135deg, #F0306A, #FF1744, #F0306A);
   -webkit-background-clip: text;
@@ -214,43 +214,56 @@ $border-color-light: #E5E7EB;
   filter: drop-shadow(0 0 20px rgba(240, 48, 106, 0.4));
   
   @media (max-width: 768px) {
-    font-size: 1.25em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
   }
   
   @media (max-width: 480px) {
-    font-size: 1.2em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
   }
   
   @media (max-width: 375px) {
-    font-size: 1.15em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
+  }
+}
+
+.mobilePart1,
+.mobilePart2 {
+  display: inline;
+  
+  @media (max-width: 768px) {
+    display: block;
+    text-align: center;
   }
 }
 
 .heroTitleLine2 {
-  white-space: nowrap;  // 常に一行表示
+  white-space: nowrap;  // PCでは改行しない
   margin-top: 0.5rem;  // PCでも適切な間隔
   font-size: 3.2rem;  // PCでのサイズを少し小さく
   
   @media (max-width: 768px) {
-    font-size: 1.9rem;  // 少し小さく
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.5rem;
     letter-spacing: -0.02em;
     line-height: 1.2;
+    white-space: normal;  // スマホ時は改行可能に
   }
   
   @media (max-width: 480px) {
-    font-size: 1.55rem;  // さらに少し小さく
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.4rem;
     letter-spacing: -0.03em;
     line-height: 1.2;
+    white-space: normal;  // スマホ時は改行可能に
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.35rem;
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.3rem;
     letter-spacing: -0.04em;
     line-height: 1.15;
+    white-space: normal;  // スマホ時は改行可能に
   }
 }
 
@@ -292,7 +305,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    font-size: 0.9rem;
+    font-size: 1.05rem;  // 指定サイズに
     line-height: 1.6;
     padding: 0.7rem 1rem;
     margin-bottom: 2rem;
@@ -301,7 +314,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 480px) {
-    font-size: 0.85rem;
+    font-size: 1.05rem;  // 指定サイズに
     line-height: 1.5;
     padding: 0.6rem 0.9rem;
     margin-bottom: 1.8rem;
@@ -311,7 +324,7 @@ $border-color-light: #E5E7EB;
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 0.75rem;
+    font-size: 1.05rem;  // 指定サイズに
     line-height: 1.4;
     padding: 0.5rem 0.75rem;
     margin-bottom: 1.5rem;
@@ -403,7 +416,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 0.8rem;  // 指定のパディングに変更
     border-radius: 25px !important;
     margin: 0 1rem;
   }
@@ -420,7 +433,7 @@ $border-color-light: #E5E7EB;
   text-align: center;
   
   @media (max-width: 768px) {
-    font-size: 1.3rem;
+    font-size: 1.35rem;  // 指定サイズ維持
     margin-bottom: 0.6rem;
   }
 }
@@ -440,7 +453,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 0.95rem;
+    font-size: 1.05rem;  // 指定サイズに
     line-height: 1.6;
   }
 }
@@ -466,7 +479,7 @@ $border-color-light: #E5E7EB;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
+  font-size: 18px;  // 追尾ボタンと同じサイズに統一
   position: relative;
   overflow: hidden;
   
@@ -487,13 +500,17 @@ $border-color-light: #E5E7EB;
 
   @media (max-width: 768px) {
     padding: 1rem 1.5rem;
-    font-size: 1rem;
+    font-size: 18px;  // 追尾ボタンと同じサイズに
     min-width: 120px;
+  }
+  
+  @media (max-width: 640px) {
+    font-size: 16px;  // 追尾ボタンと同じサイズに
   }
   
   @media (max-width: 480px) {
     padding: 0.9rem 1rem;
-    font-size: 0.9rem;
+    font-size: 15px;  // 追尾ボタンと同じサイズに
     min-width: unset;  // flexで制御するため最小幅を解除
     white-space: nowrap;  // テキストの改行を防ぐ
   }
@@ -501,7 +518,7 @@ $border-color-light: #E5E7EB;
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
     padding: 0.8rem 0.8rem;
-    font-size: 0.85rem;
+    font-size: 15px;  // 480px以下と同じサイズを維持
   }
 
   &Primary {
@@ -645,7 +662,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    font-size: 2.1rem;
+    font-size: 2rem;
     margin-bottom: 2.5rem;
     line-height: 1.3;
     
@@ -1139,6 +1156,7 @@ $border-color-light: #E5E7EB;
 .solutionsProblem {
   font-size: 1.2rem;
   color: #b8b2a7;
+  font-weight: bold;
   line-height: 1.8;
   letter-spacing: 0.02em;
   white-space: pre-line;
@@ -1148,7 +1166,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 17px;
+    font-size: 1.15rem;
     line-height: 1.7;
     margin: 1.5rem 0;
   }
@@ -1486,6 +1504,7 @@ $border-color-light: #E5E7EB;
   p {
     margin: 0;
     color: #b8b2a7;
+    font-weight: bold;
     font-size: 0.95rem;
     line-height: 1.6;
     
@@ -1514,6 +1533,7 @@ $border-color-light: #E5E7EB;
 .solutionTagline {
   font-size: 1.1rem;
   color: #b8b2a7;
+  font-weight: bold;
   line-height: 1.8;
   margin: 0;
   
@@ -2322,6 +2342,7 @@ $border-color-light: #E5E7EB;
   font-size: 1.1rem;
   line-height: 1.8;
   color: #b8b2a7;
+  font-weight: bold;
   
   :global(.light) & {
     color: #6B7280;
@@ -2364,6 +2385,7 @@ $border-color-light: #E5E7EB;
   font-size: 1.05rem;
   line-height: 1.8;
   color: #b8b2a7;
+  font-weight: bold;
   margin-top: 1rem;
   
   :global(.light) & {
@@ -2371,7 +2393,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     line-height: 1.75;
     margin-top: 1.25rem;
     br {
@@ -2586,6 +2608,7 @@ $border-color-light: #E5E7EB;
 .priceLabel {
   font-size: 0.85rem;
   color: #b8b2a7;
+  font-weight: bold;
   margin-bottom: 0.25rem;
   
   :global(.light) & {
@@ -2771,6 +2794,7 @@ $border-color-light: #E5E7EB;
   align-items: center;
   gap: 0.5rem;
   color: #b8b2a7;
+  font-weight: bold;
   font-size: 0.95rem;
   
   :global(.light) & {
@@ -2903,7 +2927,7 @@ $border-color-light: #E5E7EB;
 
 .ctaContent {
   text-align: center;
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -2918,7 +2942,7 @@ $border-color-light: #E5E7EB;
   font-weight: 700;
 
   @media (max-width: 768px) {
-    font-size: 2.25rem;
+    font-size: 2rem;
     line-height: 1.3;
     margin-bottom: 1.75rem;
   }

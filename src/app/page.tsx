@@ -377,7 +377,10 @@ export default function LandingPage() {
             <span className={styles.heroTitleLine1}>
               <span className={styles.heroKeyword}>相性</span>で選ぶ、<span className={styles.heroKeyword}>最短</span>の出会い
             </span>
-            <span className={styles.heroTitleLine2}>あなたに合うキャストだけ表示</span>
+            <span className={styles.heroTitleLine2}>
+              <span className={styles.mobilePart1}>あなたに合う</span>
+              <span className={styles.mobilePart2}>キャストだけ表示</span>
+            </span>
           </h1>
           <p className={styles.heroSubtitle}>
             エリア・来店時間・嗜好を一括判定<br />
@@ -385,7 +388,7 @@ export default function LandingPage() {
           </p>
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
-              <Heart size={20} />
+              <Heart size={24} />
               NUKUNEに参加
             </Link>
             <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
@@ -494,10 +497,10 @@ export default function LandingPage() {
           </h2>
           <div className={styles.solutionsIntro}>
             <p className={styles.solutionsProblem}>
-              急に時間ができたから、今すぐ遊びたい！<br className={styles.mobileBreak} />
+              急に時間ができたから、<br className={styles.mobileBreak} />
+              今すぐ遊びたい！
               <span className={styles.nukitaiText} style={{ fontWeight: 'bold', color: '#b8b2a7' }}>今すぐNUKIたい！</span><br />
-              そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。<br />
-              そんな経験はありませんか？
+              そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。そんな経験はありませんか？
             </p>
           </div>
 
@@ -929,7 +932,7 @@ export default function LandingPage() {
               className={`${styles.btn} ${styles.btnPrimary} ${styles.scrollScaleUp} ${styles.enhancedHover}`}
               onClick={handleAgeConfirmation}
             >
-              <Heart size={20} />
+              <Heart size={24} />
               今すぐ登録
             </Link>
           </div>

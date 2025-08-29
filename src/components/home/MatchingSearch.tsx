@@ -224,7 +224,7 @@ export default function MatchingSearch() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Age selector */}
             <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1 text-sm font-medium">
+              <Label className={`flex items-center gap-1 ${styles.labelText} font-medium`}>
                 <User className="w-4 h-4 text-[#D4AF37]" />
                 <span>年齢</span>
               </Label>
@@ -245,7 +245,7 @@ export default function MatchingSearch() {
 
             {/* Height selector */}
             <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1 text-sm font-medium">
+              <Label className={`flex items-center gap-1 ${styles.labelText} font-medium`}>
                 <Ruler className="w-4 h-4 text-[#D4AF37]" />
                 <span>身長</span>
               </Label>
@@ -266,7 +266,7 @@ export default function MatchingSearch() {
 
             {/* Bust selector */}
             <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1 text-sm font-medium">
+              <Label className={`flex items-center gap-1 ${styles.labelText} font-medium`}>
                 <Heart className="w-4 h-4 text-[#D4AF37]" />
                 <span>バスト</span>
               </Label>
@@ -287,7 +287,7 @@ export default function MatchingSearch() {
 
             {/* Drinking preference selector */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium">
+              <Label className={`${styles.labelText} font-medium`}>
                 🍺 お酒
               </Label>
               <Select value={selectedDrinking} onValueChange={setSelectedDrinking}>
@@ -307,7 +307,7 @@ export default function MatchingSearch() {
 
             {/* Smoking preference selector */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium">
+              <Label className={`${styles.labelText} font-medium`}>
                 🚬 タバコ
               </Label>
               <Select value={selectedSmoking} onValueChange={setSelectedSmoking}>
@@ -327,7 +327,7 @@ export default function MatchingSearch() {
 
             {/* Time selector moved to grid */}
             <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1 text-sm font-medium">
+              <Label className={`flex items-center gap-1 ${styles.labelText} font-medium`}>
                 <Clock className="w-4 h-4 text-[#D4AF37]" />
                 <span>希望日時</span>
               </Label>
@@ -349,7 +349,7 @@ export default function MatchingSearch() {
 
         {/* Girl types multi-select */}
         <div className="mb-6">
-          <Label className="flex items-center gap-1 text-sm font-medium mb-2">
+          <Label className={`flex items-center gap-1 ${styles.labelText} font-medium mb-2`}>
             <Sparkles className="w-4 h-4 text-[#D4AF37]" />
             <span>タイプで絞り込み（複数選択可）</span>
           </Label>
@@ -443,7 +443,7 @@ export default function MatchingSearch() {
           )}
         </div>
 
-        <p className={`text-sm ${styles.textSecondary} text-center mt-6`}>
+        <p className={`${styles.labelText} ${styles.textSecondary} text-center mt-6`}>
           {hasPreferences 
             ? '詳細設定に基づいて、あなたに最適な女の子を検索します。'
             : '登録後、入力した性癖と条件を引き継いで候補を表示します。'}
