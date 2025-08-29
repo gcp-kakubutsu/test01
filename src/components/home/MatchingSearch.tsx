@@ -412,7 +412,7 @@ export default function MatchingSearch() {
               checked={prioritizeQuickMeet}
               onCheckedChange={setPrioritizeQuickMeet}
             />
-            <Label htmlFor="quick-meet" className={`${styles.textSecondary} cursor-pointer`}>
+            <Label htmlFor="quick-meet" className={`${styles.textSecondary} cursor-pointer`} style={{ padding: '8px 6px' }}>
               すぐ会える相手を優先
             </Label>
           </div>

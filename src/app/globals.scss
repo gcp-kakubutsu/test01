@@ -41,9 +41,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Noto Serif JP', serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-dark);
@@ -55,7 +53,7 @@ body {
 
 // Typography
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Playfair Display', 'Noto Serif JP', serif;
+  font-family: 'Noto Serif JP', serif;
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-light);
