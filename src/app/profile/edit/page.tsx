@@ -319,12 +319,12 @@ export default function EditProfilePage() {
       <Card className="overflow-hidden shadow-lg">
         <CardHeader className="pb-4">
           <div className="text-center">
-            <div className="relative sm:h-40 md:h-64 lg:h-80 xl:h-96">
+            <div className="relative h-40 sm:h-48 md:h-64 lg:h-80 xl:h-96">
               <Image 
                 src="/img/pandra.webp" 
                 alt="Profile Banner" 
                 fill
-                className="object-cover md:object-contain"
+                className="object-contain"
                 priority
               />
             </div>
