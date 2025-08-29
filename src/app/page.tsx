@@ -375,7 +375,7 @@ export default function LandingPage() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             <span className={styles.heroTitleLine1}>
-              <span className={styles.heroKeyword}>相性</span>で選ぶ、<span className={styles.heroKeyword}>最短</span>の出会い
+              <span className={styles.heroKeyword}>相性</span>で選ぶ<span className={styles.heroKeyword}>最短</span>の出会い
             </span>
             <span className={styles.heroTitleLine2}>
               <span className={styles.mobilePart1}>あなたに合う</span>
@@ -923,7 +923,10 @@ export default function LandingPage() {
       <section className={`${styles.section} ${styles.cta} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <div className={styles.ctaContent}>
-            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖、嗜好に正直な出会いを</h2>
+            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>
+              <span className={styles.ctaTitleLine1}>性癖、嗜好に</span>
+              <span className={styles.ctaTitleLine2}>正直な出会いを</span>
+            </h2>
             <p className={`${styles.ctaSubtitle} ${styles.scrollFadeIn}`}>
             今すぐ、NUKUNE(ヌクネ)に参加して、自分の理想とする素敵なキャストとの<br />出会いに踏み出しましょう
             </p>
