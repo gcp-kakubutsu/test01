@@ -651,25 +651,54 @@ export default function LandingPage() {
       {/* Start Guide Section */}
       <section className={`${styles.section} ${styles.startGuide} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
-          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>簡単スタートガイド</h2>
+          <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
+            今すぐNUKUNEを<br />無料体験！
+            <br />
+            簡単スタートガイド
+          </h2>
           <div className={`${styles.guideContainer} ${styles.scrollScaleUp}`}>
             <div className={styles.guideHeader}>
               <span className={styles.guideBadge}>男性の方限定</span>
             </div>
             <div className={styles.stepsContainer}>
               <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-                <h3 className={styles.stepTitle}>プロフィール設定について</h3>
+                <h3 className={styles.stepTitle}>❶プロフィール設定について</h3>
                 <div className={styles.stepDescription}>
-                  <p>理想の出会いを探すなら、プロフィールは詳しく入力しましょう。<br />
-                  NUKUNEでは、以下の機能を活用できます。</p>
-                  
+                  <p>理想の出会いを探すなら、プロフィールは詳しく入力しましょう。<br />NUKUNEでは、以下の機能を活用できます。</p>
                   <div className={styles.stepPoints}>
                     <p className={styles.stepPoint}>⑴いいね・メモ機能で気になるキャストを自分だけで管理</p>
                     <p className={styles.stepPoint}>⑵気分に合わせてプロフィールを変更 → 新しいタイプを即提案</p>
                     <p className={styles.stepPoint}>⑶マッチ履歴や投稿機能で、自分だけの出会い記録を作成</p>
                   </div>
-                  
                   <p className={styles.stepEmphasis}>あなたのプロフィールが充実するほど、精度の高いマッチングが実現します。</p>
+                </div>
+              </div>
+
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <h3 className={styles.stepTitle}>❷ 7日間お試しで検索してみる</h3>
+                <div className={styles.stepDescription}>
+                  <div className={styles.stepPoints}>
+                    <p className={styles.stepPoint}>⑴まずは無料登録。</p>
+                    <p className={styles.stepPoint}>⑵プロフィール（性癖・嗜好・相手に求める条件）を設定すると、位置情報と空き状況から、今すぐ会える条件に合うキャストだけを優先表示します。</p>
+                    <p className={styles.stepPoint}>⑶NUKUNEは、いまだけ7日間お試し無料キャンペーン実施中。</p>
+                  </div>
+                  <p>※R18／男性（18歳以上）のみ利用可</p>
+                  <p>※キャンペーン期間：〈12/31〉まで</p>
+                  <p>※位置情報をOFFの方は、駅名・エリアを入力して検索できます。</p>
+                  <p>※トライアル終了後は自動継続（¥1,980/月）。いつでも解約可／初回請求日や解約方法は最終確認画面に表示します</p>
+                </div>
+              </div>
+
+              <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+                <h3 className={styles.stepTitle}>❸ 気になるキャストがいたら？</h3>
+                <div className={styles.stepDescription}>
+                  <div className={styles.stepPoints}>
+                    <p className={styles.stepPoint}>⑴「このキャストにする」を押す<br />提携サイトの予約画面へ移動します（NUKUNEを離れます）。各サイトの料金・キャンセル規約をご確認のうえ、店舗経由で予約してください。予約承認後は「ナビ開始」で目的地まで案内します。</p>
+                    <p className={styles.stepPoint}>⑵「メモ」を押す<br />気になる点をメモ保存。マイページのメモ から一覧できます。後で見返してそのまま予約へ。</p>
+                    <p className={styles.stepPoint}>⑶「いいね」を押す<br />気になるキャストをキープ。マイページのいいね で管理し、タイミングが合えば即予約。</p>
+                  </div>
+                  <p>※提携先での予約・決済・キャンセルは提携サイトの規約に従ってください。</p>
+                  <p>※安全のため、来店前に年齢確認・本人確認が必要な場合があります。</p>
                 </div>
               </div>
             </div>
@@ -703,15 +732,6 @@ export default function LandingPage() {
             <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.safetyHeader}>
                 <div className={styles.safetyIcon}>
-                  <Users />
-                </div>
-                <h3 className={styles.safetyTitle}>厳格なユーザー行動規範</h3>
-              </div>
-              <p className={styles.safetyDescription}>ハラスメント行為は一切容認しません。違反者には警告または永久追放処分を行います。</p>
-            </div>
-            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={styles.safetyHeader}>
-                <div className={styles.safetyIcon}>
                   <Ban />
                 </div>
                 <h3 className={styles.safetyTitle}>通報・ブロック機能</h3>
@@ -732,7 +752,7 @@ export default function LandingPage() {
                 <div className={styles.safetyIcon}>
                   <Award />
                 </div>
-                <h3 className={styles.safetyTitle}>公的機関への届出済み</h3>
+                <h3 className={styles.safetyTitle}>公的機関へ届出済み</h3>
               </div>
               <p className={styles.safetyDescription}>NUKUNEでは、法令遵守に基づきインターネット異性紹介事業の届出しております。<br />(受理番号54250003000)<br /></p>
             </div>
@@ -747,7 +767,7 @@ export default function LandingPage() {
           <div className={styles.faqContainer}>
             {[
               {
-                question: 'なぜ95%以上の相性マッチが可能なのか？',
+                question: 'なぜ合致度の高い候補のみを優先表示できるのか？',
                 answer: 'NUKUNEは、全国 15万人以上のキャストデータ（2025.09.01現在）を連携。\nさらに以下の仕組みで、高いマッチング精度を実現しています。\n 1. 豊富なデータベース\n　容姿・性癖・嗜好まで登録された国内最大級キャスト数。\n 2. 即時性のある検索\n　GPSで「今すぐ会える」キャストだけを優先表示。\n 3. 精密なマッチング\n　あなたの性癖や好みに基づいた絞り込みで、圧倒的な成約率を実現。'
               },
               {
