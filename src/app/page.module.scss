@@ -506,7 +506,7 @@ $border-color-light: #E5E7EB;
 // Section Styles
 .section {
   width: 100%;
-  padding: 4rem 0;
+  padding: 0;
   background-color: $bg-dark;
   position: relative;
   z-index: 1;
@@ -516,7 +516,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    padding: 3rem 0;
+    padding: 0;
   }
 }
 
@@ -524,7 +524,7 @@ $border-color-light: #E5E7EB;
   font-family: 'Noto Serif JP', serif;
   font-size: 2.5rem;
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 0.5rem;
   font-weight: 700;
   position: relative;
   background: linear-gradient(90deg, #caa35b, #f3e5c1, #caa35b);
@@ -606,7 +606,7 @@ $border-color-light: #E5E7EB;
 .about {
   width: 100%;
   background-color: #0a0a0a;
-  padding: 4rem 0;
+  padding: 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
@@ -883,7 +883,7 @@ $border-color-light: #E5E7EB;
 .features {
   width: 100%;
   background-color: $bg-dark;
-  padding: 4rem 0;
+  padding: 0;
   position: relative;
   z-index: 1;
 
@@ -990,7 +990,7 @@ $border-color-light: #E5E7EB;
 // Solutions Section - LUXE DATE inspired design
 .solutions {
   width: 100%;
-  padding: 5rem 0;
+  padding: 0;
   position: relative;
   background: radial-gradient(1200px 600px at 70% -10%, rgba(212, 175, 55, 0.12), transparent 60%),
               radial-gradient(900px 500px at 10% -20%, rgba(255, 255, 255, 0.03), transparent 50%),
@@ -1426,7 +1426,7 @@ $border-color-light: #E5E7EB;
 .reasons {
   width: 100%;
   background-color: #0a0a0a;
-  padding: 4rem 0;
+  padding: 0;
   position: relative;
   z-index: 1;
 
@@ -1565,7 +1565,7 @@ $border-color-light: #E5E7EB;
 .startGuide {
   width: 100%;
   background-color: $bg-dark;
-  padding: 4rem 0;
+  padding: 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
@@ -1788,7 +1788,7 @@ $border-color-light: #E5E7EB;
 // Safety Section
 .safety {
   width: 100%;
-  padding: 4rem 0;
+  padding: 0;
   background: radial-gradient(900px 500px at 80% -10%, rgba(212, 175, 55, 0.10), transparent 60%),
               #0a0a0a;
 
@@ -1958,7 +1958,7 @@ $border-color-light: #E5E7EB;
 .faq {
   width: 100%;
   background-color: $bg-dark;
-  padding: 4rem 0;
+  padding: 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
@@ -2092,7 +2092,7 @@ $border-color-light: #E5E7EB;
 // Fixed Price Section
 .fixedPrice {
   width: 100%;
-  padding: 4rem 0;
+  padding: 0;
   background: linear-gradient(180deg, #0a0a0a, #0f0f0f);
   position: relative;
   overflow: hidden;
@@ -2182,7 +2182,7 @@ $border-color-light: #E5E7EB;
 // Pricing Section - LUXE DATE Style
 .pricing {
   width: 100%;
-  padding: 5rem 0;
+  padding: 0;
   background: radial-gradient(1200px 600px at 50% 100%, rgba(212, 175, 55, 0.08), transparent 60%),
               radial-gradient(900px 500px at 80% 50%, rgba(255, 255, 255, 0.02), transparent 50%),
               #0a0a0a;
@@ -2730,7 +2730,7 @@ $border-color-light: #E5E7EB;
 .cta {
   width: 100%;
   background: linear-gradient(180deg, $bg-dark 0%, rgba(139, 30, 63, 0.3) 100%);
-  padding: 6rem 0;
+  padding: 0;
 
   :global(.light) & {
     background: linear-gradient(180deg, $bg-light 0%, rgba(240, 48, 106, 0.1) 100%);
@@ -2933,11 +2933,11 @@ $border-color-light: #E5E7EB;
 
 // Matching Search Section
 .matchingSearch {
-  padding: 4rem 0;
+  padding: 0;
   background-color: rgba(17, 24, 39, 0.5);
   
   @media (max-width: 768px) {
-    padding: 2rem 0;
+    padding: 0;
   }
   
   :global(.light) & {
