@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -84,7 +83,7 @@ export function TrialNotificationModal() {
               )}
             </DialogTitle>
           </div>
-          <DialogDescription className="space-y-3">
+          <div className="text-sm text-muted-foreground space-y-3">
             <div>
               {isLastDay ? (
                 <p className="text-red-600 font-semibold">
@@ -130,7 +129,7 @@ export function TrialNotificationModal() {
               </ul>
             </div>
 
-          </DialogDescription>
+          </div>
         </DialogHeader>
         
         <DialogFooter className="sm:justify-between">
