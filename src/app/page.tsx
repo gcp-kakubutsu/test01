@@ -478,7 +478,7 @@ export default function LandingPage() {
                 <Shield />
               </div>
               <h3 className={styles.featureTitle}>事前確認システム</h3>
-              <p className={styles.featureDescription}>事前確認システム会う前に女性のプレイスタイル・対応可能な内容・性格の詳細がわかります。希望に応えられる女性だけと出会えます。</p>
+              <p className={styles.featureDescription}>事前に会う前に女性のプレイスタイル・対応可能な内容・性格の詳細がわかります。希望に応えられる女性だけと出会えます。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.featureIcon}>
@@ -518,7 +518,7 @@ export default function LandingPage() {
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>新規店に行く勇気がない</p>
+              <p>新規のお店に行く勇気がない</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
@@ -577,7 +577,7 @@ export default function LandingPage() {
 
             <div className={styles.solutionCta}>
               <p className={styles.solutionTagline}>
-                今までなかった新しいサービス<br />
+                驚愕の検索サイト<br />
                 <span className={styles.solutionBrand}>性癖マッチング NUKUNE</span>
               </p>
             </div>
@@ -606,7 +606,7 @@ export default function LandingPage() {
               <h3 className={styles.reasonTitle}>相性保証システム</h3>
               <p className={styles.reasonText}>
                 <span className={styles.reasonOld}>従来：写真とプロフィールだけで判断</span>
-                <span className={styles.reasonNew}>NUKUNE：AI分析により95%以上の相性マッチを保証</span>
+                <span className={styles.reasonNew}>NUKUNE：AI分析により合致度の高い候補のみを優先表示</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -654,7 +654,7 @@ export default function LandingPage() {
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>簡単スタートガイド</h2>
           <div className={`${styles.guideContainer} ${styles.scrollScaleUp}`}>
             <div className={styles.guideHeader}>
-              <span className={styles.guideBadge}>男性の方</span>
+              <span className={styles.guideBadge}>男性の方限定</span>
             </div>
             <div className={styles.stepsContainer}>
               <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -689,7 +689,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className={styles.safetyTitle}>本人確認</h3>
               </div>
-              <p className={styles.safetyDescription}>プロフィールの信頼性とユーザーの安全のため、本人確認書類の提出を必須としています。</p>
+              <p className={styles.safetyDescription}>本人確認書類（18歳以上・高校生不可）の提出を必須としています。</p>
             </div>
             <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.safetyHeader}>

@@ -1099,7 +1099,7 @@ $border-color-light: #E5E7EB;
 
 .featureTitle {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
-  font-size: 1.3rem;
+  font-size: 20.8px;
   margin-bottom: 1rem;
   color: $text-light;
 
@@ -1108,14 +1108,14 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.35rem;
+    font-size: 20.8px;
     line-height: 1.4;
     margin-bottom: 1.25rem;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.15rem;
+    font-size: 20.8px;
     line-height: 1.3;
     margin-bottom: 1rem;
   }
@@ -1125,20 +1125,20 @@ $border-color-light: #E5E7EB;
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   color: $text-gray;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 16.8px;
 
   :global(.light) & {
     color: #4B5563 !important;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.05rem;
+    font-size: 16.8px;
     line-height: 1.7;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 0.9rem;
+    font-size: 16.8px;
     line-height: 1.6;
   }
 }
@@ -1367,8 +1367,8 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTitle {
-  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
-  font-size: 2.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 26.4px;
   font-weight: 700;
   line-height: 1.6;
   color: #e8e5df;
@@ -1398,13 +1398,13 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.8rem;
+    font-size: 26.4px;
     line-height: 1.5;
     margin-bottom: 1.5rem;
     
     div {
       white-space: normal; // モバイルでは改行を許可
-      font-size: 1.6rem; // 文字サイズを調整
+      font-size: 26.4px; // 文字サイズを調整
       margin: 0.2rem 0;
     }
     
@@ -1501,7 +1501,7 @@ $border-color-light: #E5E7EB;
   h4 {
     font-family: 'Noto Serif JP', serif;
     margin: 0 0 0.5rem;
-    font-size: 1.1rem;
+    font-size: 20.8px;
     font-weight: 700;
     color: #caa35b;
     
@@ -1510,7 +1510,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.2rem;
+      font-size: 20.8px;
       line-height: 1.4;
       margin-bottom: 0.75rem;
     }
@@ -1546,20 +1546,28 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTagline {
-  font-size: 1.1rem;
+  font-size: 20.8px;
   color: #b8b2a7;
   font-weight: bold;
   line-height: 1.8;
   margin: 0;
+  
+  // タグライン内の強調spanは18.4pxに統一
+  span {
+    font-size: 18.4px;
+  }
   
   :global(.light) & {
     color: #6B7280;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 20.8px;
     line-height: 1.75;
     margin: 1rem 0;
+    span {
+      font-size: 18.4px;
+    }
     br {
       display: none;
     }
@@ -1570,7 +1578,7 @@ $border-color-light: #E5E7EB;
   font-family: 'Noto Serif JP', serif;
   display: inline-block;
   margin-top: 0.5rem;
-  font-size: 1.5rem;
+  font-size: 26.4px;
   font-weight: 800;
   background: linear-gradient(90deg, #caa35b, #f3e5c1);
   -webkit-background-clip: text;
@@ -1586,7 +1594,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 26.4px;
     line-height: 1.3;
     margin-top: 0.75rem;
   }
@@ -1693,7 +1701,7 @@ $border-color-light: #E5E7EB;
 
 .reasonOld {
   color: #999;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   display: block;
   position: relative;
   padding-left: 1.7rem;
@@ -1717,7 +1725,7 @@ $border-color-light: #E5E7EB;
 
 .reasonNew {
   color: $text-light;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   display: block;
   position: relative;
   padding-left: 1.7rem;
@@ -1782,6 +1790,7 @@ $border-color-light: #E5E7EB;
   padding: 0.5rem 2rem;
   border-radius: 25px;
   font-weight: 600;
+  font-size: 18.4px;
   display: inline-block;
 }
 
@@ -2103,7 +2112,7 @@ $border-color-light: #E5E7EB;
 
 .safetyTitle {
   font-family: 'Noto Serif JP', serif;
-  font-size: 1.1rem;
+  font-size: 20.8px;
   font-weight: 700;
   background: linear-gradient(135deg, #f3e5c1, #caa35b);
   -webkit-background-clip: text;
@@ -2119,7 +2128,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.2rem;
+    font-size: 20.8px;
     line-height: 1.4;
   }
 }
@@ -2127,14 +2136,14 @@ $border-color-light: #E5E7EB;
 .safetyDescription {
   color: $text-gray;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 18.4px;
 
   :global(.light) & {
     color: #4B5563;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.05rem;
+    font-size: 18.4px;
     line-height: 1.7;
   }
 }
@@ -2213,7 +2222,7 @@ $border-color-light: #E5E7EB;
   align-items: center;
 
   h3 {
-    font-size: 1.1rem;
+    font-size: 18.4px;
     color: $text-light;
     margin: 0;
     flex: 1;
@@ -2226,7 +2235,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.1rem;
+      font-size: 18.4px;
       padding-right: 0.75rem;
       line-height: 1.5;
     }
@@ -2325,7 +2334,8 @@ $border-color-light: #E5E7EB;
 }
 
 .fixedPriceTitle {
-  font-size: 2.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 32px;
   font-weight: 700;
   margin-bottom: 1.5rem;
   color: #e8e5df;
@@ -2335,7 +2345,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 2.25rem;
+    font-size: 32px;
     line-height: 1.3;
     margin-bottom: 1.75rem;
   }
@@ -2971,6 +2981,7 @@ $border-color-light: #E5E7EB;
 // CTA タイトルを2行の段落風に表示するための行クラス
 .ctaTitleLine1,
 .ctaTitleLine2 {
+  font-family: 'Noto Serif JP', serif;
   display: block;
 }
 
