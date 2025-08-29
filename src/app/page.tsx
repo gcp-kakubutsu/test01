@@ -375,9 +375,15 @@ export default function LandingPage() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             <span className={styles.heroTitleLine1}>
-              <span className={styles.heroKeyword}>相性</span>で選ぶ、<span className={styles.heroKeyword}>最短</span>の出会い
+              <span className={styles.heroKeyword}>相性</span>
+              <span className={styles.heroTitlePlain}>で選ぶ</span>
+              <span className={styles.heroKeyword}>最短</span>
+              <span className={styles.heroTitlePlain}>の出会い</span>
             </span>
-            <span className={styles.heroTitleLine2}>あなたに合うキャストだけ表示</span>
+            <span className={styles.heroTitleLine2}>
+              <span className={styles.mobilePart1}>あなたに合う</span>
+              <span className={styles.mobilePart2}>キャストだけ表示</span>
+            </span>
           </h1>
           <p className={styles.heroSubtitle}>
             エリア・来店時間・嗜好を一括判定<br />
@@ -385,7 +391,7 @@ export default function LandingPage() {
           </p>
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
-              <Heart size={20} />
+              <Heart size={24} />
               NUKUNEに参加
             </Link>
             <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
@@ -396,7 +402,7 @@ export default function LandingPage() {
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
               <div className={styles.locationInfoLine2}>
-                現在地・希望条件・60分以内の空き枠をもとに最短、最速にご案内します
+                現在地・希望条件・60分以内の空き枠をもとに最速にご案内します
               </div>
             </div>
           </div>
@@ -418,10 +424,10 @@ export default function LandingPage() {
               
               <div className={styles.aboutSection}>
                 <p>
-                  NUKUNEは「風俗情報サイトのデータ」と「NUKIPEDIA」を活用し、検索から予約までをワンストップで実現します。
+                  NUKUNEは「風俗情報サイトのデータ」を活用し、検索から予約までをワンストップで実現します。
                 </p>
                 <p>
-                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供しています。
+                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供します。
                 </p>
               </div>
               
@@ -439,7 +445,7 @@ export default function LandingPage() {
               </div>
               
               <div className={styles.aboutTagline}>
-                <p>検索から予約まで、スムーズに完結。<br />
+                <p>検索~予約までスムーズに完結。<br />
                 あなたの特別な時間を演出する、<br />
                 信頼できるパートナー。</p>
                 <p className={styles.brandStatement} style={{ fontSize: '1.5em', fontWeight: 'bold', marginTop: '15px' }}>それがNUKUNEです。</p>
@@ -472,7 +478,7 @@ export default function LandingPage() {
                 <Shield />
               </div>
               <h3 className={styles.featureTitle}>事前確認システム</h3>
-              <p className={styles.featureDescription}>事前確認システム会う前に女性のプレイスタイル・対応可能な内容・性格の詳細がわかります。希望に応えられる女性だけと出会えます。</p>
+              <p className={styles.featureDescription}>事前に会う前に女性のプレイスタイル・対応可能な内容・性格の詳細がわかります。希望に応えられる女性だけと出会えます。</p>
             </div>
             <div className={`${styles.featureCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.featureIcon}>
@@ -494,10 +500,10 @@ export default function LandingPage() {
           </h2>
           <div className={styles.solutionsIntro}>
             <p className={styles.solutionsProblem}>
-              急に時間ができたから、今すぐ遊びたい！<br className={styles.mobileBreak} />
+              急に時間ができたから、<br className={styles.mobileBreak} />
+              今すぐ遊びたい！
               <span className={styles.nukitaiText} style={{ fontWeight: 'bold', color: '#b8b2a7' }}>今すぐNUKIたい！</span><br />
-              そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。<br />
-              そんな経験はありませんか？
+              そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。そんな経験はありませんか？
             </p>
           </div>
 
@@ -512,7 +518,7 @@ export default function LandingPage() {
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
-              <p>新規店に行く勇気がない</p>
+              <p>新規のお店に行く勇気がない</p>
             </div>
             <div className={`${styles.problemCard} ${styles.scrollStagger}`}>
               <div className={styles.problemIcon}>✕</div>
@@ -532,8 +538,8 @@ export default function LandingPage() {
             <div className={styles.solutionHeader}>
               <h3 className={styles.solutionTitle}>
                 <div>NUKUNEは、</div>
-                <div>そんな悩みを解消する</div>
-                <div><span className={styles.solutionHighlight}>&ldquo;性癖コンシェルジュ&rdquo;</span>です</div>
+                <div>そんな悩みを解決する</div>
+                <div><span className={styles.solutionHighlight}>&ldquo;性癖コンシェルジュ&rdquo;</span></div>
               </h3>
             </div>
             
@@ -571,7 +577,7 @@ export default function LandingPage() {
 
             <div className={styles.solutionCta}>
               <p className={styles.solutionTagline}>
-                今までなかった新しいサービス<br />
+                驚愕の検索サイト<br />
                 <span className={styles.solutionBrand}>性癖マッチング NUKUNE</span>
               </p>
             </div>
@@ -600,7 +606,7 @@ export default function LandingPage() {
               <h3 className={styles.reasonTitle}>相性保証システム</h3>
               <p className={styles.reasonText}>
                 <span className={styles.reasonOld}>従来：写真とプロフィールだけで判断</span>
-                <span className={styles.reasonNew}>NUKUNE：AI分析により95%以上の相性マッチを保証</span>
+                <span className={styles.reasonNew}>NUKUNE：AI分析により合致度の高い候補のみを優先表示</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -648,7 +654,7 @@ export default function LandingPage() {
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>簡単スタートガイド</h2>
           <div className={`${styles.guideContainer} ${styles.scrollScaleUp}`}>
             <div className={styles.guideHeader}>
-              <span className={styles.guideBadge}>男性の方</span>
+              <span className={styles.guideBadge}>男性の方限定</span>
             </div>
             <div className={styles.stepsContainer}>
               <div className={`${styles.stepCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
@@ -683,7 +689,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className={styles.safetyTitle}>本人確認</h3>
               </div>
-              <p className={styles.safetyDescription}>プロフィールの信頼性とユーザーの安全のため、本人確認書類の提出を必須としています。</p>
+              <p className={styles.safetyDescription}>本人確認書類（18歳以上・高校生不可）の提出を必須としています。</p>
             </div>
             <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.safetyHeader}>
@@ -789,10 +795,10 @@ export default function LandingPage() {
               <span className={styles.goldAccent}>完全定額制</span>で安心
             </h2>
             <p className={styles.fixedPriceDescription}>
-              完全定額制で、追加料金なし。<br />
+              完全定額制で追加料金なし。<br />
               <br />
-              NUKUNEは、月額料金だけで使える安心のマッチングサービス。<br />
-              登録から検索・予約まで、すべてがワンストップで完結します。
+              NUKUNEは月額料金だけで使える安心のマッチングサービス。<br />
+              登録から検索・予約まですべてがワンストップで完結します。
             </p>
           </div>
         </div>
@@ -920,7 +926,10 @@ export default function LandingPage() {
       <section className={`${styles.section} ${styles.cta} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <div className={styles.ctaContent}>
-            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>性癖、嗜好に正直な出会いを</h2>
+            <h2 className={`${styles.ctaTitle} ${styles.scrollFadeIn}`}>
+              <span className={styles.ctaTitleLine1}>性癖、嗜好に</span>
+              <span className={styles.ctaTitleLine2}>正直な出会いを</span>
+            </h2>
             <p className={`${styles.ctaSubtitle} ${styles.scrollFadeIn}`}>
             今すぐ、NUKUNE(ヌクネ)に参加して、自分の理想とする素敵なキャストとの<br />出会いに踏み出しましょう
             </p>
@@ -929,7 +938,7 @@ export default function LandingPage() {
               className={`${styles.btn} ${styles.btnPrimary} ${styles.scrollScaleUp} ${styles.enhancedHover}`}
               onClick={handleAgeConfirmation}
             >
-              <Heart size={20} />
+              <Heart size={24} />
               今すぐ登録
             </Link>
           </div>

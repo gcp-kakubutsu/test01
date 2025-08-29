@@ -182,27 +182,40 @@ $border-color-light: #E5E7EB;
   white-space: nowrap;  // 常に一行表示
   
   @media (max-width: 768px) {
-    font-size: 2.1rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.02em;
     line-height: 1.2;
   }
   
   @media (max-width: 480px) {
-    font-size: 1.75rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.03em;
     line-height: 1.2;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.5rem;
+    font-size: 1.9rem;  // 「で選ぶ、」「の出会い」のサイズ
     letter-spacing: -0.04em;
     line-height: 1.15;
   }
 }
 
+// ヒーロータイトル中の通常テキスト（「で選ぶ」「の出会い」）をスマホ時31pxに
+.heroTitlePlain {
+  @media (max-width: 768px) {
+    font-size: 32px;
+  }
+  @media (max-width: 480px) {
+    font-size: 32px;
+  }
+  @media (max-width: 375px) {
+    font-size: 32px;
+  }
+}
+
 .heroKeyword {
-  font-size: 1.3em;  // 30%大きく
+  font-size: 1.2em;  // PCでは少し大きく
   font-weight: 900;
   background: linear-gradient(135deg, #F0306A, #FF1744, #F0306A);
   -webkit-background-clip: text;
@@ -214,49 +227,62 @@ $border-color-light: #E5E7EB;
   filter: drop-shadow(0 0 20px rgba(240, 48, 106, 0.4));
   
   @media (max-width: 768px) {
-    font-size: 1.25em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
   }
   
   @media (max-width: 480px) {
-    font-size: 1.2em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
   }
   
   @media (max-width: 375px) {
-    font-size: 1.15em;
+    font-size: 1.1em;  // 「相性」「最短」のサイズ
+  }
+}
+
+.mobilePart1,
+.mobilePart2 {
+  display: inline;
+  
+  @media (max-width: 768px) {
+    display: block;
+    text-align: center;
   }
 }
 
 .heroTitleLine2 {
-  white-space: nowrap;  // 常に一行表示
+  white-space: nowrap;  // PCでは改行しない
   margin-top: 0.5rem;  // PCでも適切な間隔
   font-size: 3.2rem;  // PCでのサイズを少し小さく
   
   @media (max-width: 768px) {
-    font-size: 1.9rem;  // 少し小さく
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.5rem;
     letter-spacing: -0.02em;
     line-height: 1.2;
+    white-space: normal;  // スマホ時は改行可能に
   }
   
   @media (max-width: 480px) {
-    font-size: 1.55rem;  // さらに少し小さく
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.4rem;
     letter-spacing: -0.03em;
     line-height: 1.2;
+    white-space: normal;  // スマホ時は改行可能に
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.35rem;
+    font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
     margin-top: 0.3rem;
     letter-spacing: -0.04em;
     line-height: 1.15;
+    white-space: normal;  // スマホ時は改行可能に
   }
 }
 
 .heroSubtitle {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-size: 18.4px;
   margin-bottom: 3rem; // ボタンとの間隔を増やす
   color: rgba(255, 255, 255, 0.95);
   font-weight: 400;
@@ -292,7 +318,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    font-size: 0.9rem;
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.6;
     padding: 0.7rem 1rem;
     margin-bottom: 2rem;
@@ -301,7 +327,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 480px) {
-    font-size: 0.85rem;
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.5;
     padding: 0.6rem 0.9rem;
     margin-bottom: 1.8rem;
@@ -311,7 +337,7 @@ $border-color-light: #E5E7EB;
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 0.75rem;
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.4;
     padding: 0.5rem 0.75rem;
     margin-bottom: 1.5rem;
@@ -403,7 +429,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 0.8rem;  // 指定のパディングに変更
     border-radius: 25px !important;
     margin: 0 1rem;
   }
@@ -420,14 +446,14 @@ $border-color-light: #E5E7EB;
   text-align: center;
   
   @media (max-width: 768px) {
-    font-size: 1.3rem;
+    font-size: 1.35rem;  // 指定サイズ維持
     margin-bottom: 0.6rem;
   }
 }
 
 .locationInfoLine2 {
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   color: rgba(255, 255, 255, 0.95);
   line-height: 1.6;
   font-weight: 400;
@@ -440,7 +466,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 0.95rem;
+    font-size: 18.4px;  // 指定サイズに統一
     line-height: 1.6;
   }
 }
@@ -456,7 +482,7 @@ $border-color-light: #E5E7EB;
 }
 
 .btn {
-  padding: 1rem 2rem;
+  padding: 1.2rem 2rem; // 縦幅を広く
   border: none;
   border-radius: 50px;
   font-weight: 600;
@@ -466,7 +492,7 @@ $border-color-light: #E5E7EB;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
+  font-size: 18.4px;  // 指定サイズ
   position: relative;
   overflow: hidden;
   
@@ -486,22 +512,26 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    padding: 1rem 1.5rem;
-    font-size: 1rem;
+    padding: 1.1rem 1.5rem; // 縦幅拡大
+    font-size: 18.4px;
     min-width: 120px;
   }
   
+  @media (max-width: 640px) {
+    font-size: 18.4px;
+  }
+  
   @media (max-width: 480px) {
-    padding: 0.9rem 1rem;
-    font-size: 0.9rem;
+    padding: 1rem 1rem; // 縦幅をやや拡大
+    font-size: 18.4px;
     min-width: unset;  // flexで制御するため最小幅を解除
     white-space: nowrap;  // テキストの改行を防ぐ
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    padding: 0.8rem 0.8rem;
-    font-size: 0.85rem;
+    padding: 0.95rem 0.8rem;
+    font-size: 18.4px;
   }
 
   &Primary {
@@ -645,7 +675,7 @@ $border-color-light: #E5E7EB;
   }
 
   @media (max-width: 768px) {
-    font-size: 2.1rem;
+    font-size: 2rem;
     margin-bottom: 2.5rem;
     line-height: 1.3;
     
@@ -673,7 +703,7 @@ $border-color-light: #E5E7EB;
 }
 
 .sectionSubtitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   text-align: center;
   font-size: 1.1rem;
   color: $text-gray;
@@ -737,10 +767,10 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutText {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   
   p {
-    font-family: 'Noto Serif JP', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -769,8 +799,8 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutLead {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-size: 18.4px;
   line-height: 1.7;
   color: rgba($text-gray, 0.9);
   margin-bottom: 0.5rem;
@@ -780,7 +810,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 18.4px;
     line-height: 1.75;
   }
 }
@@ -839,7 +869,8 @@ $border-color-light: #E5E7EB;
   margin-bottom: 2rem;
   
   p {
-    font-family: 'Noto Serif JP', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+    font-size: 18.4px;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -903,7 +934,7 @@ $border-color-light: #E5E7EB;
   text-align: center;
   
   p {
-    font-size: 1.15rem;
+    font-size: 18.4px;
     line-height: 1.8;
     color: $text-light;
     margin-bottom: 0.5rem;
@@ -913,7 +944,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.05rem;
+      font-size: 18.4px;
     }
   }
   
@@ -1067,8 +1098,8 @@ $border-color-light: #E5E7EB;
 }
 
 .featureTitle {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.3rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-size: 20.8px;
   margin-bottom: 1rem;
   color: $text-light;
 
@@ -1077,37 +1108,37 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.35rem;
+    font-size: 20.8px;
     line-height: 1.4;
     margin-bottom: 1.25rem;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 1.15rem;
+    font-size: 20.8px;
     line-height: 1.3;
     margin-bottom: 1rem;
   }
 }
 
 .featureDescription {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   color: $text-gray;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 16.8px;
 
   :global(.light) & {
     color: #4B5563 !important;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.05rem;
+    font-size: 16.8px;
     line-height: 1.7;
   }
   
   // iPhone SE (375px) 専用の調整
   @media (max-width: 375px) {
-    font-size: 0.9rem;
+    font-size: 16.8px;
     line-height: 1.6;
   }
 }
@@ -1139,6 +1170,7 @@ $border-color-light: #E5E7EB;
 .solutionsProblem {
   font-size: 1.2rem;
   color: #b8b2a7;
+  font-weight: bold;
   line-height: 1.8;
   letter-spacing: 0.02em;
   white-space: pre-line;
@@ -1148,7 +1180,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 17px;
+    font-size: 1.15rem;
     line-height: 1.7;
     margin: 1.5rem 0;
   }
@@ -1336,7 +1368,7 @@ $border-color-light: #E5E7EB;
 
 .solutionTitle {
   font-family: 'Noto Serif JP', serif;
-  font-size: 2.5rem;
+  font-size: 26.4px;
   font-weight: 700;
   line-height: 1.6;
   color: #e8e5df;
@@ -1366,13 +1398,13 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.8rem;
+    font-size: 26.4px;
     line-height: 1.5;
     margin-bottom: 1.5rem;
     
     div {
       white-space: normal; // モバイルでは改行を許可
-      font-size: 1.6rem; // 文字サイズを調整
+      font-size: 26.4px; // 文字サイズを調整
       margin: 0.2rem 0;
     }
     
@@ -1467,8 +1499,9 @@ $border-color-light: #E5E7EB;
   flex: 1;
   
   h4 {
+    font-family: 'Noto Serif JP', serif;
     margin: 0 0 0.5rem;
-    font-size: 1.1rem;
+    font-size: 20.8px;
     font-weight: 700;
     color: #caa35b;
     
@@ -1477,7 +1510,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.2rem;
+      font-size: 20.8px;
       line-height: 1.4;
       margin-bottom: 0.75rem;
     }
@@ -1486,6 +1519,7 @@ $border-color-light: #E5E7EB;
   p {
     margin: 0;
     color: #b8b2a7;
+    font-weight: bold;
     font-size: 0.95rem;
     line-height: 1.6;
     
@@ -1512,19 +1546,28 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTagline {
-  font-size: 1.1rem;
+  font-size: 20.8px;
   color: #b8b2a7;
+  font-weight: bold;
   line-height: 1.8;
   margin: 0;
+  
+  // タグライン内の強調spanは18.4pxに統一
+  span {
+    font-size: 18.4px;
+  }
   
   :global(.light) & {
     color: #6B7280;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 20.8px;
     line-height: 1.75;
     margin: 1rem 0;
+    span {
+      font-size: 18.4px;
+    }
     br {
       display: none;
     }
@@ -1532,9 +1575,10 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionBrand {
+  font-family: 'Noto Serif JP', serif;
   display: inline-block;
   margin-top: 0.5rem;
-  font-size: 1.5rem;
+  font-size: 26.4px;
   font-weight: 800;
   background: linear-gradient(90deg, #caa35b, #f3e5c1);
   -webkit-background-clip: text;
@@ -1550,7 +1594,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 26.4px;
     line-height: 1.3;
     margin-top: 0.75rem;
   }
@@ -1649,7 +1693,7 @@ $border-color-light: #E5E7EB;
 }
 
 .reasonText {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -1657,7 +1701,7 @@ $border-color-light: #E5E7EB;
 
 .reasonOld {
   color: #999;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   display: block;
   position: relative;
   padding-left: 1.7rem;
@@ -1681,7 +1725,7 @@ $border-color-light: #E5E7EB;
 
 .reasonNew {
   color: $text-light;
-  font-size: 1.1rem;
+  font-size: 18.4px;
   display: block;
   position: relative;
   padding-left: 1.7rem;
@@ -1746,6 +1790,7 @@ $border-color-light: #E5E7EB;
   padding: 0.5rem 2rem;
   border-radius: 25px;
   font-weight: 600;
+  font-size: 18.4px;
   display: inline-block;
 }
 
@@ -2066,7 +2111,8 @@ $border-color-light: #E5E7EB;
 }
 
 .safetyTitle {
-  font-size: 1.1rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 20.8px;
   font-weight: 700;
   background: linear-gradient(135deg, #f3e5c1, #caa35b);
   -webkit-background-clip: text;
@@ -2082,7 +2128,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.2rem;
+    font-size: 20.8px;
     line-height: 1.4;
   }
 }
@@ -2090,14 +2136,14 @@ $border-color-light: #E5E7EB;
 .safetyDescription {
   color: $text-gray;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 18.4px;
 
   :global(.light) & {
     color: #4B5563;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.05rem;
+    font-size: 18.4px;
     line-height: 1.7;
   }
 }
@@ -2168,7 +2214,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqQuestion {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   padding: 1.5rem;
   cursor: pointer;
   display: flex;
@@ -2176,7 +2222,7 @@ $border-color-light: #E5E7EB;
   align-items: center;
 
   h3 {
-    font-size: 1.1rem;
+    font-size: 18.4px;
     color: $text-light;
     margin: 0;
     flex: 1;
@@ -2189,7 +2235,7 @@ $border-color-light: #E5E7EB;
     }
     
     @media (max-width: 768px) {
-      font-size: 1.1rem;
+      font-size: 18.4px;
       padding-right: 0.75rem;
       line-height: 1.5;
     }
@@ -2210,7 +2256,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqAnswer {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   padding: 0 1.5rem 1.5rem;
   color: $text-gray;
   line-height: 1.8;
@@ -2288,7 +2334,8 @@ $border-color-light: #E5E7EB;
 }
 
 .fixedPriceTitle {
-  font-size: 2.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 32px;
   font-weight: 700;
   margin-bottom: 1.5rem;
   color: #e8e5df;
@@ -2298,7 +2345,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 2.25rem;
+    font-size: 32px;
     line-height: 1.3;
     margin-bottom: 1.75rem;
   }
@@ -2322,6 +2369,7 @@ $border-color-light: #E5E7EB;
   font-size: 1.1rem;
   line-height: 1.8;
   color: #b8b2a7;
+  font-weight: bold;
   
   :global(.light) & {
     color: #6B7280;
@@ -2364,6 +2412,7 @@ $border-color-light: #E5E7EB;
   font-size: 1.05rem;
   line-height: 1.8;
   color: #b8b2a7;
+  font-weight: bold;
   margin-top: 1rem;
   
   :global(.light) & {
@@ -2371,7 +2420,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     line-height: 1.75;
     margin-top: 1.25rem;
     br {
@@ -2546,7 +2595,7 @@ $border-color-light: #E5E7EB;
 }
 
 .planTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   color: #e8e5df;
@@ -2586,6 +2635,7 @@ $border-color-light: #E5E7EB;
 .priceLabel {
   font-size: 0.85rem;
   color: #b8b2a7;
+  font-weight: bold;
   margin-bottom: 0.25rem;
   
   :global(.light) & {
@@ -2598,7 +2648,7 @@ $border-color-light: #E5E7EB;
 }
 
 .priceAmount {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 2.8rem;
   font-weight: 800;
   background: linear-gradient(180deg, #f3e5c1, #caa35b);
@@ -2728,6 +2778,7 @@ $border-color-light: #E5E7EB;
 }
 
 .commonFeaturesTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: #caa35b;
@@ -2771,6 +2822,7 @@ $border-color-light: #E5E7EB;
   align-items: center;
   gap: 0.5rem;
   color: #b8b2a7;
+  font-weight: bold;
   font-size: 0.95rem;
   
   :global(.light) & {
@@ -2903,12 +2955,12 @@ $border-color-light: #E5E7EB;
 
 .ctaContent {
   text-align: center;
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
 .ctaTitle {
-  font-family: 'Noto Serif JP', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 3rem;
   margin-bottom: 1.5rem;
   background: linear-gradient(135deg, $text-light, $accent-gold);
@@ -2916,16 +2968,34 @@ $border-color-light: #E5E7EB;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 700;
+  display: inline-block; // 段落風インデントを見せるため左寄せブロックにする
+  text-align: left;
 
   @media (max-width: 768px) {
-    font-size: 2.25rem;
+    font-size: 2rem;
     line-height: 1.3;
     margin-bottom: 1.75rem;
   }
 }
 
-.ctaSubtitle {
+// CTA タイトルを2行の段落風に表示するための行クラス
+.ctaTitleLine1,
+.ctaTitleLine2 {
   font-family: 'Noto Serif JP', serif;
+  display: block;
+}
+
+// 2行目を全角数文字分インデントして段落表現
+.ctaTitleLine2 {
+  text-indent: 3em;
+
+  @media (max-width: 768px) {
+    text-indent: 2em;
+  }
+}
+
+.ctaSubtitle {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, 'MS PGothic', Arial, Helvetica, sans-serif;
   font-size: 1.2rem;
   color: $text-gray;
   margin-bottom: 3rem;
