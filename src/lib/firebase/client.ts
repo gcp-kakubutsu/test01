@@ -228,6 +228,45 @@ export function getFirebaseDb(): Firestore | undefined {
   if (!initialized && typeof window !== 'undefined') {
     initializeFirebaseServices();
   }
+  
+  // Firestoreが終了している場合は再初期化を試みる
+  if (db && typeof window !== 'undefined') {
+    try {
+      // Firestoreが使用可能かチェック
+      const { _terminated } = db as any;
+      if (_terminated) {
+        console.warn('⚠️ Firestore was terminated, reinitializing...');
+        db = undefined;
+        if (app) {
+          try {
+            const browserInfo = getBrowserInfo();
+            if (browserInfo.isLine || !browserInfo.hasIndexedDB) {
+              db = initializeFirestore(app, {
+                localCache: memoryLocalCache(),
+                experimentalForceLongPolling: true,
+              });
+            } else {
+              try {
+                db = initializeFirestore(app, {
+                  localCache: persistentLocalCache()
+                });
+              } catch (persistError: any) {
+                db = initializeFirestore(app, {
+                  localCache: memoryLocalCache()
+                });
+              }
+            }
+            console.log('✅ Firestore reinitialized successfully');
+          } catch (error) {
+            console.error('❌ Failed to reinitialize Firestore:', error);
+          }
+        }
+      }
+    } catch (error) {
+      // Silently handle check errors
+    }
+  }
+  
   return db;
 }
 
@@ -270,9 +309,15 @@ export async function resetFirestoreConnection(): Promise<void> {
   // Firestoreインスタンスを破棄
   if (db) {
     try {
-      const { terminate } = await import('firebase/firestore');
-      await terminate(db);
-      console.log('✅ Firestore terminated');
+      // terminateを避けて、インスタンスの参照を削除するだけにする
+      // これにより、他のタブやコンポーネントへの影響を最小限にする
+      const { _terminated } = db as any;
+      if (!_terminated) {
+        // 終了していない場合のみterminateを実行
+        const { terminate } = await import('firebase/firestore');
+        await terminate(db);
+        console.log('✅ Firestore terminated');
+      }
     } catch (error) {
       console.warn('⚠️ Could not terminate Firestore:', error);
     }
