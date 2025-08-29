@@ -374,7 +374,9 @@ export default function LandingPage() {
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            <span className={styles.heroTitleLine1}>相性で選ぶ、最短の出会い</span>
+            <span className={styles.heroTitleLine1}>
+              <span className={styles.heroKeyword}>相性</span>で選ぶ、<span className={styles.heroKeyword}>最短</span>の出会い
+            </span>
             <span className={styles.heroTitleLine2}>あなたに合うキャストだけ表示</span>
           </h1>
           <p className={styles.heroSubtitle}>
@@ -394,9 +396,7 @@ export default function LandingPage() {
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
               <div className={styles.locationInfoLine2}>
-                <span className={styles.locationLine2_1}>現在地・希望条件・60分以内の</span>
-                <span className={styles.locationLine2_2}>空き枠をもとに</span>
-                <span className={styles.locationLine2_3}>最短、最速にご案内します</span>
+                現在地・希望条件・60分以内の空き枠をもとに最短、最速にご案内します
               </div>
             </div>
           </div>
@@ -494,7 +494,8 @@ export default function LandingPage() {
           </h2>
           <div className={styles.solutionsIntro}>
             <p className={styles.solutionsProblem}>
-              急に時間ができたから、今すぐ遊びたい！今すぐNUKIたい！<br />
+              急に時間ができたから、今すぐ遊びたい！<br className={styles.mobileBreak} />
+              <span className={styles.nukitaiText} style={{ fontWeight: 'bold', color: '#b8b2a7' }}>今すぐNUKIたい！</span><br />
               そんな気分になっても、遊ぶ場所を探すのが面倒だから、結局あきらめてしまった。<br />
               そんな経験はありませんか？
             </p>
@@ -599,14 +600,14 @@ export default function LandingPage() {
               <h3 className={styles.reasonTitle}>相性保証システム</h3>
               <p className={styles.reasonText}>
                 <span className={styles.reasonOld}>従来：写真とプロフィールだけで判断</span>
-                <span className={styles.reasonNew}>Nukune：AI分析により95%以上の相性マッチを保証</span>
+                <span className={styles.reasonNew}>NUKUNE：AI分析により95%以上の相性マッチを保証</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <h3 className={styles.reasonTitle}>詳細プレイ確認</h3>
               <p className={styles.reasonText}>
                 <span className={styles.reasonOld}>従来：会うまで対応内容が不明確</span>
-                <span className={styles.reasonNew}>Nukune：事前に全ての希望を確認・調整可能</span>
+                <span className={styles.reasonNew}>NUKUNE：事前に全ての希望を確認・調整可能</span>
               </p>
             </div>
             <div className={`${styles.reasonCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>

@@ -192,6 +192,38 @@ $border-color-light: #E5E7EB;
     letter-spacing: -0.03em;
     line-height: 1.2;
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 1.5rem;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+  }
+}
+
+.heroKeyword {
+  font-size: 1.3em;  // 30%大きく
+  font-weight: 900;
+  background: linear-gradient(135deg, #F0306A, #FF1744, #F0306A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  display: inline-block;
+  text-shadow: 0 0 30px rgba(240, 48, 106, 0.5);
+  filter: drop-shadow(0 0 20px rgba(240, 48, 106, 0.4));
+  
+  @media (max-width: 768px) {
+    font-size: 1.25em;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.2em;
+  }
+  
+  @media (max-width: 375px) {
+    font-size: 1.15em;
+  }
 }
 
 .heroTitleLine2 {
@@ -212,19 +244,48 @@ $border-color-light: #E5E7EB;
     letter-spacing: -0.03em;
     line-height: 1.2;
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 1.35rem;
+    margin-top: 0.3rem;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+  }
 }
 
 .heroSubtitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.2rem;
   margin-bottom: 3rem; // ボタンとの間隔を増やす
   color: rgba(255, 255, 255, 0.95);
   font-weight: 400;
   line-height: 1.8;
   text-align: center;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(240, 48, 106, 0.15));
+  padding: 1.2rem 2.5rem;
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+    animation: shimmerSubtitle 3s infinite;
+  }
+  
+  @keyframes shimmerSubtitle {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
 
   :global(.light) & {
     color: rgba(255, 255, 255, 0.95);
@@ -246,6 +307,16 @@ $border-color-light: #E5E7EB;
     margin-bottom: 1.8rem;
     margin-left: 0.8rem;
     margin-right: 0.8rem;
+  }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1.5rem;
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
   }
 }
 
@@ -273,6 +344,12 @@ $border-color-light: #E5E7EB;
       min-width: 0;  // flexの縮小を許可
     }
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    gap: 0.4rem;
+    padding: 0 0.5rem;
+  }
 }
 
 // Location Info Section (below the login button)
@@ -286,17 +363,48 @@ $border-color-light: #E5E7EB;
 }
 
 .locationInfoContent {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(240, 48, 106, 0.3);
-  border-radius: 20px;
-  padding: 1.5rem 2.5rem;
-  max-width: 600px;
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.95));
+  backdrop-filter: blur(15px);
+  border: 1px solid transparent;
+  border-radius: 30px !important;
+  padding: 1.8rem 3rem;
+  max-width: 720px;
   margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 30px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(240, 48, 106, 0.5), rgba(212, 175, 55, 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.1), transparent 40%);
+    animation: pulseGold 4s ease-in-out infinite;
+  }
+  
+  @keyframes pulseGold {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
   
   @media (max-width: 768px) {
     padding: 1.25rem 1.5rem;
-    border-radius: 15px;
+    border-radius: 25px !important;
     margin: 0 1rem;
   }
 }
@@ -318,13 +426,14 @@ $border-color-light: #E5E7EB;
 }
 
 .locationInfoLine2 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  text-align: center;
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.6;
   font-weight: 400;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+  position: relative;
   
   :global(.light) & {
     color: rgba(255, 255, 255, 0.9) !important;
@@ -336,45 +445,7 @@ $border-color-light: #E5E7EB;
   }
 }
 
-.locationLine2_1 {
-  display: block;
-  text-align: center;
-  color: inherit;
-  
-  :global(.light) & {
-    color: rgba(255, 255, 255, 0.9) !important;
-  }
-}
-
-.locationLine2_2 {
-  display: block;
-  text-align: center;
-  padding-left: 2rem;
-  color: inherit;
-  
-  :global(.light) & {
-    color: rgba(255, 255, 255, 0.9) !important;
-  }
-  
-  @media (max-width: 768px) {
-    padding-left: 1.5rem;
-  }
-}
-
-.locationLine2_3 {
-  display: block;
-  text-align: center;
-  padding-left: 1rem;
-  color: inherit;
-  
-  :global(.light) & {
-    color: rgba(255, 255, 255, 0.9) !important;
-  }
-  
-  @media (max-width: 768px) {
-    padding-left: 0.75rem;
-  }
-}
+// 削除: locationLine2_1, locationLine2_2, locationLine2_3 は使用しなくなったため
 
 .locationInfoBreak {
   display: none;
@@ -425,6 +496,12 @@ $border-color-light: #E5E7EB;
     font-size: 0.9rem;
     min-width: unset;  // flexで制御するため最小幅を解除
     white-space: nowrap;  // テキストの改行を防ぐ
+  }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    padding: 0.8rem 0.8rem;
+    font-size: 0.85rem;
   }
 
   &Primary {
@@ -579,9 +656,24 @@ $border-color-light: #E5E7EB;
       margin: 0.25rem 0;
     }
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 1.65rem;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+    
+    .titleLine1,
+    .titleLine2 {
+      display: block;
+      text-align: center;
+      margin: 0.2rem 0;
+    }
+  }
 }
 
 .sectionSubtitle {
+  font-family: 'Noto Serif JP', serif;
   text-align: center;
   font-size: 1.1rem;
   color: $text-gray;
@@ -600,13 +692,21 @@ $border-color-light: #E5E7EB;
     margin-bottom: 3rem;
     padding: 0 1rem;
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 2.5rem;
+    padding: 0 0.75rem;
+  }
 }
 
 // About Section
 .about {
   width: 100%;
   background-color: #0a0a0a;
-  padding: 0;
+  padding: 2.5rem 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
@@ -615,7 +715,7 @@ $border-color-light: #E5E7EB;
   z-index: 1;
 
   @media (max-width: 768px) {
-    padding: 3rem 0;
+    padding: 1.5rem 0;
   }
 }
 
@@ -637,7 +737,10 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutText {
+  font-family: 'Noto Serif JP', serif;
+  
   p {
+    font-family: 'Noto Serif JP', serif;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -666,6 +769,7 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutLead {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.1rem;
   line-height: 1.7;
   color: rgba($text-gray, 0.9);
@@ -682,6 +786,7 @@ $border-color-light: #E5E7EB;
 }
 
 .aboutBrand {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.8rem;
   font-weight: 700;
   background: linear-gradient(135deg, $accent-gold, color.adjust($accent-gold, $lightness: 15%));
@@ -734,6 +839,7 @@ $border-color-light: #E5E7EB;
   margin-bottom: 2rem;
   
   p {
+    font-family: 'Noto Serif JP', serif;
     line-height: 1.8;
     color: $text-gray;
     margin-bottom: 1rem;
@@ -883,12 +989,16 @@ $border-color-light: #E5E7EB;
 .features {
   width: 100%;
   background-color: $bg-dark;
-  padding: 0;
+  padding: 0 0 2.5rem 0;  // 上のpaddingだけを削除
   position: relative;
   z-index: 1;
 
   :global(.light) & {
     background-color: #FFFFFF;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0 0 1.5rem 0;
   }
 }
 
@@ -957,6 +1067,7 @@ $border-color-light: #E5E7EB;
 }
 
 .featureTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.3rem;
   margin-bottom: 1rem;
   color: $text-light;
@@ -970,9 +1081,17 @@ $border-color-light: #E5E7EB;
     line-height: 1.4;
     margin-bottom: 1.25rem;
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 1.15rem;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+  }
 }
 
 .featureDescription {
+  font-family: 'Noto Serif JP', serif;
   color: $text-gray;
   line-height: 1.6;
   font-size: 1rem;
@@ -985,12 +1104,18 @@ $border-color-light: #E5E7EB;
     font-size: 1.05rem;
     line-height: 1.7;
   }
+  
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
 }
 
 // Solutions Section - LUXE DATE inspired design
 .solutions {
   width: 100%;
-  padding: 0;
+  padding: 2.5rem 0;
   position: relative;
   background: radial-gradient(1200px 600px at 70% -10%, rgba(212, 175, 55, 0.12), transparent 60%),
               radial-gradient(900px 500px at 10% -20%, rgba(255, 255, 255, 0.03), transparent 50%),
@@ -999,6 +1124,10 @@ $border-color-light: #E5E7EB;
   :global(.light) & {
     background: radial-gradient(1200px 600px at 70% -10%, rgba(240, 48, 106, 0.08), transparent 60%),
                 #FAFAFA;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -1019,11 +1148,15 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    font-size: 1.15rem;
-    line-height: 1.8;
+    font-size: 17px;
+    line-height: 1.7;
     margin: 1.5rem 0;
-    white-space: pre-line;
   }
+}
+
+.nukitaiText {
+  font-weight: bold;  // PCでもスマホでもboldに
+  // サイズは親要素から継承（PC: 1.2rem, スマホ: 17px）
 }
 
 .problemsGrid {
@@ -1202,6 +1335,7 @@ $border-color-light: #E5E7EB;
 }
 
 .solutionTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.6;
@@ -1426,12 +1560,16 @@ $border-color-light: #E5E7EB;
 .reasons {
   width: 100%;
   background-color: #0a0a0a;
-  padding: 0;
+  padding: 2.5rem 0;
   position: relative;
   z-index: 1;
 
   :global(.light) & {
     background-color: #FFFFFF;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -1493,6 +1631,7 @@ $border-color-light: #E5E7EB;
 }
 
 .reasonTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.2rem;
   font-weight: 600;
   color: $accent-gold;
@@ -1510,6 +1649,7 @@ $border-color-light: #E5E7EB;
 }
 
 .reasonText {
+  font-family: 'Noto Serif JP', serif;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -1565,10 +1705,14 @@ $border-color-light: #E5E7EB;
 .startGuide {
   width: 100%;
   background-color: $bg-dark;
-  padding: 0;
+  padding: 2.5rem 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -1788,13 +1932,17 @@ $border-color-light: #E5E7EB;
 // Safety Section
 .safety {
   width: 100%;
-  padding: 0;
+  padding: 2.5rem 0;
   background: radial-gradient(900px 500px at 80% -10%, rgba(212, 175, 55, 0.10), transparent 60%),
               #0a0a0a;
 
   :global(.light) & {
     background: radial-gradient(900px 500px at 80% -10%, rgba(240, 48, 106, 0.08), transparent 60%),
                 #FFFFFF;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -1958,10 +2106,14 @@ $border-color-light: #E5E7EB;
 .faq {
   width: 100%;
   background-color: $bg-dark;
-  padding: 0;
+  padding: 2.5rem 0;
 
   :global(.light) & {
     background-color: #FFFFFF;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -2016,6 +2168,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqQuestion {
+  font-family: 'Noto Serif JP', serif;
   padding: 1.5rem;
   cursor: pointer;
   display: flex;
@@ -2057,6 +2210,7 @@ $border-color-light: #E5E7EB;
 }
 
 .faqAnswer {
+  font-family: 'Noto Serif JP', serif;
   padding: 0 1.5rem 1.5rem;
   color: $text-gray;
   line-height: 1.8;
@@ -2092,10 +2246,14 @@ $border-color-light: #E5E7EB;
 // Fixed Price Section
 .fixedPrice {
   width: 100%;
-  padding: 0;
+  padding: 2.5rem 0;
   background: linear-gradient(180deg, #0a0a0a, #0f0f0f);
   position: relative;
   overflow: hidden;
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
+  }
   
   &::before {
     content: "";
@@ -2182,7 +2340,7 @@ $border-color-light: #E5E7EB;
 // Pricing Section - LUXE DATE Style
 .pricing {
   width: 100%;
-  padding: 0;
+  padding: 2.5rem 0;
   background: radial-gradient(1200px 600px at 50% 100%, rgba(212, 175, 55, 0.08), transparent 60%),
               radial-gradient(900px 500px at 80% 50%, rgba(255, 255, 255, 0.02), transparent 50%),
               #0a0a0a;
@@ -2193,7 +2351,7 @@ $border-color-light: #E5E7EB;
   }
   
   @media (max-width: 768px) {
-    padding: 3rem 0;
+    padding: 1.5rem 0;
   }
 }
 
@@ -2388,6 +2546,7 @@ $border-color-light: #E5E7EB;
 }
 
 .planTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.2rem;
   font-weight: 700;
   color: #e8e5df;
@@ -2439,6 +2598,7 @@ $border-color-light: #E5E7EB;
 }
 
 .priceAmount {
+  font-family: 'Noto Serif JP', serif;
   font-size: 2.8rem;
   font-weight: 800;
   background: linear-gradient(180deg, #f3e5c1, #caa35b);
@@ -2730,10 +2890,14 @@ $border-color-light: #E5E7EB;
 .cta {
   width: 100%;
   background: linear-gradient(180deg, $bg-dark 0%, rgba(139, 30, 63, 0.3) 100%);
-  padding: 0;
+  padding: 2.5rem 0;
 
   :global(.light) & {
     background: linear-gradient(180deg, $bg-light 0%, rgba(240, 48, 106, 0.1) 100%);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
   }
 }
 
@@ -2744,6 +2908,7 @@ $border-color-light: #E5E7EB;
 }
 
 .ctaTitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 3rem;
   margin-bottom: 1.5rem;
   background: linear-gradient(135deg, $text-light, $accent-gold);
@@ -2760,6 +2925,7 @@ $border-color-light: #E5E7EB;
 }
 
 .ctaSubtitle {
+  font-family: 'Noto Serif JP', serif;
   font-size: 1.2rem;
   color: $text-gray;
   margin-bottom: 3rem;
@@ -2933,11 +3099,11 @@ $border-color-light: #E5E7EB;
 
 // Matching Search Section
 .matchingSearch {
-  padding: 0;
+  padding: 2.5rem 0;
   background-color: rgba(17, 24, 39, 0.5);
   
   @media (max-width: 768px) {
-    padding: 0;
+    padding: 1.5rem 0;
   }
   
   :global(.light) & {
