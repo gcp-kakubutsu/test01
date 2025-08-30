@@ -426,9 +426,6 @@ export default function LandingPage() {
                 <p>
                   NUKUNEは「風俗情報サイトのデータ」を活用し、検索から予約までをワンストップで実現します。
                 </p>
-                <p>
-                  インターネット異性紹介事業（届出受理番号54250003000）として、法令を遵守し、安心して利用できる出会いの場を提供します。
-                </p>
               </div>
               
               <div className={styles.aboutFeatures}>

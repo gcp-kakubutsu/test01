@@ -400,7 +400,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="mb-4 text-gray-700 dark:text-gray-300">マッチングを開始するには詳細設定の完了が必要です</p>
+                <p className="mb-4 text-gray-700 dark:text-gray-300">マッチングを開始するには<br />詳細設定の完了が必要です</p>
                 <Button className="bg-[#F0306A] hover:bg-[#E02860] text-lg px-8 py-6" onClick={() => router.push('/profile/preferences')}>
                   詳細設定を開始
                 </Button>
