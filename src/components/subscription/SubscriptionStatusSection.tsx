@@ -165,20 +165,30 @@ export function SubscriptionStatusSection() {
     const isLastDay = trialInfo.daysRemaining === 0;
     const isWarning = trialInfo.daysRemaining <= 2;
 
+    const borderClass = isLastDay 
+      ? 'border-red-400 dark:border-red-500' 
+      : isWarning 
+        ? 'border-yellow-400 dark:border-yellow-500' 
+        : 'border-pink-300 dark:border-pink-400';
+    
+    const headerBgClass = isLastDay 
+      ? 'bg-gradient-to-r from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-800/20' 
+      : isWarning 
+        ? 'bg-gradient-to-r from-yellow-100 to-orange-50 dark:from-yellow-900/30 dark:to-orange-800/20' 
+        : 'bg-gradient-to-r from-pink-100 via-pink-50 to-purple-50 dark:from-pink-900/30 dark:via-pink-800/20 dark:to-purple-900/20';
+    
+    const iconBgClass = isLastDay 
+      ? 'bg-red-500' 
+      : isWarning 
+        ? 'bg-orange-500' 
+        : 'bg-pink-500';
+
     return (
-      <Card className={`border-2 overflow-hidden ${isLastDay ? 'border-red-400 dark:border-red-500' : isWarning ? 'border-yellow-400 dark:border-yellow-500' : 'border-pink-300 dark:border-pink-400'}`}>
-        <CardHeader className={`${
-          isLastDay 
-            ? 'bg-gradient-to-r from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-800/20' 
-            : isWarning 
-              ? 'bg-gradient-to-r from-yellow-100 to-orange-50 dark:from-yellow-900/30 dark:to-orange-800/20' 
-              : 'bg-gradient-to-r from-pink-100 via-pink-50 to-purple-50 dark:from-pink-900/30 dark:via-pink-800/20 dark:to-purple-900/20'
-        }`}>
+      <Card className={`border-2 overflow-hidden ${borderClass}`}>
+        <CardHeader className={headerBgClass}>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
-              <div className={`p-2 rounded-full ${
-                isLastDay ? 'bg-red-500' : isWarning ? 'bg-orange-500' : 'bg-pink-500'
-              }`}>
+              <div className={`p-2 rounded-full ${iconBgClass}`}>
                 {isLastDay ? (
                   <AlertTriangle className="h-5 w-5 text-white" />
                 ) : isWarning ? (
@@ -225,14 +235,13 @@ export function SubscriptionStatusSection() {
 
           <Separator className="dark:border-gray-700" />
 
-
           <Button 
             className={`w-full font-bold shadow-lg hover:shadow-xl transition-all text-white ${
               isLastDay 
                 ? 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700' 
                 : 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600'
             }`}
-            onClick={() => router.push('/subscription/upgrade')}
+            onClick={() => router.push('/subscription')}
           >
             {isLastDay ? '今すぐプレミアムに登録' : 'プレミアム会員になる'}
             <ChevronRight className="h-4 w-4 ml-1" />
