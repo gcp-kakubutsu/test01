@@ -42,6 +42,8 @@ let functions: Functions | undefined;
 let initialized = false;
 let initializationError: Error | null = null;
 let isResettingDb = false; // Firestore再初期化の同時実行を防ぐフラグ
+type FirestoreInitStrategy = 'default' | 'persistent' | 'memory';
+let firestoreStrategy: FirestoreInitStrategy | null = null; // 初回初期化時の戦略を記録
 
 /**
  * Firebaseを初期化する関数
@@ -86,6 +88,7 @@ function initializeFirebaseServices(): void {
         // 既存のFirestoreインスタンスがあるかチェック
         try {
           db = getFirestore(app);
+          firestoreStrategy = 'default';
           console.log('✅ Using existing Firestore instance');
         } catch (noExistingInstance) {
           // 新規初期化が必要
@@ -101,6 +104,7 @@ function initializeFirebaseServices(): void {
               localCache: memoryLocalCache(),
               experimentalForceLongPolling: true, // WebSocket接続の代わりにlong pollingを使用
             });
+            firestoreStrategy = 'memory';
           } else {
             // 通常のブラウザの場合
             try {
@@ -108,12 +112,14 @@ function initializeFirebaseServices(): void {
               db = initializeFirestore(app, {
                 localCache: persistentLocalCache()
               });
+              firestoreStrategy = 'persistent';
             } catch (persistError: any) {
               console.warn('⚠️ Failed to initialize with persistent cache, falling back to memory cache:', persistError);
               // フォールバック: メモリキャッシュを使用
               db = initializeFirestore(app, {
                 localCache: memoryLocalCache()
               });
+              firestoreStrategy = 'memory';
             }
           }
         }
@@ -245,22 +251,13 @@ export function getFirebaseDb(): Firestore | undefined {
         db = undefined;
         if (app) {
           try {
-            const browserInfo = getBrowserInfo();
-            if (browserInfo.isLine || !browserInfo.hasIndexedDB) {
-              db = initializeFirestore(app, {
-                localCache: memoryLocalCache(),
-                experimentalForceLongPolling: true,
-              });
+            // 初回と同じ戦略で再初期化
+            if (firestoreStrategy === 'default') {
+              db = getFirestore(app);
+            } else if (firestoreStrategy === 'persistent') {
+              db = initializeFirestore(app, { localCache: persistentLocalCache() });
             } else {
-              try {
-                db = initializeFirestore(app, {
-                  localCache: persistentLocalCache()
-                });
-              } catch (persistError: any) {
-                db = initializeFirestore(app, {
-                  localCache: memoryLocalCache()
-                });
-              }
+              db = initializeFirestore(app, { localCache: memoryLocalCache(), experimentalForceLongPolling: true });
             }
             console.log('✅ Firestore reinitialized successfully');
           } catch (error) {
@@ -317,27 +314,15 @@ export async function resetFirestoreConnection(): Promise<void> {
   // Firestoreインスタンスの参照を破棄（terminateは呼ばない。呼ぶと"shutting down"が発生しやすい）
   db = undefined;
   
-  // 再初期化
+  // 再初期化（初回と同じ戦略を使用）
   if (app) {
     try {
-      const browserInfo = getBrowserInfo();
-      
-      // LINEブラウザまたはIndexedDBが使えない環境の場合
-      if (browserInfo.isLine || !browserInfo.hasIndexedDB) {
-        db = initializeFirestore(app, {
-          localCache: memoryLocalCache(),
-          experimentalForceLongPolling: true,
-        });
+      if (firestoreStrategy === 'default') {
+        db = getFirestore(app);
+      } else if (firestoreStrategy === 'persistent') {
+        db = initializeFirestore(app, { localCache: persistentLocalCache() });
       } else {
-        try {
-          db = initializeFirestore(app, {
-            localCache: persistentLocalCache()
-          });
-        } catch (persistError: any) {
-          db = initializeFirestore(app, {
-            localCache: memoryLocalCache()
-          });
-        }
+        db = initializeFirestore(app, { localCache: memoryLocalCache(), experimentalForceLongPolling: true });
       }
       console.log('✅ Firestore reinitialized');
     } catch (error) {
