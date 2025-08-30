@@ -336,15 +336,15 @@ export default function LandingPage() {
       <div className={`${styles.stickyButtons} ${showStickyButtons ? styles.stickyButtonsVisible : ''}`}>
         <Link 
           href="/signup" 
-          className={`${styles.stickyBtn} ${styles.stickyBtnPrimary}`} 
+          className={`${styles.btn} ${styles.btnPrimary}`} 
           onClick={handleAgeConfirmation}
         >
-          <Heart size={18} />
-          <span>NUKUNEに参加</span>
+          <Heart size={24} />
+          NUKUNEに参加
         </Link>
         <Link 
           href="/login" 
-          className={`${styles.stickyBtn} ${styles.stickyBtnSecondary}`}
+          className={`${styles.btn} ${styles.btnSecondary}`}
         >
           <span>無料で参加</span>
         </Link>

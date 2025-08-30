@@ -37,7 +37,7 @@ export function SubscriptionStatusSection() {
 
   // 追加の安全策: Firestoreの subscription.status が 'trial' かつ trialInfo が有効なら
   // UI上は必ずトライアル優先で表示する（万一の不整合対策）
-  const isTrialOverride = userSubscription?.subscription?.status === 'trial' && !!trialInfo?.isActive;
+  const isTrialOverride = (userSubscription?.subscription?.status === 'trial' || userSubscription?.subscription?.status === 'trialing') && !!trialInfo?.isActive;
   const effectiveStatus = isTrialOverride ? UserSubscriptionStatus.TRIAL_ACTIVE : status;
 
   const handleReactivate = async () => {

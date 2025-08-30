@@ -20,7 +20,8 @@ export interface TrialData {
 
 // サブスクリプション情報
 export interface SubscriptionData {
-  status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'none';
+  // Stripe互換の 'trialing' に加え、Firestoreに 'trial' が保存されるケースも許容
+  status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'trial' | 'none';
   currentPeriodStart: Timestamp | null;  // 現在の請求期間開始日
   currentPeriodEnd: Timestamp | null;    // 現在の請求期間終了日
   cancelAtPeriodEnd: boolean;           // 期間終了時に解約するか

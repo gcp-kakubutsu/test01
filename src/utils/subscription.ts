@@ -24,7 +24,7 @@ export function getUserStatus(user: UserWithSubscription): UserSubscriptionStatu
 
   // 補強: Firestore上のsubscription.statusが 'trial' の場合も、
   // trial.endDate を基準にTRIAL_* を返す（フィールド不整合の保険）
-  if (user.subscription?.status === 'trial') {
+  if (user.subscription?.status === 'trial' || user.subscription?.status === 'trialing') {
     const end = user.trial?.endDate?.toDate();
     if (end && end > now) {
       return UserSubscriptionStatus.TRIAL_ACTIVE;

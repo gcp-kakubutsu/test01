@@ -142,7 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, []); // 空の依存配列で初回のみ実行
+  // セッション初期化はマウント時の一度だけ実行する
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Firebase Auth同期（currentUserが設定された後、一度だけ実行）
   useEffect(() => {

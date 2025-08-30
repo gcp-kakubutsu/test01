@@ -150,7 +150,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, currentUser?.email]);
 
   // currentUserが変更されたら再取得
   useEffect(() => {
@@ -161,7 +161,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } else {
       fetchSubscription();
     }
-  }, [currentUser?.uid, fetchSubscription]);
+    // マウント時とユーザー変更時のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid]);
 
   // 定期的にトライアル状態をチェック（1分ごと）
   useEffect(() => {

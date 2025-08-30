@@ -41,6 +41,7 @@ let functions: Functions | undefined;
 // 初期化状態
 let initialized = false;
 let initializationError: Error | null = null;
+let isResettingDb = false; // Firestore再初期化の同時実行を防ぐフラグ
 
 /**
  * Firebaseを初期化する関数
@@ -229,6 +230,11 @@ export function getFirebaseDb(): Firestore | undefined {
     initializeFirebaseServices();
   }
   
+  // リセット中は undefined を返して呼び出し側にリトライさせる
+  if (isResettingDb) {
+    return undefined;
+  }
+
   // Firestoreが終了している場合は再初期化を試みる
   if (db && typeof window !== 'undefined') {
     try {
@@ -302,27 +308,14 @@ export function getInitializationError(): Error | null {
  */
 export async function resetFirestoreConnection(): Promise<void> {
   console.log('🔄 Resetting Firestore connection...');
+  if (isResettingDb) return;
+  isResettingDb = true;
   
   // すべてのリスナーをクリーンアップ
   listenerManager.unregisterAll();
   
-  // Firestoreインスタンスを破棄
-  if (db) {
-    try {
-      // terminateを避けて、インスタンスの参照を削除するだけにする
-      // これにより、他のタブやコンポーネントへの影響を最小限にする
-      const { _terminated } = db as any;
-      if (!_terminated) {
-        // 終了していない場合のみterminateを実行
-        const { terminate } = await import('firebase/firestore');
-        await terminate(db);
-        console.log('✅ Firestore terminated');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not terminate Firestore:', error);
-    }
-    db = undefined;
-  }
+  // Firestoreインスタンスの参照を破棄（terminateは呼ばない。呼ぶと"shutting down"が発生しやすい）
+  db = undefined;
   
   // 再初期化
   if (app) {
@@ -351,6 +344,7 @@ export async function resetFirestoreConnection(): Promise<void> {
       console.error('❌ Failed to reinitialize Firestore:', error);
     }
   }
+  isResettingDb = false;
 }
 
 // 既存コードとの互換性
