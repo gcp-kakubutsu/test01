@@ -48,7 +48,7 @@ export function Header() {
                   </Link>
                   <Link href="/mypage" className={styles.iconLink}>
                     <User size={24} />
-                    <span className={styles.iconLabel}>マイページ</span>
+                    <span className={styles.iconLabel}>プロフィール</span>
                   </Link>
                   <button onClick={handleLogout} className={styles.iconButton}>
                     <LogOut size={24} />
