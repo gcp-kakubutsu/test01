@@ -116,9 +116,9 @@ export default function MyPage() {
             <div className="text-center">
               <Users className="h-6 w-6 text-pink-500 mx-auto mb-2" />
               <p className="text-2xl font-bold">
-                {statsLoading ? '-' : (stats?.matchesCount || 0)}
+                {statsLoading ? '-' : (stats?.requestsSent || 0)}
               </p>
-              <p className="text-sm text-gray-600">マッチ</p>
+              <p className="text-sm text-gray-600">リクエスト</p>
             </div>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ export default function MyPage() {
               <p className="text-2xl font-bold">
                 {statsLoading ? '-' : (stats?.requestsReceived || 0)}
               </p>
-              <p className="text-sm text-gray-600">リクエスト</p>
+              <p className="text-sm text-gray-600">閲覧数</p>
             </div>
           </CardContent>
         </Card>
@@ -292,7 +292,7 @@ export default function MyPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  本人確認を完了すると、信頼性が向上しマッチ率がアップします。
+                  本人確認を完了すると、信頼性が向上しリクエスト承認率がアップします。
                 </p>
                 <Link href="/verify">
                   <Button className="w-full bg-blue-500 hover:bg-blue-600">

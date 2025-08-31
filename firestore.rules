@@ -265,6 +265,37 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
+    // User stats collection rules - ユーザー統計情報
+    match /userStats/{userId} {
+      // ユーザーは自分の統計情報を読める
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // ユーザーは自分の統計情報を作成・更新できる
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // 統計情報の削除は不可
+      allow delete: if false;
+    }
+    
+    // Requests collection rules - リクエスト履歴
+    match /requests/{requestId} {
+      // ユーザーは自分が送信したリクエストを読める
+      allow read: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid);
+      
+      // ユーザーは自分のリクエストを作成できる
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // リクエストの更新は送信者のみ
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      
+      // リクエストの削除は不可
+      allow delete: if false;
+    }
+    
     // Public stats collection - 統計情報は誰でも読める
     match /publicStats/{document=**} {
       allow read: if true;

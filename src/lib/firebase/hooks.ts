@@ -299,7 +299,8 @@ export function useUserStats(userId?: string) {
     likesReceived: 0,
     matchesCount: 0,
     profileViews: 0,
-    requestsReceived: 0
+    requestsReceived: 0,
+    requestsSent: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -308,14 +309,14 @@ export function useUserStats(userId?: string) {
 
   useEffect(() => {
     if (!targetUserId || !db) {
-      setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 });
+      setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0, requestsSent: 0 });
       setLoading(false);
       return;
     }
 
     const fetchStats = async () => {
       try {
-        let newStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 };
+        let newStats = { likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0, requestsSent: 0 };
 
         // Get likes sent BY this user (送信したいいね)
         if (!db) throw new Error('Firestore is not initialized');
@@ -326,6 +327,7 @@ export function useUserStats(userId?: string) {
           const sentLikesSnapshot = await getDocs(sentLikesQuery);
           newStats.likesReceived = sentLikesSnapshot.size;  // Display sent likes as "いいね"
         } catch (err) {
+          console.error('Error fetching likes:', err);
           // Silently handle error
         }
 
@@ -338,6 +340,7 @@ export function useUserStats(userId?: string) {
           const matchesSnapshot = await getDocs(matchesQuery);
           newStats.matchesCount = matchesSnapshot.size;
         } catch (err) {
+          console.error('Error fetching matches:', err);
           // Silently handle error
         }
 
@@ -353,18 +356,54 @@ export function useUserStats(userId?: string) {
           // Silently handle error
         }
 
-        setStats(newStats);
-        setLoading(false);
-        setError(null);
+        // Get userStats document for requestsSent (リアルタイム更新のため)
+        const userStatsRef = doc(db, 'userStats', targetUserId);
+        const unsubscribe = onSnapshot(
+          userStatsRef,
+          (docSnapshot) => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              // requestsSentのみリアルタイム更新
+              newStats.requestsSent = data.requestsSent || 0;
+              setStats({...newStats});
+            } else {
+              // ドキュメントが存在しなくても他の統計は表示
+              setStats(newStats);
+            }
+            setLoading(false);
+            setError(null);
+          },
+          (err) => {
+            // エラーが発生してもuserStats以外の統計は表示
+            console.log('UserStats document not found, but showing other stats');
+            setStats(newStats);
+            setLoading(false);
+            setError(null);
+          }
+        );
+
+        // クリーンアップ関数でunsubscribeを返す
+        return unsubscribe;
       } catch (error: any) {
+        console.error('Error in fetchStats:', error);
         // Silently handle errors
-        setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0 });
+        setStats({ likesReceived: 0, matchesCount: 0, profileViews: 0, requestsReceived: 0, requestsSent: 0 });
         setLoading(false);
         setError(null);
       }
     };
 
-    fetchStats();
+    let unsubscribeFunc: (() => void) | undefined;
+    
+    fetchStats().then((unsubscribe) => {
+      unsubscribeFunc = unsubscribe;
+    });
+
+    return () => {
+      if (unsubscribeFunc) {
+        unsubscribeFunc();
+      }
+    };
   }, [targetUserId]);
 
   return { stats, loading, error };

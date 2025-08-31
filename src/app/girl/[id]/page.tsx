@@ -17,7 +17,12 @@ import {
   where, 
   getDocs, 
   addDoc, 
-  Timestamp 
+  Timestamp,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  increment
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import '@/styles/blur.css';
@@ -194,10 +199,116 @@ export default function GirlProfilePage() {
     setShowReservationDialog(true);
   };
 
-  const confirmReservation = () => {
-    const reservationUrl = generateReservationUrl();
-    window.open(reservationUrl, '_blank');
+  const confirmReservation = async () => {
+    if (!girl) {
+      console.error('Girl data is not available');
+      return;
+    }
+
+    if (!currentUser || !isAuthenticated) {
+      toast({
+        title: "ログインが必要です",
+        description: "リクエストを送るにはログインしてください。",
+        variant: "destructive",
+      });
+      router.push('/login');
+      return;
+    }
+
+    // 先にダイアログを閉じる
     setShowReservationDialog(false);
+    
+    // 外部サイトへ遷移
+    const reservationUrl = generateReservationUrl();
+    console.log('🔗 Opening reservation URL:', reservationUrl);
+    window.open(reservationUrl, '_blank');
+
+    // Firestoreに直接リクエストを保存（クライアント側）
+    try {
+      console.log('📤 Saving request to Firestore...');
+      
+      // LINEブラウザの場合、Firebase初期化を待つ
+      let currentDb = db;
+      
+      if (isLineBrowser || !db) {
+        console.log('[confirmReservation] Waiting for Firebase initialization...');
+        const { waitForFirebaseInLine } = await import('@/lib/firebase/line-auth-helper');
+        const initialized = await waitForFirebaseInLine();
+        
+        if (!initialized) {
+          console.error('Firebase initialization failed');
+          return;
+        }
+        
+        const { getFirebaseDb } = await import('@/lib/firebase/client');
+        currentDb = getFirebaseDb();
+        
+        if (!currentDb) {
+          console.error('Database not available');
+          return;
+        }
+      }
+      
+      if (!currentDb) {
+        console.error('Database not available');
+        return;
+      }
+
+      // リクエストデータを作成
+      const requestData = {
+        userId: currentUser.uid,
+        girlId: `mysql_girl_${girl.id}`,
+        girlName: girl.name || '',
+        shopId: girl.shop_profile_id || null,
+        shopName: girl.shop?.name || '',
+        createdAt: Timestamp.now(),
+        status: 'pending',
+        type: 'reservation'
+      };
+
+      // Firestoreにリクエストを保存
+      const requestsRef = collection(currentDb, 'requests');
+      const requestDoc = await addDoc(requestsRef, requestData);
+      console.log('✅ Request saved with ID:', requestDoc.id);
+
+      // ユーザーのstatsを更新（リクエスト数を増やす）
+      const userStatsRef = doc(currentDb, 'userStats', currentUser.uid);
+      const statsDoc = await getDoc(userStatsRef);
+      
+      if (statsDoc.exists()) {
+        console.log('📊 Updating existing user stats...');
+        await updateDoc(userStatsRef, {
+          requestsSent: increment(1),
+          updatedAt: Timestamp.now()
+        });
+      } else {
+        console.log('📊 Creating new user stats...');
+        await setDoc(userStatsRef, {
+          requestsSent: 1,
+          requestsReceived: 0,
+          likesReceived: 0,
+          likesSent: 0,
+          matchesCount: 0,
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      console.log('✅ Request counted successfully');
+      
+      // トースト通知を表示
+      toast({
+        title: "リクエスト送信完了",
+        description: `${girl.name}さんへのリクエストを記録しました`,
+      });
+      
+    } catch (error) {
+      console.error('❌ Error saving request:', error);
+      // エラーでもユーザー体験を損なわないよう、成功メッセージを表示
+      toast({
+        title: "予約ページへ移動しました",
+        description: `${girl.name}さんの予約ページを開きました`,
+      });
+    }
   };
 
   const handleLike = useCallback(async () => {

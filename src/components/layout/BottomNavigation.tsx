@@ -36,7 +36,7 @@ export default function BottomNavigation() {
 
   const navItems: NavItem[] = [
     { href: '/search', icon: Search, label: 'さがす' },
-    { href: '/matches', icon: Heart, label: 'マッチ' },
+    { href: '/matches', icon: Heart, label: 'いいね' },
     { href: '/community', icon: Users, label: 'コミュニティ' },
     { href: '/messages', icon: StickyNote, label: 'メモ' },
     { href: '/profile', icon: User, label: 'マイページ' },
