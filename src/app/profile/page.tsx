@@ -120,7 +120,7 @@ export default function ProfilePage() {
         <CardHeader className="pb-0">
           {/* Action Buttons - Above the image */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">マイプロフィール</h2>
+            <h2 className="text-xl font-bold">マイページ</h2>
             <div className="flex gap-2">
               <Link href="/profile/edit">
                 <Button variant="outline" size="sm" className="bg-white/90 backdrop-blur-sm">
@@ -238,10 +238,10 @@ export default function ProfilePage() {
                 ) : statsError ? (
                   '-'
                 ) : (
-                  stats?.matchesCount || 0
+                  stats?.requestsSent || 0
                 )}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">プレイ数</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">リクエスト</p>
             </div>
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <MessageCircle className="h-5 w-5 text-[#F0306A] mx-auto mb-1" />
@@ -254,7 +254,7 @@ export default function ProfilePage() {
                   stats?.requestsReceived || 0
                 )}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">リクエスト</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">閲覧数</p>
             </div>
           </div>
           
