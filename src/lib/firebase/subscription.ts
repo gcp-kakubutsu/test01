@@ -19,7 +19,12 @@ import {
   SubscriptionData,
   BillingData,
   Payment,
-  Subscription
+  Subscription,
+  SubscriptionBasicInfo,
+  SubscriptionManagementInfo,
+  SubscriptionSchedule,
+  CancellationInfo,
+  SUBSCRIPTION_CONSTANTS
 } from '@/types/subscription';
 import { createTrialData, createDefaultSubscriptionData } from '@/utils/subscription';
 
@@ -146,14 +151,58 @@ export async function getUserSubscriptionData(userId: string): Promise<UserWithS
         }
       : (trialFromData || defaultTrial);
 
+    // 新しいサブスクリプション情報のデフォルト値
+    const defaultSubscriptionBasic: SubscriptionBasicInfo = {
+      planType: SUBSCRIPTION_CONSTANTS.PLAN_TYPES.FREE,
+      status: SUBSCRIPTION_CONSTANTS.SUBSCRIPTION_STATUS.NONE,
+      startDate: normalizedSubscription.currentPeriodStart || Timestamp.now(),
+      endDate: normalizedSubscription.currentPeriodEnd,
+      autoRenew: false,
+      trialEndDate: normalizedTrial.endDate
+    };
+    
+    const defaultCancellation: CancellationInfo = {
+      canceledAt: normalizedSubscription.canceledAt,
+      cancelAtPeriodEnd: normalizedSubscription.cancelAtPeriodEnd,
+      cancelReason: null,
+      refundAmount: null,
+      refundStatus: null
+    };
+    
+    // 現在のサブスクリプション状態を判定
+    const hasActiveSubscription = normalizedSubscription.status === 'active' || normalizedTrial.isActive;
+    const canAccessPremiumFeatures = data.isPremium || hasActiveSubscription;
+    const subscriptionExpiresAt = normalizedSubscription.currentPeriodEnd || normalizedTrial.endDate;
+    
+    let daysUntilExpiry: number | null = null;
+    if (subscriptionExpiresAt) {
+      const now = new Date();
+      const expiryDate = subscriptionExpiresAt.toDate();
+      daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    }
+    
     return {
       uid: userId,
       email: data.email || '',
       createdAt: data.createdAt || Timestamp.now(),
+      
+      // 新しいサブスクリプション情報
+      subscriptionBasic: defaultSubscriptionBasic,
+      subscriptionManagement: null,
+      subscriptionSchedule: null,
+      cancellation: defaultCancellation,
+      
+      // 後方互換性のため既存フィールドも保持
       trial: normalizedTrial,
       subscription: normalizedSubscription,
       billing: data.billing || defaultBilling,
-      isPremium: data.isPremium || false
+      isPremium: data.isPremium || false,
+      
+      // 新しい便利フィールド
+      hasActiveSubscription,
+      canAccessPremiumFeatures,
+      subscriptionExpiresAt,
+      daysUntilExpiry
     };
   } catch (error: any) {
     // 権限エラーの場合は静かに処理（新規ユーザーの場合に発生）

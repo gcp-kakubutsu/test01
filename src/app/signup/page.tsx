@@ -94,10 +94,7 @@ export default function SignupPage() {
       birthDate,
       gender
     });
-    if (success) {
-      // メール確認ページへリダイレクト
-      router.push('/verify-email');
-    }
+    // AuthContext内でverify-emailへリダイレクトされる
     setIsSubmitting(false);
   };
 
