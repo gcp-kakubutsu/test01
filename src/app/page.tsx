@@ -340,13 +340,13 @@ export default function LandingPage() {
           onClick={handleAgeConfirmation}
         >
           <Heart size={24} />
-          NUKUNEに参加
+          無料で参加
         </Link>
         <Link 
           href="/login" 
           className={`${styles.btn} ${styles.btnSecondary}`}
         >
-          <span>無料で参加</span>
+          <span>ログイン</span>
         </Link>
       </div>
 
@@ -392,10 +392,10 @@ export default function LandingPage() {
           <div className={styles.heroCta}>
             <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
               <Heart size={24} />
-              NUKUNEに参加
+              無料で参加
             </Link>
             <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
-              <span>無料で参加</span>
+              <span>ログイン</span>
             </Link>
           </div>
           <div className={styles.heroLocationInfo}>

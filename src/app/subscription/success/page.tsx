@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PaymentProcessor } from '@/lib/payment/transactionHub';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Clock, XCircle, Home, CreditCard } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Home, CreditCard, Loader2 } from 'lucide-react';
 
 interface PaymentResult {
   status: 'completed' | 'processing' | 'failed' | 'unknown';
@@ -17,7 +17,7 @@ interface PaymentResult {
   planName?: string;
 }
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentUser } = useAuth();
@@ -270,5 +270,17 @@ export default function PaymentSuccessPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-pink-500" />
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

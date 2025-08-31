@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { XCircle, Home, ArrowLeft, CreditCard } from 'lucide-react';
+import { XCircle, Home, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 
-export default function PaymentCancelPage() {
+function PaymentCancelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentUser } = useAuth();
@@ -117,5 +117,17 @@ export default function PaymentCancelPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-pink-500" />
+      </div>
+    }>
+      <PaymentCancelContent />
+    </Suspense>
   );
 }
