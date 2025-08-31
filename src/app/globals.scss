@@ -8,10 +8,10 @@
   --bg-dark: #000000;
   --bg-secondary: #0a0a0a;
   --bg-card: rgba(17, 24, 39, 0.95);
-  --text-light: #F9FAFB;
-  --text-default: #F9FAFB; // デフォルトのテキスト色
-  --text-gray: #9CA3AF;
-  --text-muted: #6B7280;
+  --text-light: #FFFFFF; // 純白で見やすく
+  --text-default: #FFFFFF; // デフォルトのテキスト色
+  --text-gray: #E5E7EB; // 明るいグレー
+  --text-muted: #D1D5DB; // より明るいミューテッド
   --border-color: rgba(212, 175, 55, 0.2);
   --border-subtle: rgba(255, 255, 255, 0.1);
 }
@@ -21,10 +21,10 @@
   --bg-dark: #FFFFFF;
   --bg-secondary: #F9FAFB;
   --bg-card: #FFFFFF;
-  --text-light: #1F2937;
-  --text-default: #1F2937; // デフォルトのテキスト色
-  --text-gray: #4B5563;
-  --text-muted: #6B7280;
+  --text-light: #1F2937; // 濃いダークブルーグレー
+  --text-default: #1F2937; // 濃いダークブルーグレー
+  --text-gray: #374151; // ダークグレー
+  --text-muted: #4B5563; // ミディアムダークグレー
   --border-color: #E5E7EB;
   --border-subtle: #E5E7EB;
 }
@@ -386,7 +386,44 @@ select {
 }
 
 .text-muted-foreground {
-  color: var(--text-light) !important;
+  color: var(--text-muted) !important;
+  
+  .light & {
+    color: var(--text-muted) !important;
+  }
+}
+
+// Text gray color classes with proper light mode contrast
+.text-gray-400 {
+  color: #E5E7EB !important; // 明るいグレー（ダークモード）
+  
+  .light & {
+    color: #6B7280 !important; // ミディアムグレー（ライトモード）
+  }
+}
+
+.text-gray-500 {
+  color: #D1D5DB !important; // 明るいグレー（ダークモード）
+  
+  .light & {
+    color: #4B5563 !important; // ダークグレー（ライトモード）
+  }
+}
+
+.text-gray-600 {
+  color: #D1D5DB !important; // 明るいグレー（ダークモード）
+  
+  .light & {
+    color: #374151 !important; // より濃いグレー（ライトモード）
+  }
+}
+
+.text-gray-700, .text-gray-800 {
+  color: var(--text-gray) !important;
+  
+  .light & {
+    color: #1F2937 !important; // 濃いダークグレー（ライトモード）
+  }
 }
 
 .border {
@@ -440,15 +477,11 @@ select {
   }
 }
 
-// Ensure all text is visible
+// Ensure all text is visible with proper contrast
 h1, h2, h3, h4, h5, h6,
 p, span, div, a, button,
 label, input, textarea, select {
   color: var(--text-light);
-  
-  .light & {
-    color: var(--text-light);
-  }
 }
 
 // Specific overrides for common UI elements
