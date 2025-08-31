@@ -6,14 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Mail, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [status, setStatus] = useState<'waiting' | 'verifying' | 'success' | 'error'>('waiting');
   const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [showResendForm, setShowResendForm] = useState(false);
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -53,6 +58,30 @@ function VerifyEmailContent() {
           setStatus('success');
           setMessage('メールアドレスの確認が完了しました！');
           
+          // メール認証成功後、Firestoreのユーザー情報を更新
+          if (data.email) {
+            try {
+              // サーバー側でFirestoreを更新
+              const updateResponse = await fetch('/api/auth/update-email-verified', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  email: data.email,
+                  emailVerified: true,
+                }),
+              });
+              
+              if (updateResponse.ok) {
+                console.log('✅ User email verification status updated in Firestore');
+              }
+            } catch (updateError) {
+              console.error('Failed to update Firestore:', updateError);
+              // Firestore更新に失敗してもメール認証自体は成功しているので続行
+            }
+          }
+          
           // 3秒後にログインページへリダイレクト
           setTimeout(() => {
             if (continueUrl) {
@@ -88,6 +117,51 @@ function VerifyEmailContent() {
     verifyEmail();
   }, [searchParams, router]);
 
+  const handleResendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsResending(true);
+
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password: password || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: '送信完了',
+          description: data.message || '確認メールを再送信しました',
+        });
+        setShowResendForm(false);
+        setEmail('');
+        setPassword('');
+      } else {
+        toast({
+          title: 'エラー',
+          description: data.error || 'メール送信に失敗しました',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Resend email error:', error);
+      toast({
+        title: 'エラー',
+        description: 'メール送信中にエラーが発生しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-4">
       <Card className="w-full max-w-md">
@@ -101,12 +175,10 @@ function VerifyEmailContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
-          {status === 'waiting' && (
+          {status === 'waiting' && !showResendForm && (
             <>
               <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center">
-                <svg className="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+                <Mail className="h-6 w-6 text-pink-500" />
               </div>
               <div className="text-center space-y-2">
                 <p className="text-sm text-gray-600">
@@ -119,13 +191,90 @@ function VerifyEmailContent() {
                   メールが届かない場合は、迷惑メールフォルダをご確認ください。
                 </p>
               </div>
-              <Button
-                onClick={() => router.push('/login')}
-                variant="outline"
-                className="mt-4"
-              >
-                ログインページへ戻る
-              </Button>
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  onClick={() => setShowResendForm(true)}
+                  className="bg-pink-500 hover:bg-pink-600 w-full"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  確認メールを再送信
+                </Button>
+                <Button
+                  onClick={() => router.push('/login')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ログインページへ戻る
+                </Button>
+              </div>
+            </>
+          )}
+
+          {status === 'waiting' && showResendForm && (
+            <>
+              <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center mb-4">
+                <Mail className="h-6 w-6 text-pink-500" />
+              </div>
+              <form onSubmit={handleResendEmail} className="w-full space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">メールアドレス</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isResending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">パスワード</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="パスワードを入力"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isResending}
+                  />
+                  <p className="text-xs text-gray-500">
+                    アカウント作成時のパスワードを入力してください
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={isResending}
+                    className="bg-pink-500 hover:bg-pink-600 flex-1"
+                  >
+                    {isResending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        送信中...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="mr-2 h-4 w-4" />
+                        メールを再送信
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowResendForm(false);
+                      setEmail('');
+                      setPassword('');
+                    }}
+                    disabled={isResending}
+                  >
+                    キャンセル
+                  </Button>
+                </div>
+              </form>
             </>
           )}
           
@@ -147,12 +296,26 @@ function VerifyEmailContent() {
             <>
               <XCircle className="h-12 w-12 text-red-500" />
               <p className="text-center text-sm text-gray-600">{message}</p>
-              <Button
-                onClick={() => router.push('/login')}
-                className="bg-pink-500 hover:bg-pink-600"
-              >
-                ログインページへ
-              </Button>
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  onClick={() => {
+                    setStatus('waiting');
+                    setMessage('');
+                    setShowResendForm(true);
+                  }}
+                  className="bg-pink-500 hover:bg-pink-600 w-full"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  確認メールを再送信
+                </Button>
+                <Button
+                  onClick={() => router.push('/login')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ログインページへ
+                </Button>
+              </div>
             </>
           )}
         </CardContent>

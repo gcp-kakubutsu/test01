@@ -51,11 +51,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // メール確認チェック - 高速化のため最初のレスポンスを信頼
-    const emailVerified = data.emailVerified || false;
+    // メール確認チェック - 最新の状態を取得するため、ユーザー情報を再取得
+    let emailVerified = data.emailVerified || false;
+    
+    // メール未確認の場合、最新のユーザー情報を取得して再確認
+    if (!emailVerified) {
+      console.log('⚠️ Checking latest email verification status for:', data.email);
+      
+      try {
+        // ユーザー情報を再取得して最新の確認状態をチェック
+        const userLookupResponse = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              idToken: data.idToken,
+            }),
+          }
+        );
+        
+        if (userLookupResponse.ok) {
+          const lookupData = await userLookupResponse.json();
+          if (lookupData.users && lookupData.users.length > 0) {
+            emailVerified = lookupData.users[0].emailVerified || false;
+            console.log(`📧 Latest email verification status: ${emailVerified}`);
+          }
+        }
+      } catch (lookupError) {
+        console.error('Failed to lookup user verification status:', lookupError);
+        // エラーが発生した場合は、元のデータを使用
+      }
+    }
     
     if (!emailVerified) {
-      console.warn('⚠️ Email not verified for user:', data.email);
+      console.warn('❌ Email not verified for user:', data.email);
       // メール未確認の場合はログインを拒否
       return NextResponse.json(
         { 
@@ -67,7 +99,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     } else {
-      console.log('✅ Email already verified for user:', data.email);
+      console.log('✅ Email verified for user:', data.email);
     }
 
     // IDトークンを直接セッションクッキーとして保存（高速化）
