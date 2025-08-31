@@ -16,8 +16,12 @@ import { withRetry } from '@/lib/utils/retryHandler';
 
 // Environment configuration
 const TRANSACTION_HUB_BASE_URL = process.env.NEXT_PUBLIC_TRANSACTION_HUB_URL || 'https://api.transaction-hub.com/v1';
-const TRANSACTION_HUB_API_KEY = process.env.TRANSACTION_HUB_API_KEY;
+const TRANSACTION_HUB_API_KEY = process.env.TRANSACTION_HUB_API_KEY || process.env.NEXT_PUBLIC_TRANSACTION_HUB_API_KEY;
 const TRANSACTION_HUB_WEBHOOK_URL = process.env.NEXT_PUBLIC_APP_URL + '/api/payment/webhook';
+
+// Check if we're in development mode without API key
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
+const IS_MOCK_MODE = IS_DEVELOPMENT && !TRANSACTION_HUB_API_KEY;
 
 // Request/Response interfaces
 interface CreatePaymentSessionRequest {
@@ -84,7 +88,11 @@ export class TransactionHubAPI {
     this.baseUrl = TRANSACTION_HUB_BASE_URL;
     this.apiKey = TRANSACTION_HUB_API_KEY || '';
     
-    if (!this.apiKey) {
+    // In development mode without API key, use mock mode
+    if (IS_MOCK_MODE) {
+      console.warn('[TransactionHub] Running in mock mode - no actual payments will be processed');
+      this.apiKey = 'mock-api-key-for-development';
+    } else if (!this.apiKey) {
       throw new Error('TRANSACTION_HUB_API_KEY is not configured');
     }
   }
@@ -95,6 +103,11 @@ export class TransactionHubAPI {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     data?: any
   ): Promise<T> {
+    // Mock mode - return fake responses for development
+    if (IS_MOCK_MODE) {
+      return this.getMockResponse<T>(endpoint, method, data);
+    }
+    
     const url = `${this.baseUrl}${endpoint}`;
     
     const options: RequestInit = {
@@ -457,6 +470,67 @@ export class RetryManager {
     }
 
     throw lastError!;
+  }
+  
+  // Mock response generator for development mode
+  private getMockResponse<T>(endpoint: string, method: string, data?: any): T {
+    console.log(`[TransactionHub Mock] ${method} ${endpoint}`, data);
+    
+    // Mock responses based on endpoint patterns
+    if (endpoint.includes('/sessions')) {
+      if (method === 'POST') {
+        return {
+          session_id: `mock_session_${Date.now()}`,
+          checkout_url: '/subscription/upgrade?mock=true',
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          status: 'pending'
+        } as unknown as T;
+      }
+      if (method === 'GET') {
+        return {
+          session_id: data?.session_id || 'mock_session_123',
+          status: 'completed',
+          payment_id: 'mock_payment_123',
+          subscription_id: 'mock_subscription_123',
+          completed_at: new Date().toISOString()
+        } as unknown as T;
+      }
+    }
+    
+    if (endpoint.includes('/subscriptions')) {
+      if (method === 'POST') {
+        return {
+          subscription_id: `mock_sub_${Date.now()}`,
+          status: 'active',
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          trial_end: null
+        } as unknown as T;
+      }
+      if (method === 'DELETE') {
+        return {
+          subscription_id: data?.subscription_id || 'mock_sub_123',
+          status: 'canceled',
+          canceled_at: new Date().toISOString()
+        } as unknown as T;
+      }
+    }
+    
+    if (endpoint.includes('/refunds')) {
+      return {
+        refund_id: `mock_refund_${Date.now()}`,
+        status: 'succeeded',
+        amount: data?.amount || 0,
+        created_at: new Date().toISOString()
+      } as unknown as T;
+    }
+    
+    // Default mock response
+    return {
+      success: true,
+      message: 'Mock response for development',
+      data: {}
+    } as unknown as T;
   }
 }
 

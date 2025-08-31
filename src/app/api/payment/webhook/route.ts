@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { getFirebaseAdminApp, getFirestoreAdmin } from '@/lib/firebase/admin';
+import { getAdminFirestore } from '@/lib/firebase/admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { 
   PaymentEvent, 
@@ -58,7 +58,7 @@ function verifyWebhookSignature(payload: string, signature: string): boolean {
 // Check if event already processed (idempotency control)
 async function isEventProcessed(eventId: string): Promise<boolean> {
   try {
-    const db = getFirestoreAdmin();
+    const db = getAdminFirestore();
     if (!db) return false;
 
     const eventDoc = await db.collection('payment_events').doc(eventId).get();
@@ -72,7 +72,7 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
 // Record payment event for idempotency
 async function recordPaymentEvent(event: WebhookPayload): Promise<void> {
   try {
-    const db = getFirestoreAdmin();
+    const db = getAdminFirestore();
     if (!db) throw new Error('Firestore Admin not initialized');
 
     const paymentEvent: PaymentEvent = {
@@ -100,7 +100,7 @@ async function recordPaymentEvent(event: WebhookPayload): Promise<void> {
 // Update user subscription data
 async function updateUserSubscription(event: WebhookPayload): Promise<void> {
   try {
-    const db = getFirestoreAdmin();
+    const db = getAdminFirestore();
     if (!db) throw new Error('Firestore Admin not initialized');
 
     const userId = event.data.user_id;
@@ -172,7 +172,7 @@ async function handlePaymentSucceeded(
   if (!planId) return;
 
   // Get plan information
-  const db = getFirestoreAdmin();
+  const db = getAdminFirestore();
   if (!db) return;
 
   const planDoc = await transaction.get(db.collection('plans').doc(planId));

@@ -449,8 +449,7 @@ export default function BillingPage() {
       </Card>
 
       {/* Payment Methods */}
-      {!selectedPlan && (
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
@@ -556,7 +555,6 @@ export default function BillingPage() {
             )}
           </CardContent>
         </Card>
-      )}
 
       {/* Add Card Modal */}
       {showAddCardModal && (
@@ -814,10 +812,7 @@ export default function BillingPage() {
                 安全な決済システム
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                {selectedPlan 
-                  ? '決済情報は Transaction Hub により安全に処理されます。カード情報は暗号化され、当アプリには保存されません。'
-                  : 'お客様のカード情報は暗号化され、安全に保護されています。当社のシステムにカード番号の全桁は保存されません。'
-                }
+                お客様のカード情報は暗号化され、安全に保護されています。当社のシステムにカード番号の全桁は保存されません。
               </p>
             </div>
           </div>
