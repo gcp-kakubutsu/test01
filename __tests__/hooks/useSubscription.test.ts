@@ -2,6 +2,7 @@
  * Unit Tests for useSubscription Hook
  */
 
+import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { AuthContext } from '@/contexts/AuthContext';
