@@ -366,13 +366,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Signup successful');
       
+      // サーバー側でメール送信が完了している
       toast({ 
         title: '登録完了！', 
-        description: 'メールアドレスの確認後、ログインできるようになります。' 
+        description: '確認メールを送信しました。メールを確認してください。' 
       });
       
-      // ログインページにリダイレクト
-      router.push('/login');
+      // verify-emailページにリダイレクト（メール確認待ち画面）
+      router.push('/verify-email');
       
       setIsLoading(false);
       return true;

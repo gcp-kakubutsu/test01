@@ -9,7 +9,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
+  const [status, setStatus] = useState<'waiting' | 'verifying' | 'success' | 'error'>('waiting');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -21,10 +21,13 @@ function VerifyEmailContent() {
 
       // Firebase標準のパラメータを確認
       if (!oobCode) {
-        setStatus('error');
-        setMessage('確認コードが見つかりません');
+        // 確認コードがない場合は、メール待ち画面を表示
+        setStatus('waiting');
+        setMessage('メールを確認してください');
         return;
       }
+      
+      setStatus('verifying');
 
       try {
         // Firebase Auth REST APIでメール確認
@@ -88,12 +91,41 @@ function VerifyEmailContent() {
         <CardHeader className="text-center">
           <CardTitle>メールアドレスの確認</CardTitle>
           <CardDescription>
+            {status === 'waiting' && 'メール確認'}
             {status === 'verifying' && 'メールアドレスを確認しています...'}
             {status === 'success' && 'ようこそNukuneへ！'}
             {status === 'error' && 'エラーが発生しました'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
+          {status === 'waiting' && (
+            <>
+              <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center">
+                <svg className="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-gray-600">
+                  登録いただいたメールアドレスに確認メールを送信しました。
+                </p>
+                <p className="text-sm text-gray-600">
+                  メール内のリンクをクリックして、アカウントの登録を完了してください。
+                </p>
+                <p className="text-xs text-gray-500 mt-4">
+                  メールが届かない場合は、迷惑メールフォルダをご確認ください。
+                </p>
+              </div>
+              <Button
+                onClick={() => router.push('/login')}
+                variant="outline"
+                className="mt-4"
+              >
+                ログインページへ戻る
+              </Button>
+            </>
+          )}
+          
           {status === 'verifying' && (
             <Loader2 className="h-12 w-12 animate-spin text-pink-500" />
           )}

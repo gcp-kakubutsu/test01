@@ -44,16 +44,63 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // メール確認リンクを生成（LINE対応）
-      const actionCodeSettings = {
-        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://nukune.com'}/verify-email?email=${encodeURIComponent(email)}`,
-        handleCodeInApp: true,
-      };
+      // メール確認メールを非同期で送信（レート制限を回避）
+      // ユーザー作成が完全に完了してからメールを送信
+      console.log('📧 Scheduling verification email for:', email);
       
-      const emailVerificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
-      
-      // メール送信（Firebase Authの標準メール送信機能を使用）
-      console.log('Email verification link generated for LINE browser:', emailVerificationLink);
+      // レスポンスを先に返してからメール送信を実行
+      process.nextTick(() => {
+        setTimeout(async () => {
+          try {
+            // ユーザー作成後、パスワードを使ってサインインしてIDトークンを取得
+            const signInResponse = await fetch(
+              `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  email,
+                  password,
+                  returnSecureToken: true,
+                }),
+              }
+            );
+            
+            if (signInResponse.ok) {
+              const signInData = await signInResponse.json();
+              
+              // IDトークンを使用してメール確認メールを送信
+              const verifyResponse = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    requestType: 'VERIFY_EMAIL',
+                    idToken: signInData.idToken,
+                  }),
+                }
+              );
+              
+              if (verifyResponse.ok) {
+                console.log('✅ Verification email sent successfully for:', email);
+              } else {
+                const verifyError = await verifyResponse.json();
+                console.error('Failed to send verification email:', verifyError);
+              }
+            } else {
+              const signInError = await signInResponse.json();
+              console.error('Failed to sign in for email verification:', signInError);
+            }
+          } catch (emailError) {
+            console.error('Failed to send verification email:', emailError);
+          }
+        }, 3000); // 3秒待機してからメール送信
+      });
 
       // Firestoreにユーザー情報を保存（トライアルデータ付き）
       const now = new Date();
@@ -139,24 +186,39 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // メール確認リンクを送信（REST API）
-      const verifyResponse = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requestType: 'VERIFY_EMAIL',
-            idToken: data.idToken,
-          }),
-        }
-      );
+      // メール確認メールを非同期で送信（IDトークンを使用）
+      console.log('📧 Scheduling verification email for:', email);
+      
+      // レスポンスを先に返してからメール送信を実行
+      process.nextTick(() => {
+        setTimeout(async () => {
+          try {
+            // IDトークンを使用してメール確認メールを送信
+            const verifyResponse = await fetch(
+              `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  requestType: 'VERIFY_EMAIL',
+                  idToken: data.idToken,  // 既にIDトークンがあるのでそれを使用
+                }),
+              }
+            );
 
-      if (!verifyResponse.ok) {
-        console.error('Failed to send verification email:', await verifyResponse.json());
-      }
+            if (!verifyResponse.ok) {
+              const verifyData = await verifyResponse.json();
+              console.error('Failed to send verification email:', verifyData);
+            } else {
+              console.log('✅ Verification email sent successfully for:', email);
+            }
+          } catch (error) {
+            console.error('Failed to send verification email:', error);
+          }
+        }, 3000); // 3秒待機してからメール送信
+      });
 
       // REST APIでユーザーが作成された場合もFirestoreにデータを保存
       try {
