@@ -27,9 +27,9 @@ export default function MatchingSearch() {
   const { toast } = useToast()
   const { currentUser } = useAuth()
   const { girls, loading: searchLoading, error: searchError, searchGirlsByPreferences } = useGirlSearch()
-  const [selectedAge, setSelectedAge] = useState<string>('')
-  const [selectedHeight, setSelectedHeight] = useState<string>('')
-  const [selectedBust, setSelectedBust] = useState<string>('')
+  const [selectedAge, setSelectedAge] = useState<string[]>([])
+  const [selectedHeight, setSelectedHeight] = useState<string[]>([])
+  const [selectedBust, setSelectedBust] = useState<string[]>([]);
   const [selectedDrinking, setSelectedDrinking] = useState<string>('')
   const [selectedSmoking, setSelectedSmoking] = useState<string>('')
   const [selectedGirlTypes, setSelectedGirlTypes] = useState<string[]>([])
@@ -41,9 +41,27 @@ export default function MatchingSearch() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [hasPreferences, setHasPreferences] = useState(false)
 
-  const ageOptions = ['10代', '20代', '30代', '40代', '50代']
-  const heightOptions = ['身長150cm以下', '身長155cm以下', '身長160cm以下', '身長165cm以上']
-  const bustOptions = ['Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ', 'Fカップ', 'Gカップ以上']
+  const ageOptions: Option[] = [
+    { value: '10代', label: '10代' },
+    { value: '20代', label: '20代' },
+    { value: '30代', label: '30代' },
+    { value: '40代', label: '40代' },
+    { value: '50代', label: '50代' }
+  ]
+  const heightOptions: Option[] = [
+    { value: '身長150cm以下', label: '身長150cm以下' },
+    { value: '身長155cm以下', label: '身長155cm以下' },
+    { value: '身長160cm以下', label: '身長160cm以下' },
+    { value: '身長165cm以上', label: '身長165cm以上' }
+  ]
+  const bustOptions: Option[] = [
+    { value: 'Bカップ以下', label: 'Bカップ以下' },
+    { value: 'Cカップ', label: 'Cカップ' },
+    { value: 'Dカップ', label: 'Dカップ' },
+    { value: 'Eカップ', label: 'Eカップ' },
+    { value: 'Fカップ', label: 'Fカップ' },
+    { value: 'Gカップ以上', label: 'Gカップ以上' }
+  ]
   const drinkingOptions = ['お酒を飲む人', 'お酒を飲まない人']
   const smokingOptions = ['タバコを吸う人', 'タバコを吸わない人']
 
@@ -149,9 +167,12 @@ export default function MatchingSearch() {
     const params = new URLSearchParams()
     
     const selectedTags = []
-    if (selectedAge) selectedTags.push(selectedAge)
-    if (selectedHeight) selectedTags.push(selectedHeight)
-    if (selectedBust) selectedTags.push(selectedBust)
+    // Add all selected ages
+    if (selectedAge.length > 0) selectedTags.push(...selectedAge)
+    // Add all selected heights
+    if (selectedHeight.length > 0) selectedTags.push(...selectedHeight)
+    // Add all selected bust sizes
+    if (selectedBust.length > 0) selectedTags.push(...selectedBust)
     if (selectedDrinking) selectedTags.push(selectedDrinking)
     if (selectedSmoking) selectedTags.push(selectedSmoking)
     
@@ -228,19 +249,14 @@ export default function MatchingSearch() {
                 <User className="w-4 h-4 text-[#D4AF37]" />
                 <span>年齢</span>
               </Label>
-              <Select value={selectedAge} onValueChange={setSelectedAge}>
-                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
-                  <SelectValue placeholder="下限なし 〜 上限なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clear">下限なし 〜 上限なし</SelectItem>
-                  {ageOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={ageOptions}
+                selected={selectedAge}
+                onChange={setSelectedAge}
+                placeholder="下限なし 〜 上限なし"
+                className="rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50"
+                maxDisplay={3}
+              />
             </div>
 
             {/* Height selector */}
@@ -249,19 +265,14 @@ export default function MatchingSearch() {
                 <Ruler className="w-4 h-4 text-[#D4AF37]" />
                 <span>身長</span>
               </Label>
-              <Select value={selectedHeight} onValueChange={setSelectedHeight}>
-                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
-                  <SelectValue placeholder="下限なし 〜 上限なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clear">下限なし 〜 上限なし</SelectItem>
-                  {heightOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={heightOptions}
+                selected={selectedHeight}
+                onChange={setSelectedHeight}
+                placeholder="下限なし 〜 上限なし"
+                className="rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50"
+                maxDisplay={3}
+              />
             </div>
 
             {/* Bust selector */}
@@ -270,19 +281,14 @@ export default function MatchingSearch() {
                 <Heart className="w-4 h-4 text-[#D4AF37]" />
                 <span>バスト</span>
               </Label>
-              <Select value={selectedBust} onValueChange={setSelectedBust}>
-                <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
-                  <SelectValue placeholder="指定なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clear">指定なし</SelectItem>
-                  {bustOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={bustOptions}
+                selected={selectedBust}
+                onChange={setSelectedBust}
+                placeholder="指定なし"
+                className="rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50"
+                maxDisplay={3}
+              />
             </div>
 
             {/* Drinking preference selector */}
