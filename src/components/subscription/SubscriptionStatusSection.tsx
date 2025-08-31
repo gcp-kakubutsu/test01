@@ -30,10 +30,49 @@ import {
 
 export function SubscriptionStatusSection() {
   const router = useRouter();
-  const { status, trialInfo, subscriptionInfo, userSubscription, isLoading } = useSubscription();
+  const { status, trialInfo, subscriptionInfo, userSubscription, isLoading, refreshSubscription } = useSubscription();
   const [showReactivateModal, setShowReactivateModal] = React.useState(false);
   const [isReactivating, setIsReactivating] = React.useState(false);
+  const [isCanceled, setIsCanceled] = React.useState(false);
   const { toast } = useToast();
+  
+  // Refresh subscription data on mount and when returning to this page
+  React.useEffect(() => {
+    // Only call if refreshSubscription is available
+    if (refreshSubscription) {
+      refreshSubscription();
+    }
+    
+    // Also refresh when the page becomes visible again (e.g., returning from another tab)
+    const handleFocus = () => {
+      if (refreshSubscription) {
+        refreshSubscription();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  // Update isCanceled state when userSubscription changes
+  React.useEffect(() => {
+    const canceled = userSubscription?.subscription?.cancelAtPeriodEnd || 
+                     userSubscription?.cancellation?.cancelAtPeriodEnd || 
+                     userSubscription?.cancelAtPeriodEnd || 
+                     false;
+    console.log('Updating isCanceled state:', canceled);
+    console.log('Current subscription data:', {
+      subscription: userSubscription?.subscription,
+      cancellation: userSubscription?.cancellation,
+      direct: userSubscription?.cancelAtPeriodEnd
+    });
+    setIsCanceled(canceled);
+  }, [userSubscription?.subscription?.cancelAtPeriodEnd, 
+      userSubscription?.cancellation?.cancelAtPeriodEnd,
+      userSubscription?.cancelAtPeriodEnd]);
 
   // 追加の安全策: Firestoreの subscription.status が 'trial' かつ trialInfo が有効なら
   // UI上は必ずトライアル優先で表示する（万一の不整合対策）
@@ -41,7 +80,8 @@ export function SubscriptionStatusSection() {
   const effectiveStatus = isTrialOverride ? UserSubscriptionStatus.TRIAL_ACTIVE : status;
 
   const handleReactivate = async () => {
-    if (status !== UserSubscriptionStatus.PREMIUM_CANCELED) return;
+    // Allow reactivation if either the status is PREMIUM_CANCELED or the subscription has cancelAtPeriodEnd set
+    if (status !== UserSubscriptionStatus.PREMIUM_CANCELED && !userSubscription?.subscription?.cancelAtPeriodEnd) return;
     setIsReactivating(true);
     
     try {
@@ -65,14 +105,24 @@ export function SubscriptionStatusSection() {
         updatedAt: serverTimestamp()
       });
 
+      // 先にモーダルを閉じる
+      setShowReactivateModal(false);
+      
+      // データを再取得して状態を更新
+      await refreshSubscription();
+      
+      // refreshSubscriptionが完了してから状態を更新
+      // Firestoreからのデータ取得を待つ
+      setTimeout(async () => {
+        // 再度データを取得して確実に更新
+        await refreshSubscription();
+        setIsCanceled(false);
+      }, 500);
+      
       toast({
         title: "解約を取り消しました",
         description: "プレミアムプランの継続をありがとうございます。",
       });
-
-      setShowReactivateModal(false);
-      // ページをリフレッシュして状態を更新
-      window.location.reload();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
       toast({
@@ -254,6 +304,7 @@ export function SubscriptionStatusSection() {
   // 有料会員（アクティブ）
   if (effectiveStatus === UserSubscriptionStatus.PREMIUM_ACTIVE && subscriptionInfo) {
     return (
+      <>
       <Card className="border-2 border-pink-300 dark:border-pink-400">
         <CardHeader className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
           <CardTitle className="flex items-center justify-between">
@@ -306,6 +357,22 @@ export function SubscriptionStatusSection() {
 
           <Separator className="dark:border-gray-700" />
 
+          {/* Show cancellation notice if scheduled */}
+          {isCanceled && subscriptionInfo?.nextBillingDate && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600 rounded-lg p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                <p className="font-semibold text-yellow-800 dark:text-yellow-300">
+                  解約予定
+                </p>
+              </div>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                {subscriptionInfo.nextBillingDate.toLocaleDateString('ja-JP')}にプレミアムプランが終了します。
+                それまでは引き続きプレミアム機能をご利用いただけます。
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <Button 
               variant="outline"
@@ -325,15 +392,80 @@ export function SubscriptionStatusSection() {
             </Button>
             <Button 
               variant="outline"
-              className="w-full text-xl py-8 border-red-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-              onClick={() => router.push('/subscription/cancel')}
+              className={`w-full text-xl py-8 ${
+                isCanceled 
+                  ? 'border-pink-300 hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20'
+                  : 'border-red-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300'
+              }`}
+              onClick={() => {
+                // If subscription is already scheduled for cancellation, show reactivate modal
+                if (isCanceled) {
+                  setShowReactivateModal(true);
+                } else {
+                  router.push('/subscription/cancel');
+                }
+              }}
             >
-              <XCircle className="h-6 w-6 mr-2" />
-              プランを解約
+              {isCanceled ? (
+                <>
+                  <XCircle className="h-6 w-6 mr-2" />
+                  解約を解除する
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-6 w-6 mr-2" />
+                  プランを解約
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Reactivate Modal - shared for both PREMIUM_ACTIVE and PREMIUM_CANCELED states */}
+      {showReactivateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-pink-500" />
+                解約を取り消す
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                プレミアムプランの解約を取り消しますか？
+              </p>
+              <div className="bg-pink-50 dark:bg-pink-900/20 border border-pink-300 dark:border-pink-600 rounded-lg p-4">
+                <p className="text-sm text-pink-700 dark:text-pink-300">
+                  解約を取り消すと、現在のプランが継続され、次回の請求日に自動更新されます。
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowReactivateModal(false)}
+                className="flex-1"
+                disabled={isReactivating}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleReactivate}
+                disabled={isReactivating}
+                className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+              >
+                {isReactivating ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                解約を取り消す
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+    </>
     );
   }
 

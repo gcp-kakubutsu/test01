@@ -23,8 +23,11 @@ service cloud.firestore {
       // 認証されたユーザーは全てのユーザープロフィールを読める（マッチング用）
       allow read: if isAuthenticated();
       
-      // usersデータの書き込みはAdmin SDK経由のみに制限
-      allow write: if false; // Admin SDK経由でのみ書き込み可能
+      // ユーザーは自分のドキュメントのみ更新可能（サブスクリプション解約など）
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // 作成と削除はAdmin SDK経由のみに制限
+      allow create, delete: if false; // Admin SDK経由でのみ可能
       
       // Notifications subcollection - 通知用ルール
       match /notifications/{notificationId} {

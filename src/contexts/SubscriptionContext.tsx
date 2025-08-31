@@ -82,7 +82,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
                   status: 'active' as const,
                   currentPeriodStart: Timestamp.now(),
                   currentPeriodEnd: endDate,
-                  cancelAtPeriodEnd: false,
+                  cancelAtPeriodEnd: data?.cancelAtPeriodEnd || false,
                   canceledAt: null,
                   pausedAt: null,
                 },
@@ -161,9 +161,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } else {
       fetchSubscription();
     }
-    // マウント時とユーザー変更時のみ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.uid]);
+  }, [currentUser, fetchSubscription]);
 
   // 定期的にトライアル状態をチェック（1分ごと）
   useEffect(() => {

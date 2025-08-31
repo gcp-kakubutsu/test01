@@ -82,13 +82,15 @@ export async function GET() {
         uid: decodedClaims.uid,
         isPremium: userData?.isPremium,
         hasEndDate: !!userData?.subscriptionEndDate,
-        subscriptionPlan: userData?.subscriptionPlan
+        subscriptionPlan: userData?.subscriptionPlan,
+        cancelAtPeriodEnd: userData?.subscription?.cancelAtPeriodEnd
       });
       
       // 有料会員チェック
       let isPremium = false;
       let subscriptionStatus = 'none';
       let subscriptionEndDate = null;
+      let cancelAtPeriodEnd = false;
       
       if (userData?.isPremium) {
         if (userData.subscriptionEndDate) {
@@ -102,11 +104,15 @@ export async function GET() {
           isPremium = true;
           subscriptionStatus = 'active';
         }
+        
+        // Check cancellation status
+        cancelAtPeriodEnd = userData?.subscription?.cancelAtPeriodEnd || false;
       }
       
       console.log('[Subscription Check API] Final result:', {
         isPremium,
         subscriptionStatus,
+        cancelAtPeriodEnd,
         userId: decodedClaims.uid
       });
       
@@ -114,6 +120,7 @@ export async function GET() {
         isPremium,
         subscriptionStatus,
         subscriptionEndDate,
+        cancelAtPeriodEnd,
         userId: decodedClaims.uid,
         email: decodedClaims.email
       });
