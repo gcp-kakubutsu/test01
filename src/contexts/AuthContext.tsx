@@ -250,12 +250,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        // エラーログを出さずにトーストのみ表示
-        toast({ 
-          title: 'ログインエラー', 
-          description: result.error || 'ログインに失敗しました', 
-          variant: 'destructive' 
-        });
+        // メール未確認エラーの場合は特別な処理
+        if (result.emailNotVerified) {
+          toast({ 
+            title: 'メールアドレスの確認が必要です', 
+            description: '登録時に送信された確認メールをご確認ください。メール内のリンクをクリックしてアカウントを有効化してください。', 
+            variant: 'destructive',
+            duration: 8000 // 長めに表示
+          });
+          
+          // verify-emailページへリダイレクト（メール確認待ち画面）
+          router.push('/verify-email');
+        } else {
+          // その他のエラー
+          toast({ 
+            title: 'ログインエラー', 
+            description: result.error || 'ログインに失敗しました', 
+            variant: 'destructive' 
+          });
+        }
         setIsLoading(false);
         return false;
       }

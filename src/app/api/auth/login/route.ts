@@ -56,9 +56,16 @@ export async function POST(request: NextRequest) {
     
     if (!emailVerified) {
       console.warn('⚠️ Email not verified for user:', data.email);
-      // メール未確認でもログインは許可（警告のみ）
-      // メール確認リンクの再送信はしない（ユーザーが不快に感じるため）
-      // 必要な場合はユーザーが手動でリクエストできるようにする
+      // メール未確認の場合はログインを拒否
+      return NextResponse.json(
+        { 
+          error: 'メールアドレスの確認が必要です',
+          message: '登録時に送信された確認メールをご確認ください。メール内のリンクをクリックして、メールアドレスの確認を完了してください。',
+          emailNotVerified: true,
+          email: data.email
+        },
+        { status: 403 }
+      );
     } else {
       console.log('✅ Email already verified for user:', data.email);
     }
