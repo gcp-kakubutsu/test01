@@ -263,19 +263,7 @@ export default function MyPage() {
               <Link href="/settings">
                 <Button variant="ghost" className="w-full justify-start">
                   <Settings className="h-4 w-4 mr-2" />
-                  一般設定
-                </Button>
-              </Link>
-              <Link href="/settings/privacy">
-                <Button variant="ghost" className="w-full justify-start">
-                  <Shield className="h-4 w-4 mr-2" />
-                  プライバシー設定
-                </Button>
-              </Link>
-              <Link href="/settings/notifications">
-                <Button variant="ghost" className="w-full justify-start">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  通知設定
+                  アカウント削除
                 </Button>
               </Link>
             </CardContent>
@@ -309,7 +297,7 @@ export default function MyPage() {
               <CardTitle>サポート</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Link href="/help">
+              <Link href="/support">
                 <Button variant="ghost" className="w-full justify-start">
                   ヘルプセンター
                 </Button>

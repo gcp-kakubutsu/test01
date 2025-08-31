@@ -149,7 +149,7 @@ export function PaymentFailedAlert({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.open('/help/billing', '_blank')}
+                onClick={() => window.open('/support/billing', '_blank')}
                 className="justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-100"
               >
                 <ExternalLink className="h-3 w-3 mr-1" />

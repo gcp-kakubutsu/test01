@@ -3,12 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, EyeOff, ShieldAlert, Trash2, UserX, Loader2, Save, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Loader2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +27,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [profileVisible, setProfileVisible] = useState(true);
-  const [matchNotifications, setMatchNotifications] = useState(true);
-  const [messageNotifications, setMessageNotifications] = useState(true);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>(['ブロックユーザー123', '別のユーザー']); // モックデータ
-  const [blockUserInput, setBlockUserInput] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
@@ -48,33 +38,6 @@ export default function SettingsPage() {
     // 実際のアプリでは、ここでユーザー設定をフェッチします
   }, [isAuthenticated, authIsLoading, router]);
 
-  const handleSaveChanges = async () => {
-    setIsSaving(true);
-    // API呼び出しをシミュレート
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log({
-      profileVisible,
-      matchNotifications,
-      messageNotifications,
-    });
-    setIsSaving(false);
-    toast({
-      title: '設定保存完了',
-      description: '設定が更新されました。',
-    });
-  };
-
-  const handleBlockUser = () => {
-    if (blockUserInput.trim() === '') return;
-    setBlockedUsers(prev => [...prev, blockUserInput.trim()]);
-    setBlockUserInput('');
-    toast({ title: 'ユーザーをブロックしました', description: `${blockUserInput.trim()} をブロックリストに追加しました。` });
-  };
-
-  const handleUnblockUser = (userToUnblock: string) => {
-    setBlockedUsers(prev => prev.filter(user => user !== userToUnblock));
-    toast({ title: 'ユーザーのブロックを解除しました', description: `${userToUnblock} をブロックリストから削除しました。` });
-  };
 
   const handleAccountDeletion = async () => {
     setShowDeleteDialog(false);
@@ -199,87 +162,6 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
       <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <EyeOff className="mr-3 h-7 w-7" /> プライバシー設定
-          </CardTitle>
-          <CardDescription>プロフィールの公開設定やプライバシー管理を行います。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
-            <Label htmlFor="profileVisibility" className="text-base font-medium">
-              プロフィールの公開
-              <p className="text-sm text-muted-foreground">あなたのプロフィールを誰に見せるか制御します。</p>
-            </Label>
-            <Switch
-              id="profileVisibility"
-              checked={profileVisible}
-              onCheckedChange={setProfileVisible}
-              aria-label="プロフィールの公開/非公開を切り替える"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <Bell className="mr-3 h-7 w-7" /> 通知設定
-          </CardTitle>
-          <CardDescription>受け取りたい通知を選択します。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center space-x-3 p-3 rounded-md hover:bg-secondary/30 transition-colors">
-            <Checkbox id="matchNotifications" checked={matchNotifications} onCheckedChange={(checked) => setMatchNotifications(Boolean(checked))} />
-            <Label htmlFor="matchNotifications" className="text-base font-normal cursor-pointer">
-              新しいマッチ通知
-            </Label>
-          </div>
-          <div className="flex items-center space-x-3 p-3 rounded-md hover:bg-secondary/30 transition-colors">
-            <Checkbox id="messageNotifications" checked={messageNotifications} onCheckedChange={(checked) => setMessageNotifications(Boolean(checked))} />
-            <Label htmlFor="messageNotifications" className="text-base font-normal cursor-pointer">
-              新しいメッセージ通知
-            </Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center">
-            <UserX className="mr-3 h-7 w-7" /> ブロック中のユーザー
-          </CardTitle>
-          <CardDescription>ブロックしたユーザーを管理します。</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="ブロックするユーザー名を入力"
-              value={blockUserInput}
-              onChange={(e) => setBlockUserInput(e.target.value)}
-              className="flex-grow"
-            />
-            <Button onClick={handleBlockUser} variant="outline">ブロック</Button>
-          </div>
-          {blockedUsers.length > 0 ? (
-            <ul className="space-y-2 max-h-48 overflow-y-auto p-2 border rounded-md">
-              {blockedUsers.map(user => (
-                <li key={user} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm">{user}</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleUnblockUser(user)} aria-label={`${user} のブロックを解除`}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-2">ブロックリストは空です。</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-lg">
          <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary flex items-center">
             <ShieldAlert className="mr-3 h-7 w-7" /> アカウント操作
@@ -311,22 +193,6 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground mt-2">アカウントを削除すると、すべてのデータが永久に削除され、復元できません。</p>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end mt-8">
-        <Button onClick={handleSaveChanges} disabled={isSaving} size="lg" className="text-base px-6 py-3">
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              保存中...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-5 w-5" />
-              すべての変更を保存
-            </>
-          )}
-        </Button>
-      </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
