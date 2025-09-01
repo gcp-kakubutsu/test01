@@ -14,6 +14,7 @@ import { recordProfileView } from '@/lib/firebase/actions';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
+import { cachedUltraSort } from '@/lib/utils/optimizedSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import WelcomePage from '@/components/WelcomePage';
 import MaleOnboarding from '@/components/MaleOnboarding';
@@ -350,225 +351,95 @@ export default function HomePage() {
   // APIのベースURL取得（fetchGirlsFromMySQL内で使用）
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
-  // MySQLからの女の子データ取得（最適化版）
+  // MySQLからの女の子データ取得（最適化版 - mysql-girls-fast + 高速ソート）
   const fetchGirlsFromMySQL = useCallback(async () => {
-    // LINEブラウザ対応: currentUserがなくてもデータを取得
-    console.log('[fetchGirlsFromMySQL] Starting MySQL data fetch...');
-    console.log('[fetchGirlsFromMySQL] Base URL:', baseUrl);
-    console.log('[fetchGirlsFromMySQL] User agent:', typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown');
+    const fetchStartTime = performance.now();
+    console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch...');
+    console.log('[fetchGirlsFromMySQL] User location:', userLocation);
     
     try {
+      // mysql-girls-fast APIを使用（最速のデータ取得）
+      const apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=300&offset=0`;
+      console.log(`🚀 [fetchGirlsFromMySQL] Using mysql-girls-fast: ${apiUrl}`);
       
-      // First try without area filter to ensure we get data
-      const params = new URLSearchParams({
-        limit: '200',
-        offset: '0'
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        credentials: typeof window !== 'undefined' && window.navigator.userAgent.includes('Line') ? 'omit' : 'include',
+        mode: 'cors',
       });
       
-      // Don't filter by area initially - let client-side sorting handle location preference
-      // This prevents issues when the area doesn't match exactly
-      
-      // Try optimized API first
-      let data = null;
-      // let apiUsed = 'optimized'; // 未使用のためコメントアウト
-      let retryCount = 0;
-      const maxRetries = 2;
-      
-      while (retryCount <= maxRetries && !data?.girls?.length) {
-        try {
-          const apiUrl = `${baseUrl}/api/mysql-girls-fast?${params}`;
-          console.log(`[fetchGirlsFromMySQL] Attempt ${retryCount + 1}: ${apiUrl}`);
-          
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            // LINEブラウザでのcredentials問題を回避
-            credentials: typeof window !== 'undefined' && window.navigator.userAgent.includes('Line') ? 'omit' : 'include',
-            mode: 'cors',
-          });
-          console.log(`[fetchGirlsFromMySQL] Response status: ${response.status}`);
-          
-          if (!response.ok) {
-            console.error(`[fetchGirlsFromMySQL] API error: ${response.status}`);
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const responseData = await response.json();
-          
-          // Check if we got valid data
-          if (responseData && responseData.girls && Array.isArray(responseData.girls)) {
-            data = responseData;
-            break;
-          } else {
-            retryCount++;
-          }
-        } catch (optimizedError) {
-          retryCount++;
-          
-          if (retryCount > maxRetries) {
-            // Final fallback to regular API
-            // apiUsed = 'regular';
-            
-            try {
-              const response = await fetch(`${baseUrl}/api/girls?limit=200&offset=0`, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-              });
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status} from regular API`);
-              }
-              data = await response.json();
-            } catch (fallbackError) {
-              console.error('Regular API also failed:', fallbackError);
-              throw fallbackError;
-            }
-          } else {
-            // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
+      if (!response.ok) {
+        console.error(`[fetchGirlsFromMySQL] API error: ${response.status}`);
+        setGirlsFromDB([]);
+        return;
       }
       
+      const data = await response.json();
+      const fetchTime = performance.now() - fetchStartTime;
       
-      // Validate and process the data
+      console.log(`🚀 [fetchGirlsFromMySQL] API Response:`, {
+        fetchTime: fetchTime.toFixed(0),
+        apiResponseTime: data.performance?.responseTime || 0,
+        cacheHitRate: data.performance?.cacheHitRate || 0,
+        girls: data.girls?.length || 0,
+        total: data.total || 0
+      });
+      
       if (data && data.girls && Array.isArray(data.girls) && data.girls.length > 0) {
-        
-        // Convert MySQLGirlProfile to GirlWithDetails format for sorting
-        const girlsWithDetails = data.girls.map((girl: any) => {
-          let shop = girl.shop || {
+        // データの前処理
+        const girlsWithDetails = data.girls.map((girl: any) => ({
+          ...girl,
+          id: parseInt(girl.id),
+          shop: girl.shop || {
             id: girl.shopId,
             name: girl.shopName,
-            latitude: girl.latitude,
-            longitude: girl.longitude
-          };
-          
-          // If shop doesn't have coordinates but has location, use approximate coordinates
-          if ((!shop.latitude || !shop.longitude) && girl.location) {
-            const coords = getLocationCoordinates(girl.location);
-            if (coords) {
-              shop = {
-                ...shop,
-                latitude: coords.lat,
-                longitude: coords.lng
-              };
-            }
+            area_prefecture_id: girl.area_prefecture_id
           }
-          
-          return {
-            ...girl,
-            id: parseInt(girl.id),
-            shop
-          };
-        });
+        }));
         
-        // Sort girls by user preferences (including location preference)
-        // 一度だけソートを実行（競合を防ぐ）
-        if (!isSorting) {
-          setIsSorting(true);
-          console.log('🔍 [fetchGirlsFromMySQL] Starting preference-based sort:', {
-            hasCurrentUser: !!currentUser,
-            userId: currentUser?.uid || 'none',
-            hasUserProfile: !!userProfile,
-            userGender: userProfile?.gender,
-            hasUserLocation: !!userLocation
-          });
-          
-          try {
-            const sortedGirls = await sortGirlsByPreference(
-              girlsWithDetails,
-              currentUser?.uid || '',
-              userLocation,
-              userProfile?.location
-            );
-            
-            setGirlsFromDB(sortedGirls);
-            setSortedGirlsCache(sortedGirls); // キャッシュに保存
-            console.log(`✅ [fetchGirlsFromMySQL] Sorted and set ${sortedGirls.length} girls from MySQL`);
-          } finally {
-            setIsSorting(false);
-          }
-        } else {
-          // ソート中の場合はソートせずに保存
-          setGirlsFromDB(girlsWithDetails);
-          setSortedGirlsCache(girlsWithDetails);
-          console.log(`[fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls (no sort - already sorting)`);
-        }
+        // 高速最適化ソートを実行
+        const sortStartTime = performance.now();
         
+        // ユーザーの好み情報を準備
+        const preferences = {
+          userLat: userLocation?.lat,
+          userLon: userLocation?.lng,
+          ageMin: 18, // デフォルト値（後でユーザー設定から取得可能）
+          ageMax: 35, // デフォルト値（後でユーザー設定から取得可能）
+          preferredLocation: userProfile?.location
+        };
+        
+        // ウルトラ高速キャッシュ付きソートを使用
+        const sortedGirls = cachedUltraSort(
+          girlsWithDetails as any[], // 型の互換性のため一時的にany[]にキャスト
+          userLocation?.lat,
+          userLocation?.lng,
+          200
+        ) as GirlWithDetails[];
+        
+        const sortTime = performance.now() - sortStartTime;
+        console.log(`⚡ [fetchGirlsFromMySQL] Sort completed in ${sortTime.toFixed(0)}ms`);
+        
+        setGirlsFromDB(sortedGirls);
+        setSortedGirlsCache(sortedGirls);
+        setIsSorting(false);
+        
+        const totalTime = performance.now() - fetchStartTime;
+        console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${totalTime.toFixed(0)}ms`);
+        console.log(`✅ [fetchGirlsFromMySQL] Set ${sortedGirls.length} girls (fetch: ${fetchTime.toFixed(0)}ms, sort: ${sortTime.toFixed(0)}ms)`);
       } else {
-        // Try once more without any filters as last resort
-        try {
-          const lastResortResponse = await fetch(`${baseUrl}/api/mysql-girls?limit=200&offset=0`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-          });
-          if (lastResortResponse.ok) {
-            const lastResortData = await lastResortResponse.json();
-            if (lastResortData && lastResortData.girls && Array.isArray(lastResortData.girls) && lastResortData.girls.length > 0) {
-              console.log(`[fetchGirlsFromMySQL] Last resort success: ${lastResortData.girls.length} girls`);
-              // Convert MySQLGirlProfile to GirlWithDetails format
-              const girlsWithDetails = lastResortData.girls.map((girl: any) => {
-                let shop = girl.shop || {
-                  id: girl.shopId,
-                  name: girl.shopName,
-                  latitude: girl.latitude,
-                  longitude: girl.longitude
-                };
-                
-                // Use approximate coordinates if needed
-                if ((!shop.latitude || !shop.longitude) && girl.location) {
-                  const coords = getLocationCoordinates(girl.location);
-                  if (coords) {
-                    shop = {
-                      ...shop,
-                      latitude: coords.lat,
-                      longitude: coords.lng
-                    };
-                  }
-                }
-                
-                return {
-                  ...girl,
-                  id: parseInt(girl.id),
-                  shop
-                };
-              });
-              const sortedGirls = await sortGirlsByPreference(
-                girlsWithDetails,
-                currentUser?.uid || '',
-                userLocation,
-                userProfile?.location
-              );
-              setGirlsFromDB(sortedGirls);
-              setSortedGirlsCache(sortedGirls); // キャッシュに保存
-              console.log(`[fetchGirlsFromMySQL] Last resort: Set ${sortedGirls.length} girls`);
-            } else {
-              console.log('[fetchGirlsFromMySQL] Last resort: No data available');
-              setGirlsFromDB([]);
-            }
-          } else {
-            console.log('[fetchGirlsFromMySQL] Last resort response not ok');
-            setGirlsFromDB([]);
-          }
-        } catch (lastError) {
-          console.error('Last resort fetch also failed:', lastError);
-          // LINEブラウザ対応: エラー時も既存データを保持
-          // setGirlsFromDB([]);
-        }
+        console.log('[fetchGirlsFromMySQL] No data from API');
+        setGirlsFromDB([]);
       }
     } catch (error) {
-      console.error('Error fetching girls from MySQL:', error);
-      // LINEブラウザ対応: エラー時も既存データを保持
-      // setGirlsFromDB([]);
+      console.error('Error fetching girls:', error);
+      // エラー時も既存データを保持
     }
-  }, [currentUser, userLocation, userProfile, baseUrl, isSorting]);
+  }, [currentUser, userLocation, userProfile, baseUrl]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
