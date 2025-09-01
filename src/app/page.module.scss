@@ -3330,11 +3330,13 @@ $border-color-light: #E5E7EB;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
   display: flex;
-  gap: 12px;
+  gap: 1rem;  // heroCtaと同じgap
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: none;
+  justify-content: center;
+  flex-wrap: nowrap;  // heroCtaと同じ
 
   &.stickyButtonsVisible {
     opacity: 1;
@@ -3342,78 +3344,32 @@ $border-color-light: #E5E7EB;
     pointer-events: auto;
   }
 
-  @media (max-width: 640px) {
-    bottom: 15px;
-    width: calc(100% - 30px);
-    max-width: 500px;
-    justify-content: center;
-    gap: 8px;
-    flex-direction: row;
-  }
-}
-
-.stickyBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 18px 40px;
-  border-radius: 30px;
-  font-size: 18px;
-  font-weight: 800;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  min-width: 160px;
-  justify-content: center;
-  white-space: nowrap;
-
-  @media (max-width: 640px) {
-    padding: 14px 24px;
-    font-size: 16px;
-    flex: 0 1 auto;
-    justify-content: center;
-    min-width: 140px;
+  @media (max-width: 768px) {
+    flex-direction: row;  // 横並びを維持
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;  // モバイルでも改行を防ぐ
   }
   
   @media (max-width: 480px) {
-    padding: 12px 20px;
-    font-size: 15px;
-    gap: 6px;
-    min-width: 130px;
+    gap: 0.5rem;
+    width: calc(100% - 2rem);  // padding分を考慮
+    
+    // ボタンを均等に配置
+    > * {
+      flex: 1;  // 均等な幅で配置
+      min-width: 0;  // flexの縮小を許可
+    }
   }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
-  }
-
-  span {
-    display: inline-block;
-  }
-}
-
-.stickyBtnPrimary {
-  background: linear-gradient(135deg, #b8932f, #d4af37, #f4e4a1);
-  color: #000000;
-  border: 1px solid rgba(212, 175, 55, 0.3);
-
-  &:hover {
-    background: linear-gradient(135deg, #d4af37, #f4e4a1, #b8932f);
-  }
-}
-
-.stickyBtnSecondary {
-  background: transparent;
-  color: #d4af37;
-  border: 3px solid #d4af37;
   
-  &:hover {
-    background: linear-gradient(135deg, #b8932f, #d4af37, #f4e4a1);
-    color: #000000;
-    border-color: transparent;
+  // iPhone SE (375px) 専用の調整
+  @media (max-width: 375px) {
+    gap: 0.4rem;
+    width: calc(100% - 1rem);
   }
 }
+
+// 不要なstickyBtn関連のスタイルを削除（.btnクラスをそのまま使用）
 
 /* sectionTitle + scrollFadeIn のフォントサイズをスマホ時のみ32pxに指定 */
 @media (max-width: 768px) {
