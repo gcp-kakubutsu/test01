@@ -224,11 +224,11 @@ export default function HomePage() {
     setCurrentPage(1);
   }, [searchKeyword, selectedGirlTypes]);
 
-  // 位置情報を取得
+  // 位置情報を取得（高速化：住所取得をスキップ）
   useEffect(() => {
     const getLocation = async () => {
       try {
-        const locationInfo = await getCurrentLocation();
+        const locationInfo = await getCurrentLocation(true); // 住所取得をスキップして高速化
         if (locationInfo.coordinates) {
           setUserLocation(locationInfo.coordinates);
         }
@@ -526,9 +526,9 @@ export default function HomePage() {
     try {
       setLoadingUsers(true);
       
-      // 位置情報を再取得
+      // 位置情報を再取得（高速化：住所取得をスキップ）
       try {
-        const locationInfo = await getCurrentLocation();
+        const locationInfo = await getCurrentLocation(true); // 住所取得をスキップして高速化
         if (locationInfo.coordinates) {
           setUserLocation(locationInfo.coordinates);
         }

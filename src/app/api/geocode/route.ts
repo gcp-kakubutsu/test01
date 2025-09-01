@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LRUCache } from 'lru-cache';
+import { getGeocodeCache, setGeocodeCache } from '@/lib/geocode-cache';
 
 // LRUキャッシュの設定
 const cache = new LRUCache<string, any>({
@@ -10,7 +11,8 @@ const cache = new LRUCache<string, any>({
 });
 
 // キャッシュ統計用
-let cacheHits = 0;
+let memoryCacheHits = 0;
+let firestoreCacheHits = 0;
 let cacheMisses = 0;
 
 // キャッシュキーの生成
@@ -27,6 +29,41 @@ function getCacheKey(params: { lat?: number; lng?: number; address?: string }): 
   return '';
 }
 
+// リトライ機能付きのfetch
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+  let lastError;
+  
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(5000), // 5秒タイムアウト
+      });
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      // 429 (Too Many Requests) の場合は少し待つ
+      if (response.status === 429 && i < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        continue;
+      }
+      
+      throw new Error(`API responded with status ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      
+      if (i < maxRetries) {
+        // エクスポネンシャルバックオフ
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, i)));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
@@ -37,26 +74,42 @@ export async function POST(request: NextRequest) {
     if (inputAddress && !lat && !lng) {
       const cacheKey = getCacheKey({ address: inputAddress });
       
-      // キャッシュチェック
-      const cached = cache.get(cacheKey);
-      if (cached) {
-        cacheHits++;
+      // 第1層: メモリキャッシュチェック
+      const memoryCached = cache.get(cacheKey);
+      if (memoryCached) {
+        memoryCacheHits++;
         const responseTime = Date.now() - startTime;
-        console.log(`[Geocode Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+        console.log(`[Geocode Memory Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms`);
         return NextResponse.json({
-          ...cached,
-          cached: true,
+          ...memoryCached,
+          cacheLevel: 'memory',
+          responseTime
+        });
+      }
+      
+      // 第2層: Firestoreキャッシュチェック
+      const firestoreCached = await getGeocodeCache(cacheKey);
+      if (firestoreCached) {
+        firestoreCacheHits++;
+        // メモリキャッシュにも保存
+        cache.set(cacheKey, firestoreCached);
+        const responseTime = Date.now() - startTime;
+        console.log(`[Geocode Firestore Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms`);
+        return NextResponse.json({
+          ...firestoreCached,
+          cacheLevel: 'firestore',
           responseTime
         });
       }
       
       cacheMisses++;
       
-      const response = await fetch(
+      const response = await fetchWithRetry(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputAddress)}&accept-language=ja&limit=1`,
         {
           headers: {
-            'User-Agent': 'Nukune Dating App'
+            'User-Agent': 'Nukune Dating App',
+            'Accept': 'application/json',
           }
         }
       );
@@ -78,15 +131,16 @@ export async function POST(request: NextRequest) {
           raw: result
         };
         
-        // キャッシュに保存
+        // 両方のキャッシュに保存
         cache.set(cacheKey, responseData);
+        await setGeocodeCache(cacheKey, responseData, 'forward');
         
         const responseTime = Date.now() - startTime;
-        console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+        console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: Memory:${memoryCacheHits}/Firestore:${firestoreCacheHits}/Miss:${cacheMisses}`);
         
         return NextResponse.json({
           ...responseData,
-          cached: false,
+          cacheLevel: 'none',
           responseTime
         });
       } else {
@@ -105,29 +159,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // キャッシュキーの生成とチェック
+    // キャッシュキーの生成
     const cacheKey = getCacheKey({ lat, lng });
     
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      cacheHits++;
+    // 第1層: メモリキャッシュチェック
+    const memoryCached = cache.get(cacheKey);
+    if (memoryCached) {
+      memoryCacheHits++;
       const responseTime = Date.now() - startTime;
-      console.log(`[Geocode Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+      console.log(`[Geocode Memory Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms`);
       return NextResponse.json({
-        ...cached,
-        cached: true,
+        ...memoryCached,
+        cacheLevel: 'memory',
+        responseTime
+      });
+    }
+    
+    // 第2層: Firestoreキャッシュチェック
+    const firestoreCached = await getGeocodeCache(cacheKey);
+    if (firestoreCached) {
+      firestoreCacheHits++;
+      // メモリキャッシュにも保存
+      cache.set(cacheKey, firestoreCached);
+      const responseTime = Date.now() - startTime;
+      console.log(`[Geocode Firestore Cache HIT] Key: ${cacheKey}, Time: ${responseTime}ms`);
+      return NextResponse.json({
+        ...firestoreCached,
+        cacheLevel: 'firestore',
         responseTime
       });
     }
     
     cacheMisses++;
     
-    // Nominatim APIを使用してリバースジオコーディング
-    const response = await fetch(
+    // 第3層: Nominatim APIを使用してリバースジオコーディング
+    const response = await fetchWithRetry(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja&zoom=14`,
       {
         headers: {
-          'User-Agent': 'Nukune Dating App'
+          'User-Agent': 'Nukune Dating App',
+          'Accept': 'application/json',
         }
       }
     );
@@ -202,15 +273,16 @@ export async function POST(request: NextRequest) {
       raw: data // デバッグ用に生データも返す
     };
     
-    // キャッシュに保存
+    // 両方のキャッシュに保存
     cache.set(cacheKey, responseData);
+    await setGeocodeCache(cacheKey, responseData, 'reverse');
     
     const responseTime = Date.now() - startTime;
-    console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: ${cacheHits}/${cacheHits + cacheMisses}`);
+    console.log(`[Geocode Cache MISS] Key: ${cacheKey}, Time: ${responseTime}ms, Stats: Memory:${memoryCacheHits}/Firestore:${firestoreCacheHits}/Miss:${cacheMisses}`);
     
     return NextResponse.json({
       ...responseData,
-      cached: false,
+      cacheLevel: 'none',
       responseTime
     });
 

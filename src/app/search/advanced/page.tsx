@@ -193,11 +193,11 @@ function AdvancedSearchContent() {
     setIsInitialLoad(false)
   }, [searchParams, isInitialLoad])
 
-  // 位置情報取得（ホームページと同じ方式）
+  // 位置情報取得（高速化：住所取得をスキップ）
   useEffect(() => {
     const getLocation = async () => {
       try {
-        const locationInfo = await getCurrentLocation()
+        const locationInfo = await getCurrentLocation(true) // 住所取得をスキップして高速化
         if (locationInfo.coordinates) {
           setUserLocation(locationInfo.coordinates)
         }

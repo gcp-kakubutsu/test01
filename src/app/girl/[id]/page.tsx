@@ -97,11 +97,11 @@ export default function GirlProfilePage() {
     }
   }, [params.id, userLocation, isPremium, subscriptionLoading]);
   
-  // Get user location on mount
+  // Get user location on mount（高速化：住所取得をスキップ）
   useEffect(() => {
     const getLocation = async () => {
       try {
-        const locationInfo = await getCurrentLocation();
+        const locationInfo = await getCurrentLocation(true); // 住所取得をスキップして高速化
         if (locationInfo.coordinates) {
           setUserLocation(locationInfo.coordinates);
         }

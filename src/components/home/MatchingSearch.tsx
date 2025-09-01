@@ -122,7 +122,8 @@ export default function MatchingSearch() {
     setLocation('取得中...')
     
     try {
-      const locationInfo = await getCurrentLocation()
+      // 住所が必要なので、ここでは住所取得をスキップしない
+      const locationInfo = await getCurrentLocation(false) // 住所も取得
       
       if (locationInfo.coordinates) {
         const { lat, lng } = locationInfo.coordinates

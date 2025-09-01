@@ -34,8 +34,8 @@ function deg2rad(deg: number): number {
   return deg * (Math.PI/180);
 }
 
-// GPS位置情報を取得
-export async function getCurrentLocation(): Promise<LocationInfo> {
+// GPS位置情報を取得（高速版：住所取得をスキップ可能）
+export async function getCurrentLocation(skipAddress: boolean = false): Promise<LocationInfo> {
   return new Promise((resolve) => {
     // HTTPS環境のチェック
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
@@ -61,6 +61,12 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
+        
+        // 住所取得をスキップする場合は座標のみ返す（高速化）
+        if (skipAddress) {
+          resolve({ coordinates });
+          return;
+        }
         
         // リバースジオコーディングで住所を取得
         try {
