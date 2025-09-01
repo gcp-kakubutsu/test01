@@ -19,7 +19,7 @@ import { Heart, StickyNote, MapPin, Clock, Filter, Grid3x3, List, Search, Check,
 // Removed direct import - will fetch via API
 import { sendLike } from '@/lib/firebase/actions'
 import { useToast } from '@/hooks/use-toast'
-import { getCurrentLocation, sortUsersByDistance, type LocationCoordinates } from '@/lib/utils/location'
+import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location'
 import { getLocationCoordinates } from '@/lib/utils/japanLocations'
 import { useUserProfile } from '@/lib/firebase/hooks'
 import { useSubscription } from '@/contexts/SubscriptionContext'
@@ -142,7 +142,7 @@ function AdvancedSearchContent() {
   const [selectedTime, setSelectedTime] = useState('now')
   const [ageRange, setAgeRange] = useState([18, 50])
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState('recommend')
+  const [sortBy, setSortBy] = useState('distance') // デフォルトを距離順に変更
   const [filtersApplied, setFiltersApplied] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchQueryInput, setSearchQueryInput] = useState('') // 入力値を別管理
@@ -365,6 +365,12 @@ function AdvancedSearchContent() {
         apiUrl += `&girlTypes=${encodeURIComponent(selectedGirlTypes.join(','))}`
       }
       
+      // 位置情報をAPIに送信して、area_smallsテーブルを使った距離計算を有効化
+      if (userLocation) {
+        apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`
+        console.log('📍 位置情報をAPIに送信:', { lat: userLocation.lat, lng: userLocation.lng })
+      }
+      
       // Try optimized API first, fallback to regular API if it fails
       let response: Response | null = null
       let data: any = null
@@ -409,6 +415,18 @@ function AdvancedSearchContent() {
         return
       }
       
+      // パフォーマンス情報のログ出力
+      if (data.performance) {
+        console.log('⚡ API Performance:', {
+          responseTime: `${data.performance.responseTime}ms`,
+          cacheHitRate: `${data.performance.cacheHitRate}%`,
+          averageQueryTime: `${data.performance.averageQueryTime}ms`,
+          totalGirls: data.girls?.length || 0,
+          area: effectiveArea || 'all',
+          withLocation: !!userLocation
+        })
+      }
+      
       // モバイルでのデータ取得結果の確認（デバッグ用、通常はコメントアウト）
       // if (typeof window !== 'undefined' && effectiveArea && effectiveArea.includes('東京')) {
       //   const isMobile = window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -423,9 +441,11 @@ function AdvancedSearchContent() {
       // }
       
       const mappedUsers: UserProfile[] = data.girls.map((user: any) => {
-        // ユーザーの位置情報があり、店舗の位置情報がある場合は距離を計算
-        let distance: number | undefined;
-        if (userLocation) {
+        // サーバー側で計算済みの距離を使用（area_smallsテーブルベースの最適化済み）
+        let distance: number | undefined = user.distance_km;
+        
+        // サーバー側で距離が計算されていない場合のみクライアント側で計算（フォールバック）
+        if (!distance && userLocation) {
           // 店舗の座標がある場合
           if (user.shop?.latitude && user.shop?.longitude) {
             const R = 6371; // 地球の半径（km）
@@ -434,17 +454,6 @@ function AdvancedSearchContent() {
             const a = 
               Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.shop.latitude * Math.PI / 180) * 
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            distance = R * c;
-          } else if (user.latitude && user.longitude) {
-            // 互換性のために直接座標もチェック
-            const R = 6371;
-            const dLat = (user.latitude - userLocation.lat) * Math.PI / 180;
-            const dLng = (user.longitude - userLocation.lng) * Math.PI / 180;
-            const a = 
-              Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.latitude * Math.PI / 180) * 
               Math.sin(dLng/2) * Math.sin(dLng/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             distance = R * c;
@@ -870,7 +879,24 @@ function AdvancedSearchContent() {
       })
     }
 
-    // ソート処理
+    // ソート処理 - デフォルトは距離順（/homeと同様）
+    // サーバー側で既に距離順にソートされているが、クライアント側のフィルタリング後に再ソートが必要
+    if (userLocation && filtered.length > 0) {
+      // 距離情報が計算済みの場合はそれを使用
+      filtered.sort((a, b) => {
+        const aDistance = a.distance ?? 999999
+        const bDistance = b.distance ?? 999999
+        return aDistance - bDistance
+      })
+      
+      // デバッグ用：上位5件の距離を表示
+      console.log('📍 検索結果 - 距離順上位5件:')
+      filtered.slice(0, 5).forEach((user, idx) => {
+        console.log(`  ${idx + 1}. ${user.name}: ${user.distance ? user.distance.toFixed(1) + 'km' : '距離不明'}`)
+      })
+    }
+    
+    // 明示的なソート指定がある場合は上書き
     switch (sortBy) {
       case 'new':
         // 新着順：IDが大きい（新しい）順に並べる
@@ -882,10 +908,8 @@ function AdvancedSearchContent() {
         })
         break
       case 'distance':
-        // 距離順：userLocationがある場合のみ
-        if (userLocation) {
-          filtered = sortUsersByDistance(filtered, userLocation)
-        } else {
+        // 距離順：既に上でソート済み
+        if (!userLocation) {
           // 位置情報がない場合は地域名でソート
           filtered.sort((a, b) => a.location.localeCompare(b.location))
         }
