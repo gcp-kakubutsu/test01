@@ -55,24 +55,32 @@ export async function sortGirlsByPreference(
     // preferencesが全くない場合のみデフォルトソートを使用
     if (!preferences) {
       console.log('🔄 [sortGirlsByPreference] Using default sort (no preferences)');
-      // デフォルトソート: 距離とIDで安定したソート
+      // デフォルトソート: サーバーから提供された距離を優先
       const sortedByDefault = [...girls].sort((a, b) => {
-        // 距離でソート（位置情報がある場合）
+        // サーバーから提供されたdistance_kmフィールドを最優先で使用
+        const distA = (a as any).distance_km !== undefined ? (a as any).distance_km : 999999;
+        const distB = (b as any).distance_km !== undefined ? (b as any).distance_km : 999999;
+        
+        if (distA !== distB) {
+          return distA - distB;
+        }
+        
+        // distance_kmがない場合は計算（フォールバック）
         if (userLocation && a.shop?.latitude && a.shop?.longitude && b.shop?.latitude && b.shop?.longitude) {
-          const distanceA = calculateDistance(
+          const calculatedDistA = calculateDistance(
             userLocation.lat,
             userLocation.lng,
             a.shop.latitude,
             a.shop.longitude
           );
-          const distanceB = calculateDistance(
+          const calculatedDistB = calculateDistance(
             userLocation.lat,
             userLocation.lng,
             b.shop.latitude,
             b.shop.longitude
           );
-          if (distanceA !== distanceB) {
-            return distanceA - distanceB;
+          if (calculatedDistA !== calculatedDistB) {
+            return calculatedDistA - calculatedDistB;
           }
         }
         // IDでソート（安定性のため）
@@ -243,7 +251,12 @@ export async function sortGirlsByPreference(
 
       // Location scoring (weight: 30) - 位置情報の重要度を下げる（タイプ優先）
       let distanceValue = Infinity;
-      if (userLocation && girl.shop?.latitude && girl.shop?.longitude) {
+      
+      // サーバーから提供されたdistance_kmを優先的に使用
+      if ((girl as any).distance_km !== undefined) {
+        distanceValue = (girl as any).distance_km;
+      } else if (userLocation && girl.shop?.latitude && girl.shop?.longitude) {
+        // distance_kmがない場合のみ計算
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lng,
@@ -251,27 +264,29 @@ export async function sortGirlsByPreference(
           girl.shop.longitude
         );
         distanceValue = distance;
-        
-        // より細かい距離スコアリング
-        if (distance <= 1) {
+      }
+      
+      // より細かい距離スコアリング（distanceValueを使用）
+      if (distanceValue !== Infinity) {
+        if (distanceValue <= 1) {
           score += 30;
           reasons.push('とても近い（1km以内）');
-        } else if (distance <= 3) {
+        } else if (distanceValue <= 3) {
           score += 27;
           reasons.push('非常に近い（3km以内）');
-        } else if (distance <= 5) {
+        } else if (distanceValue <= 5) {
           score += 24;
           reasons.push('近い（5km以内）');
-        } else if (distance <= 10) {
+        } else if (distanceValue <= 10) {
           score += 18;
           reasons.push('アクセス良好（10km以内）');
-        } else if (distance <= 15) {
+        } else if (distanceValue <= 15) {
           score += 12;
           reasons.push('アクセス可能（15km以内）');
-        } else if (distance <= 25) {
+        } else if (distanceValue <= 25) {
           score += 6;
           reasons.push('やや遠い（25km以内）');
-        } else if (distance <= 50) {
+        } else if (distanceValue <= 50) {
           score += 3;
           reasons.push('遠い（50km以内）');
         }
@@ -340,17 +355,26 @@ export async function sortGirlsByPreference(
       };
     });
 
-    // Sort by score first, then by distance, then by ID for stable sorting
+    // Sort by distance first (with threshold), then by score, then by ID for stable sorting
     scoredGirls.sort((a, b) => {
-      // まずスコアで比較
+      // 【重要】距離を最優先でソート（5km以上の差がある場合）
+      const distDiff = Math.abs(a.distance - b.distance);
+      if (distDiff > 5) {
+        // 5km以上離れている場合は距離優先
+        return a.distance - b.distance;
+      }
+      
+      // 距離が近い場合（5km以内）はスコアで比較
       if (b.score !== a.score) {
         return b.score - a.score;
       }
-      // スコアが同じ場合は距離で比較（近い方が優先）
+      
+      // スコアも同じ場合は距離で細かく比較
       if (a.distance !== b.distance) {
         return a.distance - b.distance;
       }
-      // 距離も同じ場合はIDで比較（安定したソート順を保証）
+      
+      // 最後にIDで比較（安定したソート順を保証）
       return a.girl.id - b.girl.id;
     });
 
@@ -367,24 +391,32 @@ export async function sortGirlsByPreference(
     return scoredGirls.map(sg => sg.girl);
   } catch (error) {
     console.error('Error in sortGirlsByPreference:', error);
-    // エラー時も安定したソートを返す
+    // エラー時も距離優先のソートを返す
     const sortedByDefault = [...girls].sort((a, b) => {
-      // 距離でソート（位置情報がある場合）
+      // サーバーから提供されたdistance_kmフィールドを最優先で使用
+      const distA = (a as any).distance_km !== undefined ? (a as any).distance_km : 999999;
+      const distB = (b as any).distance_km !== undefined ? (b as any).distance_km : 999999;
+      
+      if (distA !== distB) {
+        return distA - distB;
+      }
+      
+      // distance_kmがない場合は計算（フォールバック）
       if (userLocation && a.shop?.latitude && a.shop?.longitude && b.shop?.latitude && b.shop?.longitude) {
-        const distanceA = calculateDistance(
+        const calculatedDistA = calculateDistance(
           userLocation.lat,
           userLocation.lng,
           a.shop.latitude,
           a.shop.longitude
         );
-        const distanceB = calculateDistance(
+        const calculatedDistB = calculateDistance(
           userLocation.lat,
           userLocation.lng,
           b.shop.latitude,
           b.shop.longitude
         );
-        if (distanceA !== distanceB) {
-          return distanceA - distanceB;
+        if (calculatedDistA !== calculatedDistB) {
+          return calculatedDistA - calculatedDistB;
         }
       }
       // IDでソート（安定性のため）

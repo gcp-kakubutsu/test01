@@ -19,7 +19,10 @@ export async function fetchOptimizedGirls(
   ageMin: number = 18,
   ageMax: number = 50,
   girlTypes?: string[] | null,
-  girlId?: string | null
+  girlId?: string | null,
+  userLat?: number | null,
+  userLng?: number | null,
+  maxDistance?: number | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -80,8 +83,10 @@ export async function fetchOptimizedGirls(
   
   // Generate cache key based on parameters
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
-  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
-  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
+  const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
+  const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
+  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
+  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
   
   // Build optimized WHERE clause
   let whereConditions = [
@@ -160,9 +165,59 @@ export async function fetchOptimizedGirls(
     }
   }
   
+  // Add distance filtering if max distance specified
+  if (maxDistance && userLat && userLng) {
+    whereConditions.push(
+      `ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${maxDistance}`
+    );
+  }
+  
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
   
-  // Optimized query with reduced columns and better joins
+  // Distance calculation and order by clause
+  let distanceSelect = '';
+  let areaJoin = '';
+  let orderByClause = 'ORDER BY (g.age IS NULL), g.created_at DESC';
+  
+  if (userLat && userLng) {
+    // area_smallsテーブルから位置情報を取得するJOINを追加
+    areaJoin = `
+      LEFT JOIN (
+        SELECT area_prefecture_id, 
+               AVG(latitude) as area_lat, 
+               AVG(longitude) as area_lng,
+               MIN(ST_Distance_Sphere(
+                 POINT(longitude, latitude), 
+                 POINT(${userLng}, ${userLat})
+               ) / 1000) as min_distance_km
+        FROM area_smalls
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        GROUP BY area_prefecture_id
+      ) area_loc ON s.area_prefecture_id = area_loc.area_prefecture_id`;
+    
+    // 位置情報がある場合は距離計算を追加
+    distanceSelect = `,
+      CASE 
+        WHEN s.latitude IS NOT NULL AND s.longitude IS NOT NULL 
+        THEN ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000
+        WHEN area_loc.area_lat IS NOT NULL AND area_loc.area_lng IS NOT NULL
+        THEN ST_Distance_Sphere(POINT(area_loc.area_lng, area_loc.area_lat), POINT(${userLng}, ${userLat})) / 1000
+        ELSE 999999
+      END as distance_km,
+      -- より簡潔な最短距離を使用
+      COALESCE(area_loc.min_distance_km, 999999) as area_min_distance`;
+    
+    // 最短距離でソート（area_smallsの中で最も近い場所を基準に）
+    orderByClause = `ORDER BY 
+      CASE 
+        WHEN area_loc.min_distance_km IS NULL THEN 999999
+        ELSE area_loc.min_distance_km
+      END ASC,
+      distance_km ASC, 
+      g.created_at DESC`;
+  }
+  
+  // Optimized query with distance calculation
   const girlsQuery = `
     SELECT STRAIGHT_JOIN
       g.id,
@@ -195,13 +250,15 @@ export async function fetchOptimizedGirls(
         INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
         WHERE gs.girl_profile_id = g.id
       ) as girl_types_json
+      ${distanceSelect}
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
     LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
+    ${areaJoin}
     ${whereClause}
-    ORDER BY (g.age IS NULL), g.created_at DESC
+    ${orderByClause}
     LIMIT ${limitCount} OFFSET ${offset}
   `;
   
@@ -217,8 +274,8 @@ export async function fetchOptimizedGirls(
   `;
   
   // Debug: Log the actual query (詳細なログ出力)
-  if (area && area !== 'all') {
-    console.log('🔍 Executing query for area:', area);
+  if (area && area !== 'all' || userLat && userLng) {
+    console.log('🔍 Executing query with params:', { area, userLat, userLng, maxDistance });
     console.log('📝 WHERE clause:', whereClause);
     console.log('📊 Query parameters:', { limitCount, offset, ageMin, ageMax });
   }
@@ -266,6 +323,8 @@ export async function fetchOptimizedGirls(
       latitude: row.latitude,
       longitude: row.longitude
     },
+    // 計算済みの距離を追加
+    distance_km: row.distance_km || undefined,
     // Girl types from girl_status table (parse JSON if string, otherwise use as-is)
     girlTypes: (() => {
       if (!row.girl_types_json) return [];
@@ -298,19 +357,24 @@ export async function prefetchNextPage(
   ageMin: number = 18,
   ageMax: number = 50,
   girlTypes?: string[] | null,
-  girlId?: string | null
+  girlId?: string | null,
+  userLat?: number | null,
+  userLng?: number | null,
+  maxDistance?: number | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
   const nextOffset = currentOffset + limitCount;
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
-  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}`;
+  const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
+  const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
+  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance);
     }, 100);
   }
 }

@@ -14,7 +14,6 @@ import { recordProfileView } from '@/lib/firebase/actions';
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
-import { cachedUltraSort } from '@/lib/utils/optimizedSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
 import WelcomePage from '@/components/WelcomePage';
 import MaleOnboarding from '@/components/MaleOnboarding';
@@ -341,8 +340,10 @@ export default function HomePage() {
         }
       };
       resortGirls();
-    } else if (userLocation && !sortedGirlsCache && !loadingUsers) {
-      // 初回のみDBから取得
+    } else if (userLocation && !loadingUsers && !initialFetchDone) {
+      // 位置情報が取得できたら初回のみDBから取得（位置情報付きで）
+      console.log('📍 Location available, fetching with distance sorting...');
+      setInitialFetchDone(true);
       fetchGirlsFromMySQL();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -351,16 +352,23 @@ export default function HomePage() {
   // APIのベースURL取得（fetchGirlsFromMySQL内で使用）
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
-  // MySQLからの女の子データ取得（最適化版 - mysql-girls-fast + 高速ソート）
+  // MySQLからの女の子データ取得（最適化版 - mysql-girls-fast + MySQL側ソート）
   const fetchGirlsFromMySQL = useCallback(async () => {
     const fetchStartTime = performance.now();
-    console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch...');
+    console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch with server-side sorting...');
     console.log('[fetchGirlsFromMySQL] User location:', userLocation);
     
     try {
-      // mysql-girls-fast APIを使用（最速のデータ取得）
-      const apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=300&offset=0`;
-      console.log(`🚀 [fetchGirlsFromMySQL] Using mysql-girls-fast: ${apiUrl}`);
+      // mysql-girls-fast APIを使用（位置情報付きでサーバー側ソート）
+      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=200&offset=0`;
+      
+      // 位置情報がある場合はパラメータに追加
+      if (userLocation) {
+        apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`;
+        console.log(`🚀 [fetchGirlsFromMySQL] Using location-based sorting: lat=${userLocation.lat}, lng=${userLocation.lng}`);
+      }
+      
+      console.log(`🚀 [fetchGirlsFromMySQL] API URL: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -401,36 +409,26 @@ export default function HomePage() {
           }
         }));
         
-        // 高速最適化ソートを実行
-        const sortStartTime = performance.now();
+        // サーバー側でソート済みのため、クライアント側ソートは不要
+        console.log(`⚡ [fetchGirlsFromMySQL] Data already sorted by server (distance-based)`);
         
-        // ユーザーの好み情報を準備
-        const preferences = {
-          userLat: userLocation?.lat,
-          userLon: userLocation?.lng,
-          ageMin: 18, // デフォルト値（後でユーザー設定から取得可能）
-          ageMax: 35, // デフォルト値（後でユーザー設定から取得可能）
-          preferredLocation: userProfile?.location
-        };
+        // 距離情報をログ出力（デバッグ用）
+        if (userLocation && girlsWithDetails.length > 0) {
+          const firstFive = girlsWithDetails.slice(0, 5);
+          console.log('📍 Top 5 girls by distance:');
+          firstFive.forEach((girl: any, idx: number) => {
+            const distance = girl.distance_km;
+            console.log(`  ${idx + 1}. ${girl.name}: ${distance ? distance.toFixed(1) + 'km' : 'N/A'}`);
+          });
+        }
         
-        // ウルトラ高速キャッシュ付きソートを使用
-        const sortedGirls = cachedUltraSort(
-          girlsWithDetails as any[], // 型の互換性のため一時的にany[]にキャスト
-          userLocation?.lat,
-          userLocation?.lng,
-          200
-        ) as GirlWithDetails[];
-        
-        const sortTime = performance.now() - sortStartTime;
-        console.log(`⚡ [fetchGirlsFromMySQL] Sort completed in ${sortTime.toFixed(0)}ms`);
-        
-        setGirlsFromDB(sortedGirls);
-        setSortedGirlsCache(sortedGirls);
+        setGirlsFromDB(girlsWithDetails);
+        setSortedGirlsCache(girlsWithDetails);
         setIsSorting(false);
         
         const totalTime = performance.now() - fetchStartTime;
         console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${totalTime.toFixed(0)}ms`);
-        console.log(`✅ [fetchGirlsFromMySQL] Set ${sortedGirls.length} girls (fetch: ${fetchTime.toFixed(0)}ms, sort: ${sortTime.toFixed(0)}ms)`);
+        console.log(`✅ [fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls in ${totalTime.toFixed(0)}ms (server-side sorted)`);
       } else {
         console.log('[fetchGirlsFromMySQL] No data from API');
         setGirlsFromDB([]);
@@ -495,10 +493,10 @@ export default function HomePage() {
     fetchGirlTypes();
   }, []);
 
-  // LINEブラウザ対応: コンポーネントマウント時に認証を待ってからデータ取得
+  // LINEブラウザ対応: 位置情報取得後にデータ取得
   useEffect(() => {
-    if (!initialFetchDone) {
-      console.log('[useEffect] Starting initial data fetch...');
+    if (!initialFetchDone && userLocation) {
+      console.log('[useEffect] Starting initial data fetch with location...');
       setInitialFetchDone(true);
       
       // ブラウザ判定
@@ -506,11 +504,18 @@ export default function HomePage() {
         console.log('📱 LINE browser detected - using optimized fetch');
       }
       
-      // LINEブラウザ用: 直接APIを呼び出す
+      // 位置情報付きでAPIを呼び出す
       const fetchDataDirectly = async () => {
+        setLoadingUsers(true); // 重複実行を防ぐ
         try {
           const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nukune.com';
-          const apiUrl = `${origin}/api/mysql-girls-fast?limit=200&offset=0`;
+          let apiUrl = `${origin}/api/mysql-girls-fast?limit=200&offset=0`;
+          
+          // 位置情報がすでに取得されている場合はパラメータに追加
+          if (userLocation) {
+            apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`;
+            console.log('[useEffect] With location params:', { lat: userLocation.lat, lng: userLocation.lng });
+          }
           
           console.log('[useEffect] Direct API call to:', apiUrl);
           
@@ -599,6 +604,8 @@ export default function HomePage() {
         } catch (error) {
           console.error('[useEffect] Direct API call failed:', error);
           setGirlsFromDB([]);
+        } finally {
+          setLoadingUsers(false); // ローディング終了
         }
       };
       
@@ -606,7 +613,7 @@ export default function HomePage() {
       fetchDataDirectly();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 初回のみ実行
+  }, [userLocation, initialFetchDone]); // 位置情報が取得されたら実行
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -725,7 +732,18 @@ export default function HomePage() {
       return true;
     })
     .sort((a: any, b: any) => {
-      // Sort by selected type match count first
+      // 【最優先】距離でソート（近い順）
+      const distA = a.distance_km !== undefined ? a.distance_km : 999999;
+      const distB = b.distance_km !== undefined ? b.distance_km : 999999;
+      
+      // 距離が大きく異なる場合（5km以上の差）は距離を優先
+      if (Math.abs(distA - distB) > 5) {
+        return distA - distB;
+      }
+      
+      // 距離が近い場合（5km以内の差）、好みの条件でソート
+      
+      // 女の子タイプのマッチ数を計算
       if (selectedGirlTypes.length > 0) {
         const getTypeMatchScore = (item: any) => {
           if (!item.girlTypes || !Array.isArray(item.girlTypes)) {
@@ -757,7 +775,7 @@ export default function HomePage() {
         }
       }
       
-      // Then sort by keyword relevance if keyword exists
+      // 検索キーワードの関連度でソート
       if (searchKeyword) {
         const keyword = searchKeyword.toLowerCase();
         
@@ -779,10 +797,13 @@ export default function HomePage() {
         const scoreA = getRelevanceScore(a);
         const scoreB = getRelevanceScore(b);
         
-        return scoreB - scoreA; // Sort by descending score
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA; // Sort by descending score
+        }
       }
       
-      return 0;
+      // 最終的に同じ場合は距離の細かい差でソート
+      return distA - distB;
     });
 
   // Calculate pagination based on filtered data
@@ -1042,9 +1063,16 @@ export default function HomePage() {
           const waist = item.waist;
           const hip = item.hip;
           
-          // Calculate distance if user location and shop coordinates exist
+          // サーバーから返された距離を使用（既に計算済み）
           let distance: number | null = null;
-          if (userLocation && item.shop?.latitude && item.shop?.longitude) {
+          
+          // distance_kmフィールドがある場合はそれを使用
+          if (item.distance_km !== undefined && item.distance_km < 999999) {
+            distance = item.distance_km;
+            console.log(`Distance for ${item.name}: ${distance}km`); // デバッグ用
+          }
+          // フォールバック：クライアント側で計算（互換性のため）
+          else if (userLocation && item.shop?.latitude && item.shop?.longitude) {
             const R = 6371; // Earth radius in km
             const dLat = (item.shop.latitude - userLocation.lat) * Math.PI / 180;
             const dLon = (item.shop.longitude - userLocation.lng) * Math.PI / 180;
@@ -1054,6 +1082,7 @@ export default function HomePage() {
               Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             distance = R * c;
+            console.log(`Calculated distance for ${item.name}: ${distance}km`); // デバッグ用
           }
           
           return (
@@ -1114,7 +1143,7 @@ export default function HomePage() {
                   <span>{age ? `${age}歳` : '不明'}</span>
                   <span>•</span>
                   <span>{location}</span>
-                  {distance !== null && (
+                  {distance !== null && distance < 999999 && (
                     <>
                       <span>•</span>
                       <span className="text-yellow-500 font-semibold">

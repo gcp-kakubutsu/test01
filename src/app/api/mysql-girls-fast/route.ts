@@ -22,6 +22,11 @@ export async function GET(request: NextRequest) {
     const girlTypes = girlTypesParam ? girlTypesParam.split(',') : null;
     const girlId = searchParams.get('girlId') || null;
     
+    // 位置情報パラメータを追加
+    const userLat = searchParams.get('userLat') ? parseFloat(searchParams.get('userLat')!) : null;
+    const userLng = searchParams.get('userLng') ? parseFloat(searchParams.get('userLng')!) : null;
+    const maxDistance = searchParams.get('maxDistance') ? parseInt(searchParams.get('maxDistance')!) : null; // km単位
+    
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
       return NextResponse.json(
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Fetch optimized data
+    // Fetch optimized data with location-based sorting
     const { girls, total } = await fetchOptimizedGirls(
       limit,
       offset,
@@ -38,12 +43,15 @@ export async function GET(request: NextRequest) {
       ageMin,
       ageMax,
       girlTypes,
-      girlId
+      girlId,
+      userLat,
+      userLng,
+      maxDistance
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance);
     }
     
     const responseTime = performance.now() - startTime;
