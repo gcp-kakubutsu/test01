@@ -677,12 +677,12 @@ export default function LandingPage() {
                   <div className={styles.stepPoints}>
                     <p className={styles.stepPoint}>⑴まずは無料登録。</p>
                     <p className={styles.stepPoint}>⑵プロフィール（性癖・嗜好・相手に求める条件）を設定すると、位置情報と空き状況から、今すぐ会える条件に合うキャストだけを優先表示します。</p>
-                    <p className={styles.stepPoint}>⑶NUKUNEは、いまだけ7日間お試し無料キャンペーン実施中。</p>
+                    <p className={styles.stepPoint}>⑶NUKUNEは、いまだけ<span style={{ color: '#FF0000' }}>7日間お試し無料キャンペーン</span>実施中。</p>
                   </div>
-                  <p>※R18／男性（18歳以上）のみ利用可</p>
-                  <p>※キャンペーン期間：〈12/31〉まで</p>
+                  <p>※R18／男性（18歳以上）のみ利用可です。</p>
+                  <p>※キャンペーン期間〈12/31〉まで。</p>
                   <p>※位置情報をOFFの方は、駅名・エリアを入力して検索できます。</p>
-                  <p>※トライアル終了後は自動継続（¥1,980/月）。いつでも解約可／初回請求日や解約方法は最終確認画面に表示します</p>
+                  <p>※無料トライアル終了後は自動継続（¥1,980/月〜¥1,150/月から選択可）になります。いつでも解約可／初回請求日や解約方法は最終確認画面に表示します。</p>
                 </div>
               </div>
 
@@ -690,9 +690,9 @@ export default function LandingPage() {
                 <h3 className={styles.stepTitle}>❸ 気になるキャストがいたら？</h3>
                 <div className={styles.stepDescription}>
                   <div className={styles.stepPoints}>
-                    <p className={styles.stepPoint}>⑴「このキャストにする」を押す<br />提携サイトの予約画面へ移動します（NUKUNEを離れます）。各サイトの料金・キャンセル規約をご確認のうえ、店舗経由で予約してください。予約承認後は「ナビ開始」で目的地まで案内します。</p>
-                    <p className={styles.stepPoint}>⑵「メモ」を押す<br />気になる点をメモ保存。マイページのメモ から一覧できます。後で見返してそのまま予約へ。</p>
-                    <p className={styles.stepPoint}>⑶「いいね」を押す<br />気になるキャストをキープ。マイページのいいね で管理し、タイミングが合えば即予約。</p>
+                    <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「このキャストにする」を押す</span><br />提携サイトの予約画面へ移動します（NUKUNEを離れます）。各サイトの料金・キャンセル規約をご確認のうえ、店舗経由で予約してください。予約承認後は「ナビ開始」で目的地まで案内します。</p>
+                    <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「メモ」を押す</span><br />気になる点をメモ保存。マイページのメモ から一覧できます。後で見返してそのまま予約へ。</p>
+                    <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「いいね」を押す</span><br />気になるキャストをキープ。マイページのいいね で管理し、タイミングが合えば即予約。</p>
                   </div>
                   <p>※提携先での予約・決済・キャンセルは提携サイトの規約に従ってください。</p>
                   <p>※安全のため、来店前に年齢確認・本人確認が必要な場合があります。</p>
