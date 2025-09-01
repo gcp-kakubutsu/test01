@@ -447,7 +447,7 @@ export default function HomePage() {
       console.error('Error fetching girls:', error);
       // エラー時も既存データを保持
     }
-  }, [currentUser, userLocation, userProfile, baseUrl]);
+  }, [baseUrl, userLocation]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
@@ -974,7 +974,7 @@ export default function HomePage() {
           // distance_kmフィールドがある場合はそれを使用
           if (item.distance_km !== undefined && item.distance_km < 999999) {
             distance = item.distance_km;
-            console.log(`Distance for ${item.name}: ${distance}km`); // デバッグ用
+            // console.log(`Distance for ${item.name}: ${distance}km`); // デバッグ用
           }
           // フォールバック：クライアント側で計算（互換性のため）
           else if (userLocation && item.shop?.latitude && item.shop?.longitude) {

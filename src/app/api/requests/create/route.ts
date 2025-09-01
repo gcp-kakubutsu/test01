@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const userStatsRef = db.collection('userStats').doc(userId);
       const statsDoc = await userStatsRef.get();
       
-      if (statsDoc.exists()) {
+      if (statsDoc.exists) {
         console.log('📊 Updating existing user stats...');
         await userStatsRef.update({
           requestsSent: (statsDoc.data()?.requestsSent || 0) + 1,

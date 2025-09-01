@@ -48,8 +48,8 @@ export function PaymentFailedAlert({
   className
 }: PaymentFailedAlertProps) {
   const router = useRouter();
-  const isGracePeriod = isInGracePeriod(subscriptionEndDate);
-  const graceDaysRemaining = getGracePeriodDaysRemaining(subscriptionEndDate);
+  const isGracePeriod = isInGracePeriod(subscriptionEndDate ?? null);
+  const graceDaysRemaining = getGracePeriodDaysRemaining(subscriptionEndDate ?? null);
 
   // If in grace period, show grace period alert
   if (isGracePeriod) {

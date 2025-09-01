@@ -8,6 +8,7 @@ import {
   UserWithSubscription,
   PlanType,
   PlanInfo,
+  BillingCycle,
   SUBSCRIPTION_CONSTANTS
 } from '@/types/subscription';
 
@@ -137,62 +138,62 @@ export function useSubscription(): UseSubscriptionReturn {
               {
                 id: '1month',
                 planType: '1month' as PlanType,
-                planName: '1ヶ月プラン',
-                monthlyPrice: 1980,
-                totalPrice: 1980,
-                duration: 1,
-                discountPercentage: 0,
-                isPopular: false,
+                name: '1ヶ月プラン',
+                description: '1ヶ月プラン',
+                amount: 1980,
+                currency: 'JPY',
+                billingCycle: 'monthly' as BillingCycle,
+                trialDays: 0,
                 isActive: true,
                 sortOrder: 1,
                 features: ['基本機能', 'マッチング機能', 'メッセージ機能'],
-                createdAt: null,
-                updatedAt: null
+                createdAt: null as any,
+                updatedAt: null as any
               },
               {
                 id: '3month',
                 planType: '3month' as PlanType,
-                planName: '3ヶ月プラン',
-                monthlyPrice: 1650,
-                totalPrice: 4950,
-                duration: 3,
-                discountPercentage: 17,
-                isPopular: false,
+                name: '3ヶ月プラン',
+                description: '3ヶ月プラン',
+                amount: 4950,
+                currency: 'JPY',
+                billingCycle: 'monthly' as BillingCycle,
+                trialDays: 0,
                 isActive: true,
                 sortOrder: 2,
                 features: ['基本機能', 'マッチング機能', 'メッセージ機能'],
-                createdAt: null,
-                updatedAt: null
+                createdAt: null as any,
+                updatedAt: null as any
               },
               {
                 id: '6month',
                 planType: '6month' as PlanType,
-                planName: '6ヶ月プラン',
-                monthlyPrice: 1480,
-                totalPrice: 8880,
-                duration: 6,
-                discountPercentage: 25,
-                isPopular: true,
+                name: '6ヶ月プラン',
+                description: '6ヶ月プラン',
+                amount: 8880,
+                currency: 'JPY',
+                billingCycle: 'monthly' as BillingCycle,
+                trialDays: 0,
                 isActive: true,
                 sortOrder: 3,
                 features: ['基本機能', 'マッチング機能', 'メッセージ機能'],
-                createdAt: null,
-                updatedAt: null
+                createdAt: null as any,
+                updatedAt: null as any
               },
               {
                 id: '12month',
                 planType: '12month' as PlanType,
-                planName: '12ヶ月プラン',
-                monthlyPrice: 1150,
-                totalPrice: 13800,
-                duration: 12,
-                discountPercentage: 42,
-                isPopular: false,
+                name: '12ヶ月プラン',
+                description: '12ヶ月プラン',
+                amount: 13800,
+                currency: 'JPY',
+                billingCycle: 'monthly' as BillingCycle,
+                trialDays: 0,
                 isActive: true,
                 sortOrder: 4,
                 features: ['基本機能', 'マッチング機能', 'メッセージ機能'],
-                createdAt: null,
-                updatedAt: null
+                createdAt: null as any,
+                updatedAt: null as any
               }
             ];
             if (isMounted) {

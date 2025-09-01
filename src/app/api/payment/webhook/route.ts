@@ -86,7 +86,7 @@ async function recordPaymentEvent(event: WebhookPayload): Promise<void> {
       paymentMethodId: event.data.payment_method_id || null,
       failureReason: event.data.failure_reason || null,
       metadata: event.data.metadata || null,
-      createdAt: Timestamp.fromDate(new Date(event.created_at))
+      createdAt: Timestamp.fromDate(new Date(event.created_at)) as any
     };
 
     await db.collection('payment_events').doc(event.event_id).set(paymentEvent);
@@ -357,12 +357,9 @@ async function handleRefundCreated(
 // Main webhook handler
 export async function POST(request: NextRequest) {
   try {
-    // Initialize Firebase Admin
-    getFirebaseAdminApp();
-
     // Get request body and signature
     const body = await request.text();
-    const headersList = headers();
+    const headersList = await headers();
     const signature = headersList.get('x-transaction-hub-signature') || '';
 
     // Verify webhook signature

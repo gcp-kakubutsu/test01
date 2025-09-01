@@ -137,6 +137,40 @@ export function ultraFastSort(
 }
 
 /**
+ * スコア計算関数
+ */
+function calculateGirlScore(girl: SortableGirl, preferences: UserPreferences): number {
+  let score = 0;
+  
+  // 年齢スコア
+  if (girl.age && preferences.ageMin && preferences.ageMax) {
+    if (girl.age >= preferences.ageMin && girl.age <= preferences.ageMax) {
+      score += 100;
+    }
+  }
+  
+  // 距離スコア（既に計算済みの場合）
+  if (girl.distance_km) {
+    score += Math.max(0, 100 - girl.distance_km);
+  }
+  
+  // 位置情報スコア
+  if (preferences.userLat && preferences.userLon && girl.shop) {
+    if (girl.shop.latitude && girl.shop.longitude) {
+      const distSq = fastDistanceSquared(
+        preferences.userLat,
+        preferences.userLon,
+        girl.shop.latitude,
+        girl.shop.longitude
+      );
+      score += Math.max(0, 1000 - distSq);
+    }
+  }
+  
+  return score;
+}
+
+/**
  * バッチ処理版（大量データ用）
  * チャンクに分けて処理することで、UIをブロックしない
  */

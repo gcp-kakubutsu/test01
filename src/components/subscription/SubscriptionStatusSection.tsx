@@ -61,18 +61,15 @@ export function SubscriptionStatusSection() {
   React.useEffect(() => {
     const canceled = userSubscription?.subscription?.cancelAtPeriodEnd || 
                      userSubscription?.cancellation?.cancelAtPeriodEnd || 
-                     userSubscription?.cancelAtPeriodEnd || 
                      false;
     console.log('Updating isCanceled state:', canceled);
     console.log('Current subscription data:', {
       subscription: userSubscription?.subscription,
-      cancellation: userSubscription?.cancellation,
-      direct: userSubscription?.cancelAtPeriodEnd
+      cancellation: userSubscription?.cancellation
     });
     setIsCanceled(canceled);
   }, [userSubscription?.subscription?.cancelAtPeriodEnd, 
-      userSubscription?.cancellation?.cancelAtPeriodEnd,
-      userSubscription?.cancelAtPeriodEnd]);
+      userSubscription?.cancellation?.cancelAtPeriodEnd]);
 
   // 追加の安全策: Firestoreの subscription.status が 'trial' かつ trialInfo が有効なら
   // UI上は必ずトライアル優先で表示する（万一の不整合対策）

@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     // fetchOptimizedGirlsを動的インポート
     let fetchOptimizedGirls;
     try {
-      const module = await import('@/lib/mysql/girls-optimized');
-      fetchOptimizedGirls = module.fetchOptimizedGirls;
+      const girlsModule = await import('@/lib/mysql/girls-optimized');
+      fetchOptimizedGirls = girlsModule.fetchOptimizedGirls;
       console.log('Batch API: Module imported successfully');
     } catch (importError: any) {
       console.error('Batch API: Import error:', importError);

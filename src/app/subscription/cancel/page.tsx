@@ -150,7 +150,7 @@ export default function CancelPage() {
     : 0;
 
   // 解約予定の場合、または解約したばかりの場合は解約をキャンセルする画面を表示
-  if (userSubscription?.cancelAtPeriodEnd || justCanceled) {
+  if (userSubscription?.cancellation?.cancelAtPeriodEnd || justCanceled) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-6">
         <Card>
@@ -183,7 +183,7 @@ export default function CancelPage() {
                     const db = getFirebaseDb();
                     if (!db) throw new Error('Database not initialized');
                     
-                    const userRef = doc(db, 'users', currentUser.uid);
+                    const userRef = doc(db, 'users', currentUser!.uid);
                     
                     // 解約をキャンセル
                     await updateDoc(userRef, {

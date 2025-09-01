@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, Heart, Users, StickyNote, User, Loader2 } from 'lucide-react';
@@ -38,13 +38,13 @@ export default function BottomNavigationOptimized() {
     router.push('/');
   };
 
-  const navItems: NavItem[] = [
+  const navItems = useMemo<NavItem[]>(() => [
     { href: '/search', icon: Search, label: 'さがす' },
     { href: '/likes', icon: Heart, label: 'いいね' },
     { href: '/community', icon: Users, label: 'コミュニティ' },
     { href: '/messages', icon: StickyNote, label: 'メモ' },
     { href: '/profile', icon: User, label: 'マイページ' },
-  ];
+  ], []);
 
   // ページプリフェッチ
   const prefetchPage = useCallback((href: string) => {
@@ -78,7 +78,7 @@ export default function BottomNavigationOptimized() {
         prefetchPage(item.href);
       }
     });
-  }, [prefetchPage]);
+  }, [navItems, prefetchPage]);
 
   // 高速ナビゲーション
   const handleNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {

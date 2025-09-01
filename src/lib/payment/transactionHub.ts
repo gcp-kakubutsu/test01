@@ -105,7 +105,7 @@ export class TransactionHubAPI {
   ): Promise<T> {
     // Mock mode - return fake responses for development
     if (IS_MOCK_MODE) {
-      return this.getMockResponse<T>(endpoint, method, data);
+      return (this as any).getMockResponse(endpoint, method, data) as T;
     }
     
     const url = `${this.baseUrl}${endpoint}`;

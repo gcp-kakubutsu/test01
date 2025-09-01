@@ -107,18 +107,18 @@ export async function GET() {
     `);
     
     return NextResponse.json({
-      areaSmallsInfo: areaSmallsInfo[0],
+      areaSmallsInfo: (areaSmallsInfo as any)[0],
       areaSmallsSample,
-      joinTest: joinTest[0],
+      joinTest: (joinTest as any)[0],
       joinExample,
       distanceTest,
-      coverage: coverage[0],
+      coverage: (coverage as any)[0],
       summary: {
-        canUseAreaSmallsLocation: (joinTest[0] as any).shops_matched > 0,
-        locationCoverage: coverage[0] ? 
-          (((coverage[0] as any).girls_with_location_via_area / (coverage[0] as any).total_girls * 100).toFixed(1) + '%') : 
+        canUseAreaSmallsLocation: ((joinTest as any)[0] as any).shops_matched > 0,
+        locationCoverage: (coverage as any)[0] ? 
+          ((((coverage as any)[0] as any).girls_with_location_via_area / ((coverage as any)[0] as any).total_girls * 100).toFixed(1) + '%') : 
           '0%',
-        hasWorkingDistanceCalc: distanceTest.length > 0
+        hasWorkingDistanceCalc: (distanceTest as any).length > 0
       }
     });
     

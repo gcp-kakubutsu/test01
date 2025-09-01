@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,15 +36,7 @@ export default function LikesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [girlsData, setGirlsData] = useState<Map<string, any>>(new Map());
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    fetchLikes();
-  }, [isAuthenticated, currentUser]);
-
-  const fetchLikes = async () => {
+  const fetchLikes = useCallback(async () => {
     if (!currentUser || !db) return;
 
     setLoading(true);
@@ -132,7 +124,15 @@ export default function LikesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, toast]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    fetchLikes();
+  }, [isAuthenticated, fetchLikes, router]);
 
   // 検索処理
   useEffect(() => {
