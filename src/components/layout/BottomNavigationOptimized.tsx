@@ -19,7 +19,7 @@ interface NavItem {
 // プリフェッチ済みのURLを管理
 const prefetchedUrls = new Set<string>();
 
-export default function BottomNavigation() {
+export default function BottomNavigationOptimized() {
   const pathname = usePathname();
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(true);
@@ -71,6 +71,15 @@ export default function BottomNavigation() {
     }
   }, [router, currentUser]);
 
+  // 全ページを事前プリフェッチ（マウント時）
+  useEffect(() => {
+    navItems.forEach(item => {
+      if (item.href) {
+        prefetchPage(item.href);
+      }
+    });
+  }, [prefetchPage]);
+
   // 高速ナビゲーション
   const handleNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -87,15 +96,6 @@ export default function BottomNavigation() {
       }, 300);
     }, 50);
   }, [router]);
-
-  // 全ページを事前プリフェッチ（マウント時）
-  useEffect(() => {
-    navItems.forEach(item => {
-      if (item.href) {
-        prefetchPage(item.href);
-      }
-    });
-  }, [prefetchPage]);
 
   useEffect(() => {
     const handleScroll = () => {

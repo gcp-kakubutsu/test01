@@ -84,24 +84,27 @@ export default function LikesPage() {
       // クライアント側で日付順にソート
       likesData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-      // MySQLから女の子の詳細情報を取得
+      // MySQLから女の子の詳細情報を取得（バッチAPIで高速化）
       if (girlIds.length > 0) {
         const girlsMap = new Map<string, any>();
         
-        // バッチで女の子情報を取得
-        await Promise.all(
-          girlIds.map(async (girlId) => {
-            try {
-              const response = await fetch(`/api/girls/${girlId}`);
-              if (response.ok) {
-                const girlData = await response.json();
-                girlsMap.set(girlId, girlData);
-              }
-            } catch (error) {
-              console.error(`Failed to fetch girl ${girlId}:`, error);
-            }
-          })
-        );
+        // バッチAPIで一括取得（高速化）
+        try {
+          const response = await fetch('/api/girls/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: girlIds })
+          });
+          
+          if (response.ok) {
+            const girlsData = await response.json();
+            Object.entries(girlsData).forEach(([id, data]) => {
+              girlsMap.set(id, data);
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch girls batch:', error);
+        }
 
         // いいねデータに女の子情報をマージ
         likesData.forEach((like) => {

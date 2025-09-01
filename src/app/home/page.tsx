@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChevronLeft, ChevronRight, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Heart, Grid3x3, Columns, Search, X, StickyNote, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -15,6 +15,8 @@ import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/locati
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
+import { useLikeOptimistic } from '@/lib/hooks/useLikeOptimistic';
+import { useMemoOptimistic } from '@/lib/hooks/useMemoOptimistic';
 import WelcomePage from '@/components/WelcomePage';
 import MaleOnboarding from '@/components/MaleOnboarding';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -23,10 +25,10 @@ import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/ma
 import Image from 'next/image';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import '@/styles/blur.css';
-import { sendLike } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { isLineBrowser } from '@/lib/utils/browser-detection';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { fetchWithDedup, roundLocation, generateCacheKey } from '@/lib/utils/api-request-manager';
 
 const USERS_PER_PAGE = 20;
 
@@ -37,6 +39,8 @@ export default function HomePage() {
   const isLineBrowser = typeof window !== 'undefined' && window.navigator.userAgent.toLowerCase().includes('line');
   const router = useRouter();
   const { toast } = useToast();
+  const { handleLikeOptimistic, likingStates, isLiked } = useLikeOptimistic();
+  const { prefetchMemoPage, handleMemoNavigation, navigatingStates } = useMemoOptimistic();
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [girlsFromDB, setGirlsFromDB] = useState<GirlWithDetails[]>([]);
@@ -359,34 +363,40 @@ export default function HomePage() {
     console.log('[fetchGirlsFromMySQL] User location:', userLocation);
     
     try {
-      // mysql-girls-fast APIを使用（位置情報付きでサーバー側ソート）
-      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=200&offset=0`;
+      // 位置情報を正規化（小数点3桁に丸める）
+      const normalizedLocation = userLocation 
+        ? roundLocation(userLocation.lat, userLocation.lng, 3)
+        : null;
       
-      // 位置情報がある場合はパラメータに追加
-      if (userLocation) {
-        apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`;
-        console.log(`🚀 [fetchGirlsFromMySQL] Using location-based sorting: lat=${userLocation.lat}, lng=${userLocation.lng}`);
+      // キャッシュキー用のパラメータ
+      const params: Record<string, any> = {
+        limit: 200,
+        offset: 0,
+      };
+      
+      if (normalizedLocation) {
+        params.userLat = normalizedLocation.lat;
+        params.userLng = normalizedLocation.lng;
+      }
+      
+      // APIのURL構築
+      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=200&offset=0`;
+      if (normalizedLocation) {
+        apiUrl += `&userLat=${normalizedLocation.lat}&userLng=${normalizedLocation.lng}`;
+        console.log(`🚀 [fetchGirlsFromMySQL] Using normalized location: lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
       }
       
       console.log(`🚀 [fetchGirlsFromMySQL] API URL: ${apiUrl}`);
       
-      const response = await fetch(apiUrl, {
+      // キャッシュキーを生成
+      const cacheKey = generateCacheKey(params);
+      
+      // 重複排除機能付きでフェッチ
+      const data = await fetchWithDedup(apiUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
         credentials: typeof window !== 'undefined' && window.navigator.userAgent.includes('Line') ? 'omit' : 'include',
         mode: 'cors',
-      });
-      
-      if (!response.ok) {
-        console.error(`[fetchGirlsFromMySQL] API error: ${response.status}`);
-        setGirlsFromDB([]);
-        return;
-      }
-      
-      const data = await response.json();
+      }, cacheKey);
       const fetchTime = performance.now() - fetchStartTime;
       
       console.log(`🚀 [fetchGirlsFromMySQL] API Response:`, {
@@ -504,116 +514,11 @@ export default function HomePage() {
         console.log('📱 LINE browser detected - using optimized fetch');
       }
       
-      // 位置情報付きでAPIを呼び出す
-      const fetchDataDirectly = async () => {
-        setLoadingUsers(true); // 重複実行を防ぐ
-        try {
-          const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nukune.com';
-          let apiUrl = `${origin}/api/mysql-girls-fast?limit=200&offset=0`;
-          
-          // 位置情報がすでに取得されている場合はパラメータに追加
-          if (userLocation) {
-            apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`;
-            console.log('[useEffect] With location params:', { lat: userLocation.lat, lng: userLocation.lng });
-          }
-          
-          console.log('[useEffect] Direct API call to:', apiUrl);
-          
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true', // ngrok警告ページをスキップ
-            },
-            // LINEブラウザの場合はcredentialsを除外
-            credentials: isLineBrowser ? 'omit' : 'include',
-            mode: 'cors',
-          });
-          
-          console.log('[useEffect] API response status:', response.status);
-          
-          if (response.ok) {
-            // レスポンスのテキストを取得
-            const responseText = await response.text();
-            console.log('[useEffect] Response text length:', responseText.length);
-            
-            // 空のレスポンスチェック
-            if (!responseText || responseText.trim() === '') {
-              console.log('[useEffect] Empty response from API');
-              setGirlsFromDB([]);
-              return;
-            }
-            
-            // JSONパースを試みる
-            let data;
-            try {
-              data = JSON.parse(responseText);
-            } catch (parseError) {
-              console.error('[useEffect] JSON parse error:', parseError);
-              console.error('[useEffect] Response text:', responseText.substring(0, 200));
-              setGirlsFromDB([]);
-              return;
-            }
-            
-            if (data && data.girls && Array.isArray(data.girls)) {
-              console.log(`[useEffect] Got ${data.girls.length} girls directly`);
-              
-              // 直接データを設定
-              const girlsWithDetails = data.girls.map((girl: any) => {
-                let shop = girl.shop || {
-                  id: girl.shopId,
-                  name: girl.shopName,
-                  latitude: girl.latitude,
-                  longitude: girl.longitude
-                };
-                
-                if ((!shop.latitude || !shop.longitude) && girl.location) {
-                  const coords = getLocationCoordinates(girl.location);
-                  if (coords) {
-                    shop = {
-                      ...shop,
-                      latitude: coords.lat,
-                      longitude: coords.lng
-                    };
-                  }
-                }
-                
-                return {
-                  ...girl,
-                  id: parseInt(girl.id),
-                  shop
-                };
-              });
-              
-              // データを一旦キャッシュに保存（ソートは別のuseEffectで行う）
-              setSortedGirlsCache(girlsWithDetails);
-              console.log('[useEffect] Initial data cached, waiting for authentication to sort...');
-            }
-          } else {
-            console.error('[useEffect] API request failed:', response.status);
-            // エラーレスポンスの内容を確認
-            try {
-              const errorText = await response.text();
-              console.error('[useEffect] Error response:', errorText.substring(0, 200));
-            } catch (e) {
-              console.error('[useEffect] Could not read error response');
-            }
-            setGirlsFromDB([]);
-          }
-        } catch (error) {
-          console.error('[useEffect] Direct API call failed:', error);
-          setGirlsFromDB([]);
-        } finally {
-          setLoadingUsers(false); // ローディング終了
-        }
-      };
-      
-      // 即座に実行
-      fetchDataDirectly();
+      // fetchGirlsFromMySQLを使用（重複排除機能付き）
+      fetchGirlsFromMySQL();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, initialFetchDone]); // 位置情報が取得されたら実行
+  }, [userLocation, initialFetchDone, fetchGirlsFromMySQL]); // 位置情報が取得されたら実行
 
   const handleReset = async () => {
     if (!currentUser) return;
@@ -1255,6 +1160,7 @@ export default function HomePage() {
                     className={`flex-1 min-w-0 bg-[#8B1E3F]/20 text-[#8B1E3F] border-[#8B1E3F] hover:bg-[#8B1E3F] hover:text-white hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis ${
                       viewMode === 'single' ? 'text-sm px-4 py-2' : 'text-xs px-2 py-1.5'
                     } sm:text-sm`}
+                    disabled={likingStates[`mysql_girl_${item.id}`]}
                     onClick={async (e) => {
                       e.stopPropagation();
                       
@@ -1287,45 +1193,40 @@ export default function HomePage() {
                         return;
                       }
                       
-                      // いいねを送信
-                      try {
-                        const targetId = `mysql_girl_${item.id}`;
-                        const result = await sendLike(currentUser.uid, targetId, {
+                      // 楽観的更新でいいねを送信（高速化）
+                      const targetId = `mysql_girl_${item.id}`;
+                      handleLikeOptimistic(
+                        currentUser.uid,
+                        targetId,
+                        name,
+                        {
                           toGirlName: name,
                           toGirlId: item.id,
                           isGirlProfile: true
-                        });
-                        
-                        if (result.alreadyLiked) {
-                          toast({
-                            title: result.updated ? 'いいねを更新しました！' : '既にいいねを送っています',
-                            description: result.updated 
-                              ? `${name}さんへのいいねを最新に更新しました。`
-                              : `${name}さんには既にいいねを送信済みです。`,
-                          });
-                        } else {
-                          toast({
-                            title: 'いいねを送りました！',
-                            description: `${name}さんにいいねを送りました。`
-                          });
                         }
-                      } catch (error) {
+                      ).catch(error => {
                         console.error('Like error:', error);
-                        toast({
-                          title: 'エラー',
-                          description: 'いいねの送信に失敗しました。',
-                          variant: 'destructive'
-                        });
-                      }
+                      });
                     }}
                   >
-                    <Heart className="w-4 h-4" />
-                    いいね
+                    {likingStates[`mysql_girl_${item.id}`] ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        送信中...
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="w-4 h-4" />
+                        いいね
+                      </>
+                    )}
                   </Button>
                   <Button
                     className={`flex-1 min-w-0 bg-pink-500 text-white hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-lg transition-all flex items-center justify-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis ${
                       viewMode === 'single' ? 'text-sm px-4 py-2' : 'text-xs px-2 py-1.5'
                     } sm:text-sm`}
+                    disabled={navigatingStates[item.id]}
+                    onMouseEnter={() => prefetchMemoPage(item.id)}
                     onClick={(e) => {
                       e.stopPropagation();
                       
@@ -1358,11 +1259,21 @@ export default function HomePage() {
                         return;
                       }
                       
-                      router.push(`/messages/${item.id}`);
+                      // 高速ナビゲーション（プリフェッチ済み）
+                      handleMemoNavigation(item.id, name);
                     }}
                   >
-                    <StickyNote className="w-4 h-4" />
-                    メモ
+                    {navigatingStates[item.id] ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        移動中...
+                      </>
+                    ) : (
+                      <>
+                        <StickyNote className="w-4 h-4" />
+                        メモ
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

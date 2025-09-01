@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import MemoPage from './memo-page';
+import { fetchWithDedup } from '@/lib/utils/api-request-manager';
 
 export default function MemoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -34,30 +35,24 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
       
       setIsLoading(true);
       try {
-        // Fetch from MySQL API for numeric IDs
-        const response = await fetch(`/api/mysql-girls-fast?limit=1&girlId=${paramsId}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Girl data fetched:', data);
-          if (data.girls && data.girls.length > 0) {
-            const girl = data.girls[0];
-            console.log('Girl details:', girl);
-            setGirlData({
-              id: paramsId,
-              name: girl.name || '女の子',
-              imageUrl: girl.imageUrl || girl.images?.[0]?.image_url || girl.images?.[0]?.real_image_url || null,
-              location: girl.location || girl.municipality || ''
-            });
-          } else {
-            // Girl not found, set default
-            setGirlData({
-              id: paramsId,
-              name: '女の子',
-              imageUrl: null
-            });
-          }
+        // Fetch from MySQL API for numeric IDs (with deduplication)
+        const apiUrl = `/api/mysql-girls-fast?limit=1&girlId=${paramsId}`;
+        const data = await fetchWithDedup(apiUrl, {
+          method: 'GET'
+        }, `girl_${paramsId}`);
+        
+        console.log('Girl data fetched:', data);
+        if (data.girls && data.girls.length > 0) {
+          const girl = data.girls[0];
+          console.log('Girl details:', girl);
+          setGirlData({
+            id: paramsId,
+            name: girl.name || '女の子',
+            imageUrl: girl.imageUrl || girl.images?.[0]?.image_url || girl.images?.[0]?.real_image_url || null,
+            location: girl.location || girl.municipality || ''
+          });
         } else {
-          // API error, set default
+          // Girl not found, set default
           setGirlData({
             id: paramsId,
             name: '女の子',

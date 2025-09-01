@@ -20,6 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
+import { fetchWithDedup } from '@/lib/utils/api-request-manager';
 
 interface MemoDisplay {
   id: string;
@@ -68,42 +69,99 @@ export default function MemosPage() {
     if (!latestMemos || memosLoading) return;
     
     const fetchLocationsAndSetDisplays = async () => {
-      const displays: MemoDisplay[] = await Promise.all(
-        latestMemos.map(async (memo) => {
-          let location = memo.targetLocation;
+      // まず、位置情報が必要なgirlIdを収集（重複を排除）
+      const girlIdsNeedingLocation = new Set<string>();
+      const girlIdToMemos = new Map<string, typeof latestMemos[0][]>();
+      
+      latestMemos.forEach(memo => {
+        if (!memo.targetLocation && memo.targetId) {
+          const girlId = memo.targetId.startsWith('mysql_girl_') 
+            ? memo.targetId.replace('mysql_girl_', '')
+            : memo.targetId;
           
-          // If no location, try to fetch from girl data
-          if (!location && memo.targetId) {
-            try {
-              // Extract numeric ID from mysql_girl_ prefix
-              const girlId = memo.targetId.startsWith('mysql_girl_') 
-                ? memo.targetId.replace('mysql_girl_', '')
-                : memo.targetId;
-              
-              const response = await fetch(`/api/mysql-girls-fast?limit=1&girlId=${girlId}`);
-              if (response.ok) {
-                const data = await response.json();
-                if (data.girls && data.girls.length > 0) {
-                  const girl = data.girls[0];
-                  location = girl.location || girl.municipality || '';
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching girl location:', error);
-            }
+          girlIdsNeedingLocation.add(girlId);
+          
+          // このgirlIdに関連するメモを記録
+          if (!girlIdToMemos.has(girlId)) {
+            girlIdToMemos.set(girlId, []);
+          }
+          girlIdToMemos.get(girlId)!.push(memo);
+        }
+      });
+      
+      // 位置情報キャッシュ
+      const locationCache = new Map<string, string>();
+      
+      // バッチAPIで一括取得（真のバッチ処理）
+      if (girlIdsNeedingLocation.size > 0) {
+        const girlIdsArray = Array.from(girlIdsNeedingLocation);
+        
+        try {
+          // バッチAPIで全データを一括取得
+          const apiUrl = `/api/mysql-girls-batch`;
+          const data = await fetchWithDedup(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ girlIds: girlIdsArray })
+          }, `batch_girls_${girlIdsArray.sort().join('_')}`);
+          
+          if (data.girls) {
+            data.girls.forEach((girl: any) => {
+              const location = girl.location || girl.municipality || '';
+              locationCache.set(girl.id.toString(), location);
+            });
           }
           
-          return {
-            id: memo.id || '',
-            targetId: memo.targetId,
-            name: memo.targetName || '名前未設定',
-            content: memo.content || 'メモを追加してください',
-            avatarUrl: memo.targetImage || null,
-            lastUpdated: memo.createdAt,
-            location: location
-          };
-        })
-      );
+          console.log(`Batch API: Fetched ${data.girls?.length || 0} girls for ${girlIdsArray.length} IDs`);
+        } catch (error) {
+          console.error('Error fetching batch girl locations:', error);
+          
+          // フォールバック：バッチAPIが失敗した場合は個別取得
+          console.log('Falling back to individual fetches...');
+          await Promise.all(
+            girlIdsArray.map(async (girlId) => {
+              try {
+                const apiUrl = `/api/mysql-girls-fast?limit=1&girlId=${girlId}`;
+                const data = await fetchWithDedup(apiUrl, {
+                  method: 'GET'
+                }, `girl_${girlId}`);
+                
+                if (data.girls && data.girls.length > 0) {
+                  const girl = data.girls[0];
+                  const location = girl.location || girl.municipality || '';
+                  locationCache.set(girlId, location);
+                }
+              } catch (err) {
+                console.error(`Error fetching location for girl ${girlId}:`, err);
+              }
+            })
+          );
+        }
+      }
+      
+      // メモ表示データを構築
+      const displays: MemoDisplay[] = latestMemos.map((memo) => {
+        let location = memo.targetLocation;
+        
+        // キャッシュから位置情報を取得
+        if (!location && memo.targetId) {
+          const girlId = memo.targetId.startsWith('mysql_girl_') 
+            ? memo.targetId.replace('mysql_girl_', '')
+            : memo.targetId;
+          
+          location = locationCache.get(girlId) || '';
+        }
+        
+        return {
+          id: memo.id || '',
+          targetId: memo.targetId,
+          name: memo.targetName || '名前未設定',
+          content: memo.content || 'メモを追加してください',
+          avatarUrl: memo.targetImage || null,
+          lastUpdated: memo.createdAt,
+          location: location
+        };
+      });
       
       setMemoDisplays(displays);
     };
