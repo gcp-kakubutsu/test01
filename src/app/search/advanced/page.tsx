@@ -203,6 +203,9 @@ function AdvancedSearchContent() {
         }
       } catch (error) {
         console.error('位置情報取得エラー:', error)
+        // 位置情報が取得できない場合、フォールバックとして東京駅の座標を設定
+        console.log('📍 位置情報取得失敗 - 東京エリアをデフォルト表示に設定')
+        // userLocationはnullのままにして、API側でフォールバック処理
       }
     }
 
@@ -369,6 +372,13 @@ function AdvancedSearchContent() {
       if (userLocation) {
         apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`
         console.log('📍 位置情報をAPIに送信:', { lat: userLocation.lat, lng: userLocation.lng })
+      } else if (!effectiveArea) {
+        // 位置情報がなく、エリア指定もない場合、東京駅の座標をフォールバックとして使用
+        const tokyoLat = 35.6812
+        const tokyoLng = 139.7671
+        apiUrl += `&userLat=${tokyoLat}&userLng=${tokyoLng}`
+        console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示')
+        console.log(`🗺️ フォールバック座標: lat=${tokyoLat}, lng=${tokyoLng}`)
       }
       
       // Try optimized API first, fallback to regular API if it fails

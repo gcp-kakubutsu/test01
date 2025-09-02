@@ -234,6 +234,11 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('位置情報取得エラー:', error);
+        // 位置情報が取得できない場合は、フォールバックとして東京の座標を設定
+        // これにより東京エリアの女の子が優先的に表示される
+        console.log('📍 位置情報取得失敗 - 東京エリアをデフォルト表示に設定');
+        // 注: 位置情報なしの状態を保持し、API側で東京フィルターを適用
+        // setUserLocation(null)のままにして、fetchGirlsFromMySQL内で処理
       }
     };
 
@@ -384,6 +389,14 @@ export default function HomePage() {
       if (normalizedLocation) {
         apiUrl += `&userLat=${normalizedLocation.lat}&userLng=${normalizedLocation.lng}`;
         console.log(`🚀 [fetchGirlsFromMySQL] Using normalized location: lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
+      } else {
+        // 位置情報がない場合、東京駅の座標をフォールバックとして使用
+        // 東京駅: 緯度35.6812, 経度139.7671
+        const tokyoLat = 35.6812;
+        const tokyoLng = 139.7671;
+        apiUrl += `&userLat=${tokyoLat}&userLng=${tokyoLng}`;
+        console.log('📍 [fetchGirlsFromMySQL] 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
+        console.log(`🗺️ フォールバック座標: lat=${tokyoLat}, lng=${tokyoLng}`);
       }
       
       console.log(`🚀 [fetchGirlsFromMySQL] API URL: ${apiUrl}`);
