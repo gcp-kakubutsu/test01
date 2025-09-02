@@ -84,3 +84,18 @@ Required in `.env.local` (see `.env.example`):
 ### Current Active Tickets
 Check `/docs` directory for the list of implementation tickets.
 Use sequential numbering to understand priority order.
+
+## Development Process
+
+### Pre-Implementation Mindset
+**重要**: 毎回プロンプトに真剣に考えてから実装を始めて下さい。
+
+すべての実装作業において、以下のプロセスを必ず実行してください：
+
+1. **要件の理解**: プロンプトや仕様を慎重に読み、何を求められているかを正確に把握する
+2. **影響範囲の分析**: 変更が他のコンポーネントやシステムに与える影響を検討する
+3. **実装戦略の検討**: 最適なアプローチと潜在的な問題点を事前に特定する
+4. **品質基準の確認**: コード品質、セキュリティ、パフォーマンスの観点から検証する
+
+この思考プロセスを経てから、実際のコーディング作業に着手してください。
+真剣に考えてから実装して下さい。
