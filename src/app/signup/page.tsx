@@ -293,9 +293,9 @@ export default function SignupPage() {
       </Card>
       
       <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-base font-medium text-slate-800">
           すでにアカウントをお持ちですか？{' '}
-          <Link href="/login" className="font-semibold text-[#F0306A] hover:underline">
+          <Link href="/login" className="font-bold text-[#F0306A] hover:underline underline-offset-2">
             ログイン
           </Link>
         </p>

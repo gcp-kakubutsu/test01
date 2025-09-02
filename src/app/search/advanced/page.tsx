@@ -1074,10 +1074,10 @@ function AdvancedSearchContent() {
   const handleLike = async (user: UserProfile) => {
     if (!currentUser) {
       toast({
-        title: 'ログインが必要です',
-        description: 'いいねを送るにはログインしてください'
+        title: '新規登録が必要です',
+        description: 'いいねを送るには新規登録してください'
       })
-      router.push('/login')
+      router.push('/signup')
       return
     }
 
@@ -1187,10 +1187,10 @@ function AdvancedSearchContent() {
   const handleMessage = (userId: string) => {
     if (!currentUser) {
       toast({
-        title: 'ログインが必要です',
-        description: 'メモを残すにはログインしてください'
+        title: '新規登録が必要です',
+        description: 'メモを残すには新規登録してください'
       })
-      router.push('/login')
+      router.push('/signup')
       return
     }
 
