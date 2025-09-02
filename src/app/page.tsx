@@ -744,15 +744,6 @@ export default function LandingPage() {
               </div>
               <p className={styles.safetyDescription}>ニックネームで利用できるため、本名は非公開。個人情報が共有されることはありません。</p>
             </div>
-            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
-              <div className={styles.safetyHeader}>
-                <div className={styles.safetyIcon}>
-                  <Award />
-                </div>
-                <h3 className={styles.safetyTitle}>公的機関へ届出済み</h3>
-              </div>
-              <p className={styles.safetyDescription}>NUKUNEでは、法令遵守に基づきインターネット異性紹介事業の届出しております。<br />(受理番号54250003000)<br /></p>
-            </div>
           </div>
         </div>
       </section>
