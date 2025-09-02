@@ -58,6 +58,7 @@ interface UserProfile {
   matchScore?: number // おすすめ度スコア
   isGirlProfile?: boolean // MySQLの女の子データかどうか
   girlTypes?: (string | GirlType)[] // Girl types from database - can be string or object
+  serverOrder?: number // サーバー側の元の順序（距離順の最適化を維持）
 }
 
 // 性癖・プレイスタイルのタグ
@@ -482,7 +483,8 @@ function AdvancedSearchContent() {
           averageQueryTime: `${data.performance.averageQueryTime}ms`,
           totalGirls: data.girls?.length || 0,
           area: effectiveArea || 'all',
-          withLocation: !!userLocation
+          withLocation: !!userLocation,
+          serverSorted: true // サーバー側で距離順ソート済み
         })
       }
       
@@ -499,7 +501,7 @@ function AdvancedSearchContent() {
       //   }
       // }
       
-      const mappedUsers: UserProfile[] = data.girls.map((user: any) => {
+      const mappedUsers: UserProfile[] = data.girls.map((user: any, index: number) => {
         // サーバー側で計算済みの距離を使用（area_smallsテーブルベースの最適化済み）
         let distance: number | undefined = user.distance_km;
         
@@ -555,7 +557,8 @@ function AdvancedSearchContent() {
           is_tobacco: user.is_tobacco,
           distance: distance,
           girlTypes: user.girlTypes || [], // Add girl types
-          isGirlProfile: true // MySQLの女の子データであることを示す
+          isGirlProfile: true, // MySQLの女の子データであることを示す
+          serverOrder: index // サーバー側の元の順序を保存（距離順の最適化を維持）
         };
       })
       
@@ -951,18 +954,12 @@ function AdvancedSearchContent() {
     }
 
     // ソート処理最適化 - サーバー側で既にソート済みの場合はスキップ
-    // フィルタリングした場合のみ再ソートが必要
+    // 距離順の場合、サーバー側の順序を信頼して維持
     const hasClientFilters = selectedTags.length > 0 || searchQuery || selectedStyles.length > 0 || prioritizeQuickMeet
     
-    // フィルタリング後のみ再ソート（パフォーマンス最適化）
-    if (hasClientFilters && userLocation && filtered.length > 0 && sortBy === 'distance') {
-      // クライアントフィルタリング後のみ距離順に再ソート
-      filtered.sort((a, b) => {
-        const aDistance = a.distance ?? 999999
-        const bDistance = b.distance ?? 999999
-        return aDistance - bDistance
-      })
-    }
+    // 距離順ソートの最適化：サーバー側の順序を維持
+    // クライアント側のフィルタリング後も、元の順序（serverOrder）を保つことで高速化
+    // ※サーバー側でarea_smallsテーブルを使った最適化済みの距離ソートが実行済み
     
     // 明示的なソート指定がある場合のみソート処理
     switch (sortBy) {
@@ -975,11 +972,23 @@ function AdvancedSearchContent() {
         })
         break
       case 'distance':
-        // 距離順：サーバー側でソート済みのためスキップ（上で必要時のみソート）
-        if (!userLocation) {
-          // 位置情報がない場合のみ地域名でソート
+        // 距離順：サーバー側の順序を維持（高速化）
+        // serverOrderが存在する場合は、その順序を使用
+        if (filtered.length > 0 && filtered[0].serverOrder !== undefined) {
+          // サーバー側の元の順序で並び替え（最適化済みの距離順を維持）
+          const startTime = performance.now()
+          filtered.sort((a, b) => {
+            const orderA = a.serverOrder ?? 999999
+            const orderB = b.serverOrder ?? 999999
+            return orderA - orderB
+          })
+          const sortTime = performance.now() - startTime
+          console.log(`⚡ 距離順ソート最適化: ${sortTime.toFixed(2)}ms (サーバー順序を使用)`)
+        } else if (!userLocation) {
+          // serverOrderがない場合かつ位置情報もない場合のみ地域名でソート（フォールバック）
           filtered.sort((a, b) => a.location.localeCompare(b.location))
         }
+        // 位置情報があり、serverOrderもある場合は、既にサーバー側で最適なソート済みなので何もしない
         break
       case 'recommend':
       default:
