@@ -128,7 +128,8 @@ function AdvancedSearchContent() {
   // State
   const [users, setUsers] = useState<UserProfile[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
-  const [loading, setLoading] = useState(false) // 初期値をfalseに変更（高速化）
+  const [hasInitialDataLoaded, setHasInitialDataLoaded] = useState(false) // 初回データ取得完了フラグ
+  const [loading, setLoading] = useState(true) // 初回はローディング表示、2回目以降は高速化のためfalse
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showMobileFilter, setShowMobileFilter] = useState(false)
@@ -286,7 +287,10 @@ function AdvancedSearchContent() {
   // ユーザーデータ取得とフィルタリング処理
   const fetchFilteredUsers = useCallback(async () => {
     try {
-      setLoading(true)
+      // 初回データ取得時のみローディング表示、2回目以降は高速化のためスキップ
+      if (!hasInitialDataLoaded) {
+        setLoading(true)
+      }
       
       // locationパラメータがある場合はエリアフィルターをスキップ
       if (!locationFromParam && selectedArea && selectedArea !== 'all') {
@@ -617,9 +621,13 @@ function AdvancedSearchContent() {
       setFilteredUsers([])
       setFilteredTotalCount(0)
     } finally {
+      // 初回データ取得完了をマーク
+      if (!hasInitialDataLoaded) {
+        setHasInitialDataLoaded(true)
+      }
       setLoading(false)
     }
-  }, [hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes])
+  }, [hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes, hasInitialDataLoaded])
 
   // データ取得のタイミングを制御
   useEffect(() => {
@@ -1954,7 +1962,16 @@ function AdvancedSearchContent() {
           </div>
         )}
 
-        {filteredUsers.length === 0 && (
+        {/* ローディング表示 */}
+        {loading && !hasInitialDataLoaded && (
+          <div className={styles.emptyState}>
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">女性を検索中...</p>
+          </div>
+        )}
+
+        {/* データがない場合の表示（ローディング完了後のみ） */}
+        {!loading && filteredUsers.length === 0 && (
           <div className={styles.emptyState}>
             <Search className={styles.emptyIcon} />
             <h3 className={styles.emptyTitle}>
