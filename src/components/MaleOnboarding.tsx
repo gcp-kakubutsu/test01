@@ -489,9 +489,14 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="こだわらない">こだわらない</SelectItem>
-              {Array.from({ length: 61 }, (_, i) => i + 140).map((height) => (
-                <SelectItem key={height} value={`${height}cm`}>{height}cm</SelectItem>
-              ))}
+              <SelectItem value="140cm～150cm">140cm～150cm</SelectItem>
+              <SelectItem value="150cm～155cm">150cm～155cm</SelectItem>
+              <SelectItem value="155cm～160cm">155cm～160cm</SelectItem>
+              <SelectItem value="160cm～165cm">160cm～165cm</SelectItem>
+              <SelectItem value="165cm～170cm">165cm～170cm</SelectItem>
+              <SelectItem value="170cm～175cm">170cm～175cm</SelectItem>
+              <SelectItem value="175cm～180cm">175cm～180cm</SelectItem>
+              <SelectItem value="180cm以上">180cm以上</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -504,9 +509,16 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem value="こだわらない">こだわらない</SelectItem>
-              {Array.from({ length: 101 }, (_, i) => i + 40).map((weight) => (
-                <SelectItem key={weight} value={`${weight}kg`}>{weight}kg</SelectItem>
-              ))}
+              <SelectItem value="40kg以下">40kg以下</SelectItem>
+              <SelectItem value="40kg～45kg">40kg～45kg</SelectItem>
+              <SelectItem value="45kg～50kg">45kg～50kg</SelectItem>
+              <SelectItem value="50kg～55kg">50kg～55kg</SelectItem>
+              <SelectItem value="55kg～60kg">55kg～60kg</SelectItem>
+              <SelectItem value="60kg～65kg">60kg～65kg</SelectItem>
+              <SelectItem value="65kg～70kg">65kg～70kg</SelectItem>
+              <SelectItem value="70kg～75kg">70kg～75kg</SelectItem>
+              <SelectItem value="75kg～80kg">75kg～80kg</SelectItem>
+              <SelectItem value="80kg以上">80kg以上</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -535,15 +547,54 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectContent className="bg-gray-800 border-gray-700 max-h-60">
+              <SelectItem value="東京都">東京都</SelectItem>
+              <SelectItem value="神奈川県">神奈川県</SelectItem>
+              <SelectItem value="大阪府">大阪府</SelectItem>
+              <SelectItem value="愛知県">愛知県</SelectItem>
+              <SelectItem value="埼玉県">埼玉県</SelectItem>
+              <SelectItem value="千葉県">千葉県</SelectItem>
+              <SelectItem value="兵庫県">兵庫県</SelectItem>
               <SelectItem value="北海道">北海道</SelectItem>
-              <SelectItem value="東北">東北</SelectItem>
-              <SelectItem value="関東">関東</SelectItem>
-              <SelectItem value="中部">中部</SelectItem>
-              <SelectItem value="関西">関西</SelectItem>
-              <SelectItem value="中国">中国</SelectItem>
-              <SelectItem value="四国">四国</SelectItem>
-              <SelectItem value="九州・沖縄">九州・沖縄</SelectItem>
+              <SelectItem value="福岡県">福岡県</SelectItem>
+              <SelectItem value="静岡県">静岡県</SelectItem>
+              <SelectItem value="茨城県">茨城県</SelectItem>
+              <SelectItem value="広島県">広島県</SelectItem>
+              <SelectItem value="京都府">京都府</SelectItem>
+              <SelectItem value="宮城県">宮城県</SelectItem>
+              <SelectItem value="新潟県">新潟県</SelectItem>
+              <SelectItem value="長野県">長野県</SelectItem>
+              <SelectItem value="岐阜県">岐阜県</SelectItem>
+              <SelectItem value="栃木県">栃木県</SelectItem>
+              <SelectItem value="群馬県">群馬県</SelectItem>
+              <SelectItem value="岡山県">岡山県</SelectItem>
+              <SelectItem value="福島県">福島県</SelectItem>
+              <SelectItem value="三重県">三重県</SelectItem>
+              <SelectItem value="熊本県">熊本県</SelectItem>
+              <SelectItem value="鹿児島県">鹿児島県</SelectItem>
+              <SelectItem value="沖縄県">沖縄県</SelectItem>
+              <SelectItem value="滋賀県">滋賀県</SelectItem>
+              <SelectItem value="山口県">山口県</SelectItem>
+              <SelectItem value="愛媛県">愛媛県</SelectItem>
+              <SelectItem value="長崎県">長崎県</SelectItem>
+              <SelectItem value="奈良県">奈良県</SelectItem>
+              <SelectItem value="青森県">青森県</SelectItem>
+              <SelectItem value="岩手県">岩手県</SelectItem>
+              <SelectItem value="大分県">大分県</SelectItem>
+              <SelectItem value="石川県">石川県</SelectItem>
+              <SelectItem value="山形県">山形県</SelectItem>
+              <SelectItem value="宮崎県">宮崎県</SelectItem>
+              <SelectItem value="富山県">富山県</SelectItem>
+              <SelectItem value="秋田県">秋田県</SelectItem>
+              <SelectItem value="香川県">香川県</SelectItem>
+              <SelectItem value="和歌山県">和歌山県</SelectItem>
+              <SelectItem value="山梨県">山梨県</SelectItem>
+              <SelectItem value="佐賀県">佐賀県</SelectItem>
+              <SelectItem value="福井県">福井県</SelectItem>
+              <SelectItem value="徳島県">徳島県</SelectItem>
+              <SelectItem value="高知県">高知県</SelectItem>
+              <SelectItem value="島根県">島根県</SelectItem>
+              <SelectItem value="鳥取県">鳥取県</SelectItem>
             </SelectContent>
           </Select>
         </div>
