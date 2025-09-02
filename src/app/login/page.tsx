@@ -84,7 +84,7 @@ export default function LoginPage() {
             <LogInIcon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl sm:text-3xl font-bold text-primary">おかえりなさい！</CardTitle>
-          <CardDescription>ログインしてNukuneの旅を続けましょう。</CardDescription>
+          <CardDescription>ログインしてNUKUNEの旅を続けましょう。</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
