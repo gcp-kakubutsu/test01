@@ -142,8 +142,11 @@ export async function fetchMySQLGirls(
     
     if (girlIds) {
       images = await query<any>(`
-        SELECT DISTINCT girl_profile_id, MIN(image_url) as url 
-        FROM girl_image_urls 
+        SELECT DISTINCT girl_profile_id, 
+               (SELECT image_url FROM girl_image_urls 
+                WHERE girl_profile_id = giu.girl_profile_id 
+                ORDER BY id ASC LIMIT 1) as url
+        FROM girl_image_urls giu
         WHERE girl_profile_id IN (${girlIds})
         GROUP BY girl_profile_id
       `);

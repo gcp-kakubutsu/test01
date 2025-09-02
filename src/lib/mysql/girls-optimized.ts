@@ -239,9 +239,10 @@ export async function fetchOptimizedGirls(
       IFNULL(p.name, '') as location,
       IFNULL(m.name, '') as municipality,
       (
-        SELECT MIN(gi.image_url) 
+        SELECT gi.image_url 
         FROM girl_image_urls gi 
         WHERE gi.girl_profile_id = g.id 
+        ORDER BY gi.id ASC
         LIMIT 1
       ) as imageUrl,
       (
@@ -404,9 +405,10 @@ export async function batchFetchGirls(ids: string[]): Promise<MySQLGirlProfile[]
       IFNULL(p.name, '') as location,
       IFNULL(m.name, '') as municipality,
       (
-        SELECT MIN(gi.image_url) 
+        SELECT gi.image_url 
         FROM girl_image_urls gi 
         WHERE gi.girl_profile_id = g.id 
+        ORDER BY gi.id ASC
         LIMIT 1
       ) as imageUrl,
       (
