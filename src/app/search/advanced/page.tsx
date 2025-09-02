@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,14 +15,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MultiSelect, type Option } from '@/components/ui/multi-select'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { Heart, StickyNote, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown } from 'lucide-react'
-// Removed direct import - will fetch via API
-import { sendLike } from '@/lib/firebase/actions'
+import { Heart, StickyNote, MapPin, Clock, Filter, Grid3x3, List, Search, Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location'
 import { getLocationCoordinates } from '@/lib/utils/japanLocations'
 import { useUserProfile } from '@/lib/firebase/hooks'
 import { useSubscription } from '@/contexts/SubscriptionContext'
+import { useLikeOptimistic } from '@/lib/hooks/useLikeOptimistic'
+import { useMemoOptimistic } from '@/lib/hooks/useMemoOptimistic'
 import Image from 'next/image'
 import styles from './search.module.scss'
 import './search-dialog.css'
@@ -120,10 +120,14 @@ function AdvancedSearchContent() {
   // 有料会員状態を直接使用
   // subscriptionLoadingがfalseでisPremiumがfalseの場合のみモザイクを適用
 
+  // 楽観的UIフック
+  const { handleLikeOptimistic, likingStates, isLiked } = useLikeOptimistic()
+  const { prefetchMemoPage, handleMemoNavigation, navigatingStates } = useMemoOptimistic()
+  
   // State
   const [users, setUsers] = useState<UserProfile[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // 初期値をfalseに変更（高速化）
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showMobileFilter, setShowMobileFilter] = useState(false)
@@ -132,6 +136,8 @@ function AdvancedSearchContent() {
     municipalities: [] 
   })
   const [currentPage, setCurrentPage] = useState(1)
+  const [sortedDataCache, setSortedDataCache] = useState<UserProfile[] | null>(null) // ソート済みデータのキャッシュ
+  const [initialFetchDone, setInitialFetchDone] = useState(false) // 初回データ取得完了フラグ
   const LIMIT = 20 // 20 items per page for pagination
 
   // Filters
@@ -553,15 +559,17 @@ function AdvancedSearchContent() {
         };
       })
       
-      // Update total count
+      // Update total count and cache sorted data
       setTotalCount(data.total || 0)
       setUsers(mappedUsers)
+      setSortedDataCache(mappedUsers) // ソート済みデータをキャッシュ
       
       // APIから返されたデータが0件の場合は、確実に空の配列を設定
       if (mappedUsers.length === 0 || data.total === 0) {
         setUsers([])
         setFilteredUsers([])
         setFilteredTotalCount(0)
+        setSortedDataCache([])
       } else {
         // データがある場合
         if (!hasSpecialFilters) {
@@ -615,12 +623,21 @@ function AdvancedSearchContent() {
     // エリアデータが読み込まれていない場合はスキップ
     if (areas.prefectures.length === 0) return;
     
-    // デバウンスしてデータ取得
-    const timer = setTimeout(() => {
-      fetchFilteredUsers();
-    }, 300);
+    // 初回またはエリアデータ読み込み完了時は即座に実行、それ以外はデバウンス
+    const isFirstFetch = !initialFetchDone;
     
-    return () => clearTimeout(timer);
+    if (isFirstFetch) {
+      // 初回は即座に実行
+      fetchFilteredUsers();
+      setInitialFetchDone(true);
+    } else {
+      // 2回目以降は短いデバウンス（100ms）
+      const timer = setTimeout(() => {
+        fetchFilteredUsers();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
   }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
@@ -702,7 +719,8 @@ function AdvancedSearchContent() {
       return
     }
     
-    let filtered = [...users]
+    // キャッシュがあれば優先使用、なければusersを使用（高速化）
+    let filtered = sortedDataCache ? [...sortedDataCache] : [...users]
 
     // 検索クエリフィルター（拡張検索）
     if (searchQuery && searchQuery.trim()) {
@@ -932,38 +950,34 @@ function AdvancedSearchContent() {
       })
     }
 
-    // ソート処理 - デフォルトは距離順（/homeと同様）
-    // サーバー側で既に距離順にソートされているが、クライアント側のフィルタリング後に再ソートが必要
-    if (userLocation && filtered.length > 0) {
-      // 距離情報が計算済みの場合はそれを使用
+    // ソート処理最適化 - サーバー側で既にソート済みの場合はスキップ
+    // フィルタリングした場合のみ再ソートが必要
+    const hasClientFilters = selectedTags.length > 0 || searchQuery || selectedStyles.length > 0 || prioritizeQuickMeet
+    
+    // フィルタリング後のみ再ソート（パフォーマンス最適化）
+    if (hasClientFilters && userLocation && filtered.length > 0 && sortBy === 'distance') {
+      // クライアントフィルタリング後のみ距離順に再ソート
       filtered.sort((a, b) => {
         const aDistance = a.distance ?? 999999
         const bDistance = b.distance ?? 999999
         return aDistance - bDistance
       })
-      
-      // デバッグ用：上位5件の距離を表示
-      console.log('📍 検索結果 - 距離順上位5件:')
-      filtered.slice(0, 5).forEach((user, idx) => {
-        console.log(`  ${idx + 1}. ${user.name}: ${user.distance ? user.distance.toFixed(1) + 'km' : '距離不明'}`)
-      })
     }
     
-    // 明示的なソート指定がある場合は上書き
+    // 明示的なソート指定がある場合のみソート処理
     switch (sortBy) {
       case 'new':
         // 新着順：IDが大きい（新しい）順に並べる
         filtered.sort((a, b) => {
-          // IDを数値として比較（IDが数値文字列の場合）
           const aId = parseInt(a.id) || 0
           const bId = parseInt(b.id) || 0
           return bId - aId
         })
         break
       case 'distance':
-        // 距離順：既に上でソート済み
+        // 距離順：サーバー側でソート済みのためスキップ（上で必要時のみソート）
         if (!userLocation) {
-          // 位置情報がない場合は地域名でソート
+          // 位置情報がない場合のみ地域名でソート
           filtered.sort((a, b) => a.location.localeCompare(b.location))
         }
         break
@@ -1113,141 +1127,7 @@ function AdvancedSearchContent() {
     // 年齢が変更されても現在のページを維持
   }, [ageRange])
 
-  // いいね送信
-  const handleLike = async (user: UserProfile) => {
-    if (!currentUser) {
-      toast({
-        title: '新規登録が必要です',
-        description: 'いいねを送るには新規登録してください'
-      })
-      router.push('/signup')
-      return
-    }
-
-    // 有料会員チェック - subscriptionLoadingが完了してからチェック
-    if (!subscriptionLoading && !isPremium) {
-      toast({
-        title: '有料会員限定',
-        description: 'いいねを送るには有料会員登録が必要です',
-        action: (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/subscription')}
-          >
-            有料会員になる
-          </Button>
-        ),
-      })
-      return
-    }
-
-    // subscriptionLoading中は何もしない
-    if (subscriptionLoading) {
-      console.log('Subscription status is still loading...')
-      return
-    }
-
-    try {
-      console.log('Sending like from:', currentUser.uid, 'to:', user.id, 'isPremium:', isPremium)
-      
-      // MySQLの女の子データの場合は追加情報を送る
-      const options = user.isGirlProfile ? {
-        toGirlName: user.name,
-        toGirlId: user.id,
-        isGirlProfile: true
-      } : undefined;
-      
-      // MySQLの女の子の場合、特別なIDを使用
-      const targetId = user.isGirlProfile ? `mysql_girl_${user.id}` : user.id;
-      
-      const result = await sendLike(currentUser.uid, targetId, options)
-      
-      if (result.alreadyLiked) {
-        toast({
-          title: result.updated ? 'いいねを更新しました！' : '既にいいねを送っています',
-          description: result.updated 
-            ? `${user.name}さんへのいいねを最新に更新しました。`
-            : `${user.name}さんには既にいいねを送信済みです。`,
-        })
-      } else if (result.isMatch) {
-        toast({
-          title: 'マッチしました！🎉',
-          description: `${user.name}さんとマッチしました！メモを残してみましょう。`,
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/messages/${result.matchId}`)}
-            >
-              メモを見る
-            </Button>
-          ),
-        })
-      } else {
-        toast({
-          title: 'いいねを送りました！',
-          description: `${user.name}さんにいいねを送りました。`
-        })
-      }
-    } catch (error: any) {
-      console.error('Like error:', error)
-      console.error('Error details:', error.message, error.code)
-      
-      // Firebaseの権限エラーの場合
-      if (error?.code === 'permission-denied' || 
-          error?.message?.includes('Missing or insufficient permissions') ||
-          error?.message?.includes('有料会員のみ')) {
-        
-        // サブスクリプション情報を再確認
-        console.log('Permission denied. Current premium status:', isPremium)
-        
-        toast({
-          title: '権限エラー',
-          description: '有料会員登録を確認してください。ページをリロードして再度お試しください。',
-          variant: 'destructive',
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-            >
-              ページをリロード
-            </Button>
-          ),
-        })
-      } else {
-        toast({
-          title: 'エラー',
-          description: 'いいねの送信に失敗しました。しばらく時間をおいて再度お試しください。',
-          variant: 'destructive'
-        })
-      }
-    }
-  }
-
-  // メモ画面へ
-  const handleMessage = (userId: string) => {
-    if (!currentUser) {
-      toast({
-        title: '新規登録が必要です',
-        description: 'メモを残すには新規登録してください'
-      })
-      router.push('/signup')
-      return
-    }
-
-    if (!isPremium) {
-      toast({
-        title: 'プレミアム会員限定',
-        description: 'メモ機能は有料会員のみ利用可能です',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    router.push(`/messages/${userId}`)
-  }
+  // 削除: handleLike と handleMessage - 楽観的UIフックを直接使用するため不要
 
   // フィルターリセット
   const resetFilters = () => {
@@ -1263,13 +1143,8 @@ function AdvancedSearchContent() {
     setSortBy('recommend')
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
-      </div>
-    )
-  }
+  // ローディング表示を削除（即座にコンテンツを表示）
+  // LINEブラウザ対応: 初期ローディングを表示しない
 
   return (
     <div className={styles.searchContainer}>
@@ -1947,17 +1822,118 @@ function AdvancedSearchContent() {
                   <Button
                     variant="outline"
                     className={styles.actionLike}
-                    onClick={() => handleLike(user)}
+                    disabled={likingStates[`mysql_girl_${user.id}`]}
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      
+                      // ログインチェック
+                      if (!currentUser) {
+                        toast({
+                          title: 'ログインが必要です',
+                          description: 'いいねを送るにはログインしてください',
+                          variant: 'destructive'
+                        })
+                        router.push('/login')
+                        return
+                      }
+                      
+                      // 有料会員チェック
+                      if (!isPremium && !subscriptionLoading) {
+                        toast({
+                          title: '有料会員限定',
+                          description: 'いいねを送るには有料会員登録が必要です',
+                          action: (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push('/subscription')}
+                            >
+                              有料会員になる
+                            </Button>
+                          ),
+                        })
+                        return
+                      }
+                      
+                      // 楽観的更新でいいねを送信（高速化）
+                      const targetId = `mysql_girl_${user.id}`
+                      handleLikeOptimistic(
+                        currentUser.uid,
+                        targetId,
+                        user.name,
+                        {
+                          toGirlName: user.name,
+                          toGirlId: user.id,
+                          isGirlProfile: true
+                        }
+                      ).catch(error => {
+                        console.error('Like error:', error)
+                      })
+                    }}
                   >
-                    <Heart className="w-4 h-4" />
-                    いいね
+                    {likingStates[`mysql_girl_${user.id}`] ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        送信中...
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="w-4 h-4" />
+                        いいね
+                      </>
+                    )}
                   </Button>
                   <Button
                     className={styles.actionMessage}
-                    onClick={() => handleMessage(user.id)}
+                    disabled={navigatingStates[user.id]}
+                    onMouseEnter={() => prefetchMemoPage(user.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      
+                      // ログインチェック
+                      if (!currentUser) {
+                        toast({
+                          title: 'ログインが必要です',
+                          description: 'メモを使うにはログインしてください',
+                          variant: 'destructive'
+                        })
+                        router.push('/login')
+                        return
+                      }
+                      
+                      // 有料会員チェック
+                      if (!isPremium && !subscriptionLoading) {
+                        toast({
+                          title: '有料会員限定',
+                          description: 'メモ機能を使うには有料会員登録が必要です',
+                          action: (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push('/subscription')}
+                            >
+                              有料会員になる
+                            </Button>
+                          ),
+                        })
+                        return
+                      }
+                      
+                      // 高速ナビゲーション（プリフェッチ済み）
+                      handleMemoNavigation(user.id, user.name)
+                    }}
                   >
-                    <StickyNote className="w-4 h-4" />
-                    メモ
+                    {navigatingStates[user.id] ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        移動中...
+                      </>
+                    ) : (
+                      <>
+                        <StickyNote className="w-4 h-4" />
+                        メモ
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
