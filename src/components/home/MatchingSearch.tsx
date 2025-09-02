@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Clock, User, Ruler, Heart, Sparkles, Settings } from 'lucide-react'
+import { Search, MapPin, Clock, User, Ruler, Heart, Sparkles, Settings, Lock, ChevronDown } from 'lucide-react'
 import { GoldSwitch } from '@/components/ui/gold-switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -40,6 +40,7 @@ export default function MatchingSearch() {
   const [location, setLocation] = useState('')
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [hasPreferences, setHasPreferences] = useState(false)
+  const [showPremiumDropdown, setShowPremiumDropdown] = useState(false)
 
   const ageOptions: Option[] = [
     { value: '10代', label: '10代' },
@@ -203,6 +204,12 @@ export default function MatchingSearch() {
 
     // Navigate to advanced search page with parameters
     router.push(`/search/advanced?${params.toString()}`)
+  }
+
+  const handleSignupClick = () => {
+    if (confirm('あなたは18歳以上ですか？')) {
+      router.push('/signup')
+    }
   }
 
   const handlePreferenceSearch = async () => {
@@ -383,6 +390,108 @@ export default function MatchingSearch() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`pl-10 ${styles.inputField} h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all`}
             />
+          </div>
+        </div>
+
+        {/* Premium Search Preview Section */}
+        <div className="mb-6 p-4 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(212, 175, 55, 0.02))', border: '1px solid rgba(212, 175, 55, 0.25)' }}>
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            {/* Left side - Text */}
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-base font-bold mb-1" style={{ color: '#D4AF37' }}>
+                <Lock className="w-4 h-4 inline-block mr-1" />
+                会員登録でさらに深掘り検索！
+              </h3>
+              <p className="text-xs" style={{ color: '#b8b2a7' }}>
+                あなたの"性癖プロファイル"を登録すれば、理想の女性とピンポイントでマッチング
+              </p>
+            </div>
+            
+            {/* Center - Select Box */}
+            <div className="flex-1 w-full md:w-auto">
+              <div className="relative">
+                <div 
+                  className="w-full px-4 py-3 rounded-xl flex items-center justify-between cursor-pointer transition-all"
+                  style={{ 
+                    background: showPremiumDropdown ? 'rgba(26, 26, 26, 0.95)' : 'rgba(26, 26, 26, 0.8)', 
+                    border: showPremiumDropdown ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid rgba(212, 175, 55, 0.2)',
+                    color: '#999',
+                    fontSize: '13px'
+                  }}
+                  onClick={() => setShowPremiumDropdown(!showPremiumDropdown)}
+                >
+                  <span className="pr-2">コスプレ、おもちゃ、イラマチオなど性癖で検索...</span>
+                  <ChevronDown 
+                    className="w-4 h-4 flex-shrink-0 transition-transform" 
+                    style={{ 
+                      color: '#D4AF37',
+                      transform: showPremiumDropdown ? 'rotate(180deg)' : 'rotate(0deg)'
+                    }} 
+                  />
+                </div>
+                
+                {/* Dropdown Menu */}
+                {showPremiumDropdown && (
+                  <div 
+                    className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl"
+                    style={{ 
+                      background: 'rgba(26, 26, 26, 0.98)', 
+                      border: '1px solid rgba(212, 175, 55, 0.3)'
+                    }}
+                  >
+                    {[
+                      'コスプレは好き・興味がありますか',
+                      'おもちゃを使うのは好き・興味がありますか？',
+                      'イラマチオは好き・興味がありますか？',
+                      'ごっくんは好き・興味がありますか？',
+                      'アナルプレイは好き・興味がありますか？',
+                      '複数人プレイは好き・興味がありますか？'
+                    ].map((item, index) => (
+                      <div 
+                        key={index}
+                        className="relative px-4 py-3 hover:bg-gray-800/50 cursor-not-allowed opacity-70 border-b border-gray-800"
+                        style={{ fontSize: '12px', color: '#b8b2a7' }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{item}</span>
+                          <Lock className="w-3 h-3" style={{ color: 'rgba(212, 175, 55, 0.5)' }} />
+                        </div>
+                      </div>
+                    ))}
+                    <div 
+                      className="px-4 py-2 text-center"
+                      style={{ 
+                        background: 'rgba(212, 175, 55, 0.1)',
+                        fontSize: '11px',
+                        color: '#D4AF37'
+                      }}
+                    >
+                      会員登録で全項目が選択可能になります
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs mt-1 text-center" style={{ color: '#888' }}>
+                ※会員登録で6つの性癖項目が選択可能
+              </p>
+            </div>
+            
+            {/* Right side - Button */}
+            <div className="md:flex-shrink-0">
+              <Button
+                onClick={handleSignupClick}
+                className="px-4 py-2 h-auto"
+                style={{
+                  background: 'linear-gradient(135deg, #f3e5c1, #caa35b)',
+                  color: '#1a1a1a',
+                  fontWeight: 'bold',
+                  fontSize: '13px'
+                }}
+              >
+                <Sparkles className="w-4 h-4 mr-1" />
+                無料で会員登録
+              </Button>
+            </div>
           </div>
         </div>
 
