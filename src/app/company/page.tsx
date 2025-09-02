@@ -37,10 +37,6 @@ export default function CompanyPage() {
                 <span className={styles.infoLabel}>メール</span>
                 <span className={styles.infoValue}>info@nukune.com</span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}></span>
-                <span className={styles.infoValue}>インターネット異性紹介事業<br />(届出受理番号 54250003000)<br />愛知県公安委員会に<br />異性紹介事業届出及び受理済み</span>
-              </div>
             </div>
           </div>
 
