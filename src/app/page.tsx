@@ -952,8 +952,9 @@ export default function LandingPage() {
             </p>
             <Link 
               href="/signup" 
-              className={`${styles.btn} ${styles.btnPrimary} ${styles.scrollScaleUp} ${styles.enhancedHover}`}
+              className={`${styles.btn} ${styles.btnPrimary}`}
               onClick={handleAgeConfirmation}
+              style={{ padding: '1.2rem 2rem', fontSize: '18.4px', minWidth: '180px' }}
             >
               <Heart size={24} />
               今すぐ登録
