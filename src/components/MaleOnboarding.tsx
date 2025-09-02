@@ -65,12 +65,12 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         } else {
           // 新規ユーザーの場合、デフォルト値を確実に設定
           const defaultPrefs = {
-            spanking: 3, outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
+            outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
             oralReceiving: 3, hypnosisPlay: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-            verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
+            deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
             experienceCount: '', recordingDuringPlay: '', isSadist: '', isMasochist: '',
             seekingType: '', partnerHeight: '', partnerWeight: '', partnerBodyType: '',
-            partnerLocation: '', contactBeforeMeeting: '', photoExchangeBeforeMeeting: '',
+            partnerLocation: '', contactBeforeMeeting: '',
             partnerAgeMin: 18, partnerAgeMax: 30, availableDays: [], availableTimeSlots: [],
             activityAreas: [], isComplete: false
           };
@@ -153,7 +153,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         <p className="text-gray-300">1から5の段階で評価してください</p>
       </div>
       
-      {renderRatingScale('スパンキングは好き・興味ありますか？', 'spanking', preferences.spanking)}
       {renderRatingScale('複数人プレイは好き・興味ありますか？', 'groupPlay', preferences.groupPlay)}
     </div>
   );
@@ -181,8 +180,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       
       {renderRatingScale('コスプレプレイは好き・興味ありますか？', 'cosplay', preferences.cosplay)}
       {renderRatingScale('おもちゃを使うのは好き・興味ありますか？', 'toyPlay', preferences.toyPlay)}
-      {renderRatingScale('言葉責めプレイは好き・興味ありますか？', 'verbalPlay', preferences.verbalPlay)}
-      {renderRatingScale('潮吹きは好き・興味ありますか？', 'squirting', preferences.squirting)}
       {renderRatingScale('イラマチオは好き・興味ありますか？', 'deepthroat', preferences.deepthroat)}
     </div>
   );
@@ -242,20 +239,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
       
 
       <div className="space-y-4">
-        <div>
-          <Label className="text-base font-medium text-white">会う前の写真交換</Label>
-          <Select value={preferences.photoExchangeBeforeMeeting} onValueChange={(value) => setPreferences(prev => ({ ...prev, photoExchangeBeforeMeeting: value }))}>
-            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700">
-              <SelectItem value="する">する</SelectItem>
-              <SelectItem value="しない">しない</SelectItem>
-              <SelectItem value="相手次第">相手次第</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <div>
           <Label className="text-base font-medium text-white">相手の年齢</Label>
           <div className="flex items-center space-x-3 mt-2">
@@ -524,24 +507,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium text-white">体型</Label>
-          <Select value={preferences.partnerBodyType} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerBodyType: value }))}>
-            <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700">
-              <SelectItem value="スリム">スリム</SelectItem>
-              <SelectItem value="やや細め">やや細め</SelectItem>
-              <SelectItem value="普通">普通</SelectItem>
-              <SelectItem value="ややぽっちゃり">ややぽっちゃり</SelectItem>
-              <SelectItem value="ぽっちゃり">ぽっちゃり</SelectItem>
-              <SelectItem value="グラマー">グラマー</SelectItem>
-              <SelectItem value="筋肉質">筋肉質</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
           <Label className="text-base font-medium text-white">居住地</Label>
           <Select value={preferences.partnerLocation} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerLocation: value }))}>
             <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
@@ -612,12 +577,10 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
     switch (currentStep) {
       case 3: // Step 3 (旧Step 5): 基本情報
         const step3Valid = !!(
-          preferences.photoExchangeBeforeMeeting &&
           preferences.partnerAgeMin > 0 &&
           preferences.partnerAgeMax > 0
         );
         console.log('Step 3 validation:', {
-          photoExchangeBeforeMeeting: preferences.photoExchangeBeforeMeeting,
           partnerAgeMin: preferences.partnerAgeMin,
           partnerAgeMax: preferences.partnerAgeMax,
           result: step3Valid
