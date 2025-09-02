@@ -201,13 +201,14 @@ function AdvancedSearchContent() {
     setIsInitialLoad(false)
   }, [searchParams, isInitialLoad])
 
-  // 位置情報取得（高速化：住所取得をスキップ）
+  // 位置情報取得（ログイン状態に関係なく全ユーザーが利用可能）
   useEffect(() => {
     const getLocation = async () => {
       try {
         const locationInfo = await getCurrentLocation(true) // 住所取得をスキップして高速化
         if (locationInfo.coordinates) {
           setUserLocation(locationInfo.coordinates)
+          console.log('📍 位置情報取得成功:', locationInfo.coordinates)
         }
       } catch (error) {
         console.error('位置情報取得エラー:', error)
@@ -217,10 +218,12 @@ function AdvancedSearchContent() {
       }
     }
 
-    if (isAuthenticated && !locationFromParam) {
+    // ログイン状態に関係なく位置情報を取得
+    // これにより、未ログインユーザーも近くの女性を見ることができる
+    if (!locationFromParam) {
       getLocation()
     }
-  }, [isAuthenticated, locationFromParam])
+  }, [locationFromParam]) // isAuthenticatedを依存配列から削除
 
   // エリアデータ取得
   useEffect(() => {
