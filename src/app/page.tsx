@@ -744,6 +744,16 @@ export default function LandingPage() {
               </div>
               <p className={styles.safetyDescription}>ニックネームで利用できるため、本名は非公開。個人情報が共有されることはありません。</p>
             </div>
+            <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
+              <div className={styles.safetyHeader}>
+                <div className={styles.safetyIcon}>
+                  <MapPin />
+                </div>
+                <h3 className={styles.safetyTitle}>『今すぐ会える』<br />GPS検索</h3>
+              </div>
+              <p className={styles.safetyDescription}>位置情報サービスをオンにすると、現在地から最短ルートで今すぐ会えるキャストを表示します。
+※プライバシーが気になる方は、駅名や地域を入力して検索することも可能です。</p>
+            </div>
           </div>
         </div>
       </section>
