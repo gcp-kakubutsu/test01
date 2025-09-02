@@ -26,6 +26,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext'
 import Image from 'next/image'
 import styles from './search.module.scss'
 import './search-dialog.css'
+import { fetchWithDedup, roundLocation, generateCacheKey } from '@/lib/utils/api-request-manager'
 
 interface GirlType {
   id?: number
@@ -347,73 +348,115 @@ function AdvancedSearchContent() {
       // Always fetch from offset 0 to get all data for client-side filtering
       const offset = 0
       
-      // Use optimized API endpoint
-      let apiUrl = `/api/mysql-girls-fast?limit=${fetchLimit}&offset=${offset}`
+      // 位置情報を正規化（小数点3桁に丸める）
+      const normalizedLocation = userLocation 
+        ? roundLocation(userLocation.lat, userLocation.lng, 3)
+        : null;
       
-      // エリアフィルターを適用（ユーザーが選択した場合はそちらを優先）
+      // キャッシュキー用のパラメータを準備
+      const cacheParams: Record<string, any> = {
+        limit: fetchLimit,
+        offset: offset,
+      };
+      
       if (effectiveArea) {
-        apiUrl += `&area=${encodeURIComponent(effectiveArea)}`
-        // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
-        const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-        if (isMobile && effectiveArea.includes('東京')) {
-          apiUrl += `&_t=${Date.now()}`
-        }
+        cacheParams.area = effectiveArea;
       }
       
       if (ageRange[0] !== 18 || ageRange[1] !== 50) {
-        apiUrl += `&ageMin=${ageRange[0]}&ageMax=${ageRange[1]}`
+        cacheParams.ageMin = ageRange[0];
+        cacheParams.ageMax = ageRange[1];
       }
       
       if (selectedGirlTypes.length > 0) {
-        apiUrl += `&girlTypes=${encodeURIComponent(selectedGirlTypes.join(','))}`
+        cacheParams.girlTypes = selectedGirlTypes.join(',');
       }
       
-      // 位置情報をAPIに送信して、area_smallsテーブルを使った距離計算を有効化
-      if (userLocation) {
-        apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`
-        console.log('📍 位置情報をAPIに送信:', { lat: userLocation.lat, lng: userLocation.lng })
+      // 位置情報をキャッシュパラメータに追加（正規化済み）
+      if (normalizedLocation) {
+        cacheParams.userLat = normalizedLocation.lat;
+        cacheParams.userLng = normalizedLocation.lng;
       } else if (!effectiveArea) {
         // 位置情報がなく、エリア指定もない場合、東京駅の座標をフォールバックとして使用
-        const tokyoLat = 35.6812
-        const tokyoLng = 139.7671
-        apiUrl += `&userLat=${tokyoLat}&userLng=${tokyoLng}`
-        console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示')
-        console.log(`🗺️ フォールバック座標: lat=${tokyoLat}, lng=${tokyoLng}`)
+        const tokyoLocation = roundLocation(35.6812, 139.7671, 3);
+        cacheParams.userLat = tokyoLocation.lat;
+        cacheParams.userLng = tokyoLocation.lng;
+        console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
+        console.log(`🗺️ フォールバック座標: lat=${tokyoLocation.lat}, lng=${tokyoLocation.lng}`);
       }
       
+      // Use optimized API endpoint
+      let apiUrl = `/api/mysql-girls-fast?limit=${cacheParams.limit}&offset=${cacheParams.offset}`;
+      
+      // エリアフィルターを適用（ユーザーが選択した場合はそちらを優先）
+      if (effectiveArea) {
+        apiUrl += `&area=${encodeURIComponent(effectiveArea)}`;
+        // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
+        const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+        if (isMobile && effectiveArea.includes('東京')) {
+          apiUrl += `&_t=${Date.now()}`;
+        }
+      }
+      
+      if (cacheParams.ageMin !== undefined) {
+        apiUrl += `&ageMin=${cacheParams.ageMin}&ageMax=${cacheParams.ageMax}`;
+      }
+      
+      if (cacheParams.girlTypes) {
+        apiUrl += `&girlTypes=${encodeURIComponent(cacheParams.girlTypes)}`;
+      }
+      
+      // 位置情報をAPIに送信
+      if (cacheParams.userLat !== undefined) {
+        apiUrl += `&userLat=${cacheParams.userLat}&userLng=${cacheParams.userLng}`;
+        if (normalizedLocation) {
+          console.log('📍 位置情報をAPIに送信（正規化済み）:', { lat: cacheParams.userLat, lng: cacheParams.userLng });
+        }
+      }
+      
+      // キャッシュキーを生成
+      const cacheKey = generateCacheKey(cacheParams);
+      console.log('🔑 Cache key generated:', cacheKey);
+      
       // Try optimized API first, fallback to regular API if it fails
-      let response: Response | null = null
-      let data: any = null
+      let data: any = null;
       
       try {
-        // Try the optimized API endpoint first
-        response = await fetch(apiUrl)
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        data = await response.json()
+        // 重複排除機能付きでフェッチ（キャッシュ機能も含む）
+        data = await fetchWithDedup(apiUrl, {
+          method: 'GET',
+          credentials: 'include',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        }, cacheKey);
       } catch (error) {
+        console.error('Optimized API failed, trying fallback:', error);
         
         // Fallback to regular API endpoint
-        const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls')
+        const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls');
         
         try {
-          response = await fetch(fallbackUrl)
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          
-          data = await response.json()
+          // フォールバックでも重複排除機能を使用
+          data = await fetchWithDedup(fallbackUrl, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            }
+          }, cacheKey + '_fallback');
         } catch (fallbackError) {
+          console.error('Fallback API also failed:', fallbackError);
           // Continue with empty data rather than throwing
-          data = { girls: [], total: 0 }
-          setFilteredUsers([])
-          setFilteredTotalCount(0)
-          setLoading(false)
-          return
+          data = { girls: [], total: 0 };
+          setFilteredUsers([]);
+          setFilteredTotalCount(0);
+          setLoading(false);
+          return;
         }
       }
       
