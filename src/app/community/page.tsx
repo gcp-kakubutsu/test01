@@ -1430,139 +1430,123 @@ export default function CommunityPage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <button 
-                    className="w-full text-left text-xl text-gray-500 dark:text-gray-400 py-4 px-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-                    onClick={() => {
-                      if (!isPremium && !subscriptionLoading) {
-                        toast({
-                          title: "プレミアム機能",
-                          description: "投稿機能はプレミアム会員限定です。",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      setShowNewPost(true);
-                      setTimeout(() => {
-                        postFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }, 100);
-                    }}
-                  >
-                    いまどうしてる？
-                  </button>
-                  <div className="flex justify-between items-center pt-3">
-                    <div className="flex gap-4">
-                      <button className="text-[#F0306A] hover:bg-[#F0306A]/10 p-2 rounded-full transition-colors">
-                        <Camera className="h-5 w-5" />
+                  {showNewPost ? (
+                    <>
+                      <div className="mb-3">
+                        <Select
+                          value={postDestination}
+                          onValueChange={setPostDestination}
+                        >
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="投稿先を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="global">全体の投稿</SelectItem>
+                            {communities
+                              .filter(c => c.isJoined)
+                              .map(community => (
+                                <SelectItem key={community.id} value={community.id}>
+                                  {community.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Textarea
+                        placeholder="いまどうしてる？"
+                        value={newPostContent}
+                        onChange={(e) => setNewPostContent(e.target.value)}
+                        className="mb-3 border-none resize-none text-xl p-0 min-h-[120px] focus-visible:ring-0 focus-visible:ring-offset-0"
+                        rows={3}
+                      />
+                      <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex gap-4">
+                          <button className="text-[#F0306A] hover:bg-[#F0306A]/10 p-2 rounded-full transition-colors">
+                            <Camera className="h-5 w-5" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="rounded-full"
+                            onClick={() => {
+                              setShowNewPost(false);
+                              setNewPostContent('');
+                              setPostDestination('global');
+                            }}
+                          >
+                            キャンセル
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="bg-[#F0306A] hover:bg-[#E02860] text-white px-6 rounded-full"
+                            onClick={handleCreatePost}
+                            disabled={isPosting || !newPostContent.trim() || (!isPremium && !subscriptionLoading)}
+                          >
+                            {isPosting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                投稿中...
+                              </>
+                            ) : (
+                              '投稿'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        className="w-full text-left text-xl text-gray-500 dark:text-gray-400 py-4 px-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                        onClick={() => {
+                          if (!isPremium && !subscriptionLoading) {
+                            toast({
+                              title: "プレミアム機能",
+                              description: "投稿機能はプレミアム会員限定です。",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setShowNewPost(true);
+                        }}
+                      >
+                        いまどうしてる？
                       </button>
-                    </div>
-                    <Button 
-                      size="sm"
-                      className="bg-[#F0306A] hover:bg-[#E02860] text-white px-6 rounded-full"
-                      onClick={() => {
-                        if (!isPremium && !subscriptionLoading) {
-                          toast({
-                            title: "プレミアム機能",
-                            description: "投稿機能はプレミアム会員限定です。",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setShowNewPost(true);
-                        setTimeout(() => {
-                          postFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }, 100);
-                      }}
-                      disabled={!isPremium && !subscriptionLoading}
-                    >
-                      投稿
-                    </Button>
-                  </div>
+                      <div className="flex justify-between items-center pt-3">
+                        <div className="flex gap-4">
+                          <button className="text-[#F0306A] hover:bg-[#F0306A]/10 p-2 rounded-full transition-colors">
+                            <Camera className="h-5 w-5" />
+                          </button>
+                        </div>
+                        <Button 
+                          size="sm"
+                          className="bg-[#F0306A] hover:bg-[#E02860] text-white px-6 rounded-full"
+                          onClick={() => {
+                            if (!isPremium && !subscriptionLoading) {
+                              toast({
+                                title: "プレミアム機能",
+                                description: "投稿機能はプレミアム会員限定です。",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setShowNewPost(true);
+                          }}
+                          disabled={!isPremium && !subscriptionLoading}
+                        >
+                          投稿
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* New Post Form */}
-            {showNewPost && (
-              <div className="border-b border-gray-200 dark:border-gray-800 p-4" ref={postFormRef}>
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 flex-shrink-0">
-                    <Image
-                      src={profile?.profilePhotoUrl || 'https://placehold.co/48x48/FFB6C1/FFFFFF?text=U'}
-                      alt="Your avatar"
-                      width={48}
-                      height={48}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="mb-3">
-                      <Select
-                        value={postDestination}
-                        onValueChange={setPostDestination}
-                      >
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="投稿先を選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="global">全体の投稿</SelectItem>
-                          {communities
-                            .filter(c => c.isJoined)
-                            .map(community => (
-                              <SelectItem key={community.id} value={community.id}>
-                                {community.name}
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Textarea
-                      placeholder="いまどうしてる？"
-                      value={newPostContent}
-                      onChange={(e) => setNewPostContent(e.target.value)}
-                      className="mb-3 border-none resize-none text-xl p-0 min-h-[120px] focus-visible:ring-0 focus-visible:ring-offset-0"
-                      rows={3}
-                    />
-                    <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-800">
-                      <div className="flex gap-4">
-                        <button className="text-[#F0306A] hover:bg-[#F0306A]/10 p-2 rounded-full transition-colors">
-                          <Camera className="h-5 w-5" />
-                        </button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="rounded-full"
-                          onClick={() => {
-                            setShowNewPost(false);
-                            setNewPostContent('');
-                            setPostDestination('global');
-                          }}
-                        >
-                          キャンセル
-                        </Button>
-                        <Button 
-                          size="sm"
-                          className="bg-[#F0306A] hover:bg-[#E02860] text-white px-6 rounded-full"
-                          onClick={handleCreatePost}
-                          disabled={isPosting || !newPostContent.trim() || (!isPremium && !subscriptionLoading)}
-                        >
-                          {isPosting ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              投稿中...
-                            </>
-                          ) : (
-                            '投稿'
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* New Post Form (inline above) */}
 
             {/* Create Community Modal */}
             {showCreateCommunity && (
