@@ -426,6 +426,15 @@ export default function HomePage() {
           apiUrl += `&isMasochist=${encodeURIComponent(malePreferences.isMasochist)}`;
           params.isMasochist = malePreferences.isMasochist;
         }
+        // コスプレとおもちゃの嗜好（1-5のスケール）
+        if (malePreferences.cosplay !== undefined) {
+          apiUrl += `&cosplayPreference=${malePreferences.cosplay}`;
+          params.cosplayPreference = malePreferences.cosplay;
+        }
+        if (malePreferences.toyPlay !== undefined) {
+          apiUrl += `&toyPlayPreference=${malePreferences.toyPlay}`;
+          params.toyPlayPreference = malePreferences.toyPlay;
+        }
         // 年齢範囲
         if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;

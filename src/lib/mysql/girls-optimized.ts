@@ -33,7 +33,9 @@ export async function fetchOptimizedGirls(
   isMasochist?: string | null,
   partnerHeight?: string | null,
   partnerWeight?: string | null,
-  partnerLocation?: string | null
+  partnerLocation?: string | null,
+  cosplayPreference?: number | null,
+  toyPlayPreference?: number | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -96,7 +98,7 @@ export async function fetchOptimizedGirls(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
@@ -201,6 +203,35 @@ export async function fetchOptimizedGirls(
         WHERE so.name LIKE '%撮影%' OR so.name LIKE '%動画%' OR so.name LIKE '%写真%'
       ) recording_opt ON g.id = recording_opt.girl_profile_id`;
     scoreComponents.push(`CASE WHEN recording_opt.girl_profile_id IS NOT NULL THEN 30 ELSE 0 END`);
+  }
+  
+  // コスプレオプションのスコア（嗜好レベル4以上の場合）
+  if (cosplayPreference && cosplayPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%コスプレ%' OR so.name LIKE '%衣装%' OR so.name LIKE '%制服%'
+      ) cosplay_opt ON g.id = cosplay_opt.girl_profile_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const cosplayScore = cosplayPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN cosplay_opt.girl_profile_id IS NOT NULL THEN ${cosplayScore} ELSE 0 END`);
+  }
+  
+  // おもちゃオプションのスコア（嗜好レベル4以上の場合）
+  if (toyPlayPreference && toyPlayPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%電マ%' OR so.name LIKE '%ローター%' OR so.name LIKE '%バイブ%' 
+           OR so.name LIKE '%おもちゃ%' OR so.name LIKE '%玩具%'
+      ) toy_opt ON g.id = toy_opt.girl_profile_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const toyScore = toyPlayPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN toy_opt.girl_profile_id IS NOT NULL THEN ${toyScore} ELSE 0 END`);
   }
   
   // S/Mマッチング
@@ -425,7 +456,9 @@ export async function fetchOptimizedGirls(
       isMasochist,
       partnerHeight,
       partnerWeight,
-      partnerLocation
+      partnerLocation,
+      cosplayPreference,
+      toyPlayPreference
     });
     console.log('📝 WHERE clause:', whereClause);
     console.log('📊 Score components:', scoreComponents.length);

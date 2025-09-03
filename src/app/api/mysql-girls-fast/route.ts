@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
     const partnerHeight = searchParams.get('partnerHeight') || null;
     const partnerWeight = searchParams.get('partnerWeight') || null;
     const partnerLocation = searchParams.get('partnerLocation') || null;
+    const cosplayPreference = searchParams.get('cosplayPreference') ? parseInt(searchParams.get('cosplayPreference')!) : null;
+    const toyPlayPreference = searchParams.get('toyPlayPreference') ? parseInt(searchParams.get('toyPlayPreference')!) : null;
     
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
@@ -60,7 +62,9 @@ export async function GET(request: NextRequest) {
       isMasochist,
       partnerHeight,
       partnerWeight,
-      partnerLocation
+      partnerLocation,
+      cosplayPreference,
+      toyPlayPreference
     );
     
     // Prefetch next page in background
