@@ -870,13 +870,20 @@ export default function HomePage() {
       {/* Banner Image */}
       <div className="w-full">
         <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">
-          <Image 
-            src="/img/sod.webp" 
-            alt="Nukune Banner" 
-            fill
-            className="object-contain"
-            priority
-          />
+          <a 
+            href="https://fuzoku.sod.co.jp/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <Image 
+              src="/img/sod.webp" 
+              alt="Nukune Banner" 
+              fill
+              className="object-contain"
+              priority
+            />
+          </a>
         </div>
       </div>
       
