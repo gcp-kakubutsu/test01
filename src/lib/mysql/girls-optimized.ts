@@ -7,6 +7,11 @@ const INDEXES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_shop_active ON shop_profiles(is_active, deleted_at);
   CREATE INDEX IF NOT EXISTS idx_area_prefecture ON shop_profiles(area_prefecture_id);
   CREATE INDEX IF NOT EXISTS idx_girl_shop ON girl_profiles(shop_profile_id);
+  CREATE INDEX IF NOT EXISTS idx_girl_height_weight ON girl_profiles(height, weight);
+  CREATE INDEX IF NOT EXISTS idx_girl_status_types ON girl_status(girl_profile_id, girl_types_id);
+  CREATE INDEX IF NOT EXISTS idx_girl_options ON girl_options(girl_profile_id, shop_option_id);
+  CREATE INDEX IF NOT EXISTS idx_shop_options_name ON shop_options(name);
+  CREATE INDEX IF NOT EXISTS idx_girl_types_name ON girl_types(name);
 `;
 
 /**
@@ -22,7 +27,13 @@ export async function fetchOptimizedGirls(
   girlId?: string | null,
   userLat?: number | null,
   userLng?: number | null,
-  maxDistance?: number | null
+  maxDistance?: number | null,
+  recordingDuringPlay?: string | null,
+  isSadist?: string | null,
+  isMasochist?: string | null,
+  partnerHeight?: string | null,
+  partnerWeight?: string | null,
+  partnerLocation?: string | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -85,8 +96,9 @@ export async function fetchOptimizedGirls(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
-  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}`;
+  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
+  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Build optimized WHERE clause
   let whereConditions = [
@@ -174,6 +186,118 @@ export async function fetchOptimizedGirls(
   
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
   
+  // Build preference scoring query parts
+  let preferenceScoreSelect = '';
+  let preferenceJoins = '';
+  let scoreComponents = [];
+  
+  // 撮影オプションのスコア
+  if (recordingDuringPlay === 'はい') {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%撮影%' OR so.name LIKE '%動画%' OR so.name LIKE '%写真%'
+      ) recording_opt ON g.id = recording_opt.girl_profile_id`;
+    scoreComponents.push(`CASE WHEN recording_opt.girl_profile_id IS NOT NULL THEN 30 ELSE 0 END`);
+  }
+  
+  // S/Mマッチング
+  if (isSadist === 'はい') {
+    // ユーザーがSの場合、ドMの女性を探す
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT gs.girl_profile_id
+        FROM girl_status gs
+        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+        WHERE gt.name LIKE '%ドM%' OR gt.name LIKE '%M%'
+      ) m_girls ON g.id = m_girls.girl_profile_id`;
+    scoreComponents.push(`CASE WHEN m_girls.girl_profile_id IS NOT NULL THEN 50 ELSE 0 END`);
+  } else if (isMasochist === 'はい') {
+    // ユーザーがMの場合、ドSの女性を探す
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT gs.girl_profile_id
+        FROM girl_status gs
+        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+        WHERE gt.name LIKE '%ドS%' OR gt.name LIKE '%S%'
+      ) s_girls ON g.id = s_girls.girl_profile_id`;
+    scoreComponents.push(`CASE WHEN s_girls.girl_profile_id IS NOT NULL THEN 50 ELSE 0 END`);
+  }
+  
+  // 身長スコア
+  if (partnerHeight && partnerHeight !== 'こだわらない') {
+    const heightMatch = partnerHeight.match(/(\d+).*[～~-].*(\d+)/);
+    if (heightMatch) {
+      const minHeight = parseInt(heightMatch[1]);
+      const maxHeight = parseInt(heightMatch[2]);
+      scoreComponents.push(`
+        CASE 
+          WHEN g.height BETWEEN ${minHeight} AND ${maxHeight} THEN 15
+          WHEN ABS(g.height - ${minHeight}) <= 10 OR ABS(g.height - ${maxHeight}) <= 10 THEN 7
+          ELSE 0
+        END`);
+    }
+  }
+  
+  // 体重スコア
+  if (partnerWeight && partnerWeight !== 'こだわらない') {
+    if (partnerWeight.includes('以下')) {
+      const match = partnerWeight.match(/(\d+)kg以下/);
+      if (match) {
+        const maxWeight = parseInt(match[1]);
+        scoreComponents.push(`
+          CASE 
+            WHEN g.weight <= ${maxWeight} THEN 15
+            WHEN g.weight <= ${maxWeight + 5} THEN 7
+            ELSE 0
+          END`);
+      }
+    } else if (partnerWeight.includes('以上')) {
+      const match = partnerWeight.match(/(\d+)kg以上/);
+      if (match) {
+        const minWeight = parseInt(match[1]);
+        scoreComponents.push(`
+          CASE 
+            WHEN g.weight >= ${minWeight} THEN 15
+            WHEN g.weight >= ${minWeight - 5} THEN 7
+            ELSE 0
+          END`);
+      }
+    } else {
+      const match = partnerWeight.match(/(\d+).*[～~-].*(\d+)/);
+      if (match) {
+        const minWeight = parseInt(match[1]);
+        const maxWeight = parseInt(match[2]);
+        scoreComponents.push(`
+          CASE 
+            WHEN g.weight BETWEEN ${minWeight} AND ${maxWeight} THEN 15
+            WHEN ABS(g.weight - ${minWeight}) <= 5 OR ABS(g.weight - ${maxWeight}) <= 5 THEN 7
+            ELSE 0
+          END`);
+      }
+    }
+  }
+  
+  // 居住地スコア
+  if (partnerLocation && partnerLocation !== 'こだわらない') {
+    const escapedLocation = partnerLocation.replace(/'/g, "''");
+    scoreComponents.push(`
+      CASE 
+        WHEN p.name = '${escapedLocation}' THEN 25
+        WHEN p.name LIKE '%${escapedLocation}%' OR '${escapedLocation}' LIKE CONCAT('%', p.name, '%') THEN 15
+        ELSE 0
+      END`);
+  }
+  
+  // スコア計算のSELECT句を構築
+  if (scoreComponents.length > 0) {
+    preferenceScoreSelect = `, (${scoreComponents.join(' + ')}) as preference_score`;
+  } else {
+    preferenceScoreSelect = ', 0 as preference_score';
+  }
+  
   // Distance calculation and order by clause
   let distanceSelect = '';
   let areaJoin = '';
@@ -206,14 +330,15 @@ export async function fetchOptimizedGirls(
       END as distance_km,
       -- より簡潔な最短距離を使用
       COALESCE(area_loc.min_distance_km, 999999) as area_min_distance`;
-    
-    // 最短距離でソート（area_smallsの中で最も近い場所を基準に）
+  }
+  
+  // スコアと距離の複合ソート
+  if (scoreComponents.length > 0 || userLat) {
     orderByClause = `ORDER BY 
       CASE 
-        WHEN area_loc.min_distance_km IS NULL THEN 999999
-        ELSE area_loc.min_distance_km
+        WHEN distance_km > 5 THEN distance_km * 1000
+        ELSE distance_km * 1000 - preference_score
       END ASC,
-      distance_km ASC, 
       g.created_at DESC`;
   }
   
@@ -224,6 +349,7 @@ export async function fetchOptimizedGirls(
       g.name,
       g.age,
       g.height,
+      g.weight,
       g.bust,
       g.cup,
       g.waist,
@@ -252,9 +378,11 @@ export async function fetchOptimizedGirls(
         WHERE gs.girl_profile_id = g.id
       ) as girl_types_json
       ${distanceSelect}
+      ${preferenceScoreSelect}
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
+    ${preferenceJoins}
     LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id
     LEFT JOIN area_prefectural_municipalities m ON s.area_prefectural_municipality_id = m.id
     ${areaJoin}
@@ -361,7 +489,13 @@ export async function prefetchNextPage(
   girlId?: string | null,
   userLat?: number | null,
   userLng?: number | null,
-  maxDistance?: number | null
+  maxDistance?: number | null,
+  recordingDuringPlay?: string | null,
+  isSadist?: string | null,
+  isMasochist?: string | null,
+  partnerHeight?: string | null,
+  partnerWeight?: string | null,
+  partnerLocation?: string | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -369,13 +503,14 @@ export async function prefetchNextPage(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}`;
+  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation);
     }, 100);
   }
 }

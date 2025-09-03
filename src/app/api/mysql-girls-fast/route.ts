@@ -27,6 +27,14 @@ export async function GET(request: NextRequest) {
     const userLng = searchParams.get('userLng') ? parseFloat(searchParams.get('userLng')!) : null;
     const maxDistance = searchParams.get('maxDistance') ? parseInt(searchParams.get('maxDistance')!) : null; // km単位
     
+    // ユーザー設定パラメータを追加
+    const recordingDuringPlay = searchParams.get('recordingDuringPlay') || null;
+    const isSadist = searchParams.get('isSadist') || null;
+    const isMasochist = searchParams.get('isMasochist') || null;
+    const partnerHeight = searchParams.get('partnerHeight') || null;
+    const partnerWeight = searchParams.get('partnerWeight') || null;
+    const partnerLocation = searchParams.get('partnerLocation') || null;
+    
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
       return NextResponse.json(
@@ -46,12 +54,18 @@ export async function GET(request: NextRequest) {
       girlId,
       userLat,
       userLng,
-      maxDistance
+      maxDistance,
+      recordingDuringPlay,
+      isSadist,
+      isMasochist,
+      partnerHeight,
+      partnerWeight,
+      partnerLocation
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation);
     }
     
     const responseTime = performance.now() - startTime;

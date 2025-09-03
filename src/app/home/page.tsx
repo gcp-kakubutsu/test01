@@ -368,6 +368,17 @@ export default function HomePage() {
     console.log('[fetchGirlsFromMySQL] User location:', userLocation);
     
     try {
+      // ユーザー設定を取得
+      let malePreferences = null;
+      if (currentUser?.uid) {
+        try {
+          malePreferences = await getMalePreferences(currentUser.uid);
+          console.log('[fetchGirlsFromMySQL] User preferences loaded:', malePreferences ? 'yes' : 'no');
+        } catch (error) {
+          console.warn('[fetchGirlsFromMySQL] Could not load preferences:', error);
+        }
+      }
+      
       // 位置情報を正規化（小数点3桁に丸める）
       const normalizedLocation = userLocation 
         ? roundLocation(userLocation.lat, userLocation.lng, 3)
@@ -397,6 +408,37 @@ export default function HomePage() {
         apiUrl += `&userLat=${tokyoLat}&userLng=${tokyoLng}`;
         console.log('📍 [fetchGirlsFromMySQL] 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
         console.log(`🗺️ フォールバック座標: lat=${tokyoLat}, lng=${tokyoLng}`);
+      }
+      
+      // ユーザー設定をURLパラメータに追加
+      if (malePreferences) {
+        // 撮影オプション
+        if (malePreferences.recordingDuringPlay) {
+          apiUrl += `&recordingDuringPlay=${encodeURIComponent(malePreferences.recordingDuringPlay)}`;
+          params.recordingDuringPlay = malePreferences.recordingDuringPlay;
+        }
+        // S/Mマッチング
+        if (malePreferences.isSadist) {
+          apiUrl += `&isSadist=${encodeURIComponent(malePreferences.isSadist)}`;
+          params.isSadist = malePreferences.isSadist;
+        }
+        if (malePreferences.isMasochist) {
+          apiUrl += `&isMasochist=${encodeURIComponent(malePreferences.isMasochist)}`;
+          params.isMasochist = malePreferences.isMasochist;
+        }
+        // 身長・体重・居住地
+        if (malePreferences.partnerHeight) {
+          apiUrl += `&partnerHeight=${encodeURIComponent(malePreferences.partnerHeight)}`;
+          params.partnerHeight = malePreferences.partnerHeight;
+        }
+        if (malePreferences.partnerWeight) {
+          apiUrl += `&partnerWeight=${encodeURIComponent(malePreferences.partnerWeight)}`;
+          params.partnerWeight = malePreferences.partnerWeight;
+        }
+        if (malePreferences.partnerLocation) {
+          apiUrl += `&partnerLocation=${encodeURIComponent(malePreferences.partnerLocation)}`;
+          params.partnerLocation = malePreferences.partnerLocation;
+        }
       }
       
       console.log(`🚀 [fetchGirlsFromMySQL] API URL: ${apiUrl}`);
@@ -460,7 +502,7 @@ export default function HomePage() {
       console.error('Error fetching girls:', error);
       // エラー時も既存データを保持
     }
-  }, [baseUrl, userLocation]);
+  }, [baseUrl, userLocation, currentUser]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
