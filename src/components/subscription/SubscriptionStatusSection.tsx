@@ -69,7 +69,9 @@ export function SubscriptionStatusSection() {
     });
     setIsCanceled(canceled);
   }, [userSubscription?.subscription?.cancelAtPeriodEnd, 
-      userSubscription?.cancellation?.cancelAtPeriodEnd]);
+      userSubscription?.cancellation?.cancelAtPeriodEnd,
+      userSubscription?.subscription,
+      userSubscription?.cancellation]);
 
   // 追加の安全策: Firestoreの subscription.status が 'trial' かつ trialInfo が有効なら
   // UI上は必ずトライアル優先で表示する（万一の不整合対策）

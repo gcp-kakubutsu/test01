@@ -403,7 +403,7 @@ export default function MatchingSearch() {
                 会員登録でさらに深掘り検索！
               </h3>
               <p className="text-xs" style={{ color: '#b8b2a7' }}>
-                あなたの"性癖プロファイル"を登録すれば、理想の女性とピンポイントでマッチング
+                あなたの&ldquo;性癖プロファイル&rdquo;を登録すれば、理想の女性とピンポイントでマッチング
               </p>
             </div>
             

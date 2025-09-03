@@ -386,7 +386,7 @@ export function useSubscription(): UseSubscriptionReturn {
         setUnsubscribe(null);
       }
     };
-  }, [currentUser?.uid]); // currentUserオブジェクト全体ではなくuidのみを依存配列に含める
+  }, [currentUser?.uid, currentUser, unsubscribe]); // currentUserオブジェクト全体ではなくuidのみを依存配列に含める
 
   // 計算されたプロパティ
   const isPremium = useMemo(() => {

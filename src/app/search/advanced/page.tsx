@@ -652,7 +652,7 @@ function AdvancedSearchContent() {
       
       return () => clearTimeout(timer);
     }
-  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers])
+  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers, initialFetchDone])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*
@@ -1080,7 +1080,7 @@ function AdvancedSearchContent() {
     
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas])
+  }, [users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas, sortedDataCache])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*
