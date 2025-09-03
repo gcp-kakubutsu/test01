@@ -39,7 +39,9 @@ export async function fetchOptimizedGirls(
   deepthroatPreference?: number | null,
   throatingPreference?: number | null,
   analPlayPreference?: number | null,
-  groupPlayPreference?: number | null
+  groupPlayPreference?: number | null,
+  preferredGirlTypeIds?: number[] | null,
+  preferredBodyTypes?: string[] | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -102,7 +104,9 @@ export async function fetchOptimizedGirls(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}`;
+  const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
+  const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
@@ -296,6 +300,67 @@ export async function fetchOptimizedGirls(
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const groupScore = groupPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN group_shop.shop_id IS NOT NULL THEN ${groupScore} ELSE 0 END`);
+  }
+  
+  // 女の子タイプのスコア（選択されたタイプとのマッチング）
+  if (preferredGirlTypeIds && preferredGirlTypeIds.length > 0) {
+    // 各タイプごとにスコアリング（複数マッチでボーナス）
+    const girlTypeIdStr = preferredGirlTypeIds.join(',');
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT girl_profile_id,
+               COUNT(DISTINCT girl_types_id) as match_count
+        FROM girl_status
+        WHERE girl_types_id IN (${girlTypeIdStr})
+        GROUP BY girl_profile_id
+      ) girl_type_match ON g.id = girl_type_match.girl_profile_id`;
+    
+    // マッチした数に応じてスコアを付与（1つで50点、2つで80点、3つ以上で100点）
+    scoreComponents.push(`
+      CASE 
+        WHEN girl_type_match.match_count >= 3 THEN 100
+        WHEN girl_type_match.match_count = 2 THEN 80
+        WHEN girl_type_match.match_count = 1 THEN 50
+        ELSE 0
+      END`);
+  }
+  
+  // 相手の体型のスコア（選択された体型とのマッチング）
+  if (preferredBodyTypes && preferredBodyTypes.length > 0 && !preferredBodyTypes.includes('こだわらない')) {
+    // 体型推定のためのサブクエリ
+    const bodyTypeConditions = [];
+    
+    // 各体型の条件を作成
+    if (preferredBodyTypes.includes('スリム')) {
+      bodyTypeConditions.push(`(g.weight < 50 AND g.height > 150)`);
+    }
+    if (preferredBodyTypes.includes('やや細め') || preferredBodyTypes.includes('細め')) {
+      bodyTypeConditions.push(`(g.weight BETWEEN 45 AND 52 AND g.height > 150)`);
+    }
+    if (preferredBodyTypes.includes('グラマー')) {
+      bodyTypeConditions.push(`((g.bust - g.waist) > 15 AND g.cup IN ('D','E','F','G','H'))`);
+    }
+    if (preferredBodyTypes.includes('ぽっちゃり') || preferredBodyTypes.includes('やややっちゃり')) {
+      bodyTypeConditions.push(`(g.weight > 55)`);
+    }
+    if (preferredBodyTypes.includes('巨乳')) {
+      bodyTypeConditions.push(`(g.cup IN ('E','F','G','H','I','J','K'))`);
+    }
+    if (preferredBodyTypes.includes('美乳')) {
+      bodyTypeConditions.push(`(g.cup IN ('C','D'))`);
+    }
+    if (preferredBodyTypes.includes('モデル系')) {
+      bodyTypeConditions.push(`(g.height >= 165 AND g.weight < 55)`);
+    }
+    
+    if (bodyTypeConditions.length > 0) {
+      // いずれかの条件に合致する場合にスコアを付与
+      scoreComponents.push(`
+        CASE 
+          WHEN (${bodyTypeConditions.join(' OR ')}) THEN 40
+          ELSE 0
+        END`);
+    }
   }
   
   // S/Mマッチング
@@ -526,7 +591,9 @@ export async function fetchOptimizedGirls(
       deepthroatPreference,
       throatingPreference,
       analPlayPreference,
-      groupPlayPreference
+      groupPlayPreference,
+      preferredGirlTypeIds,
+      preferredBodyTypes
     });
     console.log('📝 WHERE clause:', whereClause);
     console.log('📊 Score components:', scoreComponents.length);
@@ -625,7 +692,9 @@ export async function prefetchNextPage(
   deepthroatPreference?: number | null,
   throatingPreference?: number | null,
   analPlayPreference?: number | null,
-  groupPlayPreference?: number | null
+  groupPlayPreference?: number | null,
+  preferredGirlTypeIds?: number[] | null,
+  preferredBodyTypes?: string[] | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -633,14 +702,16 @@ export async function prefetchNextPage(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}`;
+  const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
+  const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes);
     }, 100);
   }
 }

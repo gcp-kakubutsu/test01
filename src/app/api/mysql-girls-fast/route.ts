@@ -41,6 +41,12 @@ export async function GET(request: NextRequest) {
     const analPlayPreference = searchParams.get('analPlayPreference') ? parseInt(searchParams.get('analPlayPreference')!) : null;
     const groupPlayPreference = searchParams.get('groupPlayPreference') ? parseInt(searchParams.get('groupPlayPreference')!) : null;
     
+    // 女の子タイプと体型の嗜好
+    const preferredGirlTypeIdsParam = searchParams.get('preferredGirlTypeIds');
+    const preferredGirlTypeIds = preferredGirlTypeIdsParam ? preferredGirlTypeIdsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : null;
+    const preferredBodyTypesParam = searchParams.get('preferredBodyTypes');
+    const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
+    
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
       return NextResponse.json(
@@ -72,12 +78,14 @@ export async function GET(request: NextRequest) {
       deepthroatPreference,
       throatingPreference,
       analPlayPreference,
-      groupPlayPreference
+      groupPlayPreference,
+      preferredGirlTypeIds,
+      preferredBodyTypes
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes);
     }
     
     const responseTime = performance.now() - startTime;

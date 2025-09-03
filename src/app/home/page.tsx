@@ -453,6 +453,16 @@ export default function HomePage() {
           apiUrl += `&groupPlayPreference=${malePreferences.groupPlay}`;
           params.groupPlayPreference = malePreferences.groupPlay;
         }
+        // 女の子タイプの嗜好（IDの配列）
+        if (malePreferences.girlTypeIds && malePreferences.girlTypeIds.length > 0) {
+          apiUrl += `&preferredGirlTypeIds=${malePreferences.girlTypeIds.join(',')}`;
+          params.preferredGirlTypeIds = malePreferences.girlTypeIds;
+        }
+        // 相手の体型の嗜好（文字列の配列）
+        if (malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0) {
+          apiUrl += `&preferredBodyTypes=${encodeURIComponent(malePreferences.partnerBodyTypes.join(','))}`;
+          params.preferredBodyTypes = malePreferences.partnerBodyTypes;
+        }
         // 年齢範囲
         if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;
