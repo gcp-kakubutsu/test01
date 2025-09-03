@@ -66,6 +66,25 @@ export default function MyPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      {/* Banner Image */}
+      <div className="w-full m-0 p-0">
+        <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">
+          <a 
+            href="https://sakaba.sod.co.jp/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <Image 
+              src="/img/mypage.webp" 
+              alt="SOD LAND Banner" 
+              fill
+              className="object-contain"
+              priority
+            />
+          </a>
+        </div>
+      </div>
       {/* ヘッダーセクション */}
       <Card>
         <CardHeader>
