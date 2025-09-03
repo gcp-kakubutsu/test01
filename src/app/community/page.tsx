@@ -142,6 +142,63 @@ export default function CommunityPage() {
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [showJoinButton, setShowJoinButton] = useState(false);
   
+  // モバイルの左/右サイドバー表示中は背面（本文）のスクロールを完全に無効化（iOS対応の固定化方式）
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const overlayOpen = isRightSidebarOpen || isMobileMenuOpen;
+    const body = document.body as HTMLBodyElement;
+    const html = document.documentElement as HTMLElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      htmlOverflow: html.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      bodyTouchAction: (body.style as any).touchAction as string | undefined,
+    };
+    if (overlayOpen) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      // iOSで確実に背景を固定
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      body.style.overflow = 'hidden';
+      html.style.overflow = 'hidden';
+      (body.style as any).touchAction = 'none';
+      (body.dataset as any).lockScrollY = String(scrollY);
+    } else {
+      // 復元
+      const y = Number((body.dataset as any).lockScrollY || 0);
+      body.style.position = prev.bodyPosition || '';
+      body.style.top = prev.bodyTop || '';
+      body.style.left = prev.bodyLeft || '';
+      body.style.right = prev.bodyRight || '';
+      body.style.width = prev.bodyWidth || '';
+      body.style.overflow = prev.bodyOverflow || '';
+      html.style.overflow = prev.htmlOverflow || '';
+      (body.style as any).touchAction = prev.bodyTouchAction || '';
+      if (y) {
+        window.scrollTo(0, y);
+      }
+      delete (body.dataset as any).lockScrollY;
+    }
+    return () => {
+      // 念のため復元
+      body.style.position = prev.bodyPosition || '';
+      body.style.top = prev.bodyTop || '';
+      body.style.left = prev.bodyLeft || '';
+      body.style.right = prev.bodyRight || '';
+      body.style.width = prev.bodyWidth || '';
+      body.style.overflow = prev.bodyOverflow || '';
+      html.style.overflow = prev.htmlOverflow || '';
+      (body.style as any).touchAction = prev.bodyTouchAction || '';
+    };
+  }, [isRightSidebarOpen, isMobileMenuOpen]);
+  
   // Check if current user is admin
   const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -1236,8 +1293,8 @@ export default function CommunityPage() {
         {/* Left Sidebar - Desktop & Mobile */}
         <div className={`${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:flex w-64 xl:w-72 flex-col h-full border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-50 lg:z-auto`}>
-          <div className="p-6">
+        } lg:translate-x-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 w-64 xl:w-72 flex flex-col overflow-y-scroll overscroll-y-contain pointer-events-auto border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-[60] lg:z-auto p-6 pt-[calc(env(safe-area-inset-top)+24px)] pb-[calc(env(safe-area-inset-bottom)+24px)]`} style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+          <div>
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-2xl font-bold text-[#F0306A]">Nukune</h1>
               <Button
@@ -1331,10 +1388,10 @@ export default function CommunityPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 lg:ml-64 xl:ml-72 lg:mr-80 xl:mr-96">
+        <div className={`${(isRightSidebarOpen || isMobileMenuOpen) ? 'pointer-events-none touch-none overflow-hidden' : ''} flex-1 lg:ml-64 xl:ml-72 lg:mr-80 xl:mr-96`}>
           <div className="border-x border-gray-200 dark:border-gray-800 min-h-screen">
             {/* Header */}
-            <div className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 p-4">
+            <div className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 p-4">
               <div className="flex items-center gap-3">
                 {/* Mobile Menu Button */}
                 <Button
@@ -1812,8 +1869,7 @@ export default function CommunityPage() {
         {/* Right Sidebar - Desktop & Mobile */}
         <div className={`${
           isRightSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        } lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:flex w-80 xl:w-96 flex-col right-0 h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-50 lg:z-auto`}>
-          <div className="p-4 space-y-4">
+        } lg:translate-x-0 transition-transform duration-300 ease-in-out fixed inset-y-0 right-0 w-80 xl:w-96 flex flex-col overflow-y-scroll overscroll-y-contain pointer-events-auto border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-[60] lg:z-auto p-4 pr-3 space-y-4 pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+16px)]`} style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
             {/* Mobile Close Button */}
             <div className="flex items-center justify-between lg:hidden mb-4">
               <h2 className="text-xl font-bold">検索とコミュニティ</h2>
@@ -1903,7 +1959,7 @@ export default function CommunityPage() {
                         <span className="text-sm text-gray-500">すべて</span>
                       </div>
                     </button>
-                    {communities.slice(0, 5).map((community) => (
+                    {communities.map((community) => (
                       <div key={community.id} className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -1959,14 +2015,6 @@ export default function CommunityPage() {
                         </div>
                       </div>
                     ))}
-                    {communities.length > 5 && (
-                      <button 
-                        className="w-full text-center text-sm text-[#F0306A] hover:underline mt-2"
-                        onClick={() => router.push('/community/list')}
-                      >
-                        すべて見る ({communities.length})
-                      </button>
-                    )}
                     {showJoinButton && (
                       <Button 
                         onClick={handleJoinCommunities}
@@ -1993,7 +2041,6 @@ export default function CommunityPage() {
               <PlusCircle className="h-4 w-4 mr-2" />
               コミュニティ作成
             </Button>
-          </div>
         </div>
       </div>
     </div>
