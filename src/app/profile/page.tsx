@@ -115,6 +115,25 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
+      {/* Banner Image */}
+      <div className="w-full m-0 p-0">
+        <div className="relative h-48 sm:h-40 md:h-64 lg:h-80 xl:h-96">
+          <a 
+            href="https://www.sod.co.jp/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <Image 
+              src="/img/profile.webp" 
+              alt="SOFT ON DEMAND Banner" 
+              fill
+              className="object-contain"
+              priority
+            />
+          </a>
+        </div>
+      </div>
       {/* Profile Header */}
       <Card>
         <CardHeader className="pb-0">
