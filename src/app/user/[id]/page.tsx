@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUserProfile, useUserStats } from '@/lib/firebase/hooks';
 import { calculateAge } from '@/lib/utils/date';
-import { sendLike, recordProfileView } from '@/lib/firebase/actions';
+import { recordProfileView } from '@/lib/firebase/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
@@ -37,7 +37,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const { hasPremium: isPremium, isLoading: subscriptionLoading } = useSubscription();
   const [userId, setUserId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [isProcessingLike, setIsProcessingLike] = useState(false);
+  
 
   // Unwrap params
   useEffect(() => {
@@ -146,57 +146,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     };
   }, [fetchProfileViewsCount, userId]);
 
-  const handleLike = async () => {
-    if (!currentUser || !userId || isProcessingLike) return;
-    
-    setIsProcessingLike(true);
-    try {
-      const result = await sendLike(currentUser.uid, userId);
-      
-      if (result.alreadyLiked) {
-        toast({
-          title: "既にいいねを送っています",
-          description: `${profile?.username}さんには既にいいねを送信済みです。`,
-        });
-      } else if (result.isMatch) {
-        toast({
-          title: "マッチしました！🎉",
-          description: `${profile?.username}さんとマッチしました！メッセージを送ってみましょう。`,
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/messages/${result.matchId}`)}
-            >
-              メッセージを送る
-            </Button>
-          ),
-        });
-      } else {
-        toast({
-          title: "いいねを送りました！",
-          description: `${profile?.username}さんにいいねを送りました。`,
-        });
-      }
-    } catch (error) {
-      console.error('Error sending like:', error);
-      toast({
-        title: "エラー",
-        description: "いいねの送信に失敗しました。",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingLike(false);
-    }
-  };
-
-  const handleBlock = () => {
-    // Placeholder for block functionality
-    toast({
-      title: "ブロック機能",
-      description: "この機能は近日実装予定です。",
-    });
-  };
+  
 
   if (authLoading || profileLoading || subscriptionLoading || !userId) {
     return (
@@ -331,7 +281,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           </div>
         </div>
         
-        <CardContent className="bg-white">
+        <CardContent className="bg-white dark:bg-gray-900">
           {/* Stats - Only profile views are shown for other users */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -382,7 +332,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           {/* Additional Photos Gallery */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">フォトギャラリー</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">フォトギャラリー</h3>
               {photos.length > 1 && (
                 <Badge variant="secondary" className="bg-[#F0306A]/10 text-[#F0306A]">
                   {photos.length - 1}枚の写真
@@ -393,7 +343,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             {photos.length > 1 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {photos.slice(1).map((photo, index) => (
-                  <div key={index + 1} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                  <div key={index + 1} className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 shadow-lg dark:shadow-black/40 hover:shadow-xl transition-all duration-300 cursor-pointer">
                     <div className="relative w-full aspect-square">
                       <Image
                         src={photo}
@@ -411,7 +361,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       
                       {/* Photo Index Badge */}
-                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                      <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/70 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 dark:text-white shadow-sm">
                         {index + 2}
                       </div>
                       
@@ -424,46 +374,19 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-200">
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
-                  <Camera className="h-8 w-8 text-gray-400" />
+              <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                  <Camera className="h-8 w-8 text-gray-400 dark:text-gray-300" />
                 </div>
-                <p className="text-gray-500 font-medium">追加の写真がありません</p>
-                <p className="text-sm text-gray-400 mt-1">プロフィール写真のみ表示中</p>
+                <p className="text-gray-600 dark:text-gray-200 font-medium">追加の写真がありません</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">プロフィール写真のみ表示中</p>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="w-full border-red-500 text-red-500 hover:bg-red-50"
-          onClick={handleBlock}
-        >
-          <Ban className="h-4 w-4 mr-2" />
-          ブロック
-        </Button>
-        <Button
-          className="w-full bg-[#F0306A] hover:bg-[#E02860]"
-          onClick={handleLike}
-          disabled={isProcessingLike}
-        >
-          {isProcessingLike ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              送信中...
-            </>
-          ) : (
-            <>
-              <Heart className="h-4 w-4 mr-2" />
-              いいね
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Action Buttons removed as requested */}
     </div>
   );
 }

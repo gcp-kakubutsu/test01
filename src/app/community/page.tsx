@@ -888,6 +888,15 @@ export default function CommunityPage() {
     }
   };
 
+  const handleNavigateUserProfile = (userId: string) => {
+    try {
+      if (!userId) return;
+      router.push(`/user/${userId}`);
+    } catch (error) {
+      console.error('Error navigating to user profile:', error);
+    }
+  };
+
   const handleJoinCommunities = async () => {
     if (!currentUser || selectedCommunities.length === 0) return;
     
@@ -1685,15 +1694,23 @@ export default function CommunityPage() {
                     )}
                     
                     <div className="flex gap-3">
-                      <div className="w-12 h-12 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNavigateUserProfile(post.originalPost ? post.originalPost.authorId : post.authorId);
+                        }}
+                        className="w-12 h-12 flex-shrink-0 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#F0306A]"
+                        title="プロフィールを見る"
+                      >
                         <Image
                           src={post.originalPost ? post.originalPost.authorImage : post.authorImage}
                           alt={post.originalPost ? post.originalPost.author : post.author}
                           width={48}
                           height={48}
-                          className="w-full h-full rounded-full object-cover"
+                          className="w-full h-full object-cover"
                         />
-                      </div>
+                      </button>
                       <div className="flex-1">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="font-bold">{post.originalPost ? post.originalPost.author : post.author}</span>
@@ -1772,13 +1789,23 @@ export default function CommunityPage() {
                           <div className="mt-4 space-y-3 border-t border-gray-200 dark:border-gray-800 pt-3">
                             {/* Comment Input */}
                             <div className="flex gap-3">
-                              <Image
-                                src={profile?.profilePhotoUrl || 'https://placehold.co/32x32/FFB6C1/FFFFFF?text=U'}
-                                alt="Your avatar"
-                                width={32}
-                                height={32}
-                                className="rounded-full object-cover aspect-square flex-shrink-0"
-                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNavigateUserProfile(currentUser?.uid || '');
+                                }}
+                                className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#F0306A]"
+                                title="あなたのプロフィールを見る"
+                              >
+                                <Image
+                                  src={profile?.profilePhotoUrl || 'https://placehold.co/32x32/FFB6C1/FFFFFF?text=U'}
+                                  alt="Your avatar"
+                                  width={32}
+                                  height={32}
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
                               <div className="flex-1 flex gap-2">
                                 <Input
                                   placeholder="返信をツイート"
@@ -1806,15 +1833,23 @@ export default function CommunityPage() {
                               <div className="space-y-3">
                                 {post.commentsList.map((comment) => (
                                   <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 flex-shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNavigateUserProfile(comment.authorId);
+                                      }}
+                                      className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#F0306A]"
+                                      title="プロフィールを見る"
+                                    >
                                       <Image
                                         src={comment.authorImage}
                                         alt={comment.author}
                                         width={32}
                                         height={32}
-                                        className="w-full h-full rounded-full object-cover"
+                                        className="w-full h-full object-cover"
                                       />
-                                    </div>
+                                    </button>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-1">
                                         <span className="font-bold text-sm">{comment.author}</span>
