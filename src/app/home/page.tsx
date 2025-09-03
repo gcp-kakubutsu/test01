@@ -426,6 +426,15 @@ export default function HomePage() {
           apiUrl += `&isMasochist=${encodeURIComponent(malePreferences.isMasochist)}`;
           params.isMasochist = malePreferences.isMasochist;
         }
+        // 年齢範囲
+        if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
+          apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;
+          params.ageMin = malePreferences.partnerAgeMin;
+        }
+        if (malePreferences.partnerAgeMax !== undefined && malePreferences.partnerAgeMax !== null) {
+          apiUrl += `&ageMax=${malePreferences.partnerAgeMax}`;
+          params.ageMax = malePreferences.partnerAgeMax;
+        }
         // 身長・体重・居住地
         if (malePreferences.partnerHeight) {
           apiUrl += `&partnerHeight=${encodeURIComponent(malePreferences.partnerHeight)}`;

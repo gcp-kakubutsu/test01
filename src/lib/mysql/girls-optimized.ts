@@ -226,6 +226,15 @@ export async function fetchOptimizedGirls(
     scoreComponents.push(`CASE WHEN s_girls.girl_profile_id IS NOT NULL THEN 50 ELSE 0 END`);
   }
   
+  // 年齢スコア (年齢が範囲内なら20点、範囲から5歳以内なら10点)
+  scoreComponents.push(`
+    CASE 
+      WHEN g.age IS NULL THEN 0
+      WHEN g.age BETWEEN ${ageMin} AND ${ageMax} THEN 20
+      WHEN g.age >= ${ageMin - 5} AND g.age <= ${ageMax + 5} THEN 10
+      ELSE 0
+    END`);
+  
   // 身長スコア
   if (partnerHeight && partnerHeight !== 'こだわらない') {
     const heightMatch = partnerHeight.match(/(\d+).*[～~-].*(\d+)/);
@@ -403,9 +412,23 @@ export async function fetchOptimizedGirls(
   `;
   
   // Debug: Log the actual query (詳細なログ出力)
-  if (area && area !== 'all' || userLat && userLng) {
-    console.log('🔍 Executing query with params:', { area, userLat, userLng, maxDistance });
+  if (area && area !== 'all' || userLat && userLng || scoreComponents.length > 0) {
+    console.log('🔍 Executing query with params:', { 
+      area, 
+      userLat, 
+      userLng, 
+      maxDistance,
+      ageMin, 
+      ageMax,
+      recordingDuringPlay,
+      isSadist,
+      isMasochist,
+      partnerHeight,
+      partnerWeight,
+      partnerLocation
+    });
     console.log('📝 WHERE clause:', whereClause);
+    console.log('📊 Score components:', scoreComponents.length);
     console.log('📊 Query parameters:', { limitCount, offset, ageMin, ageMax });
   }
   
