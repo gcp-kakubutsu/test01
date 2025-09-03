@@ -2,6 +2,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -114,8 +115,23 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4 bg-[#F9E4EB] min-h-screen">
-      <Card className="w-full max-w-md shadow-lg bg-white">
+    <div className="flex flex-col min-h-screen m-0 p-0">
+      {/* ヘッダー画像 */}
+      <div className="w-full bg-[#F9E4EB] m-0 p-0">
+        <div className="relative w-full" style={{ aspectRatio: '851/315' }}>
+          <Image 
+            src="/img/signup.webp" 
+            alt="新規登録" 
+            fill
+            className="object-contain"
+            priority
+            sizes="100vw"
+          />
+        </div>
+      </div>
+      
+      <div className="flex-1 bg-[#F9E4EB] px-4 py-4">
+        <Card className="w-full max-w-md mx-auto shadow-lg bg-white rounded-lg">
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5 pt-8 pb-6">
             <div className="space-y-2">
@@ -292,13 +308,14 @@ export default function SignupPage() {
         </form>
       </Card>
       
-      <div className="mt-6 text-center">
-        <p className="text-base font-medium text-slate-800">
-          すでにアカウントをお持ちですか？{' '}
-          <Link href="/login" className="font-bold text-[#F0306A] hover:underline underline-offset-2">
-            ログイン
-          </Link>
-        </p>
+        <div className="mt-6 text-center">
+          <p className="text-base font-medium text-slate-800">
+            すでにアカウントをお持ちですか？{' '}
+            <Link href="/login" className="font-bold text-[#F0306A] hover:underline underline-offset-2">
+              ログイン
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
