@@ -1464,12 +1464,19 @@ export default function HomePage() {
       {/* Footer Logo */}
       <div className="w-full">
         <div className="relative h-32 sm:h-40 md:h-64 lg:h-80 xl:h-96">
-          <Image 
-            src="/img/sodland.webp" 
-            alt="Nukune Logo" 
-            fill
-            className="object-contain"
-          />
+          <a 
+            href="https://keishinkai-grp.or.jp/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <Image 
+              src="/img/sodland.webp" 
+              alt="KEISHINKAI Logo" 
+              fill
+              className="object-contain"
+            />
+          </a>
         </div>
       </div>
       </div>
