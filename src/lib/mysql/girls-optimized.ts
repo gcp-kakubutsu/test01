@@ -325,39 +325,32 @@ export async function fetchOptimizedGirls(
       END`);
   }
   
-  // 相手の体型のスコア（選択された体型とのマッチング）
+  // 相手の体型のスコア（簡略化版でパフォーマンス改善）
   if (preferredBodyTypes && preferredBodyTypes.length > 0 && !preferredBodyTypes.includes('こだわらない')) {
-    // 体型推定のためのサブクエリ
-    const bodyTypeConditions = [];
-    
-    // 各体型の条件を作成
-    if (preferredBodyTypes.includes('スリム')) {
-      bodyTypeConditions.push(`(g.weight < 50 AND g.height > 150)`);
-    }
-    if (preferredBodyTypes.includes('やや細め') || preferredBodyTypes.includes('細め')) {
-      bodyTypeConditions.push(`(g.weight BETWEEN 45 AND 52 AND g.height > 150)`);
-    }
-    if (preferredBodyTypes.includes('グラマー')) {
-      bodyTypeConditions.push(`((g.bust - g.waist) > 15 AND g.cup IN ('D','E','F','G','H'))`);
-    }
-    if (preferredBodyTypes.includes('ぽっちゃり') || preferredBodyTypes.includes('やややっちゃり')) {
-      bodyTypeConditions.push(`(g.weight > 55)`);
-    }
-    if (preferredBodyTypes.includes('巨乳')) {
-      bodyTypeConditions.push(`(g.cup IN ('E','F','G','H','I','J','K'))`);
-    }
-    if (preferredBodyTypes.includes('美乳')) {
-      bodyTypeConditions.push(`(g.cup IN ('C','D'))`);
-    }
-    if (preferredBodyTypes.includes('モデル系')) {
-      bodyTypeConditions.push(`(g.height >= 165 AND g.weight < 55)`);
-    }
-    
-    if (bodyTypeConditions.length > 0) {
-      // いずれかの条件に合致する場合にスコアを付与
+    // グラマー・巨乳好きの場合
+    if (preferredBodyTypes.some(type => ['グラマー', '巨乳'].includes(type))) {
       scoreComponents.push(`
         CASE 
-          WHEN (${bodyTypeConditions.join(' OR ')}) THEN 40
+          WHEN g.cup IN ('E','F','G','H','I','J','K') THEN 40
+          WHEN g.cup = 'D' THEN 20
+          ELSE 0
+        END`);
+    }
+    // ぽっちゃり系好きの場合
+    else if (preferredBodyTypes.some(type => ['ぽっちゃり', 'ややぽっちゃり', 'やややっちゃり'].includes(type))) {
+      scoreComponents.push(`
+        CASE 
+          WHEN g.weight > 55 THEN 40
+          WHEN g.weight > 50 THEN 20
+          ELSE 0
+        END`);
+    }
+    // スリム系好きの場合
+    else if (preferredBodyTypes.some(type => ['スリム', '細め', 'やや細め'].includes(type))) {
+      scoreComponents.push(`
+        CASE 
+          WHEN g.weight < 50 THEN 40
+          WHEN g.weight < 55 THEN 20
           ELSE 0
         END`);
     }
@@ -501,14 +494,29 @@ export async function fetchOptimizedGirls(
       COALESCE(area_loc.min_distance_km, 999999) as area_min_distance`;
   }
   
-  // スコアと距離の複合ソート
-  if (scoreComponents.length > 0 || userLat) {
+  // スコアと距離の複合ソート（近い女の子を絶対優先）
+  if (scoreComponents.length > 0 && userLat) {
+    // 距離帯でグループ化し、近い女の子を必ず優先表示
     orderByClause = `ORDER BY 
+      -- 距離帯による絶対的な優先順位
       CASE 
-        WHEN distance_km > 5 THEN distance_km * 1000
-        ELSE distance_km * 1000 - preference_score
+        WHEN distance_km <= 20 THEN 1    -- 20km以内: 最優先
+        WHEN distance_km <= 50 THEN 2    -- 50km以内: 次優先  
+        WHEN distance_km <= 100 THEN 3   -- 100km以内: 3番目
+        WHEN distance_km <= 200 THEN 4   -- 200km以内: 4番目
+        ELSE 5                            -- それ以上: 最後
+      END ASC,
+      -- 同じ距離帯内でのソート（スコアと距離のバランス）
+      CASE 
+        WHEN distance_km <= 20 THEN (distance_km * 10) - (preference_score * 2)    -- スコアの影響大
+        WHEN distance_km <= 50 THEN (distance_km * 20) - preference_score          -- スコアの影響中
+        WHEN distance_km <= 100 THEN (distance_km * 50) - (preference_score * 0.5) -- スコアの影響小
+        ELSE distance_km * 100                                                      -- スコア無視
       END ASC,
       g.created_at DESC`;
+  } else if (userLat) {
+    // 位置情報のみの場合は距離優先
+    orderByClause = `ORDER BY distance_km ASC, g.created_at DESC`;
   }
   
   // Optimized query with distance calculation
@@ -571,33 +579,15 @@ export async function fetchOptimizedGirls(
     ${whereClause}
   `;
   
-  // Debug: Log the actual query (詳細なログ出力)
-  if (area && area !== 'all' || userLat && userLng || scoreComponents.length > 0) {
-    console.log('🔍 Executing query with params:', { 
-      area, 
-      userLat, 
-      userLng, 
-      maxDistance,
-      ageMin, 
-      ageMax,
-      recordingDuringPlay,
-      isSadist,
-      isMasochist,
-      partnerHeight,
-      partnerWeight,
-      partnerLocation,
-      cosplayPreference,
-      toyPlayPreference,
-      deepthroatPreference,
-      throatingPreference,
-      analPlayPreference,
-      groupPlayPreference,
-      preferredGirlTypeIds,
-      preferredBodyTypes
+  // Debug: サーバー側でスコアリング状況を出力
+  if (scoreComponents.length > 0) {
+    console.log('🎯 [MySQL] Scoring enabled with', scoreComponents.length, 'components');
+    console.log('📍 [MySQL] Location:', userLat ? `${userLat}, ${userLng}` : 'No location');
+    console.log('⚙️ [MySQL] Preferences:', {
+      girlTypes: preferredGirlTypeIds?.length || 0,
+      bodyTypes: preferredBodyTypes?.length || 0,
+      location: partnerLocation || 'none'
     });
-    console.log('📝 WHERE clause:', whereClause);
-    console.log('📊 Score components:', scoreComponents.length);
-    console.log('📊 Query parameters:', { limitCount, offset, ageMin, ageMax });
   }
   
   // Execute both queries in parallel with caching
@@ -612,6 +602,14 @@ export async function fetchOptimizedGirls(
   ]);
   
   console.log(`📊 Area: ${area}, Found: ${girlsResult.length} girls, Total: ${countResult[0]?.total || 0}`);
+  
+  // デバッグ: 最初の3人のスコアを表示
+  if (girlsResult.length > 0 && scoreComponents.length > 0) {
+    console.log('🎯 Top 3 girls with scores:');
+    girlsResult.slice(0, 3).forEach((girl: any, idx: number) => {
+      console.log(`  ${idx + 1}. ${girl.name}: score=${girl.preference_score || 0}, distance=${girl.distance_km?.toFixed(1) || 'N/A'}km`);
+    });
+  }
   
   // Process results
   const girls: MySQLGirlProfile[] = girlsResult.map(row => ({

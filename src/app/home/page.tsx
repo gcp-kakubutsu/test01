@@ -252,6 +252,14 @@ export default function HomePage() {
     // データがない、または既にソート済みの場合はスキップ
     if (!sortedGirlsCache || sortedGirlsCache.length === 0 || hasInitialSort) return;
     
+    // サーバー側でソート済み（位置情報がある場合）はクライアント側のソートをスキップ
+    if (userLocation) {
+      console.log('⚡ [useEffect] Server-side sorted data detected, skipping client-side sort');
+      setGirlsFromDB(sortedGirlsCache);
+      setHasInitialSort(true);
+      return;
+    }
+    
     console.log('📊 [useEffect] Data cached, performing initial sort...');
     
     const performInitialSort = async () => {
