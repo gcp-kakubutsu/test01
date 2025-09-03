@@ -38,7 +38,8 @@ export async function fetchOptimizedGirls(
   toyPlayPreference?: number | null,
   deepthroatPreference?: number | null,
   throatingPreference?: number | null,
-  analPlayPreference?: number | null
+  analPlayPreference?: number | null,
+  groupPlayPreference?: number | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -101,7 +102,7 @@ export async function fetchOptimizedGirls(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
@@ -280,6 +281,21 @@ export async function fetchOptimizedGirls(
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const analScore = analPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN anal_opt.girl_profile_id IS NOT NULL THEN ${analScore} ELSE 0 END`);
+  }
+  
+  // 複数人プレイオプションのスコア（嗜好レベル4以上の場合）
+  if (groupPlayPreference && groupPlayPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT s.id as shop_id
+        FROM shop_profiles s
+        INNER JOIN shop_options so ON so.shop_profile_id = s.id
+        WHERE so.name LIKE '%3P%' OR so.name LIKE '%4P%' OR so.name LIKE '%複数%'
+           OR so.name LIKE '%グループ%' OR so.name LIKE '%多人数%'
+      ) group_shop ON s.id = group_shop.shop_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const groupScore = groupPlayPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN group_shop.shop_id IS NOT NULL THEN ${groupScore} ELSE 0 END`);
   }
   
   // S/Mマッチング
@@ -509,7 +525,8 @@ export async function fetchOptimizedGirls(
       toyPlayPreference,
       deepthroatPreference,
       throatingPreference,
-      analPlayPreference
+      analPlayPreference,
+      groupPlayPreference
     });
     console.log('📝 WHERE clause:', whereClause);
     console.log('📊 Score components:', scoreComponents.length);
@@ -607,7 +624,8 @@ export async function prefetchNextPage(
   toyPlayPreference?: number | null,
   deepthroatPreference?: number | null,
   throatingPreference?: number | null,
-  analPlayPreference?: number | null
+  analPlayPreference?: number | null,
+  groupPlayPreference?: number | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -615,14 +633,14 @@ export async function prefetchNextPage(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}`;
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference);
     }, 100);
   }
 }

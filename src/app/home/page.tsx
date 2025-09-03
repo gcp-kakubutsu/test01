@@ -448,6 +448,11 @@ export default function HomePage() {
           apiUrl += `&analPlayPreference=${malePreferences.analPlay}`;
           params.analPlayPreference = malePreferences.analPlay;
         }
+        // 複数人プレイの嗜好（1-5のスケール）
+        if (malePreferences.groupPlay !== undefined) {
+          apiUrl += `&groupPlayPreference=${malePreferences.groupPlay}`;
+          params.groupPlayPreference = malePreferences.groupPlay;
+        }
         // 年齢範囲
         if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;

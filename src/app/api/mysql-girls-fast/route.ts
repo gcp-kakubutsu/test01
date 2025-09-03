@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const deepthroatPreference = searchParams.get('deepthroatPreference') ? parseInt(searchParams.get('deepthroatPreference')!) : null;
     const throatingPreference = searchParams.get('throatingPreference') ? parseInt(searchParams.get('throatingPreference')!) : null;
     const analPlayPreference = searchParams.get('analPlayPreference') ? parseInt(searchParams.get('analPlayPreference')!) : null;
+    const groupPlayPreference = searchParams.get('groupPlayPreference') ? parseInt(searchParams.get('groupPlayPreference')!) : null;
     
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
@@ -70,12 +71,13 @@ export async function GET(request: NextRequest) {
       toyPlayPreference,
       deepthroatPreference,
       throatingPreference,
-      analPlayPreference
+      analPlayPreference,
+      groupPlayPreference
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference);
     }
     
     const responseTime = performance.now() - startTime;
