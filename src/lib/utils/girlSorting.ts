@@ -149,9 +149,10 @@ export async function sortGirlsByPreference(
 
       // Height preference scoring (weight: 15) - 重要度を下げる
       if (girl.height && preferences.partnerHeight) {
-        // Parse height preference (e.g., "150-160cm" or "any")
+        // Parse height preference (e.g., "150cm～155cm" or "any")
         if (preferences.partnerHeight !== 'こだわらない' && preferences.partnerHeight !== 'any') {
-          const match = preferences.partnerHeight.match(/(\d+)-(\d+)/);
+          // 「～」記号に対応した正規表現
+          const match = preferences.partnerHeight.match(/(\d+).*[～~-].*(\d+)/);
           if (match) {
             const minHeight = parseInt(match[1]);
             const maxHeight = parseInt(match[2]);
@@ -166,6 +167,59 @@ export async function sortGirlsByPreference(
               if (heightDiff <= 10) {
                 score += 7;
                 reasons.push('身長が希望に近い');
+              }
+            }
+          }
+        }
+      }
+
+      // Weight preference scoring (weight: 15) - 体重条件を追加
+      if (girl.weight && preferences.partnerWeight) {
+        // Parse weight preference (e.g., "45kg～50kg" or "こだわらない")
+        if (preferences.partnerWeight !== 'こだわらない' && preferences.partnerWeight !== 'any') {
+          // 「40kg以下」のような特殊ケースも処理
+          if (preferences.partnerWeight.includes('以下')) {
+            const match = preferences.partnerWeight.match(/(\d+)kg以下/);
+            if (match) {
+              const maxWeight = parseInt(match[1]);
+              if (girl.weight <= maxWeight) {
+                score += 15;
+                reasons.push('体重が希望範囲内');
+              } else if (girl.weight <= maxWeight + 5) {
+                score += 7;
+                reasons.push('体重が希望に近い');
+              }
+            }
+          } else if (preferences.partnerWeight.includes('以上')) {
+            const match = preferences.partnerWeight.match(/(\d+)kg以上/);
+            if (match) {
+              const minWeight = parseInt(match[1]);
+              if (girl.weight >= minWeight) {
+                score += 15;
+                reasons.push('体重が希望範囲内');
+              } else if (girl.weight >= minWeight - 5) {
+                score += 7;
+                reasons.push('体重が希望に近い');
+              }
+            }
+          } else {
+            // 「45kg～50kg」のような範囲
+            const match = preferences.partnerWeight.match(/(\d+).*[～~-].*(\d+)/);
+            if (match) {
+              const minWeight = parseInt(match[1]);
+              const maxWeight = parseInt(match[2]);
+              if (girl.weight >= minWeight && girl.weight <= maxWeight) {
+                score += 15;
+                reasons.push('体重が希望範囲内');
+              } else {
+                const weightDiff = Math.min(
+                  Math.abs(girl.weight - minWeight),
+                  Math.abs(girl.weight - maxWeight)
+                );
+                if (weightDiff <= 5) {
+                  score += 7;
+                  reasons.push('体重が希望に近い');
+                }
               }
             }
           }
@@ -249,7 +303,25 @@ export async function sortGirlsByPreference(
         }
       }
 
-      // Location scoring (weight: 30) - 位置情報の重要度を下げる（タイプ優先）
+      // Location preference scoring (weight: 25) - 居住地の一致を追加
+      if (preferences.partnerLocation && preferences.partnerLocation !== 'こだわらない') {
+        // 女の子の都道府県とユーザーの希望都道府県を比較
+        if (girl.location) {
+          // 完全一致
+          if (girl.location === preferences.partnerLocation) {
+            score += 25;
+            reasons.push(`居住地が希望と一致（${preferences.partnerLocation}）`);
+          }
+          // 部分一致（例：「東京」と「東京都」）
+          else if (girl.location.includes(preferences.partnerLocation) || 
+                   preferences.partnerLocation.includes(girl.location)) {
+            score += 15;
+            reasons.push('居住地が希望に近い');
+          }
+        }
+      }
+
+      // Distance scoring (weight: 30) - 位置情報の重要度を下げる（タイプ優先）
       let distanceValue = Infinity;
       
       // サーバーから提供されたdistance_kmを優先的に使用
