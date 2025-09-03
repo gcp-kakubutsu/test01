@@ -435,6 +435,19 @@ export default function HomePage() {
           apiUrl += `&toyPlayPreference=${malePreferences.toyPlay}`;
           params.toyPlayPreference = malePreferences.toyPlay;
         }
+        // イラマチオ、ごっくん、アナルプレイの嗜好（1-5のスケール）
+        if (malePreferences.deepthroat !== undefined) {
+          apiUrl += `&deepthroatPreference=${malePreferences.deepthroat}`;
+          params.deepthroatPreference = malePreferences.deepthroat;
+        }
+        if (malePreferences.throating !== undefined) {
+          apiUrl += `&throatingPreference=${malePreferences.throating}`;
+          params.throatingPreference = malePreferences.throating;
+        }
+        if (malePreferences.analPlay !== undefined) {
+          apiUrl += `&analPlayPreference=${malePreferences.analPlay}`;
+          params.analPlayPreference = malePreferences.analPlay;
+        }
         // 年齢範囲
         if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;

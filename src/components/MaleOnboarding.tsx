@@ -65,14 +65,14 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         } else {
           // 新規ユーザーの場合、デフォルト値を確実に設定
           const defaultPrefs = {
-            outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
-            oralReceiving: 3, hypnosisPlay: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-            deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
-            experienceCount: '', recordingDuringPlay: '', isSadist: '', isMasochist: '',
-            seekingType: '', partnerHeight: '', partnerWeight: '', partnerBodyType: '',
-            partnerLocation: '', contactBeforeMeeting: '',
-            partnerAgeMin: 18, partnerAgeMax: 30, availableDays: [], availableTimeSlots: [],
-            activityAreas: [], isComplete: false
+            spanking: 3, groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
+            verbalPlay: 3, squirting: 3, deepthroat: 3, 
+            partnerBodyTypes: [], girlTypeIds: [],
+            recordingDuringPlay: '', isSadist: '', isMasochist: '',
+            partnerHeight: '', partnerWeight: '', partnerBodyType: '',
+            partnerLocation: '', photoExchangeBeforeMeeting: '',
+            partnerAgeMin: 18, partnerAgeMax: 30,
+            isComplete: false
           };
           setPreferences(defaultPrefs as MalePreferences);
           console.log('Set simplified default preferences for new user');
@@ -81,14 +81,14 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         console.error('Error loading existing preferences:', error);
         // エラーの場合もシンプルなデフォルト値を設定
         setPreferences({
-          spanking: 3, outdoorPlay: 3, groupPlay: 3, throating: 3, bondage: 3,
-          oralReceiving: 3, hypnosisPlay: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-          verbalPlay: 3, squirting: 3, deepthroat: 3, partnerBodyTypes: [], girlTypeIds: [],
-          experienceCount: '', recordingDuringPlay: '', isSadist: '', isMasochist: '',
-          seekingType: '', partnerHeight: '', partnerWeight: '', partnerBodyType: '',
-          partnerLocation: '', contactBeforeMeeting: '', photoExchangeBeforeMeeting: '',
-          partnerAgeMin: 18, partnerAgeMax: 30, availableDays: [], availableTimeSlots: [],
-          activityAreas: [], isComplete: false
+          spanking: 3, groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
+          verbalPlay: 3, squirting: 3, deepthroat: 3, 
+          partnerBodyTypes: [], girlTypeIds: [],
+          recordingDuringPlay: '', isSadist: '', isMasochist: '',
+          partnerHeight: '', partnerWeight: '', partnerBodyType: '',
+          partnerLocation: '', photoExchangeBeforeMeeting: '',
+          partnerAgeMin: 18, partnerAgeMax: 30,
+          isComplete: false
         } as MalePreferences);
       } finally {
         setLoadingInitialData(false);

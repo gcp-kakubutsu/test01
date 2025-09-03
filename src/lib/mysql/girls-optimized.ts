@@ -35,7 +35,10 @@ export async function fetchOptimizedGirls(
   partnerWeight?: string | null,
   partnerLocation?: string | null,
   cosplayPreference?: number | null,
-  toyPlayPreference?: number | null
+  toyPlayPreference?: number | null,
+  deepthroatPreference?: number | null,
+  throatingPreference?: number | null,
+  analPlayPreference?: number | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -98,7 +101,7 @@ export async function fetchOptimizedGirls(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
@@ -232,6 +235,51 @@ export async function fetchOptimizedGirls(
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const toyScore = toyPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN toy_opt.girl_profile_id IS NOT NULL THEN ${toyScore} ELSE 0 END`);
+  }
+  
+  // イラマチオオプションのスコア（嗜好レベル4以上の場合）
+  if (deepthroatPreference && deepthroatPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%イラマ%' OR so.name LIKE '%ディープスロート%' OR so.name LIKE '%喉奥%'
+           OR so.name LIKE '%深い%' OR so.name LIKE '%ディープ%'
+      ) deepthroat_opt ON g.id = deepthroat_opt.girl_profile_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const deepthroatScore = deepthroatPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN deepthroat_opt.girl_profile_id IS NOT NULL THEN ${deepthroatScore} ELSE 0 END`);
+  }
+  
+  // ごっくんオプションのスコア（嗜好レベル4以上の場合）
+  if (throatingPreference && throatingPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%ごっくん%' OR so.name LIKE '%ゴックン%' OR so.name LIKE '%飲む%'
+           OR so.name LIKE '%口内発射%' OR so.name LIKE '%精飲%'
+      ) throating_opt ON g.id = throating_opt.girl_profile_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const throatingScore = throatingPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN throating_opt.girl_profile_id IS NOT NULL THEN ${throatingScore} ELSE 0 END`);
+  }
+  
+  // アナルプレイオプションのスコア（嗜好レベル4以上の場合）
+  if (analPlayPreference && analPlayPreference >= 4) {
+    preferenceJoins += `
+      LEFT JOIN (
+        SELECT DISTINCT go.girl_profile_id
+        FROM girl_options go
+        INNER JOIN shop_options so ON go.shop_option_id = so.id
+        WHERE so.name LIKE '%アナル%' OR so.name LIKE '%AF%' OR so.name LIKE '%A.F%'
+           OR so.name LIKE '%肛門%' OR so.name LIKE '%お尻%'
+      ) anal_opt ON g.id = anal_opt.girl_profile_id`;
+    // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
+    const analScore = analPlayPreference === 5 ? 30 : 20;
+    scoreComponents.push(`CASE WHEN anal_opt.girl_profile_id IS NOT NULL THEN ${analScore} ELSE 0 END`);
   }
   
   // S/Mマッチング
@@ -458,7 +506,10 @@ export async function fetchOptimizedGirls(
       partnerWeight,
       partnerLocation,
       cosplayPreference,
-      toyPlayPreference
+      toyPlayPreference,
+      deepthroatPreference,
+      throatingPreference,
+      analPlayPreference
     });
     console.log('📝 WHERE clause:', whereClause);
     console.log('📊 Score components:', scoreComponents.length);
@@ -551,7 +602,12 @@ export async function prefetchNextPage(
   isMasochist?: string | null,
   partnerHeight?: string | null,
   partnerWeight?: string | null,
-  partnerLocation?: string | null
+  partnerLocation?: string | null,
+  cosplayPreference?: number | null,
+  toyPlayPreference?: number | null,
+  deepthroatPreference?: number | null,
+  throatingPreference?: number | null,
+  analPlayPreference?: number | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -559,14 +615,14 @@ export async function prefetchNextPage(
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}`;
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Check if already cached
   if (!cacheKey) {
     // Prefetch in background
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference);
     }, 100);
   }
 }

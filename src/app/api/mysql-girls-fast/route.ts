@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
     const partnerLocation = searchParams.get('partnerLocation') || null;
     const cosplayPreference = searchParams.get('cosplayPreference') ? parseInt(searchParams.get('cosplayPreference')!) : null;
     const toyPlayPreference = searchParams.get('toyPlayPreference') ? parseInt(searchParams.get('toyPlayPreference')!) : null;
+    const deepthroatPreference = searchParams.get('deepthroatPreference') ? parseInt(searchParams.get('deepthroatPreference')!) : null;
+    const throatingPreference = searchParams.get('throatingPreference') ? parseInt(searchParams.get('throatingPreference')!) : null;
+    const analPlayPreference = searchParams.get('analPlayPreference') ? parseInt(searchParams.get('analPlayPreference')!) : null;
     
     // Validate parameters
     if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
@@ -64,12 +67,15 @@ export async function GET(request: NextRequest) {
       partnerWeight,
       partnerLocation,
       cosplayPreference,
-      toyPlayPreference
+      toyPlayPreference,
+      deepthroatPreference,
+      throatingPreference,
+      analPlayPreference
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference);
     }
     
     const responseTime = performance.now() - startTime;
