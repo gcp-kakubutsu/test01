@@ -845,7 +845,7 @@ export default function LandingPage() {
               },
               {
                 question: '料金について',
-                answer: 'NUKUNEは、男性会員様向けに月額定額制の有料プランをご用意しています。\n追加料金はなく、安心してご利用いただけます。\n\nサービスをご利用いただくには、18歳以上（高校生不可）で、\nクレジットカード登録が必要です。\n対応ブランド：VISA／MasterCard／JCB／American Express／Diners Club'
+                answer: 'NUKUNEは、男性会員様向けに月額定額制の有料プランをご用意しています。\n追加料金はなく、安心してご利用いただけます。\n\nサービスをご利用いただくには、18歳以上（高校生不可）で、\nクレジットカード登録が必要です。\n対応ブランド：MasterCard／JCB／American Express／Diners Club'
               },
               {
                 question: 'プライバシーは守られますか？',
