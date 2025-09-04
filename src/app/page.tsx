@@ -18,12 +18,51 @@ export default function LandingPage() {
   const [forceShowContent, setForceShowContent] = useState(false);
   const [isInLineApp, setIsInLineApp] = useState(false);
   const [showStickyButtons, setShowStickyButtons] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
+
+  // セクションリスト定義
+  const sections = [
+    { id: 'about', name: 'NUKUNEとは', icon: '🌸' },
+    { id: 'features', name: '機能紹介', icon: '⚡' },
+    { id: 'solutions', name: '課題解決', icon: '💡' },
+    { id: 'matching', name: 'マッチング検索', icon: '🔍' },
+    { id: 'reasons', name: '他サイトとの違い', icon: '🆚' },
+    { id: 'guide', name: 'スタートガイド', icon: '📖' },
+    { id: 'safety', name: '安全への取り組み', icon: '🛡️' },
+    { id: 'faq', name: 'よくある質問', icon: '❓' },
+    { id: 'pricing', name: '料金プラン', icon: '💰' },
+  ];
+
+  // スムーズスクロール関数
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const yOffset = -80; // ヘッダーの高さ分オフセット
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setIsMenuOpen(false); // メニューを閉じる
+    }
+  };
 
   // Check if we're in LINE browser
   useEffect(() => {
     setIsInLineApp(isLineApp());
   }, []);
+
+  // メニューが開いたときにbodyのスクロールを無効化
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // クリーンアップ
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
 
   // スクロール検知でスティッキーボタンの表示制御
   useEffect(() => {
@@ -332,6 +371,37 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* ハンバーガーメニューボタン */}
+      <button 
+        className={`${styles.menuToggle} ${isMenuOpen ? styles.menuToggleOpen : ''}`}
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        aria-label="メニューを開く"
+      >
+        <span className={styles.menuToggleLine}></span>
+        <span className={styles.menuToggleLine}></span>
+        <span className={styles.menuToggleLine}></span>
+      </button>
+
+      {/* ナビゲーションメニュー */}
+      <div className={`${styles.navigationMenu} ${isMenuOpen ? styles.navigationMenuOpen : ''}`}>
+        <nav className={styles.navigationContent}>
+          <h3 className={styles.navigationTitle}>セクション</h3>
+          <ul className={styles.navigationList}>
+            {sections.map((section) => (
+              <li key={section.id}>
+                <button
+                  onClick={() => scrollToSection(section.id)}
+                  className={styles.navigationItem}
+                >
+                  <span className={styles.navigationIcon}>{section.icon}</span>
+                  <span className={styles.navigationName}>{section.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+      
       {/* Sticky Buttons - ヒーローセクションから離れたら表示 */}
       <div className={`${styles.stickyButtons} ${showStickyButtons ? styles.stickyButtonsVisible : ''}`}>
         <Link 
@@ -410,7 +480,7 @@ export default function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section className={`${styles.section} ${styles.about} ${styles.sectionSlideLeft}`}>
+      <section id="about" className={`${styles.section} ${styles.about} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>NUKUNEとは</h2>
           <div className={styles.aboutContent}>
@@ -456,7 +526,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className={`${styles.section} ${styles.features} ${styles.sectionSlideRight}`}>
+      <section id="features" className={`${styles.section} ${styles.features} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>充実の機能で</span>
@@ -489,7 +559,7 @@ export default function LandingPage() {
       </section>
 
       {/* Solutions Section - こんなとき、NUKUNEが解決します */}
-      <section className={`${styles.section} ${styles.solutions} ${styles.sectionSlideLeft}`}>
+      <section id="solutions" className={`${styles.section} ${styles.solutions} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>こんなとき、</span>
@@ -583,7 +653,7 @@ export default function LandingPage() {
       </section>
 
       {/* Matching Search Section */}
-      <section className={`${styles.section} ${styles.matchingSearch} ${styles.sectionSlideRight}`}>
+      <section id="matching" className={`${styles.section} ${styles.matchingSearch} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <div className={`${styles.scrollFadeIn} max-w-4xl mx-auto`}>
             <MatchingSearch />
@@ -592,7 +662,7 @@ export default function LandingPage() {
       </section>
 
       {/* Reasons Section */}
-      <section className={`${styles.section} ${styles.reasons} ${styles.sectionSlideLeft}`}>
+      <section id="reasons" className={`${styles.section} ${styles.reasons} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             <span className={styles.titleLine1}>従来の風俗サイトとの</span>
@@ -646,7 +716,7 @@ export default function LandingPage() {
       </section>
 
       {/* Start Guide Section */}
-      <section className={`${styles.section} ${styles.startGuide} ${styles.sectionSlideRight}`}>
+      <section id="guide" className={`${styles.section} ${styles.startGuide} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
             今すぐNUKUNEを<br />無料体験！
@@ -704,7 +774,7 @@ export default function LandingPage() {
       </section>
 
       {/* Safety Section */}
-      <section className={`${styles.section} ${styles.safety} ${styles.sectionSlideLeft}`}>
+      <section id="safety" className={`${styles.section} ${styles.safety} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>安全への取り組み</h2>
           <div className={styles.safetyGrid}>
@@ -759,7 +829,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className={`${styles.section} ${styles.faq} ${styles.sectionSlideRight}`}>
+      <section id="faq" className={`${styles.section} ${styles.faq} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>よくあるご質問</h2>
           <div className={styles.faqContainer}>
@@ -823,7 +893,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section - LUXE DATE Style */}
-      <section className={`${styles.section} ${styles.pricing} ${styles.sectionSlideRight}`}>
+      <section id="pricing" className={`${styles.section} ${styles.pricing} ${styles.sectionSlideRight}`}>
         <div className={styles.container}>
           <div className={styles.pricingHeader}>
             <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>
