@@ -49,13 +49,15 @@ export const SNSSection: React.FC = () => {
             className={styles.iconLink}
             aria-label="TikTok"
           >
-            <Image 
-              src="/img/tiktok-logo.png" 
-              alt="TikTok" 
-              width={80} 
-              height={80}
-              className={styles.icon}
-            />
+            <div className={styles.tiktokContainer}>
+              <Image 
+                src="/img/tiktok-logo.png" 
+                alt="TikTok" 
+                width={80} 
+                height={80}
+                className={styles.icon}
+              />
+            </div>
           </a>
           
           <a 
@@ -65,13 +67,15 @@ export const SNSSection: React.FC = () => {
             className={styles.iconLink}
             aria-label="YouTube"
           >
-            <Image 
-              src="/img/youtube-logo.png" 
-              alt="YouTube" 
-              width={80} 
-              height={80}
-              className={styles.icon}
-            />
+            <div className={styles.youtubeContainer}>
+              <Image 
+                src="/img/youtube-logo.png" 
+                alt="YouTube" 
+                width={80} 
+                height={80}
+                className={styles.icon}
+              />
+            </div>
           </a>
         </div>
       </div>
