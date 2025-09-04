@@ -1,0 +1,80 @@
+import React from 'react';
+import Image from 'next/image';
+import styles from './SNSSection.module.scss';
+
+export const SNSSection: React.FC = () => {
+  return (
+    <section className={styles.snsSection}>
+      <div className={styles.container}>
+        <h2 className={styles.title}>NUKUNE公式アカウント</h2>
+        <div className={styles.iconsWrapper}>
+          <a 
+            href="https://www.instagram.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={styles.iconLink}
+            aria-label="Instagram"
+          >
+            <Image 
+              src="/img/instagram-logo.png" 
+              alt="Instagram" 
+              width={80} 
+              height={80}
+              className={styles.icon}
+            />
+          </a>
+          
+          <a 
+            href="https://twitter.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={styles.iconLink}
+            aria-label="X (Twitter)"
+          >
+            <div className={styles.xContainer}>
+              <Image 
+                src="/img/x-logo.png" 
+                alt="X" 
+                width={80} 
+                height={80}
+                className={styles.icon}
+              />
+            </div>
+          </a>
+          
+          <a 
+            href="https://www.tiktok.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={styles.iconLink}
+            aria-label="TikTok"
+          >
+            <Image 
+              src="/img/tiktok-logo.png" 
+              alt="TikTok" 
+              width={80} 
+              height={80}
+              className={styles.icon}
+            />
+          </a>
+          
+          <a 
+            href="https://www.youtube.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={styles.iconLink}
+            aria-label="YouTube"
+          >
+            <Image 
+              src="/img/youtube-logo.png" 
+              alt="YouTube" 
+              width={80} 
+              height={80}
+              className={styles.icon}
+            />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+};

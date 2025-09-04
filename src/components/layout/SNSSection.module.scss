@@ -1,0 +1,148 @@
+// Dark/Light theme colors matching Footer
+$bg-dark: #111827;
+$bg-light: #F9FAFB;
+$text-light: #F9FAFB;
+$text-dark: #1F2937;
+$accent-color: #F0306A;
+
+.snsSection {
+  position: relative;
+  padding: 80px 0;
+  background: $bg-dark;
+  overflow: hidden;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+
+  :global(.light) & {
+    background: $bg-light;
+    border-top: 1px solid #E5E7EB;
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: $text-light;
+  margin-bottom: 50px;
+  letter-spacing: 0.05em;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+
+  :global(.light) & {
+    color: $text-dark;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: $accent-color;
+  }
+}
+
+.iconsWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  flex-wrap: wrap;
+}
+
+.iconLink {
+  text-decoration: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  display: block;
+
+  &:hover {
+    transform: translateY(-8px) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 80px !important;
+  height: 80px !important;
+  object-fit: contain;
+  filter: none;
+}
+
+// X logo needs inverted colors in light mode
+.xContainer {
+  .icon {
+    :global(.light) & {
+      filter: invert(1);
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .snsSection {
+    padding: 60px 0;
+  }
+
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 40px;
+  }
+
+  .iconsWrapper {
+    gap: 40px;
+  }
+
+  .icon {
+    width: 70px !important;
+    height: 70px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .snsSection {
+    padding: 50px 0;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+  }
+
+  .iconsWrapper {
+    gap: 30px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  .icon {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .iconLink {
+    justify-self: center;
+    
+    &:hover {
+      transform: translateY(-5px) scale(1.05);
+    }
+  }
+}

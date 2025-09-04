@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2, MapPin } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
+import { SNSSection } from '@/components/layout/SNSSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import MatchingSearch from '@/components/home/MatchingSearch';
@@ -1033,6 +1034,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* SNS Section */}
+      <SNSSection />
 
       {/* Footer */}
       <Footer />
