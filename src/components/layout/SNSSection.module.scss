@@ -126,20 +126,21 @@ $accent-color: #F0306A;
   }
 
   .iconsWrapper {
-    gap: 30px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 280px;
-    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: nowrap;
+    padding: 0 10px;
   }
 
   .icon {
-    width: 60px !important;
-    height: 60px !important;
+    width: 50px !important;
+    height: 50px !important;
   }
 
   .iconLink {
-    justify-self: center;
+    flex-shrink: 0;
     
     &:hover {
       transform: translateY(-5px) scale(1.05);
