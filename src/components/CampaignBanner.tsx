@@ -17,8 +17,8 @@ export function CampaignBanner({ onClose }: CampaignBannerProps) {
   };
 
   const handleImageClick = () => {
-    // バナークリックでプレミアムパックページへ遷移
-    window.location.href = '/subscription?plan=premium';
+    // バナークリックでサインアップページへ遷移
+    window.location.href = '/signup';
   };
 
   if (!isVisible) return null;

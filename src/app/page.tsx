@@ -84,13 +84,9 @@ export default function LandingPage() {
       if (!hasPassedMiddle && scrollPosition > documentHeight) {
         setHasPassedMiddle(true);
         
-        // 1日1回の表示チェック
-        const today = new Date().toDateString();
-        const lastShownDate = localStorage.getItem('campaignBannerLastShown');
-        
-        if (lastShownDate !== today && !isAuthenticated) {
+        // ログインしていない場合は毎回表示
+        if (!isAuthenticated) {
           setShowCampaignBanner(true);
-          localStorage.setItem('campaignBannerLastShown', today);
         }
       }
     };
