@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import MatchingSearch from '@/components/home/MatchingSearch';
 import { isLineApp } from '@/lib/utils/browser';
+import { CampaignBanner } from '@/components/CampaignBanner';
 
 export default function LandingPage() {
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -20,6 +21,8 @@ export default function LandingPage() {
   const [isInLineApp, setIsInLineApp] = useState(false);
   const [showStickyButtons, setShowStickyButtons] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showCampaignBanner, setShowCampaignBanner] = useState(false);
+  const [hasPassedMiddle, setHasPassedMiddle] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
 
   // セクションリスト定義
@@ -65,7 +68,7 @@ export default function LandingPage() {
     };
   }, [isMenuOpen]);
 
-  // スクロール検知でスティッキーボタンの表示制御
+  // スクロール検知でスティッキーボタンとキャンペーンバナーの表示制御
   useEffect(() => {
     const handleScroll = () => {
       if (heroRef.current) {
@@ -73,13 +76,30 @@ export default function LandingPage() {
         // ヒーローセクションが画面外に出たらスティッキーボタンを表示
         setShowStickyButtons(heroBottom < 0);
       }
+
+      // ページの中央を通過したかチェック
+      const scrollPosition = window.scrollY + window.innerHeight / 2;
+      const documentHeight = document.documentElement.scrollHeight / 2;
+      
+      if (!hasPassedMiddle && scrollPosition > documentHeight) {
+        setHasPassedMiddle(true);
+        
+        // 1日1回の表示チェック
+        const today = new Date().toDateString();
+        const lastShownDate = localStorage.getItem('campaignBannerLastShown');
+        
+        if (lastShownDate !== today && !isAuthenticated) {
+          setShowCampaignBanner(true);
+          localStorage.setItem('campaignBannerLastShown', today);
+        }
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
     handleScroll(); // 初期状態をチェック
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [hasPassedMiddle, isAuthenticated]);
 
   // Timeout for loading state - especially for LINE browser
   useEffect(() => {
@@ -372,6 +392,13 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* Campaign Banner */}
+      {showCampaignBanner && (
+        <CampaignBanner 
+          onClose={() => setShowCampaignBanner(false)}
+        />
+      )}
+
       {/* ハンバーガーメニューボタン */}
       <button 
         className={`${styles.menuToggle} ${isMenuOpen ? styles.menuToggleOpen : ''}`}
