@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 1000); // 上限を1000に変更
     const offset = parseInt(searchParams.get('offset') || '0');
     const area = searchParams.get('area') || null;
-    const ageMin = parseInt(searchParams.get('ageMin') || '18');
-    const ageMax = parseInt(searchParams.get('ageMax') || '50');
+    const ageMinParam = parseInt(searchParams.get('ageMin') || '18');
+    const ageMin = isNaN(ageMinParam) ? 18 : ageMinParam;
+    const ageMaxParam = parseInt(searchParams.get('ageMax') || '50');
+    const ageMax = isNaN(ageMaxParam) ? 50 : ageMaxParam;
     const girlTypesParam = searchParams.get('girlTypes');
     const girlTypes = girlTypesParam ? girlTypesParam.split(',') : null;
     const girlId = searchParams.get('girlId') || null;
@@ -48,7 +50,8 @@ export async function GET(request: NextRequest) {
     const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
     
     // Validate parameters
-    if (isNaN(limit) || isNaN(offset) || isNaN(ageMin) || isNaN(ageMax)) {
+    if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
+      console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });
       return NextResponse.json(
         { error: 'Invalid query parameters' },
         { status: 400 }

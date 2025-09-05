@@ -523,11 +523,11 @@ export default function HomePage() {
           params.preferredBodyTypes = malePreferences.partnerBodyTypes;
         }
         // 年齢範囲
-        if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null) {
+        if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null && !isNaN(malePreferences.partnerAgeMin)) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;
           params.ageMin = malePreferences.partnerAgeMin;
         }
-        if (malePreferences.partnerAgeMax !== undefined && malePreferences.partnerAgeMax !== null) {
+        if (malePreferences.partnerAgeMax !== undefined && malePreferences.partnerAgeMax !== null && !isNaN(malePreferences.partnerAgeMax)) {
           apiUrl += `&ageMax=${malePreferences.partnerAgeMax}`;
           params.ageMax = malePreferences.partnerAgeMax;
         }

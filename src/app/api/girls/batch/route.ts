@@ -16,9 +16,14 @@ export async function POST(request: NextRequest) {
     // Limit to 50 IDs at once to prevent abuse
     console.log('Received IDs:', ids);
     const girlIds = ids.slice(0, 50).map(id => {
-      const parsed = typeof id === 'string' ? parseInt(id) : id;
+      // IDを数値に変換（文字列の場合）
+      const parsed = typeof id === 'string' ? parseInt(id, 10) : id;
+      // parseIntの結果を検証
+      if (isNaN(parsed)) {
+        console.warn(`Invalid ID format: ${id}`);
+      }
       return parsed;
-    }).filter(id => !isNaN(id));
+    }).filter(id => !isNaN(id) && id > 0);
     console.log('Parsed girl IDs:', girlIds);
     
     if (girlIds.length === 0) {

@@ -78,10 +78,12 @@ export default function LikesPage() {
 
       // MySQLから女の子の詳細情報を取得（バッチAPIで高速化）
       if (girlIds.length > 0) {
+        console.log('[likes] Girl IDs to fetch:', girlIds);
         const girlsMap = new Map<string, any>();
         
         // バッチAPIで一括取得（高速化）
         try {
+          console.log('[likes] Fetching girls batch with IDs:', girlIds);
           const response = await fetch('/api/girls/batch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -90,12 +92,18 @@ export default function LikesPage() {
           
           if (response.ok) {
             const girlsData = await response.json();
+            console.log('[likes] Received girls data:', Object.keys(girlsData).length, 'items');
             Object.entries(girlsData).forEach(([id, data]) => {
               girlsMap.set(id, data);
             });
+          } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('[likes] API Error:', response.status, errorData);
+            console.error('[likes] Request IDs:', girlIds);
           }
         } catch (error) {
-          console.error('Failed to fetch girls batch:', error);
+          console.error('[likes] Failed to fetch girls batch:', error);
+          console.error('[likes] Request IDs:', girlIds);
         }
 
         // いいねデータに女の子情報をマージ
