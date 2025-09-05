@@ -504,7 +504,7 @@ export default function LandingPage() {
                   <p>現在地からのGPS検索で、近くの相性ぴったりなキャストをご提案</p>
                 </div>
                 <div className={styles.featureItem}>
-                  <p>気になるキャストがいれば、ニックネームでリクエストするだけで、提携先経由で予約まで完結</p>
+                  <p>気になるキャストがいれば、『この嬢に決めた』を押すだけで、提携先の風俗サイト経由で即予約</p>
                 </div>
               </div>
               
