@@ -1007,88 +1007,32 @@ export default function HomePage() {
                 )}
               </div>
             ) : showSearchInput ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="text"
-                    placeholder="キーワード検索（名前、メッセージなど）"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        // Apply search on Enter
-                        setShowSearchInput(false);
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setSearchKeyword('');
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="キーワード検索（名前、メッセージなど）"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      // Apply search on Enter
                       setShowSearchInput(false);
-                    }}
-                    className="hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                {/* 嗜好設定スライダー */}
-                {userProfile?.gender === 'male' && preferences && (
-                  <div className="bg-gray-900 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowPreferenceSliders(!showPreferenceSliders)}
-                        className="text-xs text-gray-400 hover:text-white"
-                      >
-                        {showPreferenceSliders ? '非表示' : '表示'}
-                      </Button>
-                    </div>
-                    
-                    {showPreferenceSliders && (
-                      <div className="space-y-3">
-                        {/* 主要6項目の嗜好スライダー */}
-                        {[
-                          { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
-                          { key: 'throating', label: 'ゴックン', value: preferences.throating },
-                          { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
-                          { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
-                          { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
-                          { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
-                        ].map((pref) => (
-                          <div key={pref.key} className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-400">{pref.label}</span>
-                              <span className="text-xs text-pink-400 font-medium">{pref.value}</span>
-                            </div>
-                            <Slider
-                              value={[pref.value]}
-                              onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
-                              min={1}
-                              max={5}
-                              step={1}
-                              className="w-full"
-                              disabled={savingPreferences}
-                            />
-                          </div>
-                        ))}
-                        
-                        {savingPreferences && (
-                          <div className="text-xs text-center text-gray-500">
-                            <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
-                            保存中...
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchKeyword('');
+                    setShowSearchInput(false);
+                  }}
+                  className="hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -1130,6 +1074,62 @@ export default function HomePage() {
                     <RotateCcw className="w-4 h-4" />
                   </Button>
                 )}
+              </div>
+            )}
+            
+            {/* 嗜好設定スライダー - 常に表示（男性ユーザーの場合）*/}
+            {userProfile?.gender === 'male' && preferences && (
+              <div className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowPreferenceSliders(!showPreferenceSliders)}
+                    className="text-xs bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  >
+                    {showPreferenceSliders ? '非表示' : '表示'}
+                  </Button>
+                </div>
+                
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showPreferenceSliders ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="space-y-3 pt-2">
+                    {/* 主要6項目の嗜好スライダー */}
+                    {[
+                      { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
+                      { key: 'throating', label: 'ゴックン', value: preferences.throating },
+                      { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
+                      { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
+                      { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
+                      { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
+                    ].map((pref) => (
+                      <div key={pref.key} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">{pref.label}</span>
+                          <span className="text-xs text-pink-400 font-medium">{pref.value}</span>
+                        </div>
+                        <Slider
+                          value={[pref.value]}
+                          onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
+                          min={1}
+                          max={5}
+                          step={1}
+                          className="w-full"
+                          disabled={savingPreferences}
+                        />
+                      </div>
+                    ))}
+                    
+                    {savingPreferences && (
+                      <div className="text-xs text-center text-gray-500">
+                        <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                        保存中...
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
