@@ -21,8 +21,9 @@ import WelcomePage from '@/components/WelcomePage';
 import MaleOnboarding from '@/components/MaleOnboarding';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { getMalePreferences, isMalePreferencesComplete } from '@/lib/firebase/malePreferences';
+import { getMalePreferences, isMalePreferencesComplete, saveMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
 import Image from 'next/image';
+import { Slider } from '@/components/ui/slider';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import '@/styles/blur.css';
 import { useToast } from '@/hooks/use-toast';
@@ -67,6 +68,9 @@ export default function HomePage() {
   const [girlTypes, setGirlTypes] = useState<any[]>([]); // 女の子タイプのマスターデータ
   const [selectedGirlTypes, setSelectedGirlTypes] = useState<number[]>([]); // 選択された女の子タイプID
   const [showTypeFilter, setShowTypeFilter] = useState(false); // タイプフィルター表示フラグ
+  const [showPreferenceSliders, setShowPreferenceSliders] = useState(false); // 嗜好スライダー表示フラグ
+  const [preferences, setPreferences] = useState<MalePreferences | null>(null); // ユーザーの嗜好設定
+  const [savingPreferences, setSavingPreferences] = useState(false); // 嗜好保存中フラグ
 
   // 認証チェック: ログインしていない場合はログインページへリダイレクト
   useEffect(() => {
@@ -74,6 +78,24 @@ export default function HomePage() {
       router.push('/login');
     }
   }, [isAuthenticated, currentUser, router]);
+
+  // ユーザーの嗜好設定を読み込み
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (currentUser && userProfile?.gender === 'male') {
+        try {
+          const prefs = await getMalePreferences(currentUser.uid);
+          if (prefs) {
+            setPreferences(prefs);
+          }
+        } catch (error) {
+          console.error('Failed to load preferences:', error);
+        }
+      }
+    };
+
+    loadPreferences();
+  }, [currentUser, userProfile]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -216,6 +238,35 @@ export default function HomePage() {
       window.location.reload();
     } finally {
       setCheckingWelcome(false);
+    }
+  };
+
+  // 嗜好設定を保存
+  const savePreferenceScore = async (field: keyof MalePreferences, value: number) => {
+    if (!currentUser || !preferences) return;
+    
+    try {
+      setSavingPreferences(true);
+      const updatedPreferences = { ...preferences, [field]: value };
+      setPreferences(updatedPreferences);
+      await saveMalePreferences(currentUser.uid, updatedPreferences);
+      
+      // データを再ソート
+      if (sortedGirlsCache && currentUser?.uid) {
+        setIsSorting(true);
+        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+        setSortedGirlsCache(sortedData);
+        setIsSorting(false);
+      }
+    } catch (error) {
+      console.error('Failed to save preference:', error);
+      toast({
+        title: "エラー",
+        description: "嗜好の保存に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingPreferences(false);
     }
   };
 
@@ -956,32 +1007,88 @@ export default function HomePage() {
                 )}
               </div>
             ) : showSearchInput ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  placeholder="キーワード検索（名前、メッセージなど）"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      // Apply search on Enter
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    placeholder="キーワード検索（名前、メッセージなど）"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    className="flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        // Apply search on Enter
+                        setShowSearchInput(false);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSearchKeyword('');
                       setShowSearchInput(false);
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setSearchKeyword('');
-                    setShowSearchInput(false);
-                  }}
-                  className="hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                    }}
+                    className="hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                {/* 嗜好設定スライダー */}
+                {userProfile?.gender === 'male' && preferences && (
+                  <div className="bg-gray-900 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowPreferenceSliders(!showPreferenceSliders)}
+                        className="text-xs text-gray-400 hover:text-white"
+                      >
+                        {showPreferenceSliders ? '非表示' : '表示'}
+                      </Button>
+                    </div>
+                    
+                    {showPreferenceSliders && (
+                      <div className="space-y-3">
+                        {/* 主要6項目の嗜好スライダー */}
+                        {[
+                          { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
+                          { key: 'throating', label: 'ゴックン', value: preferences.throating },
+                          { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
+                          { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
+                          { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
+                          { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
+                        ].map((pref) => (
+                          <div key={pref.key} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-400">{pref.label}</span>
+                              <span className="text-xs text-pink-400 font-medium">{pref.value}</span>
+                            </div>
+                            <Slider
+                              value={[pref.value]}
+                              onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
+                              min={1}
+                              max={5}
+                              step={1}
+                              className="w-full"
+                              disabled={savingPreferences}
+                            />
+                          </div>
+                        ))}
+                        
+                        {savingPreferences && (
+                          <div className="text-xs text-center text-gray-500">
+                            <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                            保存中...
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
