@@ -69,8 +69,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             verbalPlay: 3, squirting: 3, deepthroat: 3, 
             partnerBodyTypes: [], girlTypeIds: [],
             recordingDuringPlay: '', isSadist: '', isMasochist: '',
-            partnerHeight: '', partnerWeight: '', partnerBodyType: '',
-            partnerLocation: '', photoExchangeBeforeMeeting: '',
+            partnerHeight: '', partnerWeight: '',
+            partnerLocation: '',
             partnerAgeMin: 18, partnerAgeMax: 30,
             isComplete: false
           };
@@ -85,8 +85,8 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
           verbalPlay: 3, squirting: 3, deepthroat: 3, 
           partnerBodyTypes: [], girlTypeIds: [],
           recordingDuringPlay: '', isSadist: '', isMasochist: '',
-          partnerHeight: '', partnerWeight: '', partnerBodyType: '',
-          partnerLocation: '', photoExchangeBeforeMeeting: '',
+          partnerHeight: '', partnerWeight: '',
+          partnerLocation: '',
           partnerAgeMin: 18, partnerAgeMax: 30,
           isComplete: false
         } as MalePreferences);
@@ -603,13 +603,11 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         const step1Valid = !!(
           preferences.partnerHeight &&
           preferences.partnerWeight &&
-          preferences.partnerBodyType &&
           preferences.partnerLocation
         );
         console.log('Step 1 validation:', {
           partnerHeight: preferences.partnerHeight,
           partnerWeight: preferences.partnerWeight,
-          partnerBodyType: preferences.partnerBodyType,
           partnerLocation: preferences.partnerLocation,
           result: step1Valid
         });

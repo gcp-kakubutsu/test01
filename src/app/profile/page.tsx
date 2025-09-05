@@ -393,10 +393,6 @@ export default function ProfilePage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">年齢範囲</p>
                     <p className="font-medium text-gray-800 dark:text-gray-200">{malePreferences.partnerAgeMin}-{malePreferences.partnerAgeMax}歳</p>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">体型</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{malePreferences.partnerBodyType || '未設定'}</p>
-                  </div>
                 </div>
                 
                 {malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0 && (

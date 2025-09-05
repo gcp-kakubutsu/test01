@@ -31,11 +31,9 @@ export interface MalePreferences {
   // 相手に求める条件
   partnerHeight: string; // 身長
   partnerWeight: string; // 体重
-  partnerBodyType: string; // 体型
   partnerLocation: string; // 居住地
 
   // 活動条件
-  photoExchangeBeforeMeeting: string; // 会う前の写真交換
   partnerAgeMin: number; // 相手の年齢（最小）
   partnerAgeMax: number; // 相手の年齢（最大）
 
@@ -64,9 +62,7 @@ export const defaultMalePreferences: Partial<MalePreferences> = {
   isMasochist: '',
   partnerHeight: '',
   partnerWeight: '',
-  partnerBodyType: '',
   partnerLocation: '',
-  photoExchangeBeforeMeeting: '',
   partnerAgeMin: 18,
   partnerAgeMax: 30,
   isComplete: false
@@ -212,9 +208,7 @@ export function isMalePreferencesComplete(preferences: MalePreferences | null): 
     'isMasochist',
     'partnerHeight',
     'partnerWeight',
-    'partnerBodyType',
-    'partnerLocation',
-    'photoExchangeBeforeMeeting'
+    'partnerLocation'
   ];
   
   // 必須フィールドがすべて入力されているかチェック
