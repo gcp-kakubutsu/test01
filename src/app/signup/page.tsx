@@ -126,7 +126,7 @@ export default function SignupPage() {
             className="block w-full h-full"
           >
             <Image 
-              src="/img/signup.webp" 
+              src="/img/signup.jpg" 
               alt="新規登録" 
               fill
               className="object-contain"
