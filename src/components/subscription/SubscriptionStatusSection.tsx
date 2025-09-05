@@ -306,27 +306,27 @@ export function SubscriptionStatusSection() {
       <>
       <Card className="border-2 border-pink-300 dark:border-pink-400">
         <CardHeader className="bg-gradient-to-r from-pink-50 via-purple-50 to-pink-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
-              <div className="p-2 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full">
-                <Crown className="h-5 w-5 text-white" />
+          <div className="space-y-3">
+            <CardTitle className="flex items-center gap-3 text-gray-800 dark:text-gray-100">
+              <div className="p-2.5 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex-shrink-0">
+                <Crown className="h-6 w-6 text-white" />
               </div>
-              <span className="font-bold">プレミアム会員</span>
-            </div>
+              <span className="font-bold text-2xl">プレミアム会員</span>
+            </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold">
+              <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold text-sm px-3 py-1">
                 アクティブ
               </Badge>
               {subscriptionInfo.daysRemaining > 0 && (
-                <Badge className="bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 font-semibold">
+                <Badge className="bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 font-semibold text-sm px-3 py-1">
                   残り{subscriptionInfo.daysRemaining}日
                 </Badge>
               )}
             </div>
-          </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-300 mt-2">
-            すべてのプレミアム機能をご利用いただけます
-          </CardDescription>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
+              すべてのプレミアム機能をご利用いただけます
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="space-y-3">
@@ -372,29 +372,29 @@ export function SubscriptionStatusSection() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Button 
               variant="outline"
-              className="w-full text-xl py-8 border-pink-300 hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+              className="w-full text-base font-medium py-4 border-gray-300 hover:border-pink-400 hover:bg-pink-50 dark:border-gray-600 dark:hover:bg-pink-900/20 transition-colors"
               onClick={() => router.push('/subscription/billing')}
             >
-              <CreditCard className="h-6 w-6 mr-2" />
+              <CreditCard className="h-5 w-5 mr-2" />
               支払い方法を変更
             </Button>
             <Button 
               variant="outline"
-              className="w-full text-xl py-8 border-pink-300 hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+              className="w-full text-base font-medium py-4 border-gray-300 hover:border-pink-400 hover:bg-pink-50 dark:border-gray-600 dark:hover:bg-pink-900/20 transition-colors"
               onClick={() => router.push('/subscription/history')}
             >
-              <Receipt className="h-6 w-6 mr-2" />
+              <Receipt className="h-5 w-5 mr-2" />
               請求履歴
             </Button>
             <Button 
               variant="outline"
-              className={`w-full text-xl py-8 ${
+              className={`w-full text-base font-medium py-4 transition-colors ${
                 isCanceled 
-                  ? 'border-pink-300 hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20'
-                  : 'border-red-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300'
+                  ? 'border-gray-300 hover:border-pink-400 hover:bg-pink-50 dark:border-gray-600 dark:hover:bg-pink-900/20'
+                  : 'border-red-300 hover:border-red-400 hover:bg-red-50 dark:border-red-600 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300'
               }`}
               onClick={() => {
                 // If subscription is already scheduled for cancellation, show reactivate modal
@@ -407,12 +407,12 @@ export function SubscriptionStatusSection() {
             >
               {isCanceled ? (
                 <>
-                  <XCircle className="h-6 w-6 mr-2" />
+                  <XCircle className="h-5 w-5 mr-2" />
                   解約を解除する
                 </>
               ) : (
                 <>
-                  <XCircle className="h-6 w-6 mr-2" />
+                  <XCircle className="h-5 w-5 mr-2" />
                   プランを解約
                 </>
               )}

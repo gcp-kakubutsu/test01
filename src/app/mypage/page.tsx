@@ -156,10 +156,13 @@ export default function MyPage() {
 
       {/* タブセクション */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">プロフィール</TabsTrigger>
-          <TabsTrigger value="subscription">サブスクリプション</TabsTrigger>
-          <TabsTrigger value="settings">設定</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-gray-100">
+          <TabsTrigger value="profile" className="h-12 text-base font-medium">プロフィール</TabsTrigger>
+          <TabsTrigger value="subscription" className="h-12 text-base font-medium">
+            <span className="hidden sm:inline">サブスクリプション</span>
+            <span className="sm:hidden">サブスク</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="h-12 text-base font-medium">設定</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile" className="space-y-4">
@@ -168,41 +171,41 @@ export default function MyPage() {
             <CardHeader>
               <CardTitle>基本情報</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">メールアドレス</p>
-                  <p className="font-medium">{currentUser?.email || '未設定'}</p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 gap-5">
+                <div className="border-b pb-4">
+                  <p className="text-sm text-gray-500 mb-1">メールアドレス</p>
+                  <p className="font-medium text-base break-all">{currentUser?.email || '未設定'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">職業</p>
-                  <p className="font-medium">{occupation}</p>
+                <div className="border-b pb-4">
+                  <p className="text-sm text-gray-500 mb-1">職業</p>
+                  <p className="font-medium text-base">{occupation}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">性別</p>
-                  <p className="font-medium">
+                <div className="border-b pb-4">
+                  <p className="text-sm text-gray-500 mb-1">性別</p>
+                  <p className="font-medium text-base">
                     {profile?.gender === 'male' ? '男性' : 
                      profile?.gender === 'female' ? '女性' : '未設定'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">アカウント状態</p>
+                <div className="border-b pb-4">
+                  <p className="text-sm text-gray-500 mb-2">アカウント状態</p>
                   <div className="flex items-center gap-2">
                     {profile?.accountStatus === 'verified' ? (
-                      <Badge className="bg-blue-500">
-                        <Shield className="h-3 w-3 mr-1" />
+                      <Badge className="bg-blue-500 text-white px-3 py-1">
+                        <Shield className="h-4 w-4 mr-1" />
                         認証済み
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">未認証</Badge>
+                      <Badge variant="secondary" className="px-3 py-1">未認証</Badge>
                     )}
                   </div>
                 </div>
               </div>
               
               <div>
-                <p className="text-sm text-gray-600 mb-2">自己紹介</p>
-                <p className="text-sm">{bio}</p>
+                <p className="text-sm text-gray-500 mb-3">自己紹介</p>
+                <p className="text-base leading-relaxed">{bio}</p>
               </div>
               
               <Link href="/profile">
