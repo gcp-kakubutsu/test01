@@ -120,7 +120,7 @@ export default function SignupPage() {
       <div className="w-full bg-[#F9E4EB] m-0 p-0">
         <div className="relative w-full" style={{ aspectRatio: '851/315' }}>
           <a 
-            href="https://girlscollection.jp/" 
+            href="https://nukune.com/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="block w-full h-full"

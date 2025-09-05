@@ -183,6 +183,27 @@ export default function LikesPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* ヘッダー */}
+      {/* ヘッダー画像 */}
+      <div className="w-full m-0 p-0">
+        <div className="relative w-full" style={{ aspectRatio: '851/315' }}>
+          <a 
+            href="https://girlscollection.jp/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <Image 
+              src="/img/signup.webp" 
+              alt="新規登録" 
+              fill
+              className="object-contain"
+              priority
+              sizes="100vw"
+            />
+          </a>
+        </div>
+      </div>
+      
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
