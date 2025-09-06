@@ -24,6 +24,9 @@ import { db } from '@/lib/firebase/client';
 import { getMalePreferences, isMalePreferencesComplete, saveMalePreferences, type MalePreferences } from '@/lib/firebase/malePreferences';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import '@/styles/blur.css';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +74,7 @@ export default function HomePage() {
   const [showPreferenceSliders, setShowPreferenceSliders] = useState(false); // 嗜好スライダー表示フラグ
   const [preferences, setPreferences] = useState<MalePreferences | null>(null); // ユーザーの嗜好設定
   const [savingPreferences, setSavingPreferences] = useState(false); // 嗜好保存中フラグ
+  const preferencePanelRef = useRef<HTMLDivElement>(null); // 嗜好設定パネルの参照
 
   // 認証チェック: ログインしていない場合はログインページへリダイレクト
   useEffect(() => {
@@ -99,9 +103,9 @@ export default function HomePage() {
               deepthroat: 3,
               partnerBodyTypes: ['こだわらない'],
               girlTypeIds: [],
-              recordingDuringPlay: 'no',
-              isSadist: 'neutral',
-              isMasochist: 'neutral',
+              recordingDuringPlay: 'しない',
+              isSadist: 'わからない',
+              isMasochist: 'わからない',
               partnerHeight: 'こだわらない',
               partnerWeight: 'こだわらない',
               partnerLocation: userProfile?.location || 'こだわらない',
@@ -140,6 +144,22 @@ export default function HomePage() {
 
     loadPreferences();
   }, [currentUser, userProfile]);
+
+  // 嗜好設定パネルの外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showPreferenceSliders && 
+          preferencePanelRef.current && 
+          !preferencePanelRef.current.contains(event.target as Node)) {
+        setShowPreferenceSliders(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPreferenceSliders]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -281,8 +301,66 @@ export default function HomePage() {
     }
   };
 
-  // 嗜好設定を保存
+  // 嗜好設定を保存（数値フィールド用）
   const savePreferenceScore = async (field: keyof MalePreferences, value: number) => {
+    if (!currentUser || !preferences) return;
+    
+    try {
+      setSavingPreferences(true);
+      const updatedPreferences = { ...preferences, [field]: value };
+      setPreferences(updatedPreferences);
+      await saveMalePreferences(currentUser.uid, updatedPreferences);
+      
+      // データを再ソート
+      if (sortedGirlsCache && currentUser?.uid) {
+        setIsSorting(true);
+        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+        setSortedGirlsCache(sortedData);
+        setIsSorting(false);
+      }
+    } catch (error) {
+      console.error('Failed to save preference:', error);
+      toast({
+        title: "エラー",
+        description: "嗜好の保存に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  // 嗜好設定を保存（文字列フィールド用）
+  const savePreferenceString = async (field: keyof MalePreferences, value: string) => {
+    if (!currentUser || !preferences) return;
+    
+    try {
+      setSavingPreferences(true);
+      const updatedPreferences = { ...preferences, [field]: value };
+      setPreferences(updatedPreferences);
+      await saveMalePreferences(currentUser.uid, updatedPreferences);
+      
+      // データを再ソート
+      if (sortedGirlsCache && currentUser?.uid) {
+        setIsSorting(true);
+        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+        setSortedGirlsCache(sortedData);
+        setIsSorting(false);
+      }
+    } catch (error) {
+      console.error('Failed to save preference:', error);
+      toast({
+        title: "エラー",
+        description: "嗜好の保存に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  // 嗜好設定を保存（配列フィールド用）
+  const savePreferenceArray = async (field: keyof MalePreferences, value: string[] | number[]) => {
     if (!currentUser || !preferences) return;
     
     try {
@@ -1089,9 +1167,9 @@ export default function HomePage() {
               </div>
             )}
             
-            {/* 嗜好設定スライダー - 常に表示 */}
+            {/* 嗜好設定スライダー - 全設定項目を含む拡張版 */}
             {preferences && (
-              <div className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
+              <div ref={preferencePanelRef} className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>
                   <Button
@@ -1105,34 +1183,298 @@ export default function HomePage() {
                 </div>
                 
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  showPreferenceSliders ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  showPreferenceSliders ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
                 }`}>
-                  <div className="space-y-3 pt-2">
-                    {/* 主要6項目の嗜好スライダー */}
-                    {[
-                      { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
-                      { key: 'throating', label: 'ゴックン', value: preferences.throating },
-                      { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
-                      { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
-                      { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
-                      { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
-                    ].map((pref) => (
-                      <div key={pref.key} className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400">{pref.label}</span>
-                          <span className="text-xs text-pink-400 font-medium">{pref.value}</span>
+                  <div className="space-y-6 pt-2">
+                    {/* セクション1: 相手の基本条件 */}
+                    <div className="border-b border-gray-800 pb-4">
+                      <h3 className="text-sm font-semibold text-pink-400 mb-3">相手の基本条件</h3>
+                      
+                      {/* 年齢範囲 */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <Label className="text-xs text-gray-400">最小年齢</Label>
+                          <Select 
+                            value={preferences.partnerAgeMin?.toString()} 
+                            onValueChange={(value) => savePreferenceScore('partnerAgeMin', parseInt(value))}
+                          >
+                            <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                                <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Slider
-                          value={[pref.value]}
-                          onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
-                          min={1}
-                          max={5}
-                          step={1}
-                          className="w-full"
-                          disabled={savingPreferences}
-                        />
+                        <div>
+                          <Label className="text-xs text-gray-400">最大年齢</Label>
+                          <Select 
+                            value={preferences.partnerAgeMax?.toString()} 
+                            onValueChange={(value) => savePreferenceScore('partnerAgeMax', parseInt(value))}
+                          >
+                            <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                                <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    ))}
+
+                      {/* 身長 */}
+                      <div className="mb-3">
+                        <Label className="text-xs text-gray-400">相手の身長</Label>
+                        <Select 
+                          value={preferences.partnerHeight} 
+                          onValueChange={(value) => savePreferenceString('partnerHeight', value)}
+                        >
+                          <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700">
+                            <SelectItem value="こだわらない">こだわらない</SelectItem>
+                            <SelectItem value="140cm～150cm">140cm～150cm</SelectItem>
+                            <SelectItem value="150cm～155cm">150cm～155cm</SelectItem>
+                            <SelectItem value="155cm～160cm">155cm～160cm</SelectItem>
+                            <SelectItem value="160cm～165cm">160cm～165cm</SelectItem>
+                            <SelectItem value="165cm～170cm">165cm～170cm</SelectItem>
+                            <SelectItem value="170cm～175cm">170cm～175cm</SelectItem>
+                            <SelectItem value="175cm～180cm">175cm～180cm</SelectItem>
+                            <SelectItem value="180cm以上">180cm以上</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* 体重 */}
+                      <div className="mb-3">
+                        <Label className="text-xs text-gray-400">相手の体重</Label>
+                        <Select 
+                          value={preferences.partnerWeight} 
+                          onValueChange={(value) => savePreferenceString('partnerWeight', value)}
+                        >
+                          <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700">
+                            <SelectItem value="こだわらない">こだわらない</SelectItem>
+                            <SelectItem value="40kg以下">40kg以下</SelectItem>
+                            <SelectItem value="40kg～45kg">40kg～45kg</SelectItem>
+                            <SelectItem value="45kg～50kg">45kg～50kg</SelectItem>
+                            <SelectItem value="50kg～55kg">50kg～55kg</SelectItem>
+                            <SelectItem value="55kg～60kg">55kg～60kg</SelectItem>
+                            <SelectItem value="60kg～65kg">60kg～65kg</SelectItem>
+                            <SelectItem value="65kg～70kg">65kg～70kg</SelectItem>
+                            <SelectItem value="70kg以上">70kg以上</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* 居住地 */}
+                      <div className="mb-3">
+                        <Label className="text-xs text-gray-400">相手の居住地</Label>
+                        <Select 
+                          value={preferences.partnerLocation} 
+                          onValueChange={(value) => savePreferenceString('partnerLocation', value)}
+                        >
+                          <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 max-h-60">
+                            <SelectItem value="こだわらない">こだわらない</SelectItem>
+                            <SelectItem value="東京都">東京都</SelectItem>
+                            <SelectItem value="神奈川県">神奈川県</SelectItem>
+                            <SelectItem value="大阪府">大阪府</SelectItem>
+                            <SelectItem value="愛知県">愛知県</SelectItem>
+                            <SelectItem value="埼玉県">埼玉県</SelectItem>
+                            <SelectItem value="千葉県">千葉県</SelectItem>
+                            <SelectItem value="兵庫県">兵庫県</SelectItem>
+                            <SelectItem value="北海道">北海道</SelectItem>
+                            <SelectItem value="福岡県">福岡県</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* セクション2: 相手の体型 */}
+                    <div className="border-b border-gray-800 pb-4">
+                      <h3 className="text-sm font-semibold text-pink-400 mb-3">相手の体型</h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['スリム', 'やや細め', '細め', 'グラマー', '筋肉質', 'ややぽっちゃり', 'ぽっちゃり', 'こだわらない'].map((bodyType) => (
+                          <div 
+                            key={bodyType} 
+                            className="flex items-center space-x-2 p-2 border border-gray-700 bg-gray-800 rounded cursor-pointer hover:bg-gray-700"
+                            onClick={() => {
+                              const isChecked = preferences.partnerBodyTypes?.includes(bodyType) || false;
+                              if (!isChecked) {
+                                savePreferenceArray('partnerBodyTypes', [...(preferences.partnerBodyTypes || []), bodyType]);
+                              } else {
+                                savePreferenceArray('partnerBodyTypes', (preferences.partnerBodyTypes || []).filter(t => t !== bodyType));
+                              }
+                            }}
+                          >
+                            <Checkbox
+                              checked={preferences.partnerBodyTypes?.includes(bodyType) || false}
+                              className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
+                            />
+                            <Label className="text-xs cursor-pointer text-gray-200">{bodyType}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* セクション3: 女の子タイプ */}
+                    {girlTypes.length > 0 && (
+                      <div className="border-b border-gray-800 pb-4">
+                        <h3 className="text-sm font-semibold text-pink-400 mb-3">女の子タイプ</h3>
+                        
+                        {/* 性格タイプ */}
+                        <div className="mb-3">
+                          <h4 className="text-xs text-gray-400 mb-2">性格タイプ</h4>
+                          <div className="grid grid-cols-3 gap-1">
+                            {girlTypes.filter((type: any) => type.class_id === 1).map((girlType: any) => (
+                              <div 
+                                key={girlType.id} 
+                                className="flex items-center space-x-1 p-1 border border-gray-700 bg-gray-800 rounded text-xs cursor-pointer hover:bg-gray-700"
+                                onClick={() => {
+                                  const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                                  if (!isChecked) {
+                                    savePreferenceArray('girlTypeIds', [...(preferences.girlTypeIds || []), girlType.id]);
+                                  } else {
+                                    savePreferenceArray('girlTypeIds', (preferences.girlTypeIds || []).filter(id => id !== girlType.id));
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                                  className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500 h-3 w-3"
+                                />
+                                <Label className="text-xs cursor-pointer text-gray-200">{girlType.name}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 身体的特徴 */}
+                        <div className="mb-3">
+                          <h4 className="text-xs text-gray-400 mb-2">身体的特徴</h4>
+                          <div className="grid grid-cols-3 gap-1">
+                            {girlTypes.filter((type: any) => type.class_id === 2).map((girlType: any) => (
+                              <div 
+                                key={girlType.id} 
+                                className="flex items-center space-x-1 p-1 border border-gray-700 bg-gray-800 rounded text-xs cursor-pointer hover:bg-gray-700"
+                                onClick={() => {
+                                  const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                                  if (!isChecked) {
+                                    savePreferenceArray('girlTypeIds', [...(preferences.girlTypeIds || []), girlType.id]);
+                                  } else {
+                                    savePreferenceArray('girlTypeIds', (preferences.girlTypeIds || []).filter(id => id !== girlType.id));
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                                  className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500 h-3 w-3"
+                                />
+                                <Label className="text-xs cursor-pointer text-gray-200">{girlType.name}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* セクション4: プレイスタイル */}
+                    <div className="border-b border-gray-800 pb-4">
+                      <h3 className="text-sm font-semibold text-pink-400 mb-3">プレイスタイル</h3>
+                      
+                      <div className="grid grid-cols-1 gap-3 mb-3">
+                        <div>
+                          <Label className="text-xs text-gray-400">プレイ時の撮影</Label>
+                          <Select 
+                            value={preferences.recordingDuringPlay} 
+                            onValueChange={(value) => savePreferenceString('recordingDuringPlay', value)}
+                          >
+                            <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              <SelectItem value="しない">しない</SelectItem>
+                              <SelectItem value="したい">したい</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs text-gray-400">あなたはSですか？</Label>
+                          <Select 
+                            value={preferences.isSadist} 
+                            onValueChange={(value) => savePreferenceString('isSadist', value)}
+                          >
+                            <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              <SelectItem value="はい">はい</SelectItem>
+                              <SelectItem value="いいえ">いいえ</SelectItem>
+                              <SelectItem value="わからない">わからない</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs text-gray-400">あなたはMですか？</Label>
+                          <Select 
+                            value={preferences.isMasochist} 
+                            onValueChange={(value) => savePreferenceString('isMasochist', value)}
+                          >
+                            <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              <SelectItem value="はい">はい</SelectItem>
+                              <SelectItem value="いいえ">いいえ</SelectItem>
+                              <SelectItem value="わからない">わからない</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* セクション5: セクシュアル嗜好 */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-pink-400 mb-3">セクシュアル嗜好</h3>
+                      <div className="space-y-3">
+                        {[
+                          { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
+                          { key: 'throating', label: 'ゴックン', value: preferences.throating },
+                          { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
+                          { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
+                          { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
+                          { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
+                        ].map((pref) => (
+                          <div key={pref.key} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-400">{pref.label}</span>
+                              <span className="text-xs text-pink-400 font-medium">{pref.value}</span>
+                            </div>
+                            <Slider
+                              value={[pref.value]}
+                              onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
+                              min={1}
+                              max={5}
+                              step={1}
+                              className="w-full"
+                              disabled={savingPreferences}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     
                     {savingPreferences && (
                       <div className="text-xs text-center text-gray-500">
