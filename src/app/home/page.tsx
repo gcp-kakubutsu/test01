@@ -296,8 +296,13 @@ export default function HomePage() {
     console.log('tempPreferences:', tempPreferences);
     console.log('currentUser:', currentUser?.uid);
     
-    // 変更がある場合は保存とソートを実行
-    if (hasPreferenceChanges && tempPreferences && currentUser) {
+    // tempPreferencesが存在し、currentUserがある場合は常に保存
+    // （変更の有無に関わらず、ユーザーが「非表示」を押したら保存する）
+    if (tempPreferences && currentUser) {
+      // 実際に変更があるかをチェック（デバッグ用）
+      const hasActualChanges = JSON.stringify(tempPreferences) !== JSON.stringify(preferences);
+      console.log('hasActualChanges:', hasActualChanges);
+      
       try {
         setSavingPreferences(true);
         
@@ -311,8 +316,8 @@ export default function HomePage() {
         // ローカルステートを更新
         setPreferences(tempPreferences);
         
-        // データを再ソート
-        if (sortedGirlsCache && currentUser.uid) {
+        // データを再ソート（実際に変更があった場合のみ）
+        if (hasActualChanges && sortedGirlsCache && currentUser.uid) {
           setIsSorting(true);
           console.log('Starting data re-sort...');
           const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
@@ -324,7 +329,7 @@ export default function HomePage() {
         
         toast({
           title: "設定を保存しました",
-          description: "お好みに合わせて並び替えました",
+          description: hasActualChanges ? "お好みに合わせて並び替えました" : "設定を確認しました",
         });
       } catch (error) {
         console.error('Failed to save preferences:', error);
@@ -337,8 +342,7 @@ export default function HomePage() {
         setSavingPreferences(false);
       }
     } else {
-      console.log('No changes to save or missing requirements');
-      if (!hasPreferenceChanges) console.log('- No changes detected');
+      console.log('Cannot save: missing requirements');
       if (!tempPreferences) console.log('- tempPreferences is null');
       if (!currentUser) console.log('- currentUser is null');
     }
@@ -1213,7 +1217,7 @@ export default function HomePage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-white">
                     あなたの嗜好を調整
-                    {showPreferenceSliders && hasPreferenceChanges && (
+                    {showPreferenceSliders && (
                       <span className="ml-2 text-xs text-yellow-400">※非表示を押すと保存されます</span>
                     )}
                   </span>
