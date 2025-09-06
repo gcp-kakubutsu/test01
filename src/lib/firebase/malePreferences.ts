@@ -111,7 +111,14 @@ export async function getMalePreferences(userId: string): Promise<MalePreference
 
 // 男性ユーザーの詳細設定を保存
 export async function saveMalePreferences(userId: string, preferences: Partial<MalePreferences>): Promise<void> {
-  if (!db) throw new Error('Firestore is not initialized');
+  console.log('=== saveMalePreferences START ===');
+  console.log('userId:', userId);
+  console.log('preferences:', JSON.stringify(preferences, null, 2));
+  
+  if (!db) {
+    console.error('Firestore is not initialized');
+    throw new Error('Firestore is not initialized');
+  }
   
   // userIdが空または無効な場合はエラー
   if (!userId || typeof userId !== 'string' || userId.trim() === '') {
@@ -131,8 +138,12 @@ export async function saveMalePreferences(userId: string, preferences: Partial<M
     };
     
     console.log('Saving to Firestore with data:', updateData);
+    console.log('Document path: malePreferences/' + userId);
+    
     await setDoc(preferencesRef, updateData, { merge: true });
-    console.log('Successfully saved to malePreferences collection');
+    
+    console.log('✅ Successfully saved to malePreferences collection');
+    console.log('Document saved at:', preferencesRef.path);
 
     // ユーザープロフィールにも基本情報を保存
     if (preferences.isComplete) {
@@ -141,9 +152,11 @@ export async function saveMalePreferences(userId: string, preferences: Partial<M
       console.log('Successfully updated user profile');
     }
     
-    console.log('Male preferences save operation completed successfully');
-  } catch (error) {
-    console.error('Error saving male preferences:', error);
+    console.log('=== saveMalePreferences COMPLETED SUCCESSFULLY ===');
+  } catch (error: any) {
+    console.error('❌ Error saving male preferences:', error);
+    console.error('Error code:', error?.code);
+    console.error('Error message:', error?.message);
     console.error('Error details:', {
       userId,
       preferencesKeys: Object.keys(preferences),

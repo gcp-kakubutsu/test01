@@ -253,21 +253,60 @@ export default function HomePage() {
 
   // 嗜好設定パネルを開く
   const handleOpenPreferencePanel = () => {
-    // 現在の設定を一時領域にコピー（パネル内で編集用）
-    setTempPreferences(preferences ? { ...preferences } : null);
+    console.log('=== handleOpenPreferencePanel START ===');
+    console.log('Current preferences:', preferences);
+    
+    // 現在の設定を一時領域にコピー（preferencesがnullの場合はデフォルト値を使用）
+    if (preferences) {
+      setTempPreferences({ ...preferences });
+      console.log('Copied existing preferences to temp');
+    } else {
+      // preferencesがnullの場合、デフォルト値を設定
+      const defaultPrefs: MalePreferences = {
+        groupPlay: 3,
+        throating: 3,
+        analPlay: 3,
+        cosplay: 3,
+        toyPlay: 3,
+        deepthroat: 3,
+        partnerBodyTypes: ['こだわらない'],
+        girlTypeIds: [],
+        recordingDuringPlay: 'しない',
+        isSadist: 'わからない',
+        isMasochist: 'わからない',
+        partnerHeight: 'こだわらない',
+        partnerWeight: 'こだわらない',
+        partnerLocation: userProfile?.location || 'こだわらない',
+        partnerAgeMin: 18,
+        partnerAgeMax: 40,
+        isComplete: false
+      };
+      setTempPreferences(defaultPrefs);
+      console.log('Set default preferences to temp');
+    }
+    
     setHasPreferenceChanges(false);
     setShowPreferenceSliders(true);
   };
 
   // 嗜好設定パネルを閉じる（変更があれば保存・ソート）
   const handleClosePreferencePanel = async () => {
+    console.log('=== handleClosePreferencePanel START ===');
+    console.log('hasPreferenceChanges:', hasPreferenceChanges);
+    console.log('tempPreferences:', tempPreferences);
+    console.log('currentUser:', currentUser?.uid);
+    
     // 変更がある場合は保存とソートを実行
     if (hasPreferenceChanges && tempPreferences && currentUser) {
       try {
         setSavingPreferences(true);
         
+        console.log('Saving preferences to Firebase:', tempPreferences);
+        
         // Firebaseに保存
         await saveMalePreferences(currentUser.uid, tempPreferences);
+        
+        console.log('Firebase save completed successfully');
         
         // ローカルステートを更新
         setPreferences(tempPreferences);
@@ -275,10 +314,12 @@ export default function HomePage() {
         // データを再ソート
         if (sortedGirlsCache && currentUser.uid) {
           setIsSorting(true);
+          console.log('Starting data re-sort...');
           const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
           setSortedGirlsCache(sortedData);
           setGirlsFromDB(sortedData);
           setIsSorting(false);
+          console.log('Data re-sort completed');
         }
         
         toast({
@@ -295,6 +336,11 @@ export default function HomePage() {
       } finally {
         setSavingPreferences(false);
       }
+    } else {
+      console.log('No changes to save or missing requirements');
+      if (!hasPreferenceChanges) console.log('- No changes detected');
+      if (!tempPreferences) console.log('- tempPreferences is null');
+      if (!currentUser) console.log('- currentUser is null');
     }
     
     // パネルを閉じる
@@ -342,29 +388,44 @@ export default function HomePage() {
 
   // 嗜好設定を更新（数値フィールド用） - パネル内での一時更新
   const updatePreferenceScore = (field: keyof MalePreferences, value: number) => {
-    if (!tempPreferences) return;
+    console.log(`Updating ${field} to ${value}`);
+    if (!tempPreferences) {
+      console.error('tempPreferences is null, cannot update');
+      return;
+    }
     
     const updatedPreferences = { ...tempPreferences, [field]: value };
     setTempPreferences(updatedPreferences);
     setHasPreferenceChanges(true);
+    console.log('Updated tempPreferences:', updatedPreferences);
   };
 
   // 嗜好設定を更新（文字列フィールド用） - パネル内での一時更新
   const updatePreferenceString = (field: keyof MalePreferences, value: string) => {
-    if (!tempPreferences) return;
+    console.log(`Updating ${field} to ${value}`);
+    if (!tempPreferences) {
+      console.error('tempPreferences is null, cannot update');
+      return;
+    }
     
     const updatedPreferences = { ...tempPreferences, [field]: value };
     setTempPreferences(updatedPreferences);
     setHasPreferenceChanges(true);
+    console.log('Updated tempPreferences:', updatedPreferences);
   };
 
   // 嗜好設定を更新（配列フィールド用） - パネル内での一時更新
   const updatePreferenceArray = (field: keyof MalePreferences, value: string[] | number[]) => {
-    if (!tempPreferences) return;
+    console.log(`Updating ${field} to`, value);
+    if (!tempPreferences) {
+      console.error('tempPreferences is null, cannot update');
+      return;
+    }
     
     const updatedPreferences = { ...tempPreferences, [field]: value };
     setTempPreferences(updatedPreferences);
     setHasPreferenceChanges(true);
+    console.log('Updated tempPreferences:', updatedPreferences);
   };
 
   // Reset page to 1 when search keyword or selected types change
