@@ -73,8 +73,10 @@ export default function HomePage() {
   const [showTypeFilter, setShowTypeFilter] = useState(false); // タイプフィルター表示フラグ
   const [showPreferenceSliders, setShowPreferenceSliders] = useState(false); // 嗜好スライダー表示フラグ
   const [preferences, setPreferences] = useState<MalePreferences | null>(null); // ユーザーの嗜好設定
+  const [tempPreferences, setTempPreferences] = useState<MalePreferences | null>(null); // 一時的な嗜好設定（編集中）
   const [savingPreferences, setSavingPreferences] = useState(false); // 嗜好保存中フラグ
   const preferencePanelRef = useRef<HTMLDivElement>(null); // 嗜好設定パネルの参照
+  const [hasPreferenceChanges, setHasPreferenceChanges] = useState(false); // 変更があるかのフラグ
 
   // 認証チェック: ログインしていない場合はログインページへリダイレクト
   useEffect(() => {
@@ -145,21 +147,6 @@ export default function HomePage() {
     loadPreferences();
   }, [currentUser, userProfile]);
 
-  // 嗜好設定パネルの外側クリックで閉じる
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showPreferenceSliders && 
-          preferencePanelRef.current && 
-          !preferencePanelRef.current.contains(event.target as Node)) {
-        setShowPreferenceSliders(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showPreferenceSliders]);
 
   // Check if user should see welcome page or onboarding (male users)
   useEffect(() => {
@@ -264,6 +251,58 @@ export default function HomePage() {
     setShowOnboarding(true);
   };
 
+  // 嗜好設定パネルを開く
+  const handleOpenPreferencePanel = () => {
+    // 現在の設定を一時領域にコピー（パネル内で編集用）
+    setTempPreferences(preferences ? { ...preferences } : null);
+    setHasPreferenceChanges(false);
+    setShowPreferenceSliders(true);
+  };
+
+  // 嗜好設定パネルを閉じる（変更があれば保存・ソート）
+  const handleClosePreferencePanel = async () => {
+    // 変更がある場合は保存とソートを実行
+    if (hasPreferenceChanges && tempPreferences && currentUser) {
+      try {
+        setSavingPreferences(true);
+        
+        // Firebaseに保存
+        await saveMalePreferences(currentUser.uid, tempPreferences);
+        
+        // ローカルステートを更新
+        setPreferences(tempPreferences);
+        
+        // データを再ソート
+        if (sortedGirlsCache && currentUser.uid) {
+          setIsSorting(true);
+          const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+          setSortedGirlsCache(sortedData);
+          setGirlsFromDB(sortedData);
+          setIsSorting(false);
+        }
+        
+        toast({
+          title: "設定を保存しました",
+          description: "お好みに合わせて並び替えました",
+        });
+      } catch (error) {
+        console.error('Failed to save preferences:', error);
+        toast({
+          title: "エラー",
+          description: "設定の保存に失敗しました",
+          variant: "destructive"
+        });
+      } finally {
+        setSavingPreferences(false);
+      }
+    }
+    
+    // パネルを閉じる
+    setShowPreferenceSliders(false);
+    setTempPreferences(null);
+    setHasPreferenceChanges(false);
+  };
+
   // Handle onboarding completion
   const handleOnboardingComplete = async () => {
     console.log('Onboarding completion started');
@@ -301,91 +340,31 @@ export default function HomePage() {
     }
   };
 
-  // 嗜好設定を保存（数値フィールド用）
-  const savePreferenceScore = async (field: keyof MalePreferences, value: number) => {
-    if (!currentUser || !preferences) return;
+  // 嗜好設定を更新（数値フィールド用） - パネル内での一時更新
+  const updatePreferenceScore = (field: keyof MalePreferences, value: number) => {
+    if (!tempPreferences) return;
     
-    try {
-      setSavingPreferences(true);
-      const updatedPreferences = { ...preferences, [field]: value };
-      setPreferences(updatedPreferences);
-      await saveMalePreferences(currentUser.uid, updatedPreferences);
-      
-      // データを再ソート
-      if (sortedGirlsCache && currentUser?.uid) {
-        setIsSorting(true);
-        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
-        setSortedGirlsCache(sortedData);
-        setIsSorting(false);
-      }
-    } catch (error) {
-      console.error('Failed to save preference:', error);
-      toast({
-        title: "エラー",
-        description: "嗜好の保存に失敗しました",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingPreferences(false);
-    }
+    const updatedPreferences = { ...tempPreferences, [field]: value };
+    setTempPreferences(updatedPreferences);
+    setHasPreferenceChanges(true);
   };
 
-  // 嗜好設定を保存（文字列フィールド用）
-  const savePreferenceString = async (field: keyof MalePreferences, value: string) => {
-    if (!currentUser || !preferences) return;
+  // 嗜好設定を更新（文字列フィールド用） - パネル内での一時更新
+  const updatePreferenceString = (field: keyof MalePreferences, value: string) => {
+    if (!tempPreferences) return;
     
-    try {
-      setSavingPreferences(true);
-      const updatedPreferences = { ...preferences, [field]: value };
-      setPreferences(updatedPreferences);
-      await saveMalePreferences(currentUser.uid, updatedPreferences);
-      
-      // データを再ソート
-      if (sortedGirlsCache && currentUser?.uid) {
-        setIsSorting(true);
-        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
-        setSortedGirlsCache(sortedData);
-        setIsSorting(false);
-      }
-    } catch (error) {
-      console.error('Failed to save preference:', error);
-      toast({
-        title: "エラー",
-        description: "嗜好の保存に失敗しました",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingPreferences(false);
-    }
+    const updatedPreferences = { ...tempPreferences, [field]: value };
+    setTempPreferences(updatedPreferences);
+    setHasPreferenceChanges(true);
   };
 
-  // 嗜好設定を保存（配列フィールド用）
-  const savePreferenceArray = async (field: keyof MalePreferences, value: string[] | number[]) => {
-    if (!currentUser || !preferences) return;
+  // 嗜好設定を更新（配列フィールド用） - パネル内での一時更新
+  const updatePreferenceArray = (field: keyof MalePreferences, value: string[] | number[]) => {
+    if (!tempPreferences) return;
     
-    try {
-      setSavingPreferences(true);
-      const updatedPreferences = { ...preferences, [field]: value };
-      setPreferences(updatedPreferences);
-      await saveMalePreferences(currentUser.uid, updatedPreferences);
-      
-      // データを再ソート
-      if (sortedGirlsCache && currentUser?.uid) {
-        setIsSorting(true);
-        const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
-        setSortedGirlsCache(sortedData);
-        setIsSorting(false);
-      }
-    } catch (error) {
-      console.error('Failed to save preference:', error);
-      toast({
-        title: "エラー",
-        description: "嗜好の保存に失敗しました",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingPreferences(false);
-    }
+    const updatedPreferences = { ...tempPreferences, [field]: value };
+    setTempPreferences(updatedPreferences);
+    setHasPreferenceChanges(true);
   };
 
   // Reset page to 1 when search keyword or selected types change
@@ -1171,14 +1150,27 @@ export default function HomePage() {
             {preferences && (
               <div ref={preferencePanelRef} className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>
+                  <span className="text-sm font-medium text-white">
+                    あなたの嗜好を調整
+                    {showPreferenceSliders && hasPreferenceChanges && (
+                      <span className="ml-2 text-xs text-yellow-400">※非表示を押すと保存されます</span>
+                    )}
+                  </span>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowPreferenceSliders(!showPreferenceSliders)}
+                    onClick={() => showPreferenceSliders ? handleClosePreferencePanel() : handleOpenPreferencePanel()}
                     className="text-xs bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    disabled={savingPreferences}
                   >
-                    {showPreferenceSliders ? '非表示' : '表示'}
+                    {savingPreferences ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        保存中...
+                      </>
+                    ) : (
+                      showPreferenceSliders ? '非表示' : '表示'
+                    )}
                   </Button>
                 </div>
                 
@@ -1195,8 +1187,8 @@ export default function HomePage() {
                         <div>
                           <Label className="text-xs text-gray-400">最小年齢</Label>
                           <Select 
-                            value={preferences.partnerAgeMin?.toString()} 
-                            onValueChange={(value) => savePreferenceScore('partnerAgeMin', parseInt(value))}
+                            value={tempPreferences?.partnerAgeMin?.toString() || preferences?.partnerAgeMin?.toString()} 
+                            onValueChange={(value) => updatePreferenceScore('partnerAgeMin', parseInt(value))}
                           >
                             <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                               <SelectValue />
@@ -1211,8 +1203,8 @@ export default function HomePage() {
                         <div>
                           <Label className="text-xs text-gray-400">最大年齢</Label>
                           <Select 
-                            value={preferences.partnerAgeMax?.toString()} 
-                            onValueChange={(value) => savePreferenceScore('partnerAgeMax', parseInt(value))}
+                            value={tempPreferences?.partnerAgeMax?.toString() || preferences?.partnerAgeMax?.toString()} 
+                            onValueChange={(value) => updatePreferenceScore('partnerAgeMax', parseInt(value))}
                           >
                             <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                               <SelectValue />
@@ -1230,8 +1222,8 @@ export default function HomePage() {
                       <div className="mb-3">
                         <Label className="text-xs text-gray-400">相手の身長</Label>
                         <Select 
-                          value={preferences.partnerHeight} 
-                          onValueChange={(value) => savePreferenceString('partnerHeight', value)}
+                          value={tempPreferences?.partnerHeight || preferences?.partnerHeight} 
+                          onValueChange={(value) => updatePreferenceString('partnerHeight', value)}
                         >
                           <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                             <SelectValue placeholder="選択してください" />
@@ -1254,8 +1246,8 @@ export default function HomePage() {
                       <div className="mb-3">
                         <Label className="text-xs text-gray-400">相手の体重</Label>
                         <Select 
-                          value={preferences.partnerWeight} 
-                          onValueChange={(value) => savePreferenceString('partnerWeight', value)}
+                          value={tempPreferences?.partnerWeight || preferences?.partnerWeight} 
+                          onValueChange={(value) => updatePreferenceString('partnerWeight', value)}
                         >
                           <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                             <SelectValue placeholder="選択してください" />
@@ -1278,8 +1270,8 @@ export default function HomePage() {
                       <div className="mb-3">
                         <Label className="text-xs text-gray-400">相手の居住地</Label>
                         <Select 
-                          value={preferences.partnerLocation} 
-                          onValueChange={(value) => savePreferenceString('partnerLocation', value)}
+                          value={tempPreferences?.partnerLocation || preferences?.partnerLocation} 
+                          onValueChange={(value) => updatePreferenceString('partnerLocation', value)}
                         >
                           <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                             <SelectValue placeholder="選択してください" />
@@ -1309,16 +1301,17 @@ export default function HomePage() {
                             key={bodyType} 
                             className="flex items-center space-x-2 p-2 border border-gray-700 bg-gray-800 rounded cursor-pointer hover:bg-gray-700"
                             onClick={() => {
-                              const isChecked = preferences.partnerBodyTypes?.includes(bodyType) || false;
+                              const currentBodyTypes = tempPreferences?.partnerBodyTypes || preferences?.partnerBodyTypes || [];
+                              const isChecked = currentBodyTypes.includes(bodyType);
                               if (!isChecked) {
-                                savePreferenceArray('partnerBodyTypes', [...(preferences.partnerBodyTypes || []), bodyType]);
+                                updatePreferenceArray('partnerBodyTypes', [...currentBodyTypes, bodyType]);
                               } else {
-                                savePreferenceArray('partnerBodyTypes', (preferences.partnerBodyTypes || []).filter(t => t !== bodyType));
+                                updatePreferenceArray('partnerBodyTypes', currentBodyTypes.filter(t => t !== bodyType));
                               }
                             }}
                           >
                             <Checkbox
-                              checked={preferences.partnerBodyTypes?.includes(bodyType) || false}
+                              checked={(tempPreferences?.partnerBodyTypes || preferences?.partnerBodyTypes || []).includes(bodyType)}
                               className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
                             />
                             <Label className="text-xs cursor-pointer text-gray-200">{bodyType}</Label>
@@ -1341,16 +1334,17 @@ export default function HomePage() {
                                 key={girlType.id} 
                                 className="flex items-center space-x-1 p-1 border border-gray-700 bg-gray-800 rounded text-xs cursor-pointer hover:bg-gray-700"
                                 onClick={() => {
-                                  const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                                  const currentGirlTypes = tempPreferences?.girlTypeIds || preferences?.girlTypeIds || [];
+                                  const isChecked = currentGirlTypes.includes(girlType.id);
                                   if (!isChecked) {
-                                    savePreferenceArray('girlTypeIds', [...(preferences.girlTypeIds || []), girlType.id]);
+                                    updatePreferenceArray('girlTypeIds', [...currentGirlTypes, girlType.id]);
                                   } else {
-                                    savePreferenceArray('girlTypeIds', (preferences.girlTypeIds || []).filter(id => id !== girlType.id));
+                                    updatePreferenceArray('girlTypeIds', currentGirlTypes.filter(id => id !== girlType.id));
                                   }
                                 }}
                               >
                                 <Checkbox
-                                  checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                                  checked={(tempPreferences?.girlTypeIds || preferences?.girlTypeIds || []).includes(girlType.id)}
                                   className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500 h-3 w-3"
                                 />
                                 <Label className="text-xs cursor-pointer text-gray-200">{girlType.name}</Label>
@@ -1368,16 +1362,17 @@ export default function HomePage() {
                                 key={girlType.id} 
                                 className="flex items-center space-x-1 p-1 border border-gray-700 bg-gray-800 rounded text-xs cursor-pointer hover:bg-gray-700"
                                 onClick={() => {
-                                  const isChecked = preferences.girlTypeIds?.includes(girlType.id) || false;
+                                  const currentGirlTypes = tempPreferences?.girlTypeIds || preferences?.girlTypeIds || [];
+                                  const isChecked = currentGirlTypes.includes(girlType.id);
                                   if (!isChecked) {
-                                    savePreferenceArray('girlTypeIds', [...(preferences.girlTypeIds || []), girlType.id]);
+                                    updatePreferenceArray('girlTypeIds', [...currentGirlTypes, girlType.id]);
                                   } else {
-                                    savePreferenceArray('girlTypeIds', (preferences.girlTypeIds || []).filter(id => id !== girlType.id));
+                                    updatePreferenceArray('girlTypeIds', currentGirlTypes.filter(id => id !== girlType.id));
                                   }
                                 }}
                               >
                                 <Checkbox
-                                  checked={preferences.girlTypeIds?.includes(girlType.id) || false}
+                                  checked={(tempPreferences?.girlTypeIds || preferences?.girlTypeIds || []).includes(girlType.id)}
                                   className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500 h-3 w-3"
                                 />
                                 <Label className="text-xs cursor-pointer text-gray-200">{girlType.name}</Label>
@@ -1396,8 +1391,8 @@ export default function HomePage() {
                         <div>
                           <Label className="text-xs text-gray-400">プレイ時の撮影</Label>
                           <Select 
-                            value={preferences.recordingDuringPlay} 
-                            onValueChange={(value) => savePreferenceString('recordingDuringPlay', value)}
+                            value={tempPreferences?.recordingDuringPlay || preferences?.recordingDuringPlay} 
+                            onValueChange={(value) => updatePreferenceString('recordingDuringPlay', value)}
                           >
                             <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                               <SelectValue placeholder="選択してください" />
@@ -1412,8 +1407,8 @@ export default function HomePage() {
                         <div>
                           <Label className="text-xs text-gray-400">あなたはSですか？</Label>
                           <Select 
-                            value={preferences.isSadist} 
-                            onValueChange={(value) => savePreferenceString('isSadist', value)}
+                            value={tempPreferences?.isSadist || preferences?.isSadist} 
+                            onValueChange={(value) => updatePreferenceString('isSadist', value)}
                           >
                             <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                               <SelectValue placeholder="選択してください" />
@@ -1429,8 +1424,8 @@ export default function HomePage() {
                         <div>
                           <Label className="text-xs text-gray-400">あなたはMですか？</Label>
                           <Select 
-                            value={preferences.isMasochist} 
-                            onValueChange={(value) => savePreferenceString('isMasochist', value)}
+                            value={tempPreferences?.isMasochist || preferences?.isMasochist} 
+                            onValueChange={(value) => updatePreferenceString('isMasochist', value)}
                           >
                             <SelectTrigger className="h-8 bg-gray-800 border-gray-700 text-white text-xs">
                               <SelectValue placeholder="選択してください" />
@@ -1450,12 +1445,12 @@ export default function HomePage() {
                       <h3 className="text-sm font-semibold text-pink-400 mb-3">セクシュアル嗜好</h3>
                       <div className="space-y-3">
                         {[
-                          { key: 'groupPlay', label: '複数プレイ', value: preferences.groupPlay },
-                          { key: 'throating', label: 'ゴックン', value: preferences.throating },
-                          { key: 'analPlay', label: 'アナル', value: preferences.analPlay },
-                          { key: 'cosplay', label: 'コスプレ', value: preferences.cosplay },
-                          { key: 'toyPlay', label: 'おもちゃ', value: preferences.toyPlay },
-                          { key: 'deepthroat', label: 'イラマチオ', value: preferences.deepthroat }
+                          { key: 'groupPlay', label: '複数プレイ', value: tempPreferences?.groupPlay || preferences?.groupPlay || 3 },
+                          { key: 'throating', label: 'ゴックン', value: tempPreferences?.throating || preferences?.throating || 3 },
+                          { key: 'analPlay', label: 'アナル', value: tempPreferences?.analPlay || preferences?.analPlay || 3 },
+                          { key: 'cosplay', label: 'コスプレ', value: tempPreferences?.cosplay || preferences?.cosplay || 3 },
+                          { key: 'toyPlay', label: 'おもちゃ', value: tempPreferences?.toyPlay || preferences?.toyPlay || 3 },
+                          { key: 'deepthroat', label: 'イラマチオ', value: tempPreferences?.deepthroat || preferences?.deepthroat || 3 }
                         ].map((pref) => (
                           <div key={pref.key} className="space-y-1">
                             <div className="flex items-center justify-between">
@@ -1464,7 +1459,7 @@ export default function HomePage() {
                             </div>
                             <Slider
                               value={[pref.value]}
-                              onValueChange={(values) => savePreferenceScore(pref.key as keyof MalePreferences, values[0])}
+                              onValueChange={(values) => updatePreferenceScore(pref.key as keyof MalePreferences, values[0])}
                               min={1}
                               max={5}
                               step={1}
@@ -1476,12 +1471,6 @@ export default function HomePage() {
                       </div>
                     </div>
                     
-                    {savingPreferences && (
-                      <div className="text-xs text-center text-gray-500">
-                        <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
-                        保存中...
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
