@@ -85,61 +85,27 @@ export default function HomePage() {
     }
   }, [isAuthenticated, currentUser, router]);
 
-  // ユーザーの嗜好設定を読み込み（設定がない場合はデフォルト値を使用）
+  // ユーザーの嗜好設定を読み込み
   useEffect(() => {
     const loadPreferences = async () => {
       if (currentUser) { // 男性ユーザーのみなので性別チェック不要
         try {
           const prefs = await getMalePreferences(currentUser.uid);
           if (prefs) {
+            console.log('Preferences loaded from Firebase:', prefs);
             setPreferences(prefs);
           } else {
-            // 設定がない場合はデフォルト値を使用
-            console.log('No preferences found, using default values');
-            const defaultPrefs: MalePreferences = {
-              groupPlay: 3,
-              throating: 3,
-              analPlay: 3,
-              cosplay: 3,
-              toyPlay: 3,
-              deepthroat: 3,
-              partnerBodyTypes: ['こだわらない'],
-              girlTypeIds: [],
-              recordingDuringPlay: 'しない',
-              isSadist: 'わからない',
-              isMasochist: 'わからない',
-              partnerHeight: 'こだわらない',
-              partnerWeight: 'こだわらない',
-              partnerLocation: userProfile?.location || 'こだわらない',
-              partnerAgeMin: 18,
-              partnerAgeMax: 40,
-              isComplete: false
-            };
-            setPreferences(defaultPrefs);
+            // Firebaseにデータが存在しない場合（新規ユーザー）
+            console.log('No preferences found in Firebase (new user)');
+            // デフォルト値はパネルを開いた時に設定するので、ここでは設定しない
+            // これにより、一時的なエラーでデフォルト値にリセットされることを防ぐ
+            setPreferences(null);
           }
         } catch (error) {
           console.error('Failed to load preferences:', error);
-          // エラー時もデフォルト値を設定
-          const defaultPrefs: MalePreferences = {
-            groupPlay: 3,
-            throating: 3,
-            analPlay: 3,
-            cosplay: 3,
-            toyPlay: 3,
-            deepthroat: 3,
-            partnerBodyTypes: ['こだわらない'],
-            girlTypeIds: [],
-            recordingDuringPlay: 'no',
-            isSadist: 'neutral',
-            isMasochist: 'neutral',
-            partnerHeight: 'こだわらない',
-            partnerWeight: 'こだわらない',
-            partnerLocation: userProfile?.location || 'こだわらない',
-            partnerAgeMin: 18,
-            partnerAgeMax: 40,
-            isComplete: false
-          };
-          setPreferences(defaultPrefs);
+          // エラー時はnullのままにしておく（デフォルト値で上書きしない）
+          // パネルを開いた時に再取得を試みる
+          console.log('Keeping preferences as null due to error');
         }
       }
     };
@@ -252,37 +218,66 @@ export default function HomePage() {
   };
 
   // 嗜好設定パネルを開く
-  const handleOpenPreferencePanel = () => {
+  const handleOpenPreferencePanel = async () => {
     console.log('=== handleOpenPreferencePanel START ===');
     console.log('Current preferences:', preferences);
     
-    // 現在の設定を一時領域にコピー（preferencesがnullの場合はデフォルト値を使用）
-    if (preferences) {
-      setTempPreferences({ ...preferences });
-      console.log('Copied existing preferences to temp');
+    // Firebaseから最新のデータを取得を試みる
+    let currentPrefs = preferences;
+    
+    if (currentUser) {
+      try {
+        console.log('Fetching latest preferences from Firebase...');
+        const latestPrefs = await getMalePreferences(currentUser.uid);
+        
+        if (latestPrefs) {
+          // Firebaseからデータが取得できた場合
+          console.log('Got preferences from Firebase:', latestPrefs);
+          currentPrefs = latestPrefs;
+          setPreferences(latestPrefs); // メモリ上のpreferencesも更新
+        } else {
+          // Firebaseにデータが存在しない場合（新規ユーザー）
+          console.log('No preferences in Firebase, user is new');
+          if (!currentPrefs) {
+            // メモリにもデータがない場合のみデフォルト値を使用
+            console.log('Creating default preferences for new user');
+            const defaultPrefs: MalePreferences = {
+              groupPlay: 3,
+              throating: 3,
+              analPlay: 3,
+              cosplay: 3,
+              toyPlay: 3,
+              deepthroat: 3,
+              partnerBodyTypes: ['こだわらない'],
+              girlTypeIds: [],
+              recordingDuringPlay: 'しない',
+              isSadist: 'わからない',
+              isMasochist: 'わからない',
+              partnerHeight: 'こだわらない',
+              partnerWeight: 'こだわらない',
+              partnerLocation: userProfile?.location || 'こだわらない',
+              partnerAgeMin: 18,
+              partnerAgeMax: 40,
+              isComplete: false
+            };
+            currentPrefs = defaultPrefs;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching preferences from Firebase:', error);
+        // エラーの場合はメモリ上のデータを使用（データを失わないため）
+        console.log('Using cached preferences due to error');
+      }
+    }
+    
+    // 現在の設定を一時領域にコピー
+    if (currentPrefs) {
+      setTempPreferences({ ...currentPrefs });
+      console.log('Set tempPreferences:', currentPrefs);
     } else {
-      // preferencesがnullの場合、デフォルト値を設定
-      const defaultPrefs: MalePreferences = {
-        groupPlay: 3,
-        throating: 3,
-        analPlay: 3,
-        cosplay: 3,
-        toyPlay: 3,
-        deepthroat: 3,
-        partnerBodyTypes: ['こだわらない'],
-        girlTypeIds: [],
-        recordingDuringPlay: 'しない',
-        isSadist: 'わからない',
-        isMasochist: 'わからない',
-        partnerHeight: 'こだわらない',
-        partnerWeight: 'こだわらない',
-        partnerLocation: userProfile?.location || 'こだわらない',
-        partnerAgeMin: 18,
-        partnerAgeMax: 40,
-        isComplete: false
-      };
-      setTempPreferences(defaultPrefs);
-      console.log('Set default preferences to temp');
+      // 本当にデータがない場合（ログインしていない等）
+      console.error('No preferences available');
+      return;
     }
     
     setHasPreferenceChanges(false);
@@ -1212,7 +1207,7 @@ export default function HomePage() {
             )}
             
             {/* 嗜好設定スライダー - 全設定項目を含む拡張版 */}
-            {preferences && (
+            {currentUser && (
               <div ref={preferencePanelRef} className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-white">
