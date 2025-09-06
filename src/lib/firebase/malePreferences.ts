@@ -7,14 +7,11 @@ import { getAuth } from 'firebase/auth';
 // 男性ユーザーの詳細設定データ構造
 export interface MalePreferences {
   // セクシュアル嗜好（1-5スケール）
-  spanking: number; // スパンキング
   groupPlay: number; // 複数人プレイ
   throating: number; // ゴックン
   analPlay: number; // アナルプレイ
   cosplay: number; // コスプレプレイ
   toyPlay: number; // おもちゃを使う
-  verbalPlay: number; // 言葉責めプレイ
-  squirting: number; // 潮吹き
   deepthroat: number; // イラマチオ
 
   // 相手の体型
@@ -47,14 +44,11 @@ export interface MalePreferences {
 
 // デフォルト値
 export const defaultMalePreferences: Partial<MalePreferences> = {
-  spanking: 3,
   groupPlay: 3,
   throating: 3,
   analPlay: 3,
   cosplay: 3,
   toyPlay: 3,
-  verbalPlay: 3,
-  squirting: 3,
   deepthroat: 3,
   partnerBodyTypes: [],
   recordingDuringPlay: '',

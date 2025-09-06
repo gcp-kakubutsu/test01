@@ -79,17 +79,61 @@ export default function HomePage() {
     }
   }, [isAuthenticated, currentUser, router]);
 
-  // ユーザーの嗜好設定を読み込み
+  // ユーザーの嗜好設定を読み込み（設定がない場合はデフォルト値を使用）
   useEffect(() => {
     const loadPreferences = async () => {
-      if (currentUser && userProfile?.gender === 'male') {
+      if (currentUser) { // 男性ユーザーのみなので性別チェック不要
         try {
           const prefs = await getMalePreferences(currentUser.uid);
           if (prefs) {
             setPreferences(prefs);
+          } else {
+            // 設定がない場合はデフォルト値を使用
+            console.log('No preferences found, using default values');
+            const defaultPrefs: MalePreferences = {
+              groupPlay: 3,
+              throating: 3,
+              analPlay: 3,
+              cosplay: 3,
+              toyPlay: 3,
+              deepthroat: 3,
+              partnerBodyTypes: ['こだわらない'],
+              girlTypeIds: [],
+              recordingDuringPlay: 'no',
+              isSadist: 'neutral',
+              isMasochist: 'neutral',
+              partnerHeight: 'こだわらない',
+              partnerWeight: 'こだわらない',
+              partnerLocation: userProfile?.location || 'こだわらない',
+              partnerAgeMin: 18,
+              partnerAgeMax: 40,
+              isComplete: false
+            };
+            setPreferences(defaultPrefs);
           }
         } catch (error) {
           console.error('Failed to load preferences:', error);
+          // エラー時もデフォルト値を設定
+          const defaultPrefs: MalePreferences = {
+            groupPlay: 3,
+            throating: 3,
+            analPlay: 3,
+            cosplay: 3,
+            toyPlay: 3,
+            deepthroat: 3,
+            partnerBodyTypes: ['こだわらない'],
+            girlTypeIds: [],
+            recordingDuringPlay: 'no',
+            isSadist: 'neutral',
+            isMasochist: 'neutral',
+            partnerHeight: 'こだわらない',
+            partnerWeight: 'こだわらない',
+            partnerLocation: userProfile?.location || 'こだわらない',
+            partnerAgeMin: 18,
+            partnerAgeMax: 40,
+            isComplete: false
+          };
+          setPreferences(defaultPrefs);
         }
       }
     };
@@ -113,11 +157,7 @@ export default function HomePage() {
         return;
       }
 
-      // Only check for male users
-      if (userProfile.gender !== 'male') {
-        setCheckingWelcome(false);
-        return;
-      }
+      // 男性ユーザーのみなので性別チェック不要
 
       try {
         // Check if component is still mounted and user is still authenticated
@@ -680,34 +720,6 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, initialFetchDone, fetchGirlsFromMySQL]); // 位置情報が取得されたら実行
 
-  const handleReset = async () => {
-    if (!currentUser) return;
-    
-    try {
-      setLoadingUsers(true);
-      
-      // 位置情報を再取得（高速化：住所取得をスキップ）
-      try {
-        const locationInfo = await getCurrentLocation(true); // 住所取得をスキップして高速化
-        if (locationInfo.coordinates) {
-          setUserLocation(locationInfo.coordinates);
-        }
-      } catch (error) {
-        // Silently handle location errors
-      }
-      
-      // MySQLから女の子データを再取得
-      await fetchGirlsFromMySQL();
-      
-      setCurrentPage(1); // リセット時は最初のページに戻る
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]); // エラー時は空配列
-      setGirlsFromDB([]);
-    } finally {
-      setLoadingUsers(false);
-    }
-  }
 
   // 認証状態に関係なくページを表示 - LINEブラウザ対応
 
@@ -1077,8 +1089,8 @@ export default function HomePage() {
               </div>
             )}
             
-            {/* 嗜好設定スライダー - 常に表示（男性ユーザーの場合）*/}
-            {userProfile?.gender === 'male' && preferences && (
+            {/* 嗜好設定スライダー - 常に表示 */}
+            {preferences && (
               <div className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-white">あなたの嗜好を調整</span>

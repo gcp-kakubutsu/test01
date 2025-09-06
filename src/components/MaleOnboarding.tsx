@@ -65,8 +65,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         } else {
           // 新規ユーザーの場合、デフォルト値を確実に設定
           const defaultPrefs = {
-            spanking: 3, groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-            verbalPlay: 3, squirting: 3, deepthroat: 3, 
+            groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3, deepthroat: 3, 
             partnerBodyTypes: [], girlTypeIds: [],
             recordingDuringPlay: '', isSadist: '', isMasochist: '',
             partnerHeight: '', partnerWeight: '',
@@ -81,8 +80,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         console.error('Error loading existing preferences:', error);
         // エラーの場合もシンプルなデフォルト値を設定
         setPreferences({
-          spanking: 3, groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3,
-          verbalPlay: 3, squirting: 3, deepthroat: 3, 
+          groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3, deepthroat: 3, 
           partnerBodyTypes: [], girlTypeIds: [],
           recordingDuringPlay: '', isSadist: '', isMasochist: '',
           partnerHeight: '', partnerWeight: '',
