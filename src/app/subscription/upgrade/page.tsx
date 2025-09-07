@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { redirectToTelecomCredit } from '@/utils/telecomCreditPayment';
+import { useUser } from '@/hooks/useUser';
 import styles from './upgrade.module.scss';
 
 const PLAN_OPTIONS = [
@@ -80,6 +81,7 @@ function UpgradeContent() {
   const { isAuthenticated, isLoading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { getPaymentUid, generatePaymentUid, hasPaymentUid } = useUser();
   
   const [selectedPlan, setSelectedPlan] = useState('6month');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -109,7 +111,7 @@ function UpgradeContent() {
     setSelectedPlan(planId);
   };
 
-  const handlePaymentButtonClick = () => {
+  const handlePaymentButtonClick = async () => {
     if (!currentUser) {
       toast({
         title: "ログインが必要です",
@@ -132,16 +134,33 @@ function UpgradeContent() {
 
     setIsProcessing(true);
     
-    toast({
-      title: "決済画面へ移動中...",
-      description: "Telecom Creditの決済画面へ移動します。",
-    });
-
-    // Telecom Credit決済画面へ遷移
     try {
+      // payment_uidの取得または生成
+      let paymentUid = getPaymentUid();
+      
+      if (!paymentUid) {
+        toast({
+          title: "決済情報を準備中...",
+          description: "初回決済の準備をしています。",
+        });
+        
+        // payment_uidがない場合は生成
+        paymentUid = await generatePaymentUid();
+        
+        if (!paymentUid) {
+          throw new Error('Payment UID の生成に失敗しました');
+        }
+      }
+      
+      toast({
+        title: "決済画面へ移動中...",
+        description: "Telecom Creditの決済画面へ移動します。",
+      });
+
+      // Telecom Credit決済画面へ遷移（payment_uidを使用）
       redirectToTelecomCredit({
         planId: selectedPlan as '1month' | '3month' | '6month' | '12month',
-        userId: currentUser.uid,
+        userId: paymentUid, // payment_uidを使用
         userEmail: currentUser.email || '',
         userName: currentUser.displayName || undefined
       });
@@ -150,7 +169,7 @@ function UpgradeContent() {
       setIsProcessing(false);
       toast({
         title: "エラー",
-        description: "決済画面への移動に失敗しました。",
+        description: error instanceof Error ? error.message : "決済画面への移動に失敗しました。",
         variant: "destructive",
       });
     }

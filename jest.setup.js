@@ -103,28 +103,34 @@ process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock window.location
-Object.defineProperty(window, 'location', {
-  value: {
-    href: 'http://localhost:3000',
-    origin: 'http://localhost:3000',
-    pathname: '/',
-    search: '',
-    hash: '',
-    reload: jest.fn(),
-  },
-  writable: true,
-});
+// Mock window.location - only if not already defined
+if (!window.location) {
+  Object.defineProperty(window, 'location', {
+    value: {
+      href: 'http://localhost:3000',
+      origin: 'http://localhost:3000',
+      pathname: '/',
+      search: '',
+      hash: '',
+      reload: jest.fn(),
+    },
+    writable: true,
+    configurable: true,
+  });
+}
 
-// Mock window.navigator
-Object.defineProperty(window, 'navigator', {
-  value: {
-    userAgent: 'Mozilla/5.0 (Test Browser)',
-    language: 'ja-JP',
-    languages: ['ja-JP', 'en-US'],
-  },
-  writable: true,
-});
+// Mock window.navigator - only if not already defined
+if (!window.navigator || !window.navigator.userAgent) {
+  Object.defineProperty(window, 'navigator', {
+    value: {
+      userAgent: 'Mozilla/5.0 (Test Browser)',
+      language: 'ja-JP',
+      languages: ['ja-JP', 'en-US'],
+    },
+    writable: true,
+    configurable: true,
+  });
+}
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {

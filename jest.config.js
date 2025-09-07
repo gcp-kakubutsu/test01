@@ -10,12 +10,8 @@ const config = {
   testMatch: [
     '**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
     '**/(test|spec)/**/*.(js|jsx|ts|tsx)',
+    '**/tests/**/*.test.(js|jsx|ts|tsx)',
   ],
-  
-  // Module name mapping for path aliases
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
   
   // Transform files
   transform: {
@@ -77,16 +73,13 @@ const config = {
     '<rootDir>/e2e/',
   ],
   
-  // Handle static file imports
-  moduleNameMapping: {
+  // Handle static file imports (merged with above moduleNameMapper)
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/__mocks__/fileMock.js',
   },
   
-  // Global setup
-  globalSetup: '<rootDir>/jest.globalSetup.js',
-  globalTeardown: '<rootDir>/jest.globalTeardown.js',
   
   // Verbose output
   verbose: true,

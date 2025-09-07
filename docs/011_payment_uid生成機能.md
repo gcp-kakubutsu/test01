@@ -18,31 +18,31 @@ Firebase側で16桁の英数字payment_uidを生成し、決済会社のsendid�
 - **リトライ**: 最大10回まで生成を試行
 
 ## Todoリスト
-- [ ] utils/paymentUidGenerator.jsファイルの作成
-- [ ] generatePaymentUid関数の実装（16桁ランダム文字列生成）
-- [ ] checkPaymentUidUnique関数の実装（Firestore重複チェック）
-- [ ] generateUniquePaymentUid関数の実装（ユニーク保証付き生成）
-- [ ] エラーハンドリングの実装
-- [ ] リトライロジックの実装
-- [ ] 生成文字列のバリデーション追加
+- [x] utils/paymentUidGenerator.tsファイルの作成
+- [x] generatePaymentUid関数の実装（16桁ランダム文字列生成）
+- [x] checkPaymentUidUnique関数の実装（Firestore重複チェック）
+- [x] generateUniquePaymentUid関数の実装（ユニーク保証付き生成）
+- [x] エラーハンドリングの実装
+- [x] リトライロジックの実装
+- [x] 生成文字列のバリデーション追加
 
 ## 依存関係
 - Firebase/Firestore設定が完了していること
 - データベース接続が確立されていること
 
 ## 受け入れ基準
-- [ ] 16桁の英数字が生成される
-- [ ] 生成されるpayment_uidは必ずユニークである
-- [ ] 重複チェックが正しく動作する
-- [ ] エラー時に適切なエラーメッセージが返される
-- [ ] リトライ機能が正しく動作する
+- [x] 16桁の英数字が生成される
+- [x] 生成されるpayment_uidは必ずユニークである
+- [x] 重複チェックが正しく動作する
+- [x] エラー時に適切なエラーメッセージが返される
+- [x] リトライ機能が正しく動作する
 
 ## 実装ファイル
-- `src/utils/paymentUidGenerator.js` (新規作成)
+- `src/utils/paymentUidGenerator.ts` (新規作成完了)
 
 ## 推定工数
 4時間
 
 ## 実装状態
-- ステータス: 未着手
+- ステータス: 完了
 - 優先度: 高（Phase 1の基盤機能）

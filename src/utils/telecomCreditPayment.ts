@@ -29,18 +29,10 @@ export function redirectToTelecomCredit(data: TelecomCreditPaymentData): void {
     throw new Error(`Invalid plan ID: ${planId}`);
   }
 
-  console.log('Starting Telecom Credit redirect with:', {
-    planId,
-    userId,
-    userEmail,
-    userName,
-    price
-  });
 
   // 既存のフォームがあれば削除
   const existingForm = document.getElementById('telecom-credit-form');
   if (existingForm) {
-    console.log('Removing existing form');
     existingForm.remove();
   }
 
@@ -82,7 +74,6 @@ export function redirectToTelecomCredit(data: TelecomCreditPaymentData): void {
     input.name = param.name;
     input.value = param.value;
     form.appendChild(input);
-    console.log(`Added param: ${param.name} = ${param.value}`);
   });
 
   // ドキュメントの最初の要素として追加（bodyの最初に配置）
@@ -91,13 +82,6 @@ export function redirectToTelecomCredit(data: TelecomCreditPaymentData): void {
   } else {
     document.body.appendChild(form);
   }
-  console.log('Form added to DOM');
-
-  // デバッグ: フォームの内容を確認
-  console.log('Form action:', form.action);
-  console.log('Form method:', form.method);
-  console.log('Form target:', form.target);
-  console.log('Number of inputs:', form.getElementsByTagName('input').length);
 
   // Reactのイベントループから外れて実行
   // requestAnimationFrameを使ってブラウザの次の描画フレームで実行
@@ -112,13 +96,9 @@ export function redirectToTelecomCredit(data: TelecomCreditPaymentData): void {
           throw new Error('Form element not found');
         }
 
-        console.log('Submitting form now...');
-        
         // HTMLFormElementのsubmitメソッドを直接呼び出す
         // これによりイベントハンドラーをバイパスして直接送信
         HTMLFormElement.prototype.submit.call(formElement);
-        
-        console.log('Form submit called');
         
       } catch (error) {
         console.error('Failed to submit payment form:', error);
