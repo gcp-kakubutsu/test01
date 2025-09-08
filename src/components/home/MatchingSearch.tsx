@@ -400,10 +400,10 @@ export default function MatchingSearch() {
             <div className="flex-1 text-center md:text-left">
               <h3 className="text-base font-bold mb-1" style={{ color: '#D4AF37' }}>
                 <Lock className="w-4 h-4 inline-block mr-1" />
-                会員登録でさらに深掘り検索！
+                会員登録でさらに深掘り検索
               </h3>
               <p className="text-xs" style={{ color: '#b8b2a7' }}>
-                あなたの&ldquo;性癖プロファイル&rdquo;を登録すれば、理想の女性とピンポイントでマッチング
+                あなたが理想とする&ldquo;性癖プロファイル&rdquo;を登録すると、最速、最短で出会える条件に合う女性から表示されます。
               </p>
             </div>
             
