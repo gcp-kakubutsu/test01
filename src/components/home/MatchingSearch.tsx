@@ -559,11 +559,17 @@ export default function MatchingSearch() {
           )}
         </div>
 
-        <p className={`${styles.labelText} ${styles.textSecondary} text-center mt-6`}>
-          {hasPreferences 
-            ? '詳細設定に基づいて、あなたに最適な女の子を検索します。'
-            : '登録後、入力した性癖と条件を引き継いで候補を表示します。'}
-        </p>
+        <div className={`${styles.labelText} ${styles.textSecondary} text-center mt-6`}>
+          <p className="text-sm mb-2" style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>
+            ※お試しの場合は、表示されます女性キャストは、全てフィルターがかかっております。
+          </p>
+          <p className="text-sm mb-2" style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>
+            有料会員になりますと、フィルターが解除されます。
+          </p>
+          <p className="text-sm" style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>
+            ※詳細検索を登録後、入力した性癖と条件より候補を表示されます。
+          </p>
+        </div>
       </div>
     </div>
   )
