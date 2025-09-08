@@ -510,7 +510,7 @@ export default function LandingPage() {
           <div className={styles.aboutContent}>
             <div className={`${styles.aboutText} ${styles.scrollSlideLeft}`}>
               <p className={styles.aboutLead}>
-                あなたの性癖や嗜好に寄り添い、最適なキャストをご案内する性癖マッチングコンシェルジュ「NUKUNE」
+                あなたの性癖や嗜好に寄り添い、最適なキャストをご案内する性癖コンシェルジュ「NUKUNE(ヌクネ)」
               </p>
               <h3 className={styles.aboutBrand} style={{ color: '#D4AF37', fontSize: '1.5em', fontWeight: 'bold', margin: '20px 0' }}>
                 条件入力は一度だけ。<br />すぐに会える、<br />新しい体験。
@@ -668,8 +668,15 @@ export default function LandingPage() {
 
             <div className={styles.solutionCta}>
               <p className={styles.solutionTagline}>
+                今までなかった<br />
                 驚愕の検索サイト<br />
-                <span className={styles.solutionBrand}>性癖マッチング NUKUNE</span>
+                <span className={styles.solutionBrand}>
+                  <span style={{display: 'block', fontSize: '0.9em'}}>性癖コンシェルジュ</span>
+                  <span style={{display: 'block'}}>NUKUNE< br />(ヌクネ)</span>
+                </span>
+              </p>
+              <p style={{ marginTop: '20px', fontSize: '1.2rem', color: '#D4AF37', lineHeight: '1.5' }}>
+                相手に求める理想のデータを<br />入力して<br />お試し検索してみよう！
               </p>
             </div>
           </div>

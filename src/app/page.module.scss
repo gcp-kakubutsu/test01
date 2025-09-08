@@ -1553,10 +1553,10 @@ $border-color-light: #E5E7EB;
   line-height: 1.8;
   margin: 0;
   
-  // タグライン内の強調spanは18.4pxに統一（ただし.solutionBrandは除外）
-  span:not(.solutionBrand) {
-    font-size: 18.4px;
-  }
+  // タグライン内の強調spanは親要素のサイズを継承
+  // span:not(.solutionBrand) {
+  //   font-size: 18.4px;
+  // }
   
   :global(.light) & {
     color: #6B7280;
@@ -1566,18 +1566,15 @@ $border-color-light: #E5E7EB;
     font-size: 32px; // スマホ時は32px
     line-height: 1.75;
     margin: 1rem 0;
-    span:not(.solutionBrand) {
-      font-size: 18.4px;
-    }
-    br {
-      display: none;
-    }
+    // span:not(.solutionBrand) {
+    //   font-size: 18.4px;
+    // }
   }
 }
 
 .solutionBrand {
   font-family: 'Noto Serif JP', serif;
-  display: inline-block;
+  display: block;  // inline-blockからblockに変更
   margin-top: 0.5rem;
   font-size: 40px; // PCは大きく
   font-weight: 800;
