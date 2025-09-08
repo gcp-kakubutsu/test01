@@ -11,7 +11,7 @@
 
 const admin = require('firebase-admin');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // コマンドライン引数を解析
 const args = process.argv.slice(2);
@@ -24,14 +24,26 @@ const batchSize = batchSizeArg ? parseInt(batchSizeArg.split('=')[1]) : 10;
 let app;
 try {
   if (admin.apps.length === 0) {
-    const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
     
-    if (!serviceAccountKey || !projectId) {
-      throw new Error('Missing Firebase configuration. Please check your environment variables.');
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error('Missing Firebase configuration. Please check your environment variables (FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY).');
     }
     
-    const serviceAccount = JSON.parse(serviceAccountKey);
+    const serviceAccount = {
+      type: 'service_account',
+      project_id: projectId,
+      private_key_id: '',
+      private_key: privateKey.replace(/\\n/g, '\n'),
+      client_email: clientEmail,
+      client_id: '',
+      auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: 'https://oauth2.googleapis.com/token',
+      auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(clientEmail)}`
+    };
     
     app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
