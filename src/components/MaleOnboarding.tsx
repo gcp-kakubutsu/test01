@@ -500,7 +500,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         </div>
 
         <div>
-          <Label className="text-base font-medium text-white">居住地</Label>
+          <Label className="text-base font-medium text-white">エリア</Label>
           <Select value={preferences.partnerLocation} onValueChange={(value) => setPreferences(prev => ({ ...prev, partnerLocation: value }))}>
             <SelectTrigger className="w-full mt-2 bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="選択してください" />
