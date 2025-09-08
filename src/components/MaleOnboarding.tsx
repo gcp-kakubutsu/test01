@@ -231,7 +231,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep5 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
         <p className="text-gray-300">相手に求める条件を入力してください</p>
       </div>
       
@@ -271,8 +270,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep6 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
-        <p className="text-gray-300">あなたの基本情報を教えてください</p>
       </div>
       
 
@@ -452,8 +449,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
   const renderStep7 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-white mb-2">プロフィール入力</h2>
-        <p className="text-gray-300">あなたの基本情報を教えてください</p>
       </div>
       
 
@@ -746,7 +741,6 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             </div>
           </div>
           <Progress value={progress} className="w-full h-3 mb-4 bg-gray-800" />
-          <h1 className="text-2xl font-bold text-white">プロフィール入力</h1>
           <p className="text-gray-300">相手に求める条件を入力してください</p>
         </div>
 
