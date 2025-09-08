@@ -1180,6 +1180,26 @@ export default function HomePage() {
                     <span className="ml-1 text-sm">({selectedGirlTypes.length})</span>
                   )}
                 </Button>
+                {/* 嗜好トグル（上部に配置） */}
+                {currentUser && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => (showPreferenceSliders ? handleClosePreferencePanel() : handleOpenPreferencePanel())}
+                    className="bg-gray-800 border-gray-700 hover:text-white hover:bg-gray-700 px-3 py-1.5"
+                    title="嗜好の設定"
+                    disabled={savingPreferences}
+                  >
+                    {savingPreferences ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        保存中
+                      </>
+                    ) : (
+                      <span className="text-sm">嗜好</span>
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -1207,31 +1227,11 @@ export default function HomePage() {
             )}
             
             {/* 嗜好設定スライダー - 全設定項目を含む拡張版 */}
-            {currentUser && (
+            {currentUser && showPreferenceSliders && (
               <div ref={preferencePanelRef} className="bg-gray-900 rounded-lg p-4 space-y-4 mt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white">
-                    あなたの嗜好を調整
-                    {showPreferenceSliders && (
-                      <span className="ml-2 text-xs text-yellow-400">※非表示を押すと保存されます</span>
-                    )}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => showPreferenceSliders ? handleClosePreferencePanel() : handleOpenPreferencePanel()}
-                    className="text-xs bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    disabled={savingPreferences}
-                  >
-                    {savingPreferences ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        保存中...
-                      </>
-                    ) : (
-                      showPreferenceSliders ? '非表示' : '表示'
-                    )}
-                  </Button>
+                {/* ヘッダは上部に集約したためここでは説明のみ表示 */}
+                <div className="mb-2">
+                  <span className="text-xs text-yellow-400">※上部の「嗜好」ボタンを押して閉じると保存されます</span>
                 </div>
                 
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${

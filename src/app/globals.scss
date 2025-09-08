@@ -140,7 +140,7 @@ a {
   &-secondary {
     background: rgba(212, 175, 55, 0.1);
     color: var(--accent-gold);
-    border: 2px solid var(--accent-gold);
+    border: 2px solid var(--border-subtle);
 
     &:hover {
       background: var(--accent-gold);
@@ -165,7 +165,7 @@ button:not(.btn):not(.btn-primary):not(.btn-secondary) {
   
   &:hover:not(:disabled) {
     background-color: rgba(17, 24, 39, 0.8);
-    border-color: var(--accent-gold);
+    border-color: var(--border-subtle);
     
     .light & {
       background-color: #F3F4F6;
@@ -187,7 +187,7 @@ button:not(.btn):not(.btn-primary):not(.btn-secondary) {
 [class*="bg-gray-"] {
   background-color: rgba(31, 41, 55, 0.95) !important;
   color: var(--text-light) !important;
-  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border: 1px solid var(--border-subtle) !important;
   
   .light & {
     background-color: #FFFFFF !important;
@@ -197,7 +197,7 @@ button:not(.btn):not(.btn-primary):not(.btn-secondary) {
   
   &:hover {
     background-color: rgba(31, 41, 55, 0.8) !important;
-    border-color: var(--accent-gold) !important;
+    border-color: var(--border-subtle) !important;
     
     .light & {
       background-color: #F3F4F6 !important;
@@ -457,7 +457,7 @@ select {
   &:not(.bg-primary):not(.bg-pink-500):not(.bg-rose-500) {
     background-color: rgba(31, 41, 55, 0.95) !important;
     color: var(--text-light) !important;
-    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+    border: 1px solid var(--border-subtle) !important;
     
     .light & {
       background-color: #FFFFFF !important;
@@ -467,7 +467,7 @@ select {
     
     &:hover {
       background-color: rgba(31, 41, 55, 0.8) !important;
-      border-color: var(--accent-gold) !important;
+      border-color: var(--border-subtle) !important;
       
       .light & {
         background-color: #F3F4F6 !important;

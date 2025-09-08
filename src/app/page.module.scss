@@ -292,21 +292,12 @@ $border-color-light: #E5E7EB;
   padding: 1.2rem 2.5rem;
   border-radius: 50px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  border: none; // 金色の枠線を削除
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
-    animation: shimmerSubtitle 3s infinite;
-  }
+  &::before { content: none; } // 枠のシマー演出を無効化
   
   @keyframes shimmerSubtitle {
     0% { left: -100%; }
@@ -391,7 +382,7 @@ $border-color-light: #E5E7EB;
 .locationInfoContent {
   background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.95));
   backdrop-filter: blur(15px);
-  border: 1px solid transparent;
+  border: none; // 外枠ラインを削除
   border-radius: 30px !important;
   padding: 1.8rem 3rem;
   max-width: 720px;
@@ -400,18 +391,7 @@ $border-color-light: #E5E7EB;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 30px;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(240, 48, 106, 0.5), rgba(212, 175, 55, 0.5));
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
+  &::before { content: none; } // 金色の縁取りを無効化
   
   &::after {
     content: '';
