@@ -107,6 +107,49 @@ async function generateUniquePaymentUid(maxRetries = MAX_RETRIES) {
   throw new Error(`Failed to generate unique payment_uid after ${maxRetries} attempts`);
 }
 
+/**
+ * 指定ユーザーに対して、payment_uidが未設定の場合のみ原子的に割り当てる。
+ * 既存のpayment_uidがある場合は絶対に上書きせず、UIDが消える事象を防ぐ。
+ * トランザクションによりチェックと更新を同一アトミック操作として実行する。
+ * 
+ * @param {string} userId - ユーザーのドキュメントID（Firebase UID）
+ * @returns {Promise<{status: 'assigned'|'skipped', paymentUid?: string, existingPaymentUid?: string}>}
+ */
+async function assignPaymentUidIfMissingAtomic(userId) {
+  // 先に候補UIDを生成（重複チェック込み）。実際の書き込みはトランザクション内で未設定時のみ行う
+  const candidatePaymentUid = await generateUniquePaymentUid();
+  const userRef = db.collection('users').doc(userId);
+  
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef);
+    const currentData = snap.exists ? snap.data() : null;
+    
+    // 既に有効なpayment_uidが存在する場合はスキップ（上書き禁止）
+    if (
+      currentData &&
+      typeof currentData.payment_uid === 'string' &&
+      currentData.payment_uid.trim() !== ''
+    ) {
+      return {
+        status: 'skipped',
+        existingPaymentUid: currentData.payment_uid
+      };
+    }
+    
+    // 未設定の場合のみ割り当て
+    tx.update(userRef, {
+      payment_uid: candidatePaymentUid,
+      payment_uid_created_at: admin.firestore.FieldValue.serverTimestamp(),
+      payment_uid_updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    return {
+      status: 'assigned',
+      paymentUid: candidatePaymentUid
+    };
+  });
+}
+
 // 移行結果の統計
 class MigrationStats {
   constructor() {
@@ -221,15 +264,35 @@ async function migrateUsers(isDryRun = false, batchSize = 10) {
     // payment_uidを持たないユーザーを取得
     const usersToMigrateSnapshot = await db.collection('users').get();
     const usersWithoutPaymentUid = [];
+    const usersAlreadyWithPaymentUid = [];
     
     usersToMigrateSnapshot.forEach(doc => {
       const userData = doc.data();
-      if (!userData.payment_uid) {
+      // より厳密なチェック：payment_uidが存在し、空でない文字列の場合はスキップ
+      if (userData.payment_uid && typeof userData.payment_uid === 'string' && userData.payment_uid.trim() !== '') {
+        usersAlreadyWithPaymentUid.push({ 
+          id: doc.id, 
+          paymentUid: userData.payment_uid,
+          createdAt: userData.payment_uid_created_at
+        });
+      } else if (!userData.payment_uid || userData.payment_uid === '' || userData.payment_uid === null) {
         usersWithoutPaymentUid.push({ id: doc.id, data: userData });
       }
     });
     
     logInfo(`Found ${usersWithoutPaymentUid.length} users without payment_uid`);
+    
+    if (usersAlreadyWithPaymentUid.length > 0) {
+      logSuccess(`${usersAlreadyWithPaymentUid.length} users already have payment_uid and will be SKIPPED:`);
+      if (isDryRun) {
+        usersAlreadyWithPaymentUid.slice(0, 5).forEach(user => {
+          logInfo(`  ✓ ${user.id}: ${user.paymentUid}`);
+        });
+        if (usersAlreadyWithPaymentUid.length > 5) {
+          logInfo(`  ... and ${usersAlreadyWithPaymentUid.length - 5} more`);
+        }
+      }
+    }
     
     // バッチ処理で移行
     for (let i = 0; i < usersWithoutPaymentUid.length; i += batchSize) {
@@ -239,52 +302,31 @@ async function migrateUsers(isDryRun = false, batchSize = 10) {
       logInfo(`Processing batch ${stats.batchCount}: users ${i + 1}-${Math.min(i + batchSize, usersWithoutPaymentUid.length)}`);
       
       if (!isDryRun) {
-        // Firestore batch write
-        const batch = db.batch();
-        const batchPaymentUids = [];
-        
-        // 各ユーザーにpayment_uidを生成
+        // 原子的な割り当て（UID消失防止のため、ユーザー毎にトランザクションで処理）
+        const batchResults = [];
         for (const user of currentBatch) {
           try {
-            const paymentUid = await generateUniquePaymentUid();
-            batchPaymentUids.push({ userId: user.id, paymentUid });
-            
-            const userRef = db.collection('users').doc(user.id);
-            batch.update(userRef, {
-              payment_uid: paymentUid,
-              payment_uid_created_at: admin.firestore.FieldValue.serverTimestamp(),
-              payment_uid_updated_at: admin.firestore.FieldValue.serverTimestamp(),
-            });
-            
-            logInfo(`Prepared payment_uid for user ${user.id}: ${paymentUid}`);
+            const result = await assignPaymentUidIfMissingAtomic(user.id);
+            if (result.status === 'assigned') {
+              batchResults.push({ userId: user.id, paymentUid: result.paymentUid });
+              logInfo(`Prepared payment_uid for user ${user.id}: ${result.paymentUid}`);
+            } else {
+              logWarning(`User ${user.id} already has payment_uid (${result.existingPaymentUid}), skipping`);
+            }
           } catch (error) {
-            logError(`Failed to generate payment_uid for user ${user.id}: ${error.message}`);
+            logError(`Failed to assign payment_uid for user ${user.id}: ${error.message}`);
             stats.addError(user.id, error);
           }
         }
-        
-        // バッチをコミット
-        try {
-          await batch.commit();
-          
-          const successfulInBatch = batchPaymentUids.length;
-          stats.successCount += successfulInBatch;
-          
-          logSuccess(`Successfully processed batch ${stats.batchCount}: ${successfulInBatch}/${currentBatch.length} users`);
-          
-          // 処理したpayment_uidをログに記録
-          batchPaymentUids.forEach(({ userId, paymentUid }) => {
-            logInfo(`✓ User ${userId}: ${paymentUid}`);
-          });
-          
-        } catch (error) {
-          logError(`Batch commit failed for batch ${stats.batchCount}: ${error.message}`);
-          
-          // バッチ内の全ユーザーをエラーとして記録
-          currentBatch.forEach(user => {
-            stats.addError(user.id, new Error(`Batch commit failed: ${error.message}`));
-          });
-        }
+
+        // 成功件数の集計（トランザクション処理はコミット済）
+        const successfulInBatch = batchResults.length;
+        stats.successCount += successfulInBatch;
+        logSuccess(`Successfully processed batch ${stats.batchCount}: ${successfulInBatch}/${currentBatch.length} users`);
+        // ログ出力
+        batchResults.forEach(({ userId, paymentUid }) => {
+          logInfo(`✓ User ${userId}: ${paymentUid}`);
+        });
         
         // 短時間待機（Firestoreの負荷軽減）
         if (i + batchSize < usersWithoutPaymentUid.length) {
@@ -296,6 +338,17 @@ async function migrateUsers(isDryRun = false, batchSize = 10) {
         // ドライラン - 実際の処理はしない
         for (const user of currentBatch) {
           try {
+            // 現在の状態のみ確認し、書き込みは行わない
+            const currentDoc = await db.collection('users').doc(user.id).get();
+            const currentData = currentDoc.data();
+            if (
+              currentData &&
+              typeof currentData.payment_uid === 'string' &&
+              currentData.payment_uid.trim() !== ''
+            ) {
+              logWarning(`[DRY RUN] User ${user.id} already has payment_uid (${currentData.payment_uid}), would skip`);
+              continue;
+            }
             const paymentUid = await generateUniquePaymentUid();
             stats.successCount++;
             logInfo(`[DRY RUN] Would assign payment_uid to user ${user.id}: ${paymentUid}`);
