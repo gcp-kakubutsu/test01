@@ -1,5 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+/**
+ * ユーザー登録時に16桁のユニークなpayment_uidを生成し、ユーザードキュメントへ付与するためのユーティリティ
+ * - 文字セット: 英大小文字+数字（62種）
+ * - 長さ: 16文字
+ * - 一意性: Firestoreのusersコレクションで重複チェック（最大10回リトライ）
+ */
+const PAYMENT_UID_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const PAYMENT_UID_LENGTH = 16;
+const PAYMENT_UID_MAX_RETRIES = 10;
+
+function generatePaymentUid(): string {
+  let result = '';
+  for (let i = 0; i < PAYMENT_UID_LENGTH; i++) {
+    const randomIndex = Math.floor(Math.random() * PAYMENT_UID_CHARSET.length);
+    result += PAYMENT_UID_CHARSET[randomIndex];
+  }
+  return result;
+}
+
+async function checkPaymentUidUnique(db: FirebaseFirestore.Firestore, paymentUid: string): Promise<boolean> {
+  const snap = await db.collection('users')
+    .where('payment_uid', '==', paymentUid)
+    .limit(1)
+    .get();
+  return snap.empty;
+}
+
+async function generateUniquePaymentUid(db: FirebaseFirestore.Firestore): Promise<string> {
+  for (let attempt = 1; attempt <= PAYMENT_UID_MAX_RETRIES; attempt++) {
+    const candidate = generatePaymentUid();
+    const unique = await checkPaymentUidUnique(db, candidate);
+    if (unique) return candidate;
+    if (attempt < PAYMENT_UID_MAX_RETRIES) {
+      await new Promise(r => setTimeout(r, 100 * attempt));
+    }
+  }
+  throw new Error('payment_uidのユニーク生成に失敗しました（最大リトライ到達）');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,6 +146,7 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       const trialEndDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7日後
       
+      const paymentUid = await generateUniquePaymentUid(db);
       await db.collection('users').doc(userRecord.uid).set({
         username,
         email,
@@ -114,6 +155,10 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         emailVerified: false,
+        // 決済用UID
+        payment_uid: paymentUid,
+        payment_uid_created_at: FieldValue.serverTimestamp(),
+        payment_uid_updated_at: FieldValue.serverTimestamp(),
         // トライアル関連フィールド
         trial: {
           startDate: now,
@@ -230,6 +275,21 @@ export async function POST(request: NextRequest) {
           
           const now = new Date();
           const trialEndDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7日後
+          // payment_uid を生成
+          const paymentUid = await (async () => {
+            // isAdminInitialized() が true のときのみ adminFirestore 利用可
+            // ここでは adminFirestore をそのまま使用
+            for (let attempt = 1; attempt <= 10; attempt++) {
+              const candidate = generatePaymentUid();
+              const snap = await adminFirestore.collection('users')
+                .where('payment_uid', '==', candidate)
+                .limit(1)
+                .get();
+              if (snap.empty) return candidate;
+              await new Promise(r => setTimeout(r, 100 * attempt));
+            }
+            throw new Error('payment_uidのユニーク生成に失敗しました（REST経路）');
+          })();
           
           await adminFirestore.collection('users').doc(data.localId).set({
             username,
@@ -239,6 +299,10 @@ export async function POST(request: NextRequest) {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             emailVerified: false,
+            // 決済用UID
+            payment_uid: paymentUid,
+            payment_uid_created_at: FieldValue.serverTimestamp(),
+            payment_uid_updated_at: FieldValue.serverTimestamp(),
             // トライアル関連フィールド
             trial: {
               startDate: now,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminAuth, getAdminFirestore } from '@/lib/firebase/admin'
 import { withAdminAuth } from '@/middleware/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 
 async function handler(request: NextRequest) {
   try {
@@ -41,6 +42,24 @@ async function handler(request: NextRequest) {
     const birthYear = birthDateObj.getFullYear()
     const age = currentYear - birthYear
 
+    // Generate unique payment_uid
+    const generatePaymentUid = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      let r = ''
+      for (let i = 0; i < 16; i++) r += chars[Math.floor(Math.random() * chars.length)]
+      return r
+    }
+    async function generateUniquePaymentUid(): Promise<string> {
+      for (let i = 1; i <= 10; i++) {
+        const candidate = generatePaymentUid()
+        const snap = await db.collection('users').where('payment_uid', '==', candidate).limit(1).get()
+        if (snap.empty) return candidate
+        await new Promise(r => setTimeout(r, 100 * i))
+      }
+      throw new Error('payment_uidのユニーク生成に失敗しました（create-girl）')
+    }
+    const paymentUid = await generateUniquePaymentUid()
+
     // Add user to Firestore
     await db.collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
@@ -57,6 +76,10 @@ async function handler(request: NextRequest) {
       isGirl: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      // 決済用UID
+      payment_uid: paymentUid,
+      payment_uid_created_at: FieldValue.serverTimestamp(),
+      payment_uid_updated_at: FieldValue.serverTimestamp(),
     })
 
     return NextResponse.json({

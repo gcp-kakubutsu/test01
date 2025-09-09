@@ -1,6 +1,7 @@
 'use server'
 
 import { getAdminFirestore } from '@/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 
 interface AddGirlData {
   uid: string
@@ -21,6 +22,24 @@ export async function addGirlToFirestore(data: AddGirlData) {
     const birthYear = birthDateObj.getFullYear()
     const age = currentYear - birthYear
 
+    // payment_uid生成（ユニークチェック付き）
+    const gen = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      let r = ''
+      for (let i = 0; i < 16; i++) r += chars[Math.floor(Math.random() * chars.length)]
+      return r
+    }
+    async function generateUniquePaymentUid(): Promise<string> {
+      for (let i = 1; i <= 10; i++) {
+        const candidate = gen()
+        const snap = await db.collection('users').where('payment_uid', '==', candidate).limit(1).get()
+        if (snap.empty) return candidate
+        await new Promise(r => setTimeout(r, 100 * i))
+      }
+      throw new Error('payment_uidのユニーク生成に失敗しました（admin/actions）')
+    }
+    const paymentUid = await generateUniquePaymentUid()
+
     await db.collection('users').doc(data.uid).set({
       uid: data.uid,
       username: data.username,
@@ -36,6 +55,10 @@ export async function addGirlToFirestore(data: AddGirlData) {
       isGirl: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      // 決済用UID
+      payment_uid: paymentUid,
+      payment_uid_created_at: FieldValue.serverTimestamp(),
+      payment_uid_updated_at: FieldValue.serverTimestamp(),
     })
 
     return { success: true }
