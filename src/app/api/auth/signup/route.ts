@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
       
       const paymentUid = await generateUniquePaymentUid(db);
       await db.collection('users').doc(userRecord.uid).set({
+        uid: userRecord.uid,
         username,
         email,
         birthDate: birthDate || null,
@@ -292,6 +293,7 @@ export async function POST(request: NextRequest) {
           })();
           
           await adminFirestore.collection('users').doc(data.localId).set({
+            uid: data.localId,
             username,
             email,
             birthDate: birthDate || null,
