@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * @file メール確認（待機/検証/結果）ページ
+ * @summary メール確認リンクの有無に応じて待機/検証/結果の各UIを表示します。
+ * 待機画面の案内文は、モバイルでの視認性向上のため指定位置で改行するよう明示しました。
+ * @limitations 画面幅に関係なく明示した箇所で改行されます。
+ */
+
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle, XCircle, Mail, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * メールアドレス確認フローのUIと状態管理を行うコンポーネント。
+ * @returns {JSX.Element} 表示用のReact要素
+ */
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -181,14 +192,17 @@ function VerifyEmailContent() {
                 <Mail className="h-6 w-6 text-pink-500" />
               </div>
               <div className="text-center space-y-2">
-                <p className="text-sm text-gray-600">
-                  登録いただいたメールアドレスに確認メールを送信しました。
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  登録いただいたメールアドレスに確認メールを{'　'}<br />
+                  送信しました。
                 </p>
-                <p className="text-sm text-gray-600">
-                  メール内のリンクをクリックして、アカウントの登録を完了してください。
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  メール内のリンクをクリックして、アカウントの<br />
+                  登録を完了してください。
                 </p>
-                <p className="text-xs text-gray-500 mt-4">
-                  メールが届かない場合は、迷惑メールフォルダをご確認ください。
+                <p className="text-xs text-gray-500 mt-4 leading-relaxed">
+                  メールが届かない場合は、迷惑メールフォルダを<br />
+                  ご確認ください。
                 </p>
               </div>
               <div className="flex flex-col gap-2 w-full">

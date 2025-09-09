@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * @file メールアドレス確認ページ
+ * @summary Firebase の `oobCode` を用いてメールアドレス確認を行い、結果に応じてUIを表示するページ。
+ * 成功時は完了メッセージとログイン導線、失敗時はエラー詳細と再登録導線を提供します。
+ * モバイルで末尾の文字だけが改行される問題に対応するため、重要テキストに対して改行抑止と
+ * 画面幅に応じたフォントサイズを設定し、1行に収まるようにしています。
+ * @limitations ネットワーク障害や`oobCode`失効時は再操作が必要です。
+ */
+
 import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,13 +18,26 @@ import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
+/**
+ * メールアドレスの確認処理と状態管理を行うコンポーネント。
+ * @returns {JSX.Element} 表示用のReact要素
+ */
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
+  /**
+   * @type {boolean} メール確認処理中かどうか
+   */
   const [isVerifying, setIsVerifying] = useState(true);
+  /**
+   * @type {boolean} メール確認が成功したかどうか
+   */
   const [isSuccess, setIsSuccess] = useState(false);
+  /**
+   * @type {string} 画面に表示するエラーメッセージ
+   */
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -83,15 +105,24 @@ function VerifyEmailContent() {
             <div className="flex justify-center mb-4">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            <CardTitle className="text-2xl font-bold">メールアドレスを確認しました</CardTitle>
-            <CardDescription>
+            <CardTitle className="font-bold whitespace-nowrap break-keep text-xl sm:text-2xl leading-tight">
+              メールアドレスを確認しました
+            </CardTitle>
+            <CardDescription className="whitespace-nowrap break-keep text-sm sm:text-base">
               アカウントの設定が完了しました
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center text-gray-600">
-              <p>メールアドレスの確認が完了しました。</p>
-              <p>ログインページから新しいアカウントでログインできます。</p>
+              <p className="break-keep text-sm sm:text-base leading-relaxed">
+                メールアドレスの確認が<br />
+                完了しました。
+              </p>
+              <p className="break-keep text-sm sm:text-base leading-relaxed">
+                ログインページから<br />
+                新しいアカウントで<br />
+                ログインできます。
+              </p>
             </div>
             
             <Button 
@@ -145,6 +176,11 @@ function VerifyEmailContent() {
   );
 }
 
+/**
+ * ページエクスポート用コンポーネント。
+ * サスペンスでラップし、読み込み中UIを提供します。
+ * @returns {JSX.Element} 表示用のReact要素
+ */
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
