@@ -37,6 +37,7 @@ export async function GET(
         s.latitude as shop_latitude,
         s.longitude as shop_longitude,
         s.minimum_price as shop_minimum_price,
+        p.area_large_id as area_large_id,
         p.name as prefecture_name,
         m.name as municipality_name
       FROM girl_profiles g
@@ -189,6 +190,8 @@ export async function GET(
       },
       images,
       location,
+      prefectureName: girl.prefecture_name,
+      areaLargeId: girl.area_large_id,
       photoDiaries: photoDiaries.length > 0 ? photoDiaries : undefined
     };
     

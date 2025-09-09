@@ -146,48 +146,51 @@ export default function GirlProfilePage() {
     }
   };
 
-  // Generate reservation URL with proper parameters
+  /**
+   * 予約サイトへの遷移URLを生成
+   * - MySQLの都道府県ID(area_prefecture_id)と地方ID(area_large_id)を使用し、
+   *   ID/名称/地方の整合性を全国で保証する
+   */
   const generateReservationUrl = () => {
     if (!girl) return '';
     
     const baseUrl = process.env.NEXT_PUBLIC_RESERVATION_SITE_URL || 'https://stg.nukipedia.jp';
     
-    // Get region and prefecture from location or shop data
-    let fromRegion = '関東';
-    let fromRegionId = '3';
-    let fromPrefecture = '東京';
-    let fromPrefectureId = '13';
-    
-    // Try to determine location from girl's location string
-    if (girl.location) {
-      if (girl.location.includes('東京')) {
-        fromPrefecture = '東京';
-        fromPrefectureId = '13';
-      } else if (girl.location.includes('神奈川')) {
-        fromPrefecture = '神奈川';
-        fromPrefectureId = '14';
-      } else if (girl.location.includes('千葉')) {
-        fromPrefecture = '千葉';
-        fromPrefectureId = '12';
-      } else if (girl.location.includes('埼玉')) {
-        fromPrefecture = '埼玉';
-        fromPrefectureId = '11';
-      }
-      // Add more prefecture mappings as needed
-    }
-    
-    // Use area_prefecture_id if available
-    if (girl.shop?.area_prefecture_id) {
-      fromPrefectureId = girl.shop.area_prefecture_id.toString();
-    }
+    // 地方ID -> 地方名/ID のマッピング（DBの定義に合わせる想定）
+    const regionMap: Record<number, { name: string; id: string }> = {
+      1: { name: '北海道', id: '1' },
+      2: { name: '東北', id: '2' },
+      3: { name: '関東', id: '3' },
+      4: { name: '甲信越', id: '4' },
+      5: { name: '北陸', id: '5' },
+      6: { name: '東海', id: '6' },
+      7: { name: '関西', id: '7' },
+      8: { name: '中国', id: '8' },
+      9: { name: '四国', id: '9' },
+      10: { name: '九州', id: '10' },
+      11: { name: '沖縄', id: '11' }
+    };
+
+    // 都道府県/地方の決定（MySQLのコードを最優先）
+    const fromPrefectureId = girl.shop?.area_prefecture_id
+      ? girl.shop.area_prefecture_id.toString()
+      : undefined;
+    const fromPrefecture = girl.prefectureName || undefined;
+
+    const guessedRegion = girl.areaLargeId && regionMap[girl.areaLargeId]
+      ? regionMap[girl.areaLargeId]
+      : undefined;
+    const fromRegion = guessedRegion?.name || '関東';
+    const fromRegionId = guessedRegion?.id || '3';
     
     const params = new URLSearchParams({
       shopId: girl.shop_profile_id.toString(),
       girlId: girl.id.toString(),
       fromRegion: fromRegion,
       fromRegionId: fromRegionId,
-      fromPrefecture: fromPrefecture,
-      fromPrefectureId: fromPrefectureId,
+      // DB由来の名称/IDを優先（存在しない場合は送信しない）
+      ...(fromPrefecture ? { fromPrefecture } : {}),
+      ...(fromPrefectureId ? { fromPrefectureId } : {}),
       fromGenre: 'デリヘル,ホテヘル,ヘルス,ソープ,風俗エステ,その他',
       fromSearchType: 'search'
     });

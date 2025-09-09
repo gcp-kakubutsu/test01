@@ -126,4 +126,14 @@ export interface GirlWithDetails extends GirlProfile {
   location?: string;
   photoDiaries?: PhotoDiary[];
   girlTypes?: Array<{id: number, name: string} | string>; // Girl types can be objects or strings
+  /**
+   * 予約URL生成時の完全整合を担保するための都道府県名（MySQL由来）
+   * - 例: "東京都", "大阪府" など
+   */
+  prefectureName?: string;
+  /**
+   * 地方ID（MySQLの area_prefectures.area_large_id に対応）
+   * - 例: 関東=3 等（DB定義に準拠）
+   */
+  areaLargeId?: number;
 }
