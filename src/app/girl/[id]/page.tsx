@@ -710,13 +710,13 @@ export default function GirlProfilePage() {
                   )}
                 </div>
                 
-                {/* 下段: この嬢に決めた */}
+                {/* 下段: 君に決めた */}
                 <Button 
                   className="w-full h-16 text-lg font-bold bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center" 
                   onClick={handleReservation}
                 >
                   <ExternalLink className="h-5 w-5 mr-2" />
-                  この嬢に決めた
+                  君に決めた
                 </Button>
               </div>
             </div>

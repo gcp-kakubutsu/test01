@@ -76,7 +76,7 @@ export default function WelcomePage({ onComplete, onStartOnboarding }: WelcomePa
                       <h3 className={styles.featureTitle}>ワンクリック即予約</h3>
                     </div>
                     <p className={styles.featureDescription}>
-                      『この嬢に決めた』をクリックするだけで、提携サイトからスムーズ予約
+                      『君に決めた』をクリックするだけで、提携サイトからスムーズ予約
                     </p>
                   </div>
                 </div>

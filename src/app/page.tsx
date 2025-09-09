@@ -527,7 +527,7 @@ export default function LandingPage() {
                   <p>現在地からのGPS検索で、近くの相性ぴったりなキャストをご提案</p>
                 </div>
                 <div className={styles.featureItem}>
-                  <p>気になるキャストがいれば、『この嬢に決めた』を押すだけで、提携先の風俗サイト経由で即予約</p>
+                  <p>気になるキャストがいれば、『君に決めた』を押すだけで、提携先の風俗サイト経由で即予約</p>
                 </div>
               </div>
               
@@ -791,7 +791,7 @@ export default function LandingPage() {
                 <h3 className={styles.stepTitle}>❸ 気になるキャストがいたら？</h3>
                 <div className={styles.stepDescription}>
                   <div className={styles.stepPoints}>
-                    <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「この嬢に決めた」を押す</span><br />クリック後には提携サイトの予約画面へ移動します（全て無料にてご利用できます）。提携サイトにて、サービス料金・利用時間・日時などをご確認のうえ、そのまま店舗経由にてご予約いただき、サービスをご利用ください。予約承認後は「ナビ開始」にて目的地までご案内になります。</p>
+                    <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「君に決めた」を押す</span><br />クリック後には提携サイトの予約画面へ移動します（全て無料にてご利用できます）。提携サイトにて、サービス料金・利用時間・日時などをご確認のうえ、そのまま店舗経由にてご予約いただき、サービスをご利用ください。予約承認後は「ナビ開始」にて目的地までご案内になります。</p>
                     <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「メモ」を押す</span><br />気になる点をメモ保存。マイページのメモ から一覧できます。後で見返してそのまま予約へ。</p>
                     <p className={styles.stepPoint}><span style={{ color: '#D4AF37', fontWeight: 'bold' }}>「いいね」を押す</span><br />気になるキャストをキープ。マイページのいいね で管理し、タイミングが合えば即予約。</p>
                   </div>
