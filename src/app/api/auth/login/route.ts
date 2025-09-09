@@ -51,39 +51,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // メール確認チェック - 最新の状態を取得するため、ユーザー情報を再取得
+    // メール確認チェック・電話番号確認チェック用に最新ユーザー情報を取得
     let emailVerified = data.emailVerified || false;
+    let phoneVerified = false;
     
-    // メール未確認の場合、最新のユーザー情報を取得して再確認
-    if (!emailVerified) {
-      console.log('⚠️ Checking latest email verification status for:', data.email);
-      
-      try {
-        // ユーザー情報を再取得して最新の確認状態をチェック
-        const userLookupResponse = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              idToken: data.idToken,
-            }),
-          }
-        );
-        
-        if (userLookupResponse.ok) {
-          const lookupData = await userLookupResponse.json();
-          if (lookupData.users && lookupData.users.length > 0) {
-            emailVerified = lookupData.users[0].emailVerified || false;
-            console.log(`📧 Latest email verification status: ${emailVerified}`);
-          }
+    try {
+      const userLookupResponse = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            idToken: data.idToken,
+          }),
         }
-      } catch (lookupError) {
-        console.error('Failed to lookup user verification status:', lookupError);
-        // エラーが発生した場合は、元のデータを使用
+      );
+      
+      if (userLookupResponse.ok) {
+        const lookupData = await userLookupResponse.json();
+        if (lookupData.users && lookupData.users.length > 0) {
+          const u = lookupData.users[0];
+          emailVerified = !!u.emailVerified;
+          // phoneNumber が存在すれば電話番号はリンク済み（=SMS確認済み）
+          phoneVerified = !!u.phoneNumber;
+          console.log(`📧 emailVerified=${emailVerified} 📱 phoneVerified=${phoneVerified}`);
+        }
       }
+    } catch (lookupError) {
+      console.error('Failed to lookup user verification status:', lookupError);
+      // 取得失敗時は data の値を用いる（phoneVerified は false のまま）
     }
     
     if (!emailVerified) {
@@ -101,6 +99,11 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('✅ Email verified for user:', data.email);
     }
+
+    // 電話番号未確認の場合はアプリ本体へのアクセスをブロックし、
+    // verify-phone ページでの紐付けを促す。
+    // ただし、電話番号リンク処理には Firebase クライアントでのサインインが必要なため、
+    // セッションクッキーは設定した上でフラグを返す。
 
     // IDトークンを直接セッションクッキーとして保存（高速化）
     const cookieStore = await cookies();
@@ -131,6 +134,7 @@ export async function POST(request: NextRequest) {
           await userRef.set({
             email: data.email,
             emailVerified: emailVerified,
+            phoneVerified: phoneVerified,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             isPremium: false, // デフォルトは無料会員
@@ -154,6 +158,8 @@ export async function POST(request: NextRequest) {
         emailVerified: emailVerified,
       },
       customToken: data.idToken, // Firebase Authで直接使用
+      phoneVerified,
+      phoneNotVerified: !phoneVerified,
     });
 
   } catch (error: any) {

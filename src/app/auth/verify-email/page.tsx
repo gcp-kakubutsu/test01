@@ -125,12 +125,21 @@ function VerifyEmailContent() {
               </p>
             </div>
             
-            <Button 
-              className="w-full bg-[#F0306A] hover:bg-[#d91f5a]"
-              onClick={() => router.push("/login")}
-            >
-              ログインページへ
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                className="w-full bg-[#F0306A] hover:bg-[#d91f5a]"
+                onClick={() => router.push("/login")}
+              >
+                ログインページへ
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/auth/verify-phone")}
+              >
+                電話番号の確認へ進む
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

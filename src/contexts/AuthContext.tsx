@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthFormData } from '@/app/login/page';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface User {
   uid: string;
@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseSynced, setFirebaseSynced] = useState(false); // Firebase Auth同期状態を追跡
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
 
   // セッションチェック（初回のみ）
   useEffect(() => {
@@ -226,6 +227,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [currentUser, hasInitialized, firebaseSynced]); // currentUser、hasInitialized、firebaseSyncedに依存
 
+  // 電話番号確認の強制リダイレクト（Firebase Auth と同期後）
+  useEffect(() => {
+    if (!currentUser || !firebaseSynced) return;
+    // 許可されたページではリダイレクトしない
+    const allowedPaths = ['/auth/verify-phone', '/verify-email', '/login', '/signup'];
+    if (allowedPaths.includes(pathname)) return;
+
+    import('@/lib/firebase/client').then(({ getFirebaseAuth }) => {
+      const auth = getFirebaseAuth();
+      if (!auth) return;
+      const isPhoneVerified = !!auth.currentUser?.phoneNumber;
+      if (!isPhoneVerified) {
+        toast({ title: '電話番号の確認が必要です', description: 'SMS 認証で電話番号を登録してください。', variant: 'destructive' });
+        router.replace('/auth/verify-phone');
+      }
+    });
+  }, [currentUser, firebaseSynced, pathname, router, toast]);
+
   // ログイン
   const login = async (data: AuthFormData): Promise<boolean> => {
     console.log('🔑 Login attempt for:', data.email);
@@ -282,8 +301,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: 'Nukuneへようこそ！' 
       });
       
-      // ホームページにリダイレクト
-      router.push('/');
+      // 電話番号未確認なら電話番号確認ページへ誘導
+      if (result.phoneNotVerified) {
+        router.push('/auth/verify-phone');
+      } else {
+        // ホームページにリダイレクト
+        router.push('/');
+      }
       
       // Firebase Auth同期は非同期で実行（ブロックしない）
       if (result.customToken) {
