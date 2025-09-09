@@ -158,17 +158,16 @@ export default function GirlProfilePage() {
     
     // 地方ID -> 地方名/ID のマッピング（DBの定義に合わせる想定）
     const regionMap: Record<number, { name: string; id: string }> = {
+      // DBの area_larges に準拠
       1: { name: '北海道', id: '1' },
       2: { name: '東北', id: '2' },
       3: { name: '関東', id: '3' },
-      4: { name: '甲信越', id: '4' },
-      5: { name: '北陸', id: '5' },
-      6: { name: '東海', id: '6' },
-      7: { name: '関西', id: '7' },
-      8: { name: '中国', id: '8' },
-      9: { name: '四国', id: '9' },
-      10: { name: '九州', id: '10' },
-      11: { name: '沖縄', id: '11' }
+      4: { name: '北陸・甲信越', id: '4' },
+      5: { name: '東海', id: '5' },
+      6: { name: '関西', id: '6' },
+      7: { name: '中国', id: '7' },
+      8: { name: '四国', id: '8' },
+      9: { name: '九州・沖縄', id: '9' }
     };
 
     // 都道府県/地方の決定（MySQLのコードを最優先）
