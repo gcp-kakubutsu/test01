@@ -178,13 +178,21 @@ function AdvancedSearchContent() {
     const tags = searchParams.get('tags')
     const girlTypes = searchParams.get('girlTypes')
     const location = searchParams.get('location')
+    const area = searchParams.get('area')
     const time = searchParams.get('time')
     const quick = searchParams.get('quick')
     const q = searchParams.get('q')
     
     if (tags) setSelectedTags(tags.split(','))
     if (girlTypes) setSelectedGirlTypes(girlTypes.split(','))
-    if (location) {
+    if (area) {
+      // /search/advanced?area=東京都 など
+      setSelectedArea(area)
+      setUserSelectedArea(true)
+      // area 指定時は検索クエリは使用しない
+      setSearchQuery('')
+      setSearchQueryInput('')
+    } else if (location) {
       setLocationFromParam(location)
       // locationパラメータが来た場合、検索クエリとして設定
       setSearchQuery(location)

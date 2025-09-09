@@ -1,3 +1,16 @@
+/**
+ * @file マッチング詳細検索コンポーネント（ホーム）
+ * @description
+ * - 現在地の取得機能は維持（他ページで使用）しつつ、本コンポーネントからは
+ *   「現在地を使う」ボタンと入力ボックスを削除。
+ * - 代わりに MySQL の都道府県マスタに準拠したセレクトボックスを追加。
+ * - 選択都道府県は `/search/advanced` へ `area` クエリで連携。
+ * @spec
+ * - 都道府県一覧は `/api/areas` の `prefectures` を使用。
+ * - 並び順は API 側の返却順（女の子件数の多い順 → ソート順 → 名称）。
+ * @limitations
+ * - 人口順並び替えは未実装（DB に人口列が無いため）。必要なら API を追加。
+ */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -15,7 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MultiSelect, type Option } from '@/components/ui/multi-select'
-import { getCurrentLocation, getNearestLocationName } from '@/lib/utils/location'
 import { useToast } from '@/hooks/use-toast'
 import styles from './MatchingSearch.module.scss'
 import { useGirlSearch } from '@/lib/hooks/useGirlSearch'
@@ -37,8 +49,8 @@ export default function MatchingSearch() {
   const [selectedTime, setSelectedTime] = useState<string>('いまから')
   const [prioritizeQuickMeet, setPrioritizeQuickMeet] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('')
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false)
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string>('all')
+  const [prefectureOptions, setPrefectureOptions] = useState<Array<{ id: number; name: string; girlCount?: number }>>([])
   const [hasPreferences, setHasPreferences] = useState(false)
   const [showPremiumDropdown, setShowPremiumDropdown] = useState(false)
 
@@ -117,45 +129,25 @@ export default function MatchingSearch() {
     fetchGirlTypes()
   }, [])
 
-
-  const handleGetCurrentLocation = async () => {
-    setIsLoadingLocation(true)
-    setLocation('取得中...')
-    
-    try {
-      // 住所が必要なので、ここでは住所取得をスキップしない
-      const locationInfo = await getCurrentLocation(false) // 住所も取得
-      
-      if (locationInfo.coordinates) {
-        const { lat, lng } = locationInfo.coordinates
-        
-        // 詳細な住所が取得できた場合はそれを使用、できない場合は最寄りの地域名を使用
-        const locationName = locationInfo.address || getNearestLocationName(lat, lng)
-        
-        setLocation(locationName)
-        toast({
-          title: "位置情報を取得しました",
-          description: `${locationName}周辺で検索します。`,
-        })
-      } else if (locationInfo.error) {
-        setLocation('')
-        toast({
-          title: "位置情報の取得に失敗",
-          description: locationInfo.error,
-          variant: "destructive",
-        })
+  // 都道府県一覧の取得（DBに準拠）
+  useEffect(() => {
+    const fetchPrefectures = async () => {
+      try {
+        const res = await fetch('/api/areas')
+        if (!res.ok) return
+        const data = await res.json()
+        const prefectures = (data?.prefectures || []).map((p: any) => ({
+          id: p.prefecture_id,
+          name: p.prefecture_name,
+          girlCount: p.girl_count,
+        }))
+        setPrefectureOptions(prefectures)
+      } catch (e) {
+        console.error('都道府県一覧の取得に失敗しました:', e)
       }
-    } catch (error) {
-      setLocation('')
-      toast({
-        title: "エラー",
-        description: "位置情報の取得中にエラーが発生しました。",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoadingLocation(false)
     }
-  }
+    fetchPrefectures()
+  }, [])
 
   const handleSearch = () => {
     // Map time options to search page format
@@ -186,8 +178,8 @@ export default function MatchingSearch() {
       params.append('girlTypes', selectedGirlTypes.join(','))
     }
     
-    if (location) {
-      params.append('location', location)
+    if (selectedPrefecture && selectedPrefecture !== 'all') {
+      params.append('area', selectedPrefecture)
     }
     
     if (selectedTime) {
@@ -377,6 +369,27 @@ export default function MatchingSearch() {
           />
         </div>
 
+        {/* Area (Prefecture) selector */}
+        <div className="mb-6">
+          <Label className={`flex items-center gap-1 ${styles.labelText} font-medium`}>
+            <MapPin className="w-4 h-4 text-[#D4AF37]" />
+            <span>エリア（都道府県）</span>
+          </Label>
+          <Select value={selectedPrefecture} onValueChange={setSelectedPrefecture}>
+            <SelectTrigger className="h-12 rounded-xl border-[#D4AF37]/20 focus:border-[#D4AF37]/50">
+              <SelectValue placeholder="都道府県を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">現在地のGPSを使用します</SelectItem>
+              {prefectureOptions.map((p) => (
+                <SelectItem key={p.id} value={p.name}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Search input */}
         <div className="mb-6">
           <div className="relative">
@@ -495,30 +508,7 @@ export default function MatchingSearch() {
           </div>
         </div>
 
-        {/* Location input */}
-        <div className="mb-6">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                type="text"
-                placeholder="現在地または地域名を入力"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className={`${styles.inputField} h-14 rounded-2xl focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/20 transition-all`}
-              />
-            </div>
-            <Button
-              onClick={handleGetCurrentLocation}
-              variant="outline"
-              className={`btn-custom ${styles.locationButton}`}
-              disabled={isLoadingLocation}
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              現在地を使う
-            </Button>
-          </div>
-        </div>
-
+        {/* 位置情報UIは削除（機能は維持） */}
 
         {/* Priority toggle */}
         <div className="mb-6">
