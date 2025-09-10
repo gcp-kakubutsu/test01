@@ -22,13 +22,6 @@ export default function LegalPage() {
             <p className="text-[#F9FAFB]">〒464-0075<br />愛知県名古屋市千種区内山1丁目9番2号</p>
           </Section>
 
-          <Section title="電話番号">
-            <p className="text-[#F9FAFB]">050-8886-7777</p>
-            <p className="text-gray-400 text-sm mt-1">
-              ※サービスに関するお問い合わせはメールにて承ります
-            </p>
-          </Section>
-
           <Section title="メールアドレス">
             <p className="text-[#F9FAFB]">info@pedia.co.jp</p>
           </Section>
