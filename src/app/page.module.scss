@@ -252,7 +252,7 @@ $border-color-light: #E5E7EB;
 .heroTitleLine2 {
   white-space: nowrap;  // PCでは改行しない
   margin-top: 0.5rem;  // PCでも適切な間隔
-  font-size: 3.5rem;  // PCではより大きく表示
+  font-size: 4.6rem;  // PCでさらに大きく表示
   
   @media (max-width: 768px) {
     font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
@@ -338,11 +338,15 @@ $border-color-light: #E5E7EB;
 }
 
 .heroTagline {
-  margin: 0.75rem 0 1.5rem;
+  margin: 0.75rem 0 2.75rem;
   text-align: left;
   display: inline-block;
   font-family: 'Noto Serif JP', serif;
   line-height: 1.15;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 5rem;
+  }
 }
 
 .heroTaglineLine1,
@@ -361,9 +365,17 @@ $border-color-light: #E5E7EB;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: 0 8px 25px rgba(240, 48, 106, 0.25);
-
-  @media (max-width: 768px) { font-size: 2.2rem; }
-  @media (max-width: 480px) { font-size: 2rem; }
+  
+  // スマホでは画面幅に応じて自動縮小し、はみ出しを防止
+  @media (max-width: 768px) { 
+    font-size: clamp(1.8rem, 7vw, 2.2rem);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  @media (max-width: 480px) { 
+    font-size: clamp(1.55rem, 7.2vw, 2rem);
+    letter-spacing: -0.02em;
+  }
 }
 
 // 2行目: 少し金味の淡色グラデーション＋字間広め
@@ -377,15 +389,27 @@ $border-color-light: #E5E7EB;
   background-clip: text;
   text-shadow: 0 8px 25px rgba(212, 175, 55, 0.22);
   letter-spacing: 0.06em;
-
+  
+  // スマホでは可変サイズ + インデント縮小で収まりを調整
   @media (max-width: 768px) {
-    font-size: 2.2rem;
+    font-size: clamp(1.9rem, 7.5vw, 2.2rem);
     text-indent: 1.5em;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
   }
   @media (max-width: 480px) {
-    font-size: 2rem;
+    font-size: clamp(1.6rem, 7.8vw, 2rem);
     text-indent: 1.25em;
+    letter-spacing: 0.015em;
   }
+}
+
+// タグライン用の金色テキスト（他と統一）
+.heroGold {
+  background: linear-gradient(135deg, #f3e5c1, #caa35b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .heroCta {

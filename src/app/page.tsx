@@ -475,23 +475,28 @@ export default function LandingPage() {
               <span className={styles.heroTitlePlain}>の出会い</span>
             </span>
             <span className={styles.heroTitleLine2}>
-              <span className={styles.mobilePart1}>あなたに合う</span>
-              <span className={styles.mobilePart2}>キャストだけ表示</span>
+              <span className={styles.mobilePart1}>貴方に合う女性だけ表示</span>
             </span>
           </h1>
-          <p className={styles.heroSubtitle}>
-            エリア・来店時間・嗜好を一括判定<br />
-            従来の風俗サイトより速く・的確に
-          </p>
           <div className={styles.heroTagline}>
-            <span className={styles.heroTaglineLine1}>新感覚の</span>
-            <span className={styles.heroTaglineLine2}>性癖コンシェルジュ</span>
+            <span className={styles.heroTaglineLine1}>
+              <span className={styles.heroKeyword}>新感覚</span>
+              <span className={styles.heroGold}>の</span>
+              <span className={styles.heroKeyword}>性癖</span>
+              <span className={styles.heroGold}>コンシェルジュ</span>
+            </span>
+            <span className={styles.heroTaglineLine2}>
+              <span className={styles.heroKeyword}>NUKUNE</span>
+              が誕生！
+            </span>
           </div>
           <div className={styles.heroLocationInfo}>
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
               <div className={styles.locationInfoLine2}>
                 現在地・希望条件・60分以内の空き枠をもとに最速にご案内します
+                エリア来店時間・嗜好を一括判定
+                従来の風俗サイトより速く的確に
               </div>
             </div>
           </div>
