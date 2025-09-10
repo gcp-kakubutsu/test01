@@ -57,7 +57,7 @@ $border-color-light: #E5E7EB;
 
 @media (max-width: 768px) {
   .topVideoSection {
-    height: 100dvh; // PCと同じ全画面挙動（余白ゼロ）
+    height: auto; // PCと同じ全画面挙動（余白ゼロ）
     display: flex;
     overflow: hidden;
   }
