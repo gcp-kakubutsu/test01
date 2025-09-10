@@ -337,6 +337,57 @@ $border-color-light: #E5E7EB;
   }
 }
 
+.heroTagline {
+  margin: 0.75rem 0 1.5rem;
+  text-align: left;
+  display: inline-block;
+  font-family: 'Noto Serif JP', serif;
+  line-height: 1.15;
+}
+
+.heroTaglineLine1,
+.heroTaglineLine2 {
+  display: block;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+// 1行目: 左から右のバーガンディ系グラデーション
+.heroTaglineLine1 {
+  font-size: 4rem;
+  background: linear-gradient(90deg, #F0306A, #ff8fb2 60%, #f6d7a9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 8px 25px rgba(240, 48, 106, 0.25);
+
+  @media (max-width: 768px) { font-size: 2.2rem; }
+  @media (max-width: 480px) { font-size: 2rem; }
+}
+
+// 2行目: 少し金味の淡色グラデーション＋字間広め
+.heroTaglineLine2 {
+  font-size: 4.4rem;
+  margin-top: 0.35rem;
+  text-indent: 2.5em; // 画像のレイアウト感に合わせインデント
+  background: linear-gradient(90deg, #f3e5c1, #d9bf78, #cf9e6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 8px 25px rgba(212, 175, 55, 0.22);
+  letter-spacing: 0.06em;
+
+  @media (max-width: 768px) {
+    font-size: 2.2rem;
+    text-indent: 1.5em;
+  }
+  @media (max-width: 480px) {
+    font-size: 2rem;
+    text-indent: 1.25em;
+  }
+}
+
 .heroCta {
   display: flex;
   gap: 1rem;

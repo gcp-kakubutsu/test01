@@ -483,14 +483,9 @@ export default function LandingPage() {
             エリア・来店時間・嗜好を一括判定<br />
             従来の風俗サイトより速く・的確に
           </p>
-          <div className={styles.heroCta}>
-            <Link href="/signup" className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAgeConfirmation}>
-              <Heart size={24} />
-              無料で参加
-            </Link>
-            <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
-              <span>ログイン</span>
-            </Link>
+          <div className={styles.heroTagline}>
+            <span className={styles.heroTaglineLine1}>新感覚の</span>
+            <span className={styles.heroTaglineLine2}>性癖コンシェルジュ</span>
           </div>
           <div className={styles.heroLocationInfo}>
             <div className={styles.locationInfoContent}>
