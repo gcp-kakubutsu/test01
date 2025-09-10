@@ -388,6 +388,18 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* Top Video Section (広告動画) */}
+      <section className={styles.topVideoSection} aria-label="広告動画">
+        <video
+          className={styles.topVideo}
+          src="/img/koukoku.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      </section>
       {/* Campaign Banner */}
       {showCampaignBanner && (
         <CampaignBanner 
@@ -543,7 +555,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
-              <Image src="/img/woman.jpeg" alt="高級感のある大人の出会い" width={600} height={400} />
+              <Image src="/img/woman.png" alt="高級感のある大人の出会い" width={600} height={400} />
             </div>
           </div>
         </div>
