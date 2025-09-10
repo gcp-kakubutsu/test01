@@ -60,6 +60,7 @@ $border-color-light: #E5E7EB;
     height: auto; // PCと同じ全画面挙動（余白ゼロ）
     display: flex;
     overflow: hidden;
+    margin-top: 70px;
   }
 
   .topVideo {
@@ -69,20 +70,6 @@ $border-color-light: #E5E7EB;
   }
 }
 
-// 非常に縦長の端末では、見切れを避けるために自動で全体表示へフェイルオーバー
-@media (max-aspect-ratio: 9/16) {
-  .topVideoSection {
-    height: auto;
-    display: block;
-    margin-top: 70px;
-  }
-
-  .topVideo {
-    width: 100%;
-    height: auto;
-    object-fit: contain; // トリミング禁止、全体表示
-  }
-}
 
 .container {
   max-width: 1200px;
