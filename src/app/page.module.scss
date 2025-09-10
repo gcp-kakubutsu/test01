@@ -252,7 +252,7 @@ $border-color-light: #E5E7EB;
 .heroTitleLine2 {
   white-space: nowrap;  // PCでは改行しない
   margin-top: 0.5rem;  // PCでも適切な間隔
-  font-size: 3.5rem;  // PCではより大きく表示
+  font-size: 4.5rem;  // PCではより大きく表示
   
   @media (max-width: 768px) {
     font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
@@ -410,6 +410,13 @@ $border-color-light: #E5E7EB;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+// 「が誕生！」のフォントサイズを個別に27pxへ調整
+.heroBirth {
+  @media (max-width: 768px) {
+    font-size: 27px;
+  }
 }
 
 .heroCta {

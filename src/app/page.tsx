@@ -480,22 +480,22 @@ export default function LandingPage() {
           </h1>
           <div className={styles.heroTagline}>
             <span className={styles.heroTaglineLine1}>
-              <span className={styles.heroKeyword}>新感覚</span>
+              <span className={styles.heroGold}>新感覚</span>
               <span className={styles.heroGold}>の</span>
-              <span className={styles.heroKeyword}>性癖</span>
+              <span className={styles.heroGold}>性癖</span>
               <span className={styles.heroGold}>コンシェルジュ</span>
             </span>
             <span className={styles.heroTaglineLine2}>
               <span className={styles.heroKeyword}>NUKUNE</span>
-              が誕生！
+              <span className={`${styles.heroGold} ${styles.heroBirth}`}>が誕生！</span>
             </span>
           </div>
           <div className={styles.heroLocationInfo}>
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
               <div className={styles.locationInfoLine2}>
-                現在地・希望条件・60分以内の空き枠をもとに最速にご案内します
-                エリア来店時間・嗜好を一括判定
+                現在地・希望条件・60分以内の空き枠をもとに最速にご案内します<br />
+                エリア来店時間・嗜好を一括判定<br />
                 従来の風俗サイトより速く的確に
               </div>
             </div>
