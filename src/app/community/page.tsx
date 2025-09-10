@@ -200,7 +200,11 @@ export default function CommunityPage() {
   }, [isRightSidebarOpen, isMobileMenuOpen]);
   
   // Check if current user is admin
-  const isAdmin = currentUser?.email && process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').includes(currentUser.email);
+  const isAdmin = !!(currentUser?.email && (process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(currentUser.email.toLowerCase()));
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // 初回のみコミュニティコレクションを初期化
@@ -754,13 +758,42 @@ export default function CommunityPage() {
       
       if (!post) return;
       
-      if (post.authorId === currentUser.uid || isAdmin) {
+      if (post.authorId === currentUser.uid) {
+        // 投稿者本人は通常のルールで削除
         const postRef = doc(db, 'posts', postId);
         await deleteDoc(postRef);
         
         toast({
           title: "投稿を削除しました",
           description: "投稿が正常に削除されました。",
+        });
+      } else if (isAdmin) {
+        // 管理者はAPI経由で削除（セキュリティルールをバイパス）
+        const { getFirebaseAuth } = await import('@/lib/firebase/client');
+        const authInst = getFirebaseAuth();
+        const token = await authInst?.currentUser?.getIdToken();
+        if (!token) throw new Error('Failed to acquire ID token');
+        const headers: HeadersInit = {
+          'authorization': `Bearer ${token}`,
+          'content-type': 'application/json'
+        };
+        if (typeof window !== 'undefined' && (window.location.hostname.includes('ngrok') || window.location.hostname.includes('ngrok-free'))) {
+          (headers as any)['ngrok-skip-browser-warning'] = 'true';
+        }
+        const res = await fetch('/api/admin/delete-post', {
+          method: 'DELETE',
+          headers,
+          body: JSON.stringify({ postId })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || `Failed to delete post: ${res.status}`);
+        }
+        // 楽観的に一覧から除去
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        toast({
+          title: "投稿を削除しました",
+          description: "管理者として投稿を削除しました。",
         });
       } else {
         toast({
@@ -847,13 +880,10 @@ export default function CommunityPage() {
       
       const commentData = commentSnap.data();
       
-      if (commentData.authorId === currentUser.uid || isAdmin) {
+      if (commentData.authorId === currentUser.uid) {
         await deleteDoc(commentRef);
-        
         const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, {
-          comments: increment(-1)
-        });
+        await updateDoc(postRef, { comments: increment(-1) });
         
         setPosts(prevPosts => 
           prevPosts.map(post => 
@@ -870,6 +900,26 @@ export default function CommunityPage() {
         toast({
           title: "コメントを削除しました",
           description: "コメントが正常に削除されました。",
+        });
+      } else if (isAdmin) {
+        // 管理者はCallable Functionsを使用
+        if (!functions) throw new Error('Firebase Functions not initialized');
+        const callDeleteComment = httpsCallable(functions, 'deleteCommentAsAdmin');
+        await callDeleteComment({ postId, commentId });
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? {
+                  ...post,
+                  comments: Math.max(0, post.comments - 1),
+                  commentsList: post.commentsList?.filter(c => c.id !== commentId)
+                }
+              : post
+          )
+        );
+        toast({
+          title: "コメントを削除しました",
+          description: "管理者としてコメントを削除しました。",
         });
       } else {
         toast({

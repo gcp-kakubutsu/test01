@@ -20,9 +20,14 @@ export async function middleware(request: NextRequest) {
   else if (path.startsWith('/api/upload') || path.includes('upload')) {
     rateLimitResult = await uploadRateLimit(request, `upload-${path}`)
   }
-  // Admin endpoints - stricter limits
+  // Admin endpoints - 本番は厳しめ、開発はやや緩め
   else if (path.startsWith('/api/admin/')) {
-    rateLimitResult = await strictRateLimit(request, `admin-${path}`)
+    if (process.env.NODE_ENV === 'production') {
+      rateLimitResult = await strictRateLimit(request, `admin-${path}`)
+    } else {
+      // ローカル/開発では一般APIと同等のレート制限にして検証時の429を緩和
+      rateLimitResult = await apiRateLimit(request, `admin-dev-${path}`)
+    }
   }
   // General API rate limiting
   else if (path.startsWith('/api/')) {

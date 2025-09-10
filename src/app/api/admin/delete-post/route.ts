@@ -6,7 +6,11 @@ if (!isAdminInitialized()) {
   console.error('Firebase Admin SDK is not initialized');
 }
 
-const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || [];
+// 管理者メールの取得（ADMIN_EMAILS 優先、無ければ NEXT_PUBLIC_ADMIN_EMAILS を使用）
+const ADMIN_EMAILS: string[] = (process.env.ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -35,7 +39,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if user is admin
-    const userEmail = decodedToken.email;
+    const userEmail = decodedToken.email?.toLowerCase();
     if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
       return NextResponse.json(
         { error: 'Forbidden: Admin access required' },
@@ -67,15 +71,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the post
-    await postRef.delete();
-
-    // Also delete all comments (subcollection)
+    // コメントを先に削除し、最後に投稿を削除（バッチ）
     const commentsSnapshot = await postRef.collection('comments').get();
     const batch = db.batch();
     commentsSnapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
     });
+    batch.delete(postRef);
     await batch.commit();
 
     return NextResponse.json(
