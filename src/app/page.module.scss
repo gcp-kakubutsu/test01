@@ -252,7 +252,7 @@ $border-color-light: #E5E7EB;
 .heroTitleLine2 {
   white-space: nowrap;  // PCでは改行しない
   margin-top: 0.5rem;  // PCでも適切な間隔
-  font-size: 4.6rem;  // PCでさらに大きく表示
+  font-size: 3.5rem;  // PCではより大きく表示
   
   @media (max-width: 768px) {
     font-size: 2rem;  // 「あなたに合うキャストだけ表示」のサイズ
@@ -345,7 +345,7 @@ $border-color-light: #E5E7EB;
   line-height: 1.15;
   
   @media (max-width: 768px) {
-    margin-bottom: 5rem;
+    margin-bottom: 2.25rem;
   }
 }
 
