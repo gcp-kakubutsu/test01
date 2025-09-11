@@ -247,6 +247,35 @@ service cloud.firestore {
       // 支払い履歴の削除は不可（監査証跡のため）
       allow delete: if false;
     }
+
+    // Payment info document rules - 決済基本情報
+    // ドキュメントIDに payment_uid を使用
+    match /payment_info/{paymentUid} {
+      // 認証ユーザーの users/{uid}.payment_uid と一致する場合のみ読取可
+      allow read: if isAuthenticated() &&
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.payment_uid == paymentUid
+        );
+
+      // 書き込みは禁止（サーバ/Functions のみ）
+      allow create, update, delete: if false;
+    }
+
+    // Payment history collection rules - 外部決済結果の履歴
+    // コレクション: payment_history
+    match /payment_history/{historyId} {
+      // 自分の履歴のみ読める（payment_uid が自分のユーザーのもの）
+      allow read: if isAuthenticated() &&
+        // users/{uid} に保存されている payment_uid と一致するドキュメントのみ許可
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.payment_uid == resource.data.payment_uid
+        );
+
+      // 書き込みは禁止（サーバ/Functions のみ）
+      allow create, update, delete: if false;
+    }
     
     // Subscriptions collection rules - サブスクリプション履歴
     match /subscriptions/{subscriptionId} {

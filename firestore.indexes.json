@@ -15,6 +15,14 @@
       ]
     },
     {
+      "collectionGroup": "payment_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "payment_uid", "order": "ASCENDING" },
+        { "fieldPath": "processed_at", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "communities",
       "queryScope": "COLLECTION",
       "fields": [

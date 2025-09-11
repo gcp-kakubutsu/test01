@@ -267,10 +267,12 @@ export default function MyPage() {
               <p className="text-sm text-gray-600 mb-4">
                 過去の支払い履歴はこちらから確認できます。
               </p>
-              <Button variant="outline" className="w-full">
-                <CreditCard className="h-4 w-4 mr-2" />
-                請求履歴を見る
-              </Button>
+              <Link href="/subscription/history">
+                <Button variant="outline" className="w-full">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  請求履歴を見る
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>
