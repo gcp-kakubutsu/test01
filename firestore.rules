@@ -276,6 +276,20 @@ service cloud.firestore {
       // 書き込みは禁止（サーバ/Functions のみ）
       allow create, update, delete: if false;
     }
+
+    // Nukune payments collection rules - 決済履歴（payment_uidベース）
+    // コレクション: nukune_payments
+    match /nukune_payments/{docId} {
+      // users/{uid}.payment_uid と一致するレコードのみ読取許可
+      allow read: if isAuthenticated() &&
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.payment_uid == resource.data.payment_uid
+        );
+
+      // 書き込みは禁止（サーバ/Functions のみ）
+      allow create, update, delete: if false;
+    }
     
     // Subscriptions collection rules - サブスクリプション履歴
     match /subscriptions/{subscriptionId} {

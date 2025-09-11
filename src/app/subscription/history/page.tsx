@@ -2,21 +2,23 @@
 
 /**
  * @file サブスクリプション請求履歴ページ
- * @summary Firebase の `payment_history` コレクションから実データを取得して表示します。
+ * @summary 支払い情報を Firestore の `payments` コレクションから取得し、請求サマリーと明細を表示します。
  * @spec 主な仕様:
- * - `usePaymentHistory` フックで現在ユーザーの履歴を読み込み
- * - ステータス/金額/支払い方法/処理日時を表示
+ * - ユーザードキュメントから現在のプランを解決（`subscription.plan` → `plan` → `subscriptionBasic.planType` → `free`）
+ * - プラン表示/月額料金はフロントの料金表マッピング（`src/utils/planPricing.ts`）を使用
+ * - `payments`（`userId == uid`、`createdAt` 降順）から合計件数・合計金額・明細を表示
  * @limits 制限事項:
  * - Firestore スキーマに依存。欠落データは可能な範囲で安全に処理します。
+ * - 旧 `payment_history` 由来のレコードは本画面では使用しません（新 `payments` 優先）
  */
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription as useSubscriptionContext } from '@/contexts/SubscriptionContext';
-import { useSubscription as useSubscriptionHook } from '@/hooks/useSubscription';
-import { usePaymentHistory } from '@/hooks/usePayment';
-import type { PaymentHistoryEntry } from '@/types/user';
+import { SUBSCRIPTION_CONSTANTS } from '@/types/subscription';
+import { getPlanDisplayName, getPlanMonthlyPrice, resolvePlanType } from '@/utils/planPricing';
+import { useUser } from '@/hooks/useUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +35,7 @@ import {
   Loader2,
   FileText
 } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase/client';
 
 // このページでは `PaymentHistoryEntry` 型（`payment_history` の実データ）を使用します。
@@ -72,10 +74,12 @@ export default function HistoryPage() {
   const router = useRouter();
   const { isAuthenticated, currentUser } = useAuth();
   const { userSubscription, isLoading: subLoading } = useSubscriptionContext();
-  const { paymentHistory, loading: historyLoading } = usePaymentHistory(50);
-  const { getPlanInfo, formatPlanName, planType: defaultPlanType, loading: planLoading } = useSubscriptionHook();
   const [isLoading, setIsLoading] = useState(true);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
+  const [resolvedPlan, setResolvedPlan] = useState<typeof SUBSCRIPTION_CONSTANTS.PLAN_TYPES[keyof typeof SUBSCRIPTION_CONSTANTS.PLAN_TYPES]>(SUBSCRIPTION_CONSTANTS.PLAN_TYPES.FREE);
+  const [payments, setPayments] = useState<Array<{ id: string; amount: number; status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded'; paymentMethod: string; createdAt: Date; description?: string }>>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState<boolean>(true);
+  const { getPaymentUid } = useUser();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -83,7 +87,7 @@ export default function HistoryPage() {
     }
   }, [isAuthenticated, router]);
 
-  // ユーザー登録日のみを取得（履歴はフックが担当）
+  // ユーザードキュメントから開始日/プランを取得
   useEffect(() => {
     const loadData = async () => {
       if (!currentUser?.uid) return;
@@ -105,6 +109,11 @@ export default function HistoryPage() {
         } else if (createdAt) {
           setRegistrationDate(createdAt);
         }
+
+        // プラン解決: subscription.plan → plan → context.subscriptionBasic.planType → free
+        const rawPlan = (userData as any)?.subscription?.plan ?? (userData as any)?.plan ?? userSubscription?.subscriptionBasic?.planType ?? SUBSCRIPTION_CONSTANTS.PLAN_TYPES.FREE;
+        const normalized = resolvePlanType(rawPlan) ?? SUBSCRIPTION_CONSTANTS.PLAN_TYPES.FREE;
+        setResolvedPlan(normalized);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -115,12 +124,128 @@ export default function HistoryPage() {
     loadData();
   }, [currentUser, userSubscription]);
 
+  // 支払い履歴の取得優先順位
+  // 1) nukune_payments（payment_uidで検索）
+  // 2) フォールバック: payments（userId == uid, createdAt 降順）
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!currentUser?.uid) {
+        setPayments([]);
+        setPaymentsLoading(false);
+        return;
+      }
+      try {
+        setPaymentsLoading(true);
+        const db = getFirebaseDb();
+        if (!db) return;
+
+        // 1) nukune_payments を payment_uid で検索
+        const paymentUid = getPaymentUid();
+        let nukunePayments: Array<{ id: string; amount: number; status: string; payment_method?: string; paymentMethod?: string; created_at?: any; processed_at?: any; createdAt?: any; description?: string }> = [];
+        if (paymentUid) {
+          try {
+            const nukuneRef = collection(db, 'nukune_payments');
+            // 可能なら created_at 降順で取得
+            let nukuneSnap: any;
+            try {
+              const nukuneQuery = query(
+                nukuneRef,
+                where('payment_uid', '==', paymentUid),
+                orderBy('created_at', 'desc')
+              );
+              nukuneSnap = await getDocs(nukuneQuery);
+            } catch {
+              // フィールド/インデックス不備時は orderBy なしで取得し、後でソート
+              const nukuneQuery = query(
+                nukuneRef,
+                where('payment_uid', '==', paymentUid)
+              );
+              nukuneSnap = await getDocs(nukuneQuery);
+            }
+            nukunePayments = [];
+            nukuneSnap.forEach((d: any) => {
+              const data = d.data() as any;
+              nukunePayments.push({ id: d.id, ...data });
+            });
+          } catch (e) {
+            // 続行してフォールバックへ
+            console.warn('Failed to fetch nukune_payments, falling back to payments:', e);
+          }
+        }
+
+        // 正規化（優先: nukune_payments）
+        let normalized: Array<{ id: string; amount: number; status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded'; paymentMethod: string; createdAt: Date; description?: string }> = [];
+        if (nukunePayments.length > 0) {
+          const mapStatus = (s: string): 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded' => {
+            const v = String(s || '').toLowerCase();
+            if (v === 'succeeded' || v === 'success' || v === 'ok' || v === 'completed') return 'succeeded';
+            if (v === 'failed' || v === 'error') return 'failed';
+            if (v === 'pending' || v === 'processing') return 'pending';
+            if (v === 'canceled' || v === 'cancelled') return 'canceled';
+            if (v === 'refunded' || v === 'refund') return 'refunded';
+            return 'failed';
+          };
+          normalized = nukunePayments.map((p) => {
+            const createdDate = toDateSafe(p.created_at) || toDateSafe(p.processed_at) || toDateSafe(p.createdAt) || new Date(0);
+            return {
+              id: p.id,
+              amount: Number((p as any).amount || 0),
+              status: mapStatus((p as any).status || ''),
+              paymentMethod: (p.paymentMethod || p.payment_method || '-') as string,
+              createdAt: createdDate || new Date(0),
+              description: (p as any)?.description
+            };
+          });
+          // 日時で降順ソート
+          normalized.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        } else {
+          // 2) フォールバック：payments から userId で取得
+          const paymentsRef = collection(db, 'payments');
+          let snap: any;
+          try {
+            const q1 = query(
+              paymentsRef,
+              where('userId', '==', currentUser.uid),
+              orderBy('createdAt', 'desc')
+            );
+            snap = await getDocs(q1);
+          } catch {
+            const q2 = query(
+              paymentsRef,
+              where('userId', '==', currentUser.uid)
+            );
+            snap = await getDocs(q2);
+          }
+          const list: Array<any> = [];
+          snap.forEach((d: any) => list.push({ id: d.id, ...d.data() }));
+          normalized = list.map((p) => ({
+            id: p.id,
+            amount: Number(p.amount || 0),
+            status: (String(p.status || 'failed').toLowerCase() as any),
+            paymentMethod: (p.paymentMethod || p.payment_method || '-') as string,
+            createdAt: toDateSafe(p.createdAt) || new Date(0),
+            description: p.description
+          }));
+          normalized.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+
+        setPayments(normalized);
+      } catch (e) {
+        console.error('Error fetching payments:', e);
+        setPayments([]);
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+    fetchPayments();
+  }, [currentUser?.uid, getPaymentUid]);
+
   const handleDownloadInvoice = (paymentId: string) => {
     // In real implementation, this would download the invoice PDF
     console.log('Downloading invoice for:', paymentId);
   };
 
-  const getStatusIcon = (status: PaymentHistoryEntry['status']) => {
+  const getStatusIcon = (status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded') => {
     switch (status) {
       case 'succeeded':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -137,7 +262,7 @@ export default function HistoryPage() {
     }
   };
 
-  const getStatusLabel = (status: PaymentHistoryEntry['status']) => {
+  const getStatusLabel = (status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded') => {
     switch (status) {
       case 'succeeded':
         return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">完了</Badge>;
@@ -154,7 +279,7 @@ export default function HistoryPage() {
     }
   };
 
-  if (subLoading || planLoading || isLoading || historyLoading) {
+  if (subLoading || isLoading || paymentsLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
@@ -194,21 +319,13 @@ export default function HistoryPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">現在のプラン</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
-                {(() => {
-                  const planCode = (userSubscription as any)?.subscription?.plan || (userSubscription as any)?.plan || defaultPlanType;
-                  return formatPlanName(planCode as any);
-                })()}
+                {getPlanDisplayName(resolvedPlan)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">月額料金</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
-                {(() => {
-                  const planCode = (userSubscription as any)?.subscription?.plan || (userSubscription as any)?.plan || defaultPlanType;
-                  const info = getPlanInfo(planCode as any);
-                  const amount = info?.amount ?? 0;
-                  return `¥${amount.toLocaleString()}`;
-                })()}
+                {`¥${getPlanMonthlyPrice(resolvedPlan).toLocaleString()}`}
               </p>
             </div>
           </div>
@@ -231,13 +348,13 @@ export default function HistoryPage() {
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600 dark:text-gray-400">総支払い回数</span>
             <span className="font-semibold text-gray-800 dark:text-gray-200">
-              {paymentHistory.filter(p => p.status === 'succeeded').length}回
+              {payments.filter(p => p.status === 'succeeded').length}回
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600 dark:text-gray-400">総支払い金額</span>
             <span className="font-semibold text-xl text-pink-600 dark:text-pink-400">
-              ¥{paymentHistory
+              ¥{payments
                 .filter(p => p.status === 'succeeded')
                 .reduce((sum, p) => sum + (p.amount || 0), 0)
                 .toLocaleString()}
@@ -258,15 +375,15 @@ export default function HistoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {paymentHistory.length === 0 ? (
+          {payments.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>まだ支払い履歴がありません</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {paymentHistory.map((payment) => {
-                const date = toDateSafe(payment.processed_at) || toDateSafe(payment.created_at) || new Date();
+              {payments.map((payment) => {
+                const date = payment.createdAt || new Date();
                 return (
                   <div
                     key={payment.id}
@@ -288,7 +405,7 @@ export default function HistoryPage() {
                           </div>
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <CreditCard className="h-3 w-3" />
-                            {payment.payment_method}
+                            {payment.paymentMethod || '-'}
                           </div>
                           <div className="font-semibold text-gray-800 dark:text-gray-200">
                             ¥{(payment.amount || 0).toLocaleString()}
