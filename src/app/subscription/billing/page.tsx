@@ -29,13 +29,8 @@ import { getFirebaseDb } from '@/lib/firebase/client';
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank';
-  last4: string;
-  brand?: string;
+  type: 'card';
   isDefault: boolean;
-  expiryMonth?: number;
-  expiryYear?: number;
-  cardNumber?: string;
 }
 
 export default function BillingPage() {
@@ -114,16 +109,12 @@ export default function BillingPage() {
 
   // Mock payment methods for demonstration
   useEffect(() => {
-    // シミュレーションデータ
+    // クレジットカードのみ（ブランド名や番号情報は保持/表示しない）
     setPaymentMethods([
       {
-        id: '1',
+        id: 'card-default',
         type: 'card',
-        last4: '1234',
-        brand: 'Visa',
-        isDefault: true,
-        expiryMonth: 12,
-        expiryYear: 2025
+        isDefault: true
       }
     ]);
   }, []);
@@ -186,21 +177,10 @@ export default function BillingPage() {
 
     setIsAddingCard(true);
 
-    // Detect card brand
-    let brand = 'Card';
-    if (newCardData.cardNumber.startsWith('4')) brand = 'Visa';
-    else if (newCardData.cardNumber.startsWith('5')) brand = 'MasterCard';
-    else if (newCardData.cardNumber.startsWith('3')) brand = 'Amex';
-
     const newCard: PaymentMethod = {
       id: Date.now().toString(),
       type: 'card',
-      last4: newCardData.cardNumber.slice(-4),
-      brand: brand,
-      isDefault: paymentMethods.length === 0,
-      expiryMonth: parseInt(newCardData.expiryMonth),
-      expiryYear: parseInt(newCardData.expiryYear),
-      cardNumber: '**** **** **** ' + newCardData.cardNumber.slice(-4)
+      isDefault: paymentMethods.length === 0
     };
 
     setTimeout(() => {
@@ -260,8 +240,8 @@ export default function BillingPage() {
     setEditingCard(method);
     setEditCardData({
       cardNumber: '',
-      expiryMonth: method.expiryMonth?.toString() || '',
-      expiryYear: method.expiryYear?.toString() || '',
+      expiryMonth: '',
+      expiryYear: '',
       cvv: '',
       cardholderName: ''
     });
@@ -333,12 +313,6 @@ export default function BillingPage() {
 
     setIsProcessing(true);
 
-    // Detect card brand
-    let brand = 'Card';
-    if (cleanCardNumber.startsWith('4')) brand = 'Visa';
-    else if (cleanCardNumber.startsWith('5')) brand = 'MasterCard';
-    else if (cleanCardNumber.startsWith('3')) brand = 'Amex';
-
     if (editingCard) {
       setTimeout(() => {
         setPaymentMethods(methods => 
@@ -346,12 +320,7 @@ export default function BillingPage() {
             if (m.id === editingCard.id) {
               return {
                 ...m,
-                last4: cleanCardNumber.slice(-4),
-                brand: brand,
-                expiryMonth: parseInt(editCardData.expiryMonth),
-                expiryYear: parseInt(editCardData.expiryYear),
-                // セキュリティ上、完全なカード番号とCVVは保存しない
-                cardNumber: undefined
+                // ブランドや番号末尾などは保持・表示しない
               };
             }
             return m;
@@ -507,7 +476,7 @@ export default function BillingPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-800 dark:text-gray-200">
-                            {method.brand} •••• {method.last4}
+                            クレジットカード
                           </span>
                           {method.isDefault && (
                             <Badge className="bg-pink-500 text-white text-xs">
@@ -516,7 +485,7 @@ export default function BillingPage() {
                           )}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          有効期限: {method.expiryMonth?.toString().padStart(2, '0')}/{method.expiryYear}
+                          カードブランドや番号などの詳細は表示しません。
                         </p>
                       </div>
                     </div>
@@ -678,7 +647,7 @@ export default function BillingPage() {
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
                 <p className="text-sm text-yellow-800 dark:text-yellow-300">
                   <AlertTriangle className="h-4 w-4 inline mr-1" />
-                  現在のカード: {editingCard.brand} •••• {editingCard.last4}
+                  現在の支払い手段: クレジットカード
                 </p>
               </div>
               
