@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { getFirebaseDb } from '@/lib/firebase/client';
 import { doc, onSnapshot, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { getStoredUserId, waitForAuth } from '@/lib/firebase/auth-helper';
@@ -59,7 +59,8 @@ export function useSubscription(): UseSubscriptionReturn {
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [unsubscribe, setUnsubscribe] = useState<(() => void) | null>(null);
+  // onSnapshotのunsubscribeを保持（stateにしないことで再レンダーを防止）
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   // プラン情報を取得する関数
   const getPlanInfo = useCallback((planType: PlanType): PlanInfo | null => {
@@ -363,10 +364,10 @@ export function useSubscription(): UseSubscriptionReturn {
         );
         
         // 前のリスナーをクリーンアップしてから新しいリスナーを設定
-        if (unsubscribe) {
-          unsubscribe();
+        if (unsubscribeRef.current) {
+          try { unsubscribeRef.current(); } catch {}
         }
-        setUnsubscribe(() => unsubscribeListener);
+        unsubscribeRef.current = unsubscribeListener;
         
       } catch (error: any) {
         if (!isMounted) return;
@@ -381,12 +382,12 @@ export function useSubscription(): UseSubscriptionReturn {
     
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-        setUnsubscribe(null);
+      if (unsubscribeRef.current) {
+        try { unsubscribeRef.current(); } catch {}
+        unsubscribeRef.current = null;
       }
     };
-  }, [currentUser?.uid, currentUser, unsubscribe]); // currentUserオブジェクト全体ではなくuidのみを依存配列に含める
+  }, [currentUser?.uid]); // uidの変更時のみ再設定
 
   // 計算されたプロパティ
   const isPremium = useMemo(() => {

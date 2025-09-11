@@ -36,6 +36,24 @@ export function SubscriptionStatusSection() {
   const [isCanceled, setIsCanceled] = React.useState(false);
   const { toast } = useToast();
   
+  // プラン名の解決（データソース統一）
+  // 優先: users/{uid}.subscription.plan → フォールバック: users/{uid}.plan
+  const resolvedPlanLabel = React.useMemo(() => {
+    const planCodeFromSubscription = (userSubscription as any)?.subscription?.plan as string | undefined;
+    const planCodeFallback = (userSubscription as any)?.plan as string | undefined;
+    const planCode = planCodeFromSubscription || planCodeFallback || '';
+    const map: Record<string, string> = {
+      '1month': '1ヶ月',
+      '3month': '3ヶ月',
+      '6month': '6ヶ月',
+      '12month': '12ヶ月'
+    };
+    if (planCode && map[planCode]) {
+      return `${map[planCode]}プラン`;
+    }
+    return 'プラン未設定';
+  }, [userSubscription]);
+  
   // Refresh subscription data on mount and when returning to this page
   React.useEffect(() => {
     // Only call if refreshSubscription is available
@@ -332,7 +350,7 @@ export function SubscriptionStatusSection() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">プラン</span>
-              <span className="font-semibold text-gray-800 dark:text-gray-200">月額プラン ¥1,980/月</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{resolvedPlanLabel}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
@@ -350,7 +368,7 @@ export function SubscriptionStatusSection() {
                 <CreditCard className="h-4 w-4 text-pink-500" />
                 支払い方法
               </span>
-              <span className="text-gray-800 dark:text-gray-200">Visa ****1234</span>
+              <span className="text-gray-800 dark:text-gray-200">クレジットカード</span>
             </div>
           </div>
 

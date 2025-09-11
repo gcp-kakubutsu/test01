@@ -13,7 +13,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSubscription as useSubscriptionContext } from '@/contexts/SubscriptionContext';
+import { useSubscription as useSubscriptionHook } from '@/hooks/useSubscription';
 import { usePaymentHistory } from '@/hooks/usePayment';
 import type { PaymentHistoryEntry } from '@/types/user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,8 +71,9 @@ function toDateSafe(value: any): Date | null {
 export default function HistoryPage() {
   const router = useRouter();
   const { isAuthenticated, currentUser } = useAuth();
-  const { userSubscription, isLoading: subLoading } = useSubscription();
+  const { userSubscription, isLoading: subLoading } = useSubscriptionContext();
   const { paymentHistory, loading: historyLoading } = usePaymentHistory(50);
+  const { getPlanInfo, formatPlanName, planType: defaultPlanType, loading: planLoading } = useSubscriptionHook();
   const [isLoading, setIsLoading] = useState(true);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
 
@@ -152,7 +154,7 @@ export default function HistoryPage() {
     }
   };
 
-  if (subLoading || isLoading || historyLoading) {
+  if (subLoading || planLoading || isLoading || historyLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
@@ -192,13 +194,21 @@ export default function HistoryPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">現在のプラン</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
-                {userSubscription?.isPremium ? 'プレミアムプラン' : '無料プラン'}
+                {(() => {
+                  const planCode = (userSubscription as any)?.subscription?.plan || (userSubscription as any)?.plan || defaultPlanType;
+                  return formatPlanName(planCode as any);
+                })()}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">月額料金</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
-                {userSubscription?.isPremium ? '¥1,980' : '¥0'}
+                {(() => {
+                  const planCode = (userSubscription as any)?.subscription?.plan || (userSubscription as any)?.plan || defaultPlanType;
+                  const info = getPlanInfo(planCode as any);
+                  const amount = info?.amount ?? 0;
+                  return `¥${amount.toLocaleString()}`;
+                })()}
               </p>
             </div>
           </div>
