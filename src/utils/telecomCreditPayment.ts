@@ -55,7 +55,7 @@ export function redirectToTelecomCredit(data: TelecomCreditPaymentData): void {
 
   // 必須パラメータ
   const params = [
-    { name: 'clientip', value: '69512' },
+    { name: 'clientip', value: '60146' },
     { name: 'sendid', value: userId },
     { name: 'money', value: price.toString() },
     { name: 'usrmail', value: userEmail },
