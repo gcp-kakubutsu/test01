@@ -389,7 +389,7 @@ export default function LandingPage() {
   return (
     <div className={styles.pageWrapper}>
       {/* Top Video Section (広告動画) */}
-      <section className={styles.topVideoSection} aria-label="広告動画">
+      {/* <section className={styles.topVideoSection} aria-label="広告動画">
         <video
           className={styles.topVideo}
           src="/img/koukoku.mp4"
@@ -399,7 +399,7 @@ export default function LandingPage() {
           playsInline
           preload="auto"
         />
-      </section>
+      </section> */}
       {/* Campaign Banner */}
       {showCampaignBanner && (
         <CampaignBanner 
@@ -678,6 +678,10 @@ export default function LandingPage() {
               </div>
             </div>
 
+            <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Image src="/img/woman1.png" alt="高級感のある大人の出会い1" width={600} height={400} />
+            </div>
+
             <div className={styles.solutionCta}>
               <p className={styles.solutionTagline}>
                 今までなかった<br />
@@ -815,6 +819,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Image src="/img/woman2.png" alt="高級感のある大人の出会い2" width={600} height={400} />
+      </div>
 
       {/* Safety Section */}
       <section id="safety" className={`${styles.section} ${styles.safety} ${styles.sectionSlideLeft}`}>
