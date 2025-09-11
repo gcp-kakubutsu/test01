@@ -29,6 +29,31 @@ import {
 import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase/client';
 
+// Firestore Timestamp / string / number / Date を安全に Date に変換
+function toDateSafe(value: any): Date | null {
+  try {
+    if (!value) return null;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      const d = value.toDate();
+      return d instanceof Date && !isNaN(d.getTime()) ? d : null;
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === 'string') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const CANCEL_REASONS = [
   { id: 'expensive', label: '料金が高い' },
   { id: 'not_using', label: 'あまり利用していない' },
@@ -76,10 +101,12 @@ export default function CancelPage() {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         const userData = userDoc.data();
         
-        if (userData?.subscriptionStartDate) {
-          setRegistrationDate(userData.subscriptionStartDate.toDate());
-        } else if (userData?.createdAt) {
-          setRegistrationDate(userData.createdAt.toDate());
+        const startDate = toDateSafe(userData?.subscriptionStartDate);
+        const createdAt = toDateSafe(userData?.createdAt);
+        if (startDate) {
+          setRegistrationDate(startDate);
+        } else if (createdAt) {
+          setRegistrationDate(createdAt);
         }
       } catch (error) {
         console.error('Error loading user data:', error);

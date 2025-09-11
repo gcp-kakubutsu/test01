@@ -33,6 +33,36 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+// Firestore Timestamp / string / number / Date を安全に Date に変換
+// - Timestamp: .toDate() があれば使用
+// - string: new Date(string)
+// - number: UNIX epoch ms として扱う
+// - Date: そのまま返す
+// - 不明/無効: null を返す
+function toDateSafe(value: any): Date | null {
+  try {
+    if (!value) return null;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      const d = value.toDate();
+      return d instanceof Date && !isNaN(d.getTime()) ? d : null;
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === 'string') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function BillingPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -86,14 +116,12 @@ export default function BillingPage() {
           const userData = userDoc.data();
           
           // Check for registration date from script
-          if (userData?.subscriptionStartDate) {
-            setSubscriptionStartDate(userData.subscriptionStartDate.toDate());
-          }
+          const startDate = toDateSafe(userData?.subscriptionStartDate);
+          if (startDate) setSubscriptionStartDate(startDate);
           
           // Also check createdAt for general registration date
-          if (userData?.createdAt) {
-            setRegistrationDate(userData.createdAt.toDate());
-          }
+          const createdAt = toDateSafe(userData?.createdAt);
+          if (createdAt) setRegistrationDate(createdAt);
         }
       } catch (error: any) {
         // Permission error is expected for some users, don't show error
