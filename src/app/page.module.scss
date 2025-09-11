@@ -1116,6 +1116,21 @@ $border-color-light: #E5E7EB;
   }
 }
 
+// 画像サイズの微妙なズレを無くすため、スマホでは3枚とも同一幅で中央寄せ
+.uniformMobileImg {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .aboutImage { display: flex; justify-content: center; }
+  .uniformMobileImg {
+    width: 92vw !important;   // 画面幅に対して統一
+    max-width: 92vw !important;
+  }
+}
+
 // Features Section
 .features {
   width: 100%;

@@ -555,7 +555,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
-              <Image src="/img/woman.png" alt="高級感のある大人の出会い" width={600} height={400} />
+              <Image src="/img/woman.png" alt="高級感のある大人の出会い" width={600} height={400} sizes="(max-width: 768px) 92vw, 600px" className={styles.uniformMobileImg} />
             </div>
           </div>
         </div>
@@ -679,7 +679,7 @@ export default function LandingPage() {
             </div>
 
             <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/img/woman1.png" alt="高級感のある大人の出会い1" width={600} height={400} />
+              <Image src="/img/woman1.png" alt="高級感のある大人の出会い1" width={600} height={400} sizes="(max-width: 768px) 92vw, 600px" className={styles.uniformMobileImg} />
             </div>
 
             <div className={styles.solutionCta}>
@@ -824,10 +824,10 @@ export default function LandingPage() {
       {/* Safety Section */}
       <section id="safety" className={`${styles.section} ${styles.safety} ${styles.sectionSlideLeft}`}>
         <div className={styles.container}>
-        <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Image src="/img/woman2.png" alt="高級感のある大人の出会い2" width={600} height={400} />
-        </div>
           <h2 className={`${styles.sectionTitle} ${styles.scrollFadeIn}`}>安全への取り組み</h2>
+          <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Image src="/img/woman2.png" alt="高級感のある大人の出会い2" width={600} height={400} sizes="(max-width: 768px) 92vw, 600px" className={styles.uniformMobileImg} />
+          </div>
           <div className={styles.safetyGrid}>
             <div className={`${styles.safetyCard} ${styles.scrollStagger} ${styles.enhancedHover}`}>
               <div className={styles.safetyHeader}>
