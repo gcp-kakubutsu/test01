@@ -623,7 +623,16 @@ export default function LandingPage() {
               </div>
             </div>
             <div className={`${styles.aboutImage} ${styles.scrollSlideRight}`}>
-              <Image src="/img/woman.png" alt="高級感のある大人の出会い" width={600} height={400} sizes="(max-width: 768px) 92vw, 600px" className={styles.uniformMobileImg} />
+              <video
+                src="/img/top_movie.mp4"
+                className={styles.aboutVideo}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="高級感のある大人の出会い"
+              />
             </div>
           </div>
         </div>
