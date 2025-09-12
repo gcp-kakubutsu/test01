@@ -534,17 +534,8 @@ export default function LandingPage() {
       </div>
       {/* Hero Section */}
       <section ref={heroRef} className={styles.hero}>
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline 
-          className={styles.heroVideo}
-          preload="auto"
-        >
-          <source src="/img/girl.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+        {/* 黒い背景に変更 */}
+        <div className={styles.heroBackground}></div>
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
@@ -558,18 +549,6 @@ export default function LandingPage() {
               <span className={styles.mobilePart1}>貴方に合う女性だけ表示</span>
             </span>
           </h1>
-          <div className={styles.heroTagline}>
-            <span className={styles.heroTaglineLine1}>
-              <span className={styles.heroGold}>新感覚</span>
-              <span className={styles.heroGold}>の</span>
-              <span className={styles.heroGold}>性癖</span>
-              <span className={styles.heroGold}>コンシェルジュ</span>
-            </span>
-            <span className={styles.heroTaglineLine2}>
-              <span className={styles.heroKeyword}>NUKUNE</span>
-              <span className={`${styles.heroGold} ${styles.heroBirth}`}>が誕生！</span>
-            </span>
-          </div>
           <div className={styles.heroLocationInfo}>
             <div className={styles.locationInfoContent}>
               <p className={styles.locationInfoLine1}>全国登録キャスト15万人</p>
