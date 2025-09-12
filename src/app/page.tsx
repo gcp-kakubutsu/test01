@@ -756,7 +756,16 @@ export default function LandingPage() {
             </div>
 
             <div className={`${styles.aboutImage} ${styles.scrollScaleCenter}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/img/woman1.png" alt="高級感のある大人の出会い1" width={600} height={400} sizes="(max-width: 768px) 92vw, 600px" className={styles.uniformMobileImg} />
+              <video
+                src="/img/woman1.mp4"
+                className={styles.aboutVideoWoman}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="高級感のある大人の出会い"
+              />
             </div>
 
             <div className={styles.solutionCta}>

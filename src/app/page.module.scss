@@ -167,6 +167,49 @@ $border-color-light: #E5E7EB;
   }
 }
 
+/* woman1.mp4用の動画スタイル */
+.aboutVideoWoman {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  /* スマホでの最適化 */
+  @media (max-width: 768px) {
+    max-width: 90vw;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    margin: 0 auto; /* 中央揃え */
+  }
+
+  /* タブレットでの調整 */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    max-width: 550px;
+    height: 350px;
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  }
+
+  /* PCでの最適化 - 上半身アップ表示 */
+  @media (min-width: 1025px) {
+    max-width: 600px;
+    height: 450px; /* 高さを少し増やして上半身をアップに */
+    border-radius: 20px;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.4);
+    object-position: center 15%; /* 上半身をアップで表示 */
+
+    &:hover {
+      transform: scale(1.02);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+      object-position: center 10%; /* ホバー時はさらにアップ */
+    }
+  }
+}
+
 // Top Video Section (広告動画)
 .topVideoSection {
   width: 100%;
