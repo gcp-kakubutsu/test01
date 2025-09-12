@@ -116,12 +116,12 @@ $border-color-light: #E5E7EB;
 
   /* スマホでのサイズ調整 */
   @media (max-width: 480px) {
-    width: 250px; /* 小さいスマホでもさらに大きめに表示 */
+    width: 200px; /* 小さいスマホでは少し小さめに */
   }
 
   /* 中サイズスマホでの調整 */
   @media (min-width: 481px) and (max-width: 768px) {
-    width: 270px; /* 中サイズスマホでもさらに大きく */
+    width: 220px; /* 中サイズスマホでもコンパクトに */
   }
 
   /* PCでのサイズ調整 - 大幅に大きく表示 */
