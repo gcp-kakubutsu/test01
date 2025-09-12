@@ -24,6 +24,7 @@ export default function LandingPage() {
   const [showCampaignBanner, setShowCampaignBanner] = useState(false);
   const [hasPassedMiddle, setHasPassedMiddle] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // セクションリスト定義
   const sections = [
@@ -115,6 +116,45 @@ export default function LandingPage() {
       router.push('/home');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // 動画再生制御
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const playVideo = async () => {
+      try {
+        // モバイルデバイスでの自動再生対応
+        if (video.paused) {
+          await video.play();
+        }
+      } catch (error) {
+        console.log('動画の自動再生がブロックされました:', error);
+        // ユーザーインタラクション後に再生を試行
+        const handleUserInteraction = async () => {
+          try {
+            await video.play();
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('click', handleUserInteraction);
+          } catch (playError) {
+            console.log('動画再生に失敗しました:', playError);
+          }
+        };
+
+        document.addEventListener('touchstart', handleUserInteraction, { once: true });
+        document.addEventListener('click', handleUserInteraction, { once: true });
+      }
+    };
+
+    // ページ読み込み後に動画再生を開始
+    const timer = setTimeout(playVideo, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('touchstart', playVideo);
+      document.removeEventListener('click', playVideo);
+    };
+  }, []);
 
   useEffect(() => {
     // Skip animations if authenticated (will redirect anyway)
@@ -388,6 +428,34 @@ export default function LandingPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      {/* 新しいフルスクリーン動画ヒーローセクション */}
+      <section className={styles.newFullscreenHero}>
+        {/* 前面：動画を全画面表示 */}
+        <video
+          ref={videoRef}
+          src="/img/top_movie1.mp4"
+          className={styles.newFullscreenHeroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label="高級感のある大人の出会い - フルスクリーン動画"
+        />
+
+        {/* 7日間無料ロゴ - スマホでのみ表示 */}
+        <div className={styles.freeLogoContainer}>
+          <Image
+            src="/img/7day_free.webp"
+            alt="7日間無料"
+            width={120}
+            height={60}
+            className={styles.freeLogo}
+            priority
+          />
+        </div>
+      </section>
+
       {/* Top Video Section (広告動画) */}
       {/* <section className={styles.topVideoSection} aria-label="広告動画">
         <video
