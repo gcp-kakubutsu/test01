@@ -153,7 +153,8 @@ $border-color-light: #E5E7EB;
 
   /* スマホでの最適化 - PCのように上半身アップ */
   @media (max-width: 768px) {
-    max-width: 92vw;
+    width: 90vw; /* 3動画で統一サイズ */
+    max-width: 90vw;
     height: auto;
     aspect-ratio: 3 / 2; /* PC(600x400)と同じ比率に固定 */
     border-radius: 8px;
@@ -182,9 +183,10 @@ $border-color-light: #E5E7EB;
 
   /* スマホでの最適化 - PCのように上半身アップ */
   @media (max-width: 768px) {
+    width: 90vw; /* 3動画で統一サイズ */
     max-width: 90vw;
     height: auto;
-    aspect-ratio: 4 / 3; /* PC(600x450)と同じ比率に固定 */
+    aspect-ratio: 3 / 2; /* モバイルでは他と同じ比率に統一 */
     border-radius: 12px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     margin: 0 auto; /* 中央揃え */
@@ -227,10 +229,11 @@ $border-color-light: #E5E7EB;
 
   /* スマホでの最適化 - PCのように上半身アップ */
   @media (max-width: 768px) {
-    max-width: 88vw;
+    width: 90vw; /* 3動画で統一サイズ */
+    max-width: 90vw;
     height: auto;
-    aspect-ratio: 29 / 19; /* PC(580x380≈29:19)と同じ比率に固定 */
-    border-radius: 10px;
+    aspect-ratio: 3 / 2; /* モバイルでは他と同じ比率に統一 */
+    border-radius: 12px; /* 枠も統一 */
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.2);
     margin: 0 auto; /* 中央揃え */
     object-position: center 15%; /* PCのように上半身アップ */
