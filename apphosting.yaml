@@ -6,3 +6,9 @@ runConfig:
   concurrency: 100     # 同時リクエスト処理数を増加
   cpu: 4               # 4コアCPUで高速処理
   memoryMiB: 8192      # 8GBメモリで安定動作
+  # 固定IP化の設定
+  vpcAccess:
+    egress: ALL_TRAFFIC # または PRIVATE_RANGES_ONLY
+    networkInterfaces:
+      - network: projects/nukune/global/networks/default
+        subnetwork: projects/nukune/regions/us-central1/subnetworks/default
