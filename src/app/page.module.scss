@@ -3664,7 +3664,7 @@ $border-color-light: #E5E7EB;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
   display: flex;
-  gap: 1rem;  // heroCtaと同じgap
+  gap: 0.75rem;
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -3701,6 +3701,85 @@ $border-color-light: #E5E7EB;
     gap: 0.4rem;
     width: calc(100% - 1rem);
   }
+}
+
+/* 共通の丸型スクロールボタン */
+.scrollCircleBtn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  color: #2f3640;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border: 1px solid rgba(0,0,0,0.08);
+  pointer-events: auto;
+}
+
+.scrollTopBtn {
+  background: #3b4250;
+  color: #fff;
+  width: 64px;
+  height: 64px;
+}
+
+.scrollTopLabel {
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* Left Side Scroll Nav */
+.sideScrollNav {
+  position: fixed;
+  bottom: 80px; /* CTA(無料で参加/ログイン)と重ならないよう上げる */
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+
+  &.sideScrollNavVisible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  @media (max-width: 768px) {
+    right: 10px;
+    bottom: 90px; /* モバイルではCTAが大きいのでさらに上 */
+  }
+}
+
+.sideCircleBtn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2f3640;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.sideTopBtn {
+  background: #7a8088;
+  color: #fff;
+  flex-direction: column;
+}
+
+.sideTopLabel {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 // 不要なstickyBtn関連のスタイルを削除（.btnクラスをそのまま使用）

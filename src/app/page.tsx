@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Brain, Search, Shield, Users, Award, Ban, UserCheck, Eye, Plus, Loader2, MapPin } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react';
 import styles from './page.module.scss';
 import { Footer } from '@/components/layout/Footer';
 import { SNSSection } from '@/components/layout/SNSSection';
@@ -25,6 +26,9 @@ export default function LandingPage() {
   const [hasPassedMiddle, setHasPassedMiddle] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sectionAnchors = [
+    'about','features','solutions','matching','reasons','guide','safety','faq','pricing'
+  ];
 
   // セクションリスト定義
   const sections = [
@@ -97,6 +101,27 @@ export default function LandingPage() {
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hasPassedMiddle, isAuthenticated]);
+
+  // 上下セクションに移動するハンドラ
+  const scrollToAdjacentSection = (direction: 'up' | 'down') => {
+    const positions = sectionAnchors
+      .map(id => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const top = el.getBoundingClientRect().top + window.pageYOffset;
+        return { id, top };
+      })
+      .filter(Boolean) as { id: string; top: number }[];
+
+    const y = window.pageYOffset;
+    if (direction === 'up') {
+      const prev = [...positions].reverse().find(p => p.top < y - 4);
+      window.scrollTo({ top: prev ? prev.top : 0, behavior: 'smooth' });
+    } else {
+      const next = positions.find(p => p.top > y + 4);
+      if (next) window.scrollTo({ top: next.top, behavior: 'smooth' });
+    }
+  };
 
   // Timeout for loading state - especially for LINE browser
   useEffect(() => {
@@ -522,6 +547,37 @@ export default function LandingPage() {
         >
           <span>ログイン</span>
         </Link>
+      </div>
+
+      {/* Left Side Scroll Nav - 上/下/トップ */}
+      <div className={`${styles.sideScrollNav} ${showStickyButtons ? styles.sideScrollNavVisible : ''}`}>
+        <button
+          type="button"
+          aria-label="前のセクションへ"
+          className={styles.sideCircleBtn}
+          onClick={() => scrollToAdjacentSection('up')}
+        >
+          <ChevronsUp size={22} />
+        </button>
+
+        <button
+          type="button"
+          aria-label="次のセクションへ"
+          className={styles.sideCircleBtn}
+          onClick={() => scrollToAdjacentSection('down')}
+        >
+          <ChevronsDown size={22} />
+        </button>
+
+        <button
+          type="button"
+          aria-label="ページ上部へ"
+          className={`${styles.sideTopBtn} ${styles.sideCircleBtn}`}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <ChevronUp size={18} />
+          <span className={styles.sideTopLabel}>TOP</span>
+        </button>
       </div>
 
       {/* Background animated boxes */}
