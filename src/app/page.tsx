@@ -915,10 +915,10 @@ export default function LandingPage() {
                   <div className={styles.stepPoints}>
                     <p className={styles.stepPoint}>⑴まずは無料登録。</p>
                     <p className={styles.stepPoint}>⑵プロフィール（性癖・嗜好・相手に求める条件）を設定すると、位置情報と空き状況から、今すぐ会える条件に合うキャストだけを優先表示します。</p>
-                    <p className={styles.stepPoint}>⑶NUKUNEは、いまだけ<span style={{ color: '#FF0000' }}>7日間お試し無料キャンペーン</span>実施中。</p>
+                    <p className={styles.stepPoint}>⑶NUKUNEは、いまだけ<br /><span style={{ color: '#FF0000' }}>7日間無料キャンペーン</span><br />実施中。</p>
                   </div>
                   <p>※R18／男性（18歳以上）のみ利用可です。</p>
-                  <p>※キャンペーン期間（12/31）迄</p>
+                  <p>※キャンペーン期間（12/31）</p>
                   <p>※位置情報をOFFの方は、駅名・エリアを入力して検索できます。</p>
                   <p>※無料トライアル終了後は自動継続（¥1,980/月〜¥1,150/月から選択可）になります。いつでも解約可／初回請求日や解約方法は最終確認画面に表示します。</p>
                 </div>
