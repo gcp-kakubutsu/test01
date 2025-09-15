@@ -1,9 +1,21 @@
 "use client";
 
+/**
+ * @file 支払い方法／請求情報ページ
+ * @summary 現在のプランや次回請求日、支払い方法の案内を表示します。月額の固定金額は表示せず、履歴から直近の成功支払いの金額（一回分）を動的に表示します。
+ * @spec 主な仕様:
+ * - ユーザードキュメントから登録日/開始日を取得
+ * - `nukune_payments` を `payment_uid` で検索し、なければ `payments`（`userId == uid`）をフォールバックとして取得
+ * - 支払い履歴は降順で正規化し、直近の成功した支払い 1 回分の金額を算出して表示
+ * @limits 制限事項:
+ * - Firestore スキーマやインデックスに依存。取得できない場合はハイフン（—）を表示
+ */
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useUser } from '@/hooks/useUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +36,7 @@ import {
   Trash2,
   Lock
 } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase/client';
 
 interface PaymentMethod {
@@ -68,12 +80,15 @@ export default function BillingPage() {
   const { toast } = useToast();
   const { isAuthenticated, currentUser } = useAuth();
   const { status, subscriptionInfo, userSubscription, isLoading: subLoading } = useSubscription();
+  const { getPaymentUid } = useUser();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
   const [subscriptionStartDate, setSubscriptionStartDate] = useState<Date | null>(null);
+  const [payments, setPayments] = useState<Array<{ id: string; amount: number; status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded'; paymentMethod: string; createdAt: Date; description?: string }>>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState<boolean>(true);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showEditCardModal, setShowEditCardModal] = useState(false);
   const [editingCard, setEditingCard] = useState<PaymentMethod | null>(null);
@@ -139,6 +154,113 @@ export default function BillingPage() {
   }, [currentUser]);
 
   // Mockデータは未実装表示のため使用しない
+
+  // 支払い履歴の取得（nukune_payments 優先、payments フォールバック）
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!currentUser?.uid) {
+        setPayments([]);
+        setPaymentsLoading(false);
+        return;
+      }
+      try {
+        setPaymentsLoading(true);
+        const db = getFirebaseDb();
+        if (!db) return;
+
+        const paymentUid = getPaymentUid();
+        let nukunePayments: Array<{ id: string; amount: number; status: string; payment_method?: string; paymentMethod?: string; created_at?: any; processed_at?: any; createdAt?: any; description?: string }> = [];
+        if (paymentUid) {
+          try {
+            const nukuneRef = collection(db, 'nukune_payments');
+            let nukuneSnap: any;
+            try {
+              const nukuneQuery = query(
+                nukuneRef,
+                where('payment_uid', '==', paymentUid),
+                orderBy('created_at', 'desc')
+              );
+              nukuneSnap = await getDocs(nukuneQuery);
+            } catch {
+              const nukuneQuery = query(
+                nukuneRef,
+                where('payment_uid', '==', paymentUid)
+              );
+              nukuneSnap = await getDocs(nukuneQuery);
+            }
+            nukunePayments = [];
+            nukuneSnap.forEach((d: any) => {
+              const data = d.data() as any;
+              nukunePayments.push({ id: d.id, ...data });
+            });
+          } catch (e) {
+            console.warn('Failed to fetch nukune_payments, falling back to payments:', e);
+          }
+        }
+
+        let normalized: Array<{ id: string; amount: number; status: 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded'; paymentMethod: string; createdAt: Date; description?: string }> = [];
+        if (nukunePayments.length > 0) {
+          const mapStatus = (s: string): 'succeeded' | 'failed' | 'pending' | 'canceled' | 'refunded' => {
+            const v = String(s || '').toLowerCase();
+            if (v === 'succeeded' || v === 'success' || v === 'ok' || v === 'completed') return 'succeeded';
+            if (v === 'failed' || v === 'error') return 'failed';
+            if (v === 'pending' || v === 'processing') return 'pending';
+            if (v === 'canceled' || v === 'cancelled') return 'canceled';
+            if (v === 'refunded' || v === 'refund') return 'refunded';
+            return 'failed';
+          };
+          normalized = nukunePayments.map((p) => {
+            const createdDate = toDateSafe(p.created_at) || toDateSafe(p.processed_at) || toDateSafe(p.createdAt) || new Date(0);
+            return {
+              id: p.id,
+              amount: Number((p as any).amount || 0),
+              status: mapStatus((p as any).status || ''),
+              paymentMethod: (p.paymentMethod || p.payment_method || '-') as string,
+              createdAt: createdDate || new Date(0),
+              description: (p as any)?.description
+            };
+          });
+          normalized.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        } else {
+          const paymentsRef = collection(db, 'payments');
+          let snap: any;
+          try {
+            const q1 = query(
+              paymentsRef,
+              where('userId', '==', currentUser.uid),
+              orderBy('createdAt', 'desc')
+            );
+            snap = await getDocs(q1);
+          } catch {
+            const q2 = query(
+              paymentsRef,
+              where('userId', '==', currentUser.uid)
+            );
+            snap = await getDocs(q2);
+          }
+          const list: Array<any> = [];
+          snap.forEach((d: any) => list.push({ id: d.id, ...d.data() }));
+          normalized = list.map((p) => ({
+            id: p.id,
+            amount: Number(p.amount || 0),
+            status: (String(p.status || 'failed').toLowerCase() as any),
+            paymentMethod: (p.paymentMethod || p.payment_method || '-') as string,
+            createdAt: toDateSafe(p.createdAt) || new Date(0),
+            description: p.description
+          }));
+          normalized.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
+
+        setPayments(normalized);
+      } catch (e) {
+        console.error('Error fetching payments:', e);
+        setPayments([]);
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+    fetchPayments();
+  }, [currentUser?.uid, getPaymentUid]);
 
   const handleSetDefault = async (methodId: string) => {
     setIsProcessing(true);
@@ -430,9 +552,12 @@ export default function BillingPage() {
           )}
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">月額料金</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">一回の支払い金額</span>
             <span className="font-semibold text-gray-800 dark:text-gray-200">
-              {userSubscription?.isPremium ? '¥1,980' : '¥0'}
+              {(() => {
+                const latest = payments.find(p => p.status === 'succeeded');
+                return typeof latest?.amount === 'number' ? `¥${latest.amount.toLocaleString()}` : '—';
+              })()}
             </span>
           </div>
         </CardContent>

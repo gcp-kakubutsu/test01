@@ -2,11 +2,11 @@
 
 /**
  * @file サブスクリプション請求履歴ページ
- * @summary 支払い情報を Firestore の `payments` コレクションから取得し、請求サマリーと明細を表示します。
+ * @summary 支払い情報を Firestore の `payments`（および `nukune_payments`）から取得し、請求サマリーと明細を表示します。
  * @spec 主な仕様:
  * - ユーザードキュメントから現在のプランを解決（`subscription.plan` → `plan` → `subscriptionBasic.planType` → `free`）
- * - プラン表示/月額料金はフロントの料金表マッピング（`src/utils/planPricing.ts`）を使用
- * - `payments`（`userId == uid`、`createdAt` 降順）から合計件数・合計金額・明細を表示
+ * - 月額料金の固定表示は行わず、直近の成功した支払い（1回分）の金額を動的に算出して表示
+ * - `payments`（`userId == uid`、`createdAt` 降順）もしくは `nukune_payments` から合計件数・合計金額・明細を表示
  * @limits 制限事項:
  * - Firestore スキーマに依存。欠落データは可能な範囲で安全に処理します。
  * - 旧 `payment_history` 由来のレコードは本画面では使用しません（新 `payments` 優先）
@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription as useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { SUBSCRIPTION_CONSTANTS } from '@/types/subscription';
-import { getPlanDisplayName, getPlanMonthlyPrice, resolvePlanType } from '@/utils/planPricing';
+import { getPlanDisplayName, resolvePlanType } from '@/utils/planPricing';
 import { useUser } from '@/hooks/useUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -287,6 +287,12 @@ export default function HistoryPage() {
     );
   }
 
+  // 直近の「成功」ステータスの支払い 1 回分の金額（ハードコーディングせず履歴から算出）
+  const latestSucceededPaymentAmount: number | null = (() => {
+    const latest = payments.find((p) => p.status === 'succeeded');
+    return typeof latest?.amount === 'number' ? latest.amount : null;
+  })();
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
       {/* Header */}
@@ -323,9 +329,11 @@ export default function HistoryPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">月額料金</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">一回の支払い金額</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
-                {`¥${getPlanMonthlyPrice(resolvedPlan).toLocaleString()}`}
+                {latestSucceededPaymentAmount !== null
+                  ? `¥${latestSucceededPaymentAmount.toLocaleString()}`
+                  : '—'}
               </p>
             </div>
           </div>
