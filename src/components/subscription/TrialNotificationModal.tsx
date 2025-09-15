@@ -149,7 +149,7 @@ export function TrialNotificationModal() {
                 <span className="font-bold text-sm">プレミアム機能</span>
               </div>
               {/* 本文（ベージュ） */}
-              <div className="bg-amber-50 px-3 py-3 text-gray-800 dark:text-gray-900">
+              <div className="bg-amber-50 px-3 py-3 text-black dark:text-black">
                 <ul className="text-xs space-y-1 ml-5">
                   <li>• 無制限のいいね送信</li>
                   <li>• 詳細なプロフィール閲覧</li>
