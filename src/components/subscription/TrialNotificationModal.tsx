@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * 概要: トライアル期間の通知モーダルを表示するクライアントコンポーネント。
+ *  - トライアル残日数や時間に応じてヘッダーのアイコン/文言/色味を切り替えます。
+ *  - 進捗バー、プレミアム機能の紹介、アクションボタンを含みます。
+ * 主要仕様:
+ *  - 1日1回のみ自動表示（localStorage: trialModalLastShown を使用）。
+ *  - テキストは既存の文言を変更せずに表示します。
+ *  - プレミアム機能紹介のカードは赤いヘッダー+ベージュの本文、赤枠の丸角ボックスに統一。
+ * 制限事項:
+ *  - localStorage に依存するため SSR では動作しません。
+ *  - UI は Tailwind CSS ユーティリティクラスに依存します。
+ * @returns {JSX.Element | null} モーダル要素。トライアルが無効な場合は null。
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +29,10 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { UserSubscriptionStatus } from '@/types/subscription';
 import { Sparkles, Gift, AlertTriangle, Clock } from 'lucide-react';
 
+/**
+ * コンポーネント本体。
+ * @returns {JSX.Element | null}
+ */
 export function TrialNotificationModal() {
   const router = useRouter();
   const { status, trialInfo, isLoading } = useSubscription();
@@ -52,11 +70,19 @@ export function TrialNotificationModal() {
   const isLastDay = trialInfo.daysRemaining === 0;
   const isWarning = trialInfo.daysRemaining <= 2;
 
+  /**
+   * プレミアムへのアップグレード遷移を実行します。
+   * @returns {void}
+   */
   const handleUpgrade = () => {
     setIsOpen(false);
     router.push('/subscription/upgrade');
   };
 
+  /**
+   * モーダルを閉じます（本日の再表示は行いません）。
+   * @returns {void}
+   */
   const handleClose = () => {
     setIsOpen(false);
   };
@@ -115,18 +141,22 @@ export function TrialNotificationModal() {
               />
             </div>
 
-            {/* プレミアム機能の紹介 */}
-            <div className="bg-pink-50 rounded-lg p-3 space-y-2">
-              <p className="font-semibold text-sm flex items-center gap-1">
+            {/* プレミアム機能の紹介（赤ヘッダー+赤枠+ベージュ本文のカード） */}
+            <div className="border-2 border-red-500 rounded-xl overflow-hidden shadow-sm">
+              {/* ヘッダー（赤帯） */}
+              <div className="bg-red-500 text-white px-3 py-2 flex items-center gap-1">
                 <Sparkles className="h-4 w-4" />
-                プレミアム機能
-              </p>
-              <ul className="text-xs space-y-1 ml-5">
-                <li>• 無制限のいいね送信</li>
-                <li>• 詳細なプロフィール閲覧</li>
-                <li>• メッセージの既読確認</li>
-                <li>• 高度な検索フィルター</li>
-              </ul>
+                <span className="font-bold text-sm">プレミアム機能</span>
+              </div>
+              {/* 本文（ベージュ） */}
+              <div className="bg-amber-50 px-3 py-3 text-gray-800 dark:text-gray-900">
+                <ul className="text-xs space-y-1 ml-5">
+                  <li>• 無制限のいいね送信</li>
+                  <li>• 詳細なプロフィール閲覧</li>
+                  <li>• メッセージの既読確認</li>
+                  <li>• 高度な検索フィルター</li>
+                </ul>
+              </div>
             </div>
 
           </div>
