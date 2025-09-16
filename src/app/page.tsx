@@ -468,6 +468,19 @@ export default function LandingPage() {
           aria-label="高級感のある大人の出会い - フルスクリーン動画"
         />
 
+        {/* TOPヒーロー左下に画像を表示 */}
+        <div className={styles.seihekiLabel} aria-hidden>
+          <Image
+            src="/img/seiheki.webp"
+            alt="性癖イメージ"
+            width={800}
+            height={600}
+            className={styles.seihekiLabelImg}
+            priority
+            style={{ width: '100%', height: 'auto' }}
+          />
+        </div>
+
         {/* 7日間無料ロゴ - スマホでのみ表示 */}
         <div className={styles.freeLogoContainer}>
           <Image

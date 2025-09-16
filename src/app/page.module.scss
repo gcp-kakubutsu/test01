@@ -83,6 +83,47 @@ $border-color-light: #E5E7EB;
   }
 }
 
+/* ヒーロー左上に固定するシンプルなラベル */
+.seihekiLabel {
+  position: absolute;
+  /* 画面左寄り・中央やや上の黒塗り付近に配置 */
+  top: 45%;
+  left: 10%;
+  bottom: auto;
+  z-index: 3;
+  transform: translateY(-50%);
+  width: clamp(200px, 45vw, 420px);
+  pointer-events: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  @media (max-width: 480px) {
+    top: 50%;
+    left:4%;
+    transform: translateY(-50%);
+    width: clamp(270px, 92vw, 580px); /* 小さいスマホで性癖ラベルを少し大きく表示 */
+  }
+
+  /* 中サイズのスマホ（横幅481-768px）でも大きめに表示 */
+  @media (min-width: 481px) and (max-width: 768px) {
+    width: clamp(320px, 82vw, 600px); /* 中サイズのスマホで性癖ラベルを少し大きく表示 */
+  }
+
+  @media (min-width: 1025px) {
+    top: 52%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+  }
+}
+
+.seihekiLabelImg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* 7日間無料ロゴコンテナ - スマホとPCで表示 */
 .freeLogoContainer {
   display: none; /* デフォルトで非表示 */
