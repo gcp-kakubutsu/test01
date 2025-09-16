@@ -88,40 +88,80 @@ $border-color-light: #E5E7EB;
   position: absolute;
   /* 画面左寄り・中央やや上の黒塗り付近に配置 */
   top: 45%;
-  left: 10%;
+  left: 0%;
   bottom: auto;
   z-index: 3;
   transform: translateY(-50%);
-  width: clamp(200px, 45vw, 420px);
+  width: clamp(250px, 52vw, 580px);
   pointer-events: none;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 2vw, 18px);
+  padding: clamp(12px, 3.5vw, 32px);
+  text-align: center;
+  background: none;
+  box-shadow: none;
 
   @media (max-width: 480px) {
     top: 50%;
-    left:4%;
+    left:0%;
     transform: translateY(-50%);
-    width: clamp(270px, 92vw, 580px); /* 小さいスマホで性癖ラベルを少し大きく表示 */
+    width: clamp(340px, 100vw, 680px); /* 小さいスマホで性癖ラベルを少し大きく表示 */
   }
 
   /* 中サイズのスマホ（横幅481-768px）でも大きめに表示 */
   @media (min-width: 481px) and (max-width: 768px) {
-    width: clamp(320px, 82vw, 600px); /* 中サイズのスマホで性癖ラベルを少し大きく表示 */
+    width: clamp(400px, 92vw, 740px); /* 中サイズのスマホで性癖ラベルを少し大きく表示 */
   }
 
   @media (min-width: 1025px) {
     top: 52%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 700px;
+    width: clamp(520px, 48vw, 760px);
   }
 }
 
-.seihekiLabelImg {
-  display: block;
-  width: 100%;
-  height: auto;
+.seihekiLabelTop {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, -apple-system, BlinkMacSystemFont, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: clamp(36px, 7.4vw, 76px);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: #f5e9d6;
+  background: linear-gradient(135deg, rgba(255, 234, 198, 0.95) 0%, rgba(249, 200, 115, 0.95) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.5px rgba(25, 20, 38, 0.8);
+  text-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+
+  :global(.light) & {
+    -webkit-text-stroke: 1.5px rgba(6, 8, 12, 0.6);
+    text-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.seihekiLabelBottom {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, -apple-system, BlinkMacSystemFont, 'MS PGothic', Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  font-size: clamp(60px, 12vw, 132px);
+  letter-spacing: 0.05em;
+  line-height: 1.05;
+  color: #f7e7d1;
+  background: linear-gradient(120deg, #f7e7c9 0%, #f3b265 32%, #f06083 66%, #2e4a9b 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 2px rgba(16, 18, 36, 0.9);
+  text-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
+
+  :global(.light) & {
+    -webkit-text-stroke: 2px rgba(9, 11, 22, 0.7);
+    text-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+  }
 }
 
 /* 7日間無料ロゴコンテナ - スマホとPCで表示 */
