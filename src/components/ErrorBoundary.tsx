@@ -1,3 +1,16 @@
+/**
+ * @file ErrorBoundary.tsx
+ * @description
+ *   クライアント側のエラーバウンダリコンポーネント。アプリ内で発生する未処理エラーを捕捉し、
+ *   ユーザーにフレンドリーな UI と再試行手段を提供します。LINE ブラウザにおける互換処理や、
+ *   詳細なコンソールログ出力（ユーザーエージェント含む）を行います。
+ * @spec
+ *   - Missing or insufficient permissions エラーは LINE ブラウザでは UI を抑制
+ *   - `componentDidCatch` で安全にログを整形して出力
+ *   - ユーザーに再読み込みと再試行ボタンを提供
+ * @limitations
+ *   - サーバーサイドのエラーは対象外（本コンポーネントはクライアント専用）
+ */
 "use client";
 
 import React from 'react';
@@ -45,13 +58,24 @@ export class ErrorBoundary extends React.Component<
     const inLineApp = typeof window !== 'undefined' && isLineApp();
     
     // Log error with browser info
-    console.error('ErrorBoundary caught an error:', {
-      error: error.message,
-      stack: error.stack,
-      inLineApp,
-      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
-      errorInfo
-    });
+    try {
+      const serializedError = {
+        name: (error && (error as any).name) || 'Error',
+        message: (error && (error as any).message) || String(error),
+        stack: (error && (error as any).stack) || undefined,
+      };
+      console.error('ErrorBoundary caught an error:', {
+        error: serializedError,
+        inLineApp,
+        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
+        errorInfo,
+      });
+    } catch (logError) {
+      console.error('ErrorBoundary logging failed', {
+        originalErrorType: typeof error,
+        inLineApp,
+      });
+    }
     
     // Special handling for LINE browser
     if (inLineApp) {

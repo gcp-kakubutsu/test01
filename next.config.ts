@@ -1,3 +1,15 @@
+/**
+ * @file next.config.ts
+ * @description
+ *   Next.js のプロジェクト全体設定を定義します。画像最適化のリモートホスト許可、
+ *   パフォーマンス関連設定、CSP を含む各種ヘッダ、実験的最適化設定を含みます。
+ * @spec
+ *   - 画像: `images.remotePatterns` で外部ホスト（placehold.co, Firebase Storage, nukipedia.jp, S3）を許可
+ *   - セキュリティ: `Content-Security-Policy` に画像配信元を明示追加
+ *   - パフォーマンス: 圧縮、ヘッダキャッシュ、最適化対象パッケージ指定
+ * @limitations
+ *   - 追加の画像ホストが増えた場合は `images.remotePatterns` と CSP の両方に追記が必要
+ */
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -35,6 +47,18 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: '**.nukipedia.jp',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nukipedia-frontend.s3.ap-northeast-1.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.ap-northeast-1.amazonaws.com',
         port: '',
         pathname: '/**',
       },
@@ -103,7 +127,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://www.google.com https://www.recaptcha.net https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self' https://secure.telecomcredit.co.jp; upgrade-insecure-requests;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co https://nukipedia-frontend.s3.ap-northeast-1.amazonaws.com https://s3.ap-northeast-1.amazonaws.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://www.google.com https://www.recaptcha.net https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self' https://secure.telecomcredit.co.jp; upgrade-insecure-requests;"
           }
         ],
       },
