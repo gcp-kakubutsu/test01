@@ -21,14 +21,36 @@ interface MaleOnboardingProps {
 }
 
 const TOTAL_STEPS = 8;
+const MIN_PARTNER_AGE = 18;
+const MAX_PARTNER_AGE = 50;
+const partnerAgeOptions = Array.from(
+  { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
+  (_, i) => MIN_PARTNER_AGE + i
+);
+const sanitizePartnerAgeRange = <T extends Partial<MalePreferences>>(prefs: T): T => {
+  const rawMin = prefs.partnerAgeMin ?? MIN_PARTNER_AGE;
+  const rawMax = prefs.partnerAgeMax ?? MAX_PARTNER_AGE;
+  const clampedMin = Math.min(Math.max(rawMin, MIN_PARTNER_AGE), MAX_PARTNER_AGE);
+  let clampedMax = Math.min(Math.max(rawMax, MIN_PARTNER_AGE), MAX_PARTNER_AGE);
+  if (clampedMax < clampedMin) {
+    clampedMax = clampedMin;
+  }
+  return {
+    ...prefs,
+    partnerAgeMin: clampedMin,
+    partnerAgeMax: clampedMax
+  } as T;
+};
 
 export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }: MaleOnboardingProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [preferences, setPreferences] = useState<MalePreferences>({
-    ...defaultMalePreferences,
-    partnerAgeMax: 30, // 確実に30歳を初期値に設定
-    isComplete: false
-  } as MalePreferences);
+  const [preferences, setPreferences] = useState<MalePreferences>(
+    sanitizePartnerAgeRange({
+      ...defaultMalePreferences,
+      partnerAgeMax: 30, // 確実に30歳を初期値に設定
+      isComplete: false
+    } as MalePreferences)
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
   const [girlTypesFromDB, setGirlTypesFromDB] = useState<any[]>([]);
@@ -60,7 +82,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
         console.log('Existing preferences:', existingPreferences);
         
         if (existingPreferences) {
-          setPreferences(existingPreferences);
+          setPreferences(sanitizePartnerAgeRange(existingPreferences));
           console.log('Preferences loaded from Firebase');
         } else {
           // 新規ユーザーの場合、デフォルト値を確実に設定
@@ -70,24 +92,24 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
             recordingDuringPlay: '', isSadist: '', isMasochist: '',
             partnerHeight: '', partnerWeight: '',
             partnerLocation: '',
-            partnerAgeMin: 18, partnerAgeMax: 30,
+            partnerAgeMin: MIN_PARTNER_AGE, partnerAgeMax: 30,
             isComplete: false
           };
-          setPreferences(defaultPrefs as MalePreferences);
+          setPreferences(sanitizePartnerAgeRange(defaultPrefs) as MalePreferences);
           console.log('Set simplified default preferences for new user');
         }
       } catch (error) {
         console.error('Error loading existing preferences:', error);
         // エラーの場合もシンプルなデフォルト値を設定
-        setPreferences({
+        setPreferences(sanitizePartnerAgeRange({
           groupPlay: 3, throating: 3, analPlay: 3, cosplay: 3, toyPlay: 3, deepthroat: 3, 
           partnerBodyTypes: [], girlTypeIds: [],
           recordingDuringPlay: '', isSadist: '', isMasochist: '',
           partnerHeight: '', partnerWeight: '',
           partnerLocation: '',
-          partnerAgeMin: 18, partnerAgeMax: 30,
+          partnerAgeMin: MIN_PARTNER_AGE, partnerAgeMax: 30,
           isComplete: false
-        } as MalePreferences);
+        }) as MalePreferences);
       } finally {
         setLoadingInitialData(false);
         console.log('Initial data loading completed');
@@ -244,7 +266,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
                 <SelectValue placeholder="選択してください" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
-                {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                {partnerAgeOptions.map((age) => (
                   <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                 ))}
               </SelectContent>
@@ -255,7 +277,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
                 <SelectValue placeholder="選択してください" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
-                {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                {partnerAgeOptions.map((age) => (
                   <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                 ))}
               </SelectContent>

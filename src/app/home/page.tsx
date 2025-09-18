@@ -35,6 +35,26 @@ import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { fetchWithDedup, roundLocation, generateCacheKey } from '@/lib/utils/api-request-manager';
 
 const USERS_PER_PAGE = 20;
+const MIN_PARTNER_AGE = 18;
+const MAX_PARTNER_AGE = 50;
+const partnerAgeOptions = Array.from(
+  { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
+  (_, i) => MIN_PARTNER_AGE + i
+);
+const sanitizePartnerAgeRange = <T extends Partial<MalePreferences>>(prefs: T): T => {
+  const rawMin = prefs.partnerAgeMin ?? MIN_PARTNER_AGE;
+  const rawMax = prefs.partnerAgeMax ?? MAX_PARTNER_AGE;
+  const clampedMin = Math.min(Math.max(rawMin, MIN_PARTNER_AGE), MAX_PARTNER_AGE);
+  let clampedMax = Math.min(Math.max(rawMax, MIN_PARTNER_AGE), MAX_PARTNER_AGE);
+  if (clampedMax < clampedMin) {
+    clampedMax = clampedMin;
+  }
+  return {
+    ...prefs,
+    partnerAgeMin: clampedMin,
+    partnerAgeMax: clampedMax
+  } as T;
+};
 
 export default function HomePage() {
   const { isAuthenticated, currentUser, firebaseSynced } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
@@ -93,7 +113,7 @@ export default function HomePage() {
           const prefs = await getMalePreferences(currentUser.uid);
           if (prefs) {
             console.log('Preferences loaded from Firebase:', prefs);
-            setPreferences(prefs);
+            setPreferences(sanitizePartnerAgeRange(prefs));
           } else {
             // Firebaseにデータが存在しない場合（新規ユーザー）
             console.log('No preferences found in Firebase (new user)');
@@ -233,8 +253,8 @@ export default function HomePage() {
         if (latestPrefs) {
           // Firebaseからデータが取得できた場合
           console.log('Got preferences from Firebase:', latestPrefs);
-          currentPrefs = latestPrefs;
-          setPreferences(latestPrefs); // メモリ上のpreferencesも更新
+          currentPrefs = sanitizePartnerAgeRange(latestPrefs);
+          setPreferences(currentPrefs); // メモリ上のpreferencesも更新
         } else {
           // Firebaseにデータが存在しない場合（新規ユーザー）
           console.log('No preferences in Firebase, user is new');
@@ -260,7 +280,7 @@ export default function HomePage() {
               partnerAgeMax: 40,
               isComplete: false
             };
-            currentPrefs = defaultPrefs;
+            currentPrefs = sanitizePartnerAgeRange(defaultPrefs);
           }
         }
       } catch (error) {
@@ -272,7 +292,7 @@ export default function HomePage() {
     
     // 現在の設定を一時領域にコピー
     if (currentPrefs) {
-      setTempPreferences({ ...currentPrefs });
+      setTempPreferences(sanitizePartnerAgeRange({ ...currentPrefs }));
       console.log('Set tempPreferences:', currentPrefs);
     } else {
       // 本当にデータがない場合（ログインしていない等）
@@ -309,7 +329,7 @@ export default function HomePage() {
         console.log('Firebase save completed successfully');
         
         // ローカルステートを更新
-        setPreferences(tempPreferences);
+        setPreferences(sanitizePartnerAgeRange(tempPreferences));
         
         // データを再ソート（実際に変更があった場合のみ）
         if (hasActualChanges && sortedGirlsCache && currentUser.uid) {
@@ -393,7 +413,7 @@ export default function HomePage() {
       return;
     }
     
-    const updatedPreferences = { ...tempPreferences, [field]: value };
+    const updatedPreferences = sanitizePartnerAgeRange({ ...tempPreferences, [field]: value });
     setTempPreferences(updatedPreferences);
     setHasPreferenceChanges(true);
     console.log('Updated tempPreferences:', updatedPreferences);
@@ -1254,7 +1274,7 @@ export default function HomePage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-gray-800 border-gray-700">
-                              {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                              {partnerAgeOptions.map((age) => (
                                 <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                               ))}
                             </SelectContent>
@@ -1270,7 +1290,7 @@ export default function HomePage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-gray-800 border-gray-700">
-                              {Array.from({ length: 83 }, (_, i) => i + 18).map((age) => (
+                              {partnerAgeOptions.map((age) => (
                                 <SelectItem key={age} value={age.toString()}>{age}歳</SelectItem>
                               ))}
                             </SelectContent>
