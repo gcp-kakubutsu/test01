@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { LRUCache } from 'lru-cache';
+import { ensurePerformanceIndexes } from './index-ensurer';
 
 // Connection pool with optimized settings
 let pool: mysql.Pool | null = null;
@@ -53,6 +54,7 @@ export async function getOptimizedDb() {
 
     // Pre-warm connections
     await warmUpConnections();
+    await ensurePerformanceIndexes(pool);
   }
   return pool;
 }
@@ -187,6 +189,10 @@ export function getPerformanceMetrics() {
     totalQueries: queryMetrics.length,
     recentQueries: queryMetrics.slice(-10)
   };
+}
+
+export function hasCacheKey(key: string): boolean {
+  return cache.has(key);
 }
 
 // Optimized query with streaming for large datasets

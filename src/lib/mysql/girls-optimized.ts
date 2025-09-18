@@ -1,18 +1,6 @@
-import { cachedQuery, batchQueries } from './db-optimized';
+import { cachedQuery, hasCacheKey } from './db-optimized';
 import { MySQLGirlProfile } from './girls';
-
-// Optimized indexes for better query performance
-const INDEXES_SQL = `
-  CREATE INDEX IF NOT EXISTS idx_girl_age_display ON girl_profiles(age, is_displayed, deleted_at);
-  CREATE INDEX IF NOT EXISTS idx_shop_active ON shop_profiles(is_active, deleted_at);
-  CREATE INDEX IF NOT EXISTS idx_area_prefecture ON shop_profiles(area_prefecture_id);
-  CREATE INDEX IF NOT EXISTS idx_girl_shop ON girl_profiles(shop_profile_id);
-  CREATE INDEX IF NOT EXISTS idx_girl_height_weight ON girl_profiles(height, weight);
-  CREATE INDEX IF NOT EXISTS idx_girl_status_types ON girl_status(girl_profile_id, girl_types_id);
-  CREATE INDEX IF NOT EXISTS idx_girl_options ON girl_options(girl_profile_id, shop_option_id);
-  CREATE INDEX IF NOT EXISTS idx_shop_options_name ON shop_options(name);
-  CREATE INDEX IF NOT EXISTS idx_girl_types_name ON girl_types(name);
-`;
+import { getOptionCategoryIds, getGirlTypeCategoryIds, resolveGirlTypeIdentifiers } from './metadata-cache';
 
 /**
  * Optimized fetch with caching and parallel queries
@@ -99,7 +87,12 @@ export async function fetchOptimizedGirls(
     
     return { girls: [girl], total: 1 };
   }
-  
+
+  const [optionCategoryIds, girlTypeCategories] = await Promise.all([
+    getOptionCategoryIds(),
+    getGirlTypeCategoryIds()
+  ]);
+
   // Generate cache key based on parameters
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
@@ -166,32 +159,33 @@ export async function fetchOptimizedGirls(
   // Add girl types filtering if specified
   let girlTypesJoin = '';
   if (girlTypes && girlTypes.length > 0) {
-    // Check if girlTypes are IDs (numbers) or names (strings)
-    const isNumericIds = girlTypes.every(type => !isNaN(parseInt(type)));
-    
-    if (isNumericIds) {
-      // If numeric IDs, use them directly
-      const girlTypeIds = girlTypes.map(id => parseInt(id)).filter(id => !isNaN(id));
-      if (girlTypeIds.length > 0) {
-        girlTypesJoin = `
-          INNER JOIN (
-            SELECT DISTINCT girl_profile_id 
-            FROM girl_status 
-            WHERE girl_types_id IN (${girlTypeIds.join(',')})
-          ) gs ON g.id = gs.girl_profile_id
-        `;
-      }
-    } else {
-      // If names, join with girl_types table to get IDs
-      const escapedNames = girlTypes.map(name => `'${name.replace(/'/g, "''")}'`).join(',');
+    const { ids: resolvedGirlTypeIds, unresolved } = await resolveGirlTypeIdentifiers(girlTypes);
+    const conditions: string[] = [];
+    if (resolvedGirlTypeIds.length > 0) {
+      conditions.push(`girl_status.girl_types_id IN (${resolvedGirlTypeIds.join(',')})`);
+    }
+    if (unresolved.length > 0) {
+      const escapedNames = unresolved.map(name => `'${name.replace(/'/g, "''")}'`).join(',');
+      conditions.push(`gt.name IN (${escapedNames})`);
+    }
+
+    if (conditions.length > 0) {
+      const joinedSource = unresolved.length > 0
+        ? `FROM girl_status
+          INNER JOIN girl_types gt ON girl_status.girl_types_id = gt.id`
+        : 'FROM girl_status';
+
       girlTypesJoin = `
         INNER JOIN (
-          SELECT DISTINCT gs.girl_profile_id 
-          FROM girl_status gs
-          INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
-          WHERE gt.name IN (${escapedNames})
-        ) gs ON g.id = gs.girl_profile_id
+          SELECT DISTINCT girl_status.girl_profile_id
+          ${joinedSource}
+          WHERE ${conditions.join(' OR ')}
+        ) girl_type_filter ON g.id = girl_type_filter.girl_profile_id
       `;
+
+      if (unresolved.length > 0) {
+        console.warn('⚠️  未解決の女の子タイプ名が存在します:', unresolved);
+      }
     }
   }
   
@@ -215,25 +209,46 @@ export async function fetchOptimizedGirls(
   
   // 撮影オプションのスコア
   if (recordingDuringPlay === 'はい') {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%撮影%' OR so.name LIKE '%動画%' OR so.name LIKE '%写真%'
-      ) recording_opt ON g.id = recording_opt.girl_profile_id`;
-    scoreComponents.push(`CASE WHEN recording_opt.girl_profile_id IS NOT NULL THEN 30 ELSE 0 END`);
+    const optionIds = optionCategoryIds.recording;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) recording_opt ON g.id = recording_opt.girl_profile_id`;
+      scoreComponents.push(`CASE WHEN recording_opt.girl_profile_id IS NOT NULL THEN 30 ELSE 0 END`);
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%撮影%' OR so.name LIKE '%動画%' OR so.name LIKE '%写真%'
+        ) recording_opt ON g.id = recording_opt.girl_profile_id`;
+      scoreComponents.push(`CASE WHEN recording_opt.girl_profile_id IS NOT NULL THEN 30 ELSE 0 END`);
+    }
   }
   
   // コスプレオプションのスコア（嗜好レベル4以上の場合）
   if (cosplayPreference && cosplayPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%コスプレ%' OR so.name LIKE '%衣装%' OR so.name LIKE '%制服%'
-      ) cosplay_opt ON g.id = cosplay_opt.girl_profile_id`;
+    const optionIds = optionCategoryIds.cosplay;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) cosplay_opt ON g.id = cosplay_opt.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%コスプレ%' OR so.name LIKE '%衣装%' OR so.name LIKE '%制服%'
+        ) cosplay_opt ON g.id = cosplay_opt.girl_profile_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const cosplayScore = cosplayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN cosplay_opt.girl_profile_id IS NOT NULL THEN ${cosplayScore} ELSE 0 END`);
@@ -241,14 +256,24 @@ export async function fetchOptimizedGirls(
   
   // おもちゃオプションのスコア（嗜好レベル4以上の場合）
   if (toyPlayPreference && toyPlayPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%電マ%' OR so.name LIKE '%ローター%' OR so.name LIKE '%バイブ%' 
-           OR so.name LIKE '%おもちゃ%' OR so.name LIKE '%玩具%'
-      ) toy_opt ON g.id = toy_opt.girl_profile_id`;
+    const optionIds = optionCategoryIds.toy;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) toy_opt ON g.id = toy_opt.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%電マ%' OR so.name LIKE '%ローター%' OR so.name LIKE '%バイブ%' 
+             OR so.name LIKE '%おもちゃ%' OR so.name LIKE '%玩具%'
+        ) toy_opt ON g.id = toy_opt.girl_profile_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const toyScore = toyPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN toy_opt.girl_profile_id IS NOT NULL THEN ${toyScore} ELSE 0 END`);
@@ -256,14 +281,24 @@ export async function fetchOptimizedGirls(
   
   // イラマチオオプションのスコア（嗜好レベル4以上の場合）
   if (deepthroatPreference && deepthroatPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%イラマ%' OR so.name LIKE '%ディープスロート%' OR so.name LIKE '%喉奥%'
-           OR so.name LIKE '%深い%' OR so.name LIKE '%ディープ%'
-      ) deepthroat_opt ON g.id = deepthroat_opt.girl_profile_id`;
+    const optionIds = optionCategoryIds.deepthroat;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) deepthroat_opt ON g.id = deepthroat_opt.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%イラマ%' OR so.name LIKE '%ディープスロート%' OR so.name LIKE '%喉奥%'
+             OR so.name LIKE '%深い%' OR so.name LIKE '%ディープ%'
+        ) deepthroat_opt ON g.id = deepthroat_opt.girl_profile_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const deepthroatScore = deepthroatPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN deepthroat_opt.girl_profile_id IS NOT NULL THEN ${deepthroatScore} ELSE 0 END`);
@@ -271,14 +306,24 @@ export async function fetchOptimizedGirls(
   
   // ごっくんオプションのスコア（嗜好レベル4以上の場合）
   if (throatingPreference && throatingPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%ごっくん%' OR so.name LIKE '%ゴックン%' OR so.name LIKE '%飲む%'
-           OR so.name LIKE '%口内発射%' OR so.name LIKE '%精飲%'
-      ) throating_opt ON g.id = throating_opt.girl_profile_id`;
+    const optionIds = optionCategoryIds.throating;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) throating_opt ON g.id = throating_opt.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%ごっくん%' OR so.name LIKE '%ゴックン%' OR so.name LIKE '%飲む%'
+             OR so.name LIKE '%口内発射%' OR so.name LIKE '%精飲%'
+        ) throating_opt ON g.id = throating_opt.girl_profile_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const throatingScore = throatingPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN throating_opt.girl_profile_id IS NOT NULL THEN ${throatingScore} ELSE 0 END`);
@@ -286,14 +331,24 @@ export async function fetchOptimizedGirls(
   
   // アナルプレイオプションのスコア（嗜好レベル4以上の場合）
   if (analPlayPreference && analPlayPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT go.girl_profile_id
-        FROM girl_options go
-        INNER JOIN shop_options so ON go.shop_option_id = so.id
-        WHERE so.name LIKE '%アナル%' OR so.name LIKE '%AF%' OR so.name LIKE '%A.F%'
-           OR so.name LIKE '%肛門%' OR so.name LIKE '%お尻%'
-      ) anal_opt ON g.id = anal_opt.girl_profile_id`;
+    const optionIds = optionCategoryIds.anal;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          WHERE go.shop_option_id IN (${optionIds.join(',')})
+        ) anal_opt ON g.id = anal_opt.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT go.girl_profile_id
+          FROM girl_options go
+          INNER JOIN shop_options so ON go.shop_option_id = so.id
+          WHERE so.name LIKE '%アナル%' OR so.name LIKE '%AF%' OR so.name LIKE '%A.F%'
+             OR so.name LIKE '%肛門%' OR so.name LIKE '%お尻%'
+        ) anal_opt ON g.id = anal_opt.girl_profile_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const analScore = analPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN anal_opt.girl_profile_id IS NOT NULL THEN ${analScore} ELSE 0 END`);
@@ -301,14 +356,24 @@ export async function fetchOptimizedGirls(
   
   // 複数人プレイオプションのスコア（嗜好レベル4以上の場合）
   if (groupPlayPreference && groupPlayPreference >= 4) {
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT s.id as shop_id
-        FROM shop_profiles s
-        INNER JOIN shop_options so ON so.shop_profile_id = s.id
-        WHERE so.name LIKE '%3P%' OR so.name LIKE '%4P%' OR so.name LIKE '%複数%'
-           OR so.name LIKE '%グループ%' OR so.name LIKE '%多人数%'
-      ) group_shop ON s.id = group_shop.shop_id`;
+    const optionIds = optionCategoryIds.group;
+    if (optionIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT so.shop_profile_id AS shop_id
+          FROM shop_options so
+          WHERE so.id IN (${optionIds.join(',')})
+        ) group_shop ON s.id = group_shop.shop_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT s.id as shop_id
+          FROM shop_profiles s
+          INNER JOIN shop_options so ON so.shop_profile_id = s.id
+          WHERE so.name LIKE '%3P%' OR so.name LIKE '%4P%' OR so.name LIKE '%複数%'
+             OR so.name LIKE '%グループ%' OR so.name LIKE '%多人数%'
+        ) group_shop ON s.id = group_shop.shop_id`;
+    }
     // 嗜好レベルに応じてスコアを調整（レベル4:20点、レベル5:30点）
     const groupScore = groupPlayPreference === 5 ? 30 : 20;
     scoreComponents.push(`CASE WHEN group_shop.shop_id IS NOT NULL THEN ${groupScore} ELSE 0 END`);
@@ -370,24 +435,43 @@ export async function fetchOptimizedGirls(
   
   // S/Mマッチング
   if (isSadist === 'はい') {
-    // ユーザーがSの場合、ドMの女性を探す
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT gs.girl_profile_id
-        FROM girl_status gs
-        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
-        WHERE gt.name LIKE '%ドM%' OR gt.name LIKE '%M%'
-      ) m_girls ON g.id = m_girls.girl_profile_id`;
+    const masochistIds = girlTypeCategories.masochist;
+    if (masochistIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT gs.girl_profile_id
+          FROM girl_status gs
+          WHERE gs.girl_types_id IN (${masochistIds.join(',')})
+        ) m_girls ON g.id = m_girls.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT gs.girl_profile_id
+          FROM girl_status gs
+          INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+          WHERE gt.name LIKE '%ドM%' OR gt.name LIKE '%M%'
+        ) m_girls ON g.id = m_girls.girl_profile_id`;
+    }
     scoreComponents.push(`CASE WHEN m_girls.girl_profile_id IS NOT NULL THEN 50 ELSE 0 END`);
   } else if (isMasochist === 'はい') {
     // ユーザーがMの場合、ドSの女性を探す
-    preferenceJoins += `
-      LEFT JOIN (
-        SELECT DISTINCT gs.girl_profile_id
-        FROM girl_status gs
-        INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
-        WHERE gt.name LIKE '%ドS%' OR gt.name LIKE '%S%'
-      ) s_girls ON g.id = s_girls.girl_profile_id`;
+    const sadistIds = girlTypeCategories.sadist;
+    if (sadistIds.length > 0) {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT gs.girl_profile_id
+          FROM girl_status gs
+          WHERE gs.girl_types_id IN (${sadistIds.join(',')})
+        ) s_girls ON g.id = s_girls.girl_profile_id`;
+    } else {
+      preferenceJoins += `
+        LEFT JOIN (
+          SELECT DISTINCT gs.girl_profile_id
+          FROM girl_status gs
+          INNER JOIN girl_types gt ON gs.girl_types_id = gt.id
+          WHERE gt.name LIKE '%ドS%' OR gt.name LIKE '%S%'
+        ) s_girls ON g.id = s_girls.girl_profile_id`;
+    }
     scoreComponents.push(`CASE WHEN s_girls.girl_profile_id IS NOT NULL THEN 50 ELSE 0 END`);
   }
   
@@ -730,10 +814,10 @@ export async function prefetchNextPage(
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   
   // Check if already cached
-  if (!cacheKey) {
-    // Prefetch in background
+  if (!hasCacheKey(cacheKey)) {
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes);
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes)
+        .catch(error => console.error('⚠️  Failed to prefetch next page:', error));
     }, 100);
   }
 }
