@@ -159,7 +159,6 @@ function AdvancedSearchContent() {
   const [totalCount, setTotalCount] = useState(0)
   const [filteredTotalCount, setFilteredTotalCount] = useState(0)
   const [openAreaPopover, setOpenAreaPopover] = useState(false)
-  const [areaInitialized, setAreaInitialized] = useState(false)
   const [locationFilteredServerSide, setLocationFilteredServerSide] = useState(false)
 
   // 動的に計算されるページ数（フィルタリング後のカウントを使用）
@@ -239,12 +238,18 @@ function AdvancedSearchContent() {
     const fetchAreas = async () => {
       try {
         const response = await fetch('/api/areas')
-        if (response.ok) {
-          const data = await response.json()
-          setAreas(data)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch areas: ${response.status}`)
         }
+
+        const data = await response.json()
+        setAreas({
+          prefectures: data.prefectures ?? [],
+          municipalities: data.municipalities ?? []
+        })
       } catch (error) {
         console.error('Error fetching areas:', error)
+        setAreas({ prefectures: [], municipalities: [] })
       }
     }
     fetchAreas()
@@ -370,9 +375,9 @@ function AdvancedSearchContent() {
       // Always fetch from offset 0 to get all data for client-side filtering
       const offset = 0
       
-      // 位置情報を正規化（小数点3桁に丸める）
+      // 位置情報を正規化（小数点2桁に丸める）
       const normalizedLocation = userLocation 
-        ? roundLocation(userLocation.lat, userLocation.lng, 3)
+        ? roundLocation(userLocation.lat, userLocation.lng, 2)
         : null;
       
       // キャッシュキー用のパラメータを準備
@@ -398,9 +403,14 @@ function AdvancedSearchContent() {
       if (normalizedLocation) {
         cacheParams.userLat = normalizedLocation.lat;
         cacheParams.userLng = normalizedLocation.lng;
+
+        // エリア指定がない場合は、ユーザーの現在地から一定距離内に絞り込む
+        if (!effectiveArea && !hasSpecialFilters && !hasNonLocationKeywordSearch) {
+          cacheParams.maxDistance = prioritizeQuickMeet ? 50 : 80; // 近場優先で最大距離を制限
+        }
       } else if (!effectiveArea) {
         // 位置情報がなく、エリア指定もない場合、東京駅の座標をフォールバックとして使用
-        const tokyoLocation = roundLocation(35.6812, 139.7671, 3);
+        const tokyoLocation = roundLocation(35.6812, 139.7671, 2);
         cacheParams.userLat = tokyoLocation.lat;
         cacheParams.userLng = tokyoLocation.lng;
         console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
@@ -427,13 +437,17 @@ function AdvancedSearchContent() {
       if (cacheParams.girlTypes) {
         apiUrl += `&girlTypes=${encodeURIComponent(cacheParams.girlTypes)}`;
       }
-      
+
       // 位置情報をAPIに送信
       if (cacheParams.userLat !== undefined) {
         apiUrl += `&userLat=${cacheParams.userLat}&userLng=${cacheParams.userLng}`;
         if (normalizedLocation) {
           console.log('📍 位置情報をAPIに送信（正規化済み）:', { lat: cacheParams.userLat, lng: cacheParams.userLng });
         }
+      }
+
+      if (cacheParams.maxDistance !== undefined) {
+        apiUrl += `&maxDistance=${cacheParams.maxDistance}`;
       }
       
       // キャッシュキーを生成
@@ -641,26 +655,21 @@ function AdvancedSearchContent() {
   useEffect(() => {
     // 初回ロードが完了していない場合はスキップ
     if (isInitialLoad) return;
-    
-    // エリアデータが読み込まれていない場合はスキップ
-    if (areas.prefectures.length === 0) return;
-    
-    // 初回またはエリアデータ読み込み完了時は即座に実行、それ以外はデバウンス
+
+    // 初回は即座に実行、それ以降は短いデバウンス（100ms）
     const isFirstFetch = !initialFetchDone;
-    
+
     if (isFirstFetch) {
-      // 初回は即座に実行
       fetchFilteredUsers();
       setInitialFetchDone(true);
     } else {
-      // 2回目以降は短いデバウンス（100ms）
       const timer = setTimeout(() => {
         fetchFilteredUsers();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
-  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, areas.prefectures.length, isInitialLoad, fetchFilteredUsers, initialFetchDone])
+  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, isInitialLoad, fetchFilteredUsers, initialFetchDone])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*

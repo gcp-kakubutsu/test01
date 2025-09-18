@@ -190,7 +190,10 @@ export async function fetchOptimizedGirls(
   // Add distance filtering if max distance specified
   if (maxDistance && userLat && userLng) {
     whereConditions.push(
-      `ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${maxDistance}`
+      `(
+        s.latitude IS NULL OR s.longitude IS NULL
+        OR ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${maxDistance}
+      )`
     );
   }
   
