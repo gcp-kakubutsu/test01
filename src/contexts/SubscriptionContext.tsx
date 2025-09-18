@@ -35,16 +35,15 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { currentUser } = useAuth();
+  const { currentUser, hasSessionChecked } = useAuth();
   const [userSubscription, setUserSubscription] = useState<UserWithSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // サブスクリプション情報を取得
   const fetchSubscription = React.useCallback(async () => {
-    if (!currentUser?.uid) {
+    if (!hasSessionChecked || !currentUser?.uid) {
       setUserSubscription(null);
-      setIsLoading(false);
       return;
     }
 
@@ -150,18 +149,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.uid, currentUser?.email]);
+  }, [currentUser?.uid, currentUser?.email, hasSessionChecked]);
 
   // currentUserが変更されたら再取得
   useEffect(() => {
-    // ユーザーが変更された場合、前のデータをクリア
-    if (!currentUser) {
+    if (!hasSessionChecked) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (!currentUser?.uid) {
       setUserSubscription(null);
       setIsLoading(false);
-    } else {
-      fetchSubscription();
+      return;
     }
-  }, [currentUser, fetchSubscription]);
+
+    fetchSubscription();
+  }, [currentUser?.uid, hasSessionChecked, fetchSubscription]);
 
   // 定期的にトライアル状態をチェック（1分ごと）
   useEffect(() => {

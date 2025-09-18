@@ -54,36 +54,64 @@ export default function GirlProfilePage() {
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
 
+  const calculateDistance = useCallback((girlData: GirlWithDetails, userLoc: LocationCoordinates) => {
+    let shopLat: number | null = null;
+    let shopLng: number | null = null;
+
+    if (girlData.shop?.latitude && girlData.shop?.longitude) {
+      shopLat = girlData.shop.latitude;
+      shopLng = girlData.shop.longitude;
+    } else if (girlData.location) {
+      const coords = getLocationCoordinates(girlData.location);
+      if (coords) {
+        shopLat = coords.lat;
+        shopLng = coords.lng;
+      }
+    }
+
+    if (shopLat && shopLng) {
+      const R = 6371; // Earth radius in km
+      const dLat = (shopLat - userLoc.lat) * Math.PI / 180;
+      const dLon = (shopLng - userLoc.lng) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(userLoc.lat * Math.PI / 180) * Math.cos(shopLat * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      setDistance(R * c);
+    }
+  }, []);
+
   // 無料ユーザーのアクセスチェック
   useEffect(() => {
-    // サブスクリプションローディング中は待つ
-    if (subscriptionLoading) return;
-    
-    // 無料ユーザーの場合はアクセス拒否
+    // サブスクリプションや認証状態の判定が終わるまで待機
+    if (subscriptionLoading || authLoading) return;
+
+    // ログインが確認できていない場合はもう少し待つ
     if (!isPremium) {
+      if (!isAuthenticated) {
+        return;
+      }
       setShowAccessDenied(true);
       setLoading(false);
       return;
     }
-  }, [isPremium, subscriptionLoading]);
+
+    setShowAccessDenied(false);
+  }, [isPremium, subscriptionLoading, isAuthenticated, authLoading]);
 
   useEffect(() => {
+    if (!params.id || subscriptionLoading || !isPremium) {
+      return;
+    }
+
     const fetchGirlDetails = async () => {
-      // 無料ユーザーはデータ取得しない
-      if (!isPremium && !subscriptionLoading) {
-        return;
-      }
-      
       try {
+        setLoading(true);
         const response = await fetch(`/api/girls/${params.id}`);
         if (response.ok) {
           const data = await response.json();
           setGirl(data);
-          
-          // Calculate distance if user location is available
-          if (userLocation && data) {
-            calculateDistance(data, userLocation);
-          }
         }
       } catch (error) {
         // Silently handle errors
@@ -92,10 +120,13 @@ export default function GirlProfilePage() {
       }
     };
 
-    if (params.id && isPremium) {
-      fetchGirlDetails();
-    }
-  }, [params.id, userLocation, isPremium, subscriptionLoading]);
+    fetchGirlDetails();
+  }, [params.id, isPremium, subscriptionLoading]);
+
+  useEffect(() => {
+    if (!girl || !userLocation) return;
+    calculateDistance(girl, userLocation);
+  }, [girl, userLocation, calculateDistance]);
   
   // Get user location on mount（高速化：住所取得をスキップ）
   useEffect(() => {
@@ -114,38 +145,6 @@ export default function GirlProfilePage() {
   }, []);
   
   // Calculate distance function
-  const calculateDistance = (girlData: GirlWithDetails, userLoc: LocationCoordinates) => {
-    let shopLat: number | null = null;
-    let shopLng: number | null = null;
-    
-    // Try to get coordinates from shop
-    if (girlData.shop?.latitude && girlData.shop?.longitude) {
-      shopLat = girlData.shop.latitude;
-      shopLng = girlData.shop.longitude;
-    } else if (girlData.location) {
-      // Use approximate coordinates based on location
-      const coords = getLocationCoordinates(girlData.location);
-      if (coords) {
-        shopLat = coords.lat;
-        shopLng = coords.lng;
-      }
-    }
-    
-    if (shopLat && shopLng) {
-      // Calculate distance using Haversine formula
-      const R = 6371; // Earth radius in km
-      const dLat = (shopLat - userLoc.lat) * Math.PI / 180;
-      const dLon = (shopLng - userLoc.lng) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(userLoc.lat * Math.PI / 180) * Math.cos(shopLat * Math.PI / 180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const calculatedDistance = R * c;
-      setDistance(calculatedDistance);
-    }
-  };
-
   /**
    * 予約サイトへの遷移URLを生成
    * - MySQLの都道府県ID(area_prefecture_id)と地方ID(area_large_id)を使用し、

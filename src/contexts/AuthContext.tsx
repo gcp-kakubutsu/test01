@@ -18,6 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   hasInitialized: boolean;
+  hasSessionChecked: boolean;
   firebaseSynced: boolean;
   login: (data: AuthFormData) => Promise<boolean>;
   loginWithRedirect: (data: AuthFormData) => Promise<void>;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false); // LINEブラウザ対応: 初期値をfalseに！
   const [hasInitialized, setHasInitialized] = useState(true); // LINEブラウザ対応: 初期値をtrueに！
+  const [hasSessionChecked, setHasSessionChecked] = useState(false);
   const [firebaseSynced, setFirebaseSynced] = useState(false); // Firebase Auth同期状態を追跡
   const { toast } = useToast();
   const router = useRouter();
@@ -92,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearTimeout(timeout); // タイムアウトをクリア
           setHasInitialized(true);
           setIsLoading(false); // セッション確認完了
+          setHasSessionChecked(true);
         }
       }
     };
@@ -502,6 +505,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!currentUser, // シンプルに現在のユーザーがいるかどうか
     isLoading, // 初期セッション確認中はtrue
     hasInitialized, // 初期化状態を公開
+    hasSessionChecked,
     firebaseSynced, // Firebase Auth同期状態を公開
     login,
     loginWithRedirect,
