@@ -56,6 +56,57 @@ const sanitizePartnerAgeRange = <T extends Partial<MalePreferences>>(prefs: T): 
   } as T;
 };
 
+const prefectureOptions = [
+  'こだわらない',
+  '北海道',
+  '青森県',
+  '岩手県',
+  '宮城県',
+  '秋田県',
+  '山形県',
+  '福島県',
+  '茨城県',
+  '栃木県',
+  '群馬県',
+  '埼玉県',
+  '千葉県',
+  '東京都',
+  '神奈川県',
+  '新潟県',
+  '富山県',
+  '石川県',
+  '福井県',
+  '山梨県',
+  '長野県',
+  '岐阜県',
+  '静岡県',
+  '愛知県',
+  '三重県',
+  '滋賀県',
+  '京都府',
+  '大阪府',
+  '兵庫県',
+  '奈良県',
+  '和歌山県',
+  '鳥取県',
+  '島根県',
+  '岡山県',
+  '広島県',
+  '山口県',
+  '徳島県',
+  '香川県',
+  '愛媛県',
+  '高知県',
+  '福岡県',
+  '佐賀県',
+  '長崎県',
+  '熊本県',
+  '大分県',
+  '宮崎県',
+  '鹿児島県',
+  '沖縄県'
+];
+
 export default function HomePage() {
   const { isAuthenticated, currentUser, firebaseSynced } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
   const { profile: userProfile } = useUserProfile();
@@ -317,6 +368,8 @@ export default function HomePage() {
       // 実際に変更があるかをチェック（デバッグ用）
       const hasActualChanges = JSON.stringify(tempPreferences) !== JSON.stringify(preferences);
       console.log('hasActualChanges:', hasActualChanges);
+
+      const previousLocationPref = preferences?.partnerLocation ?? 'こだわらない';
       
       try {
         setSavingPreferences(true);
@@ -331,17 +384,28 @@ export default function HomePage() {
         // ローカルステートを更新
         setPreferences(sanitizePartnerAgeRange(tempPreferences));
         
-        // データを再ソート（実際に変更があった場合のみ）
-        if (hasActualChanges && sortedGirlsCache && currentUser.uid) {
-          setIsSorting(true);
-          console.log('Starting data re-sort...');
-          const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
-          setSortedGirlsCache(sortedData);
-          setGirlsFromDB(sortedData);
-          setIsSorting(false);
-          console.log('Data re-sort completed');
+        const nextLocationPref = tempPreferences.partnerLocation ?? 'こだわらない';
+        const locationPreferenceChanged = previousLocationPref !== nextLocationPref;
+
+        if (hasActualChanges) {
+          if (locationPreferenceChanged) {
+            console.log('Location preference changed, refetching girls...');
+            try {
+              await fetchGirlsFromMySQL();
+            } catch (refetchError) {
+              console.error('Failed to refetch girls after location change:', refetchError);
+            }
+          } else if (sortedGirlsCache && currentUser.uid) {
+            setIsSorting(true);
+            console.log('Starting data re-sort...');
+            const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+            setSortedGirlsCache(sortedData);
+            setGirlsFromDB(sortedData);
+            setIsSorting(false);
+            console.log('Data re-sort completed');
+          }
         }
-        
+
         toast({
           title: "設定を保存しました",
           description: hasActualChanges ? "お好みに合わせて並び替えました" : "設定を確認しました",
@@ -602,9 +666,8 @@ export default function HomePage() {
     const fetchStartTime = performance.now();
     console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch with server-side sorting...');
     console.log('[fetchGirlsFromMySQL] User location:', userLocation);
-    
+
     try {
-      // ユーザー設定を取得
       let malePreferences = null;
       if (currentUser?.uid) {
         try {
@@ -614,46 +677,51 @@ export default function HomePage() {
           console.warn('[fetchGirlsFromMySQL] Could not load preferences:', error);
         }
       }
-      
-      // 位置情報を正規化（小数点3桁に丸める）
-      const normalizedLocation = userLocation 
-        ? roundLocation(userLocation.lat, userLocation.lng, 3)
-        : null;
-      
-      // キャッシュキー用のパラメータ
+
+      const fallbackLocation = roundLocation(35.6812, 139.7671, 3);
+      let normalizedLocation: { lat: number; lng: number } | null = null;
+      let locationSource: 'preference' | 'user' | 'fallback' = 'fallback';
+
+      if (malePreferences?.partnerLocation && malePreferences.partnerLocation !== 'こだわらない') {
+        const preferredCoords = getLocationCoordinates(malePreferences.partnerLocation);
+        if (preferredCoords) {
+          normalizedLocation = roundLocation(preferredCoords.lat, preferredCoords.lng, 3);
+          locationSource = 'preference';
+          console.log(`📍 [fetchGirlsFromMySQL] Using preferred location '${malePreferences.partnerLocation}' -> lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
+        } else {
+          console.log(`⚠️ [fetchGirlsFromMySQL] Preferred location '${malePreferences.partnerLocation}' has no predefined coordinates, trying user geolocation next.`);
+        }
+      }
+
+      if (!normalizedLocation && userLocation) {
+        normalizedLocation = roundLocation(userLocation.lat, userLocation.lng, 3);
+        locationSource = 'user';
+        console.log(`📡 [fetchGirlsFromMySQL] Using user geolocation: lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
+      }
+
+      if (!normalizedLocation) {
+        normalizedLocation = fallbackLocation;
+        locationSource = 'fallback';
+        console.log('📍 [fetchGirlsFromMySQL] 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
+        console.log(`🗺️ フォールバック座標: lat=${fallbackLocation.lat}, lng=${fallbackLocation.lng}`);
+      }
+
+      const locationForQuery = normalizedLocation ?? fallbackLocation;
+
       const params: Record<string, any> = {
         limit: 200,
         offset: 0,
+        userLat: locationForQuery.lat,
+        userLng: locationForQuery.lng,
       };
-      
-      if (normalizedLocation) {
-        params.userLat = normalizedLocation.lat;
-        params.userLng = normalizedLocation.lng;
-      }
-      
-      // APIのURL構築
-      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=200&offset=0`;
-      if (normalizedLocation) {
-        apiUrl += `&userLat=${normalizedLocation.lat}&userLng=${normalizedLocation.lng}`;
-        console.log(`🚀 [fetchGirlsFromMySQL] Using normalized location: lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
-      } else {
-        // 位置情報がない場合、東京駅の座標をフォールバックとして使用
-        // 東京駅: 緯度35.6812, 経度139.7671
-        const tokyoLat = 35.6812;
-        const tokyoLng = 139.7671;
-        apiUrl += `&userLat=${tokyoLat}&userLng=${tokyoLng}`;
-        console.log('📍 [fetchGirlsFromMySQL] 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
-        console.log(`🗺️ フォールバック座標: lat=${tokyoLat}, lng=${tokyoLng}`);
-      }
-      
-      // ユーザー設定をURLパラメータに追加
+
+      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}`;
+
       if (malePreferences) {
-        // 撮影オプション
         if (malePreferences.recordingDuringPlay) {
           apiUrl += `&recordingDuringPlay=${encodeURIComponent(malePreferences.recordingDuringPlay)}`;
           params.recordingDuringPlay = malePreferences.recordingDuringPlay;
         }
-        // S/Mマッチング
         if (malePreferences.isSadist) {
           apiUrl += `&isSadist=${encodeURIComponent(malePreferences.isSadist)}`;
           params.isSadist = malePreferences.isSadist;
@@ -662,7 +730,6 @@ export default function HomePage() {
           apiUrl += `&isMasochist=${encodeURIComponent(malePreferences.isMasochist)}`;
           params.isMasochist = malePreferences.isMasochist;
         }
-        // コスプレとおもちゃの嗜好（1-5のスケール）
         if (malePreferences.cosplay !== undefined) {
           apiUrl += `&cosplayPreference=${malePreferences.cosplay}`;
           params.cosplayPreference = malePreferences.cosplay;
@@ -671,7 +738,6 @@ export default function HomePage() {
           apiUrl += `&toyPlayPreference=${malePreferences.toyPlay}`;
           params.toyPlayPreference = malePreferences.toyPlay;
         }
-        // イラマチオ、ごっくん、アナルプレイの嗜好（1-5のスケール）
         if (malePreferences.deepthroat !== undefined) {
           apiUrl += `&deepthroatPreference=${malePreferences.deepthroat}`;
           params.deepthroatPreference = malePreferences.deepthroat;
@@ -684,22 +750,18 @@ export default function HomePage() {
           apiUrl += `&analPlayPreference=${malePreferences.analPlay}`;
           params.analPlayPreference = malePreferences.analPlay;
         }
-        // 複数人プレイの嗜好（1-5のスケール）
         if (malePreferences.groupPlay !== undefined) {
           apiUrl += `&groupPlayPreference=${malePreferences.groupPlay}`;
           params.groupPlayPreference = malePreferences.groupPlay;
         }
-        // 女の子タイプの嗜好（IDの配列）
         if (malePreferences.girlTypeIds && malePreferences.girlTypeIds.length > 0) {
           apiUrl += `&preferredGirlTypeIds=${malePreferences.girlTypeIds.join(',')}`;
           params.preferredGirlTypeIds = malePreferences.girlTypeIds;
         }
-        // 相手の体型の嗜好（文字列の配列）
         if (malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0) {
           apiUrl += `&preferredBodyTypes=${encodeURIComponent(malePreferences.partnerBodyTypes.join(','))}`;
           params.preferredBodyTypes = malePreferences.partnerBodyTypes;
         }
-        // 年齢範囲
         if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null && !isNaN(malePreferences.partnerAgeMin)) {
           apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;
           params.ageMin = malePreferences.partnerAgeMin;
@@ -708,7 +770,6 @@ export default function HomePage() {
           apiUrl += `&ageMax=${malePreferences.partnerAgeMax}`;
           params.ageMax = malePreferences.partnerAgeMax;
         }
-        // 身長・体重・居住地
         if (malePreferences.partnerHeight) {
           apiUrl += `&partnerHeight=${encodeURIComponent(malePreferences.partnerHeight)}`;
           params.partnerHeight = malePreferences.partnerHeight;
@@ -717,72 +778,60 @@ export default function HomePage() {
           apiUrl += `&partnerWeight=${encodeURIComponent(malePreferences.partnerWeight)}`;
           params.partnerWeight = malePreferences.partnerWeight;
         }
-        if (malePreferences.partnerLocation) {
+        if (malePreferences.partnerLocation && malePreferences.partnerLocation !== 'こだわらない') {
           apiUrl += `&partnerLocation=${encodeURIComponent(malePreferences.partnerLocation)}`;
           params.partnerLocation = malePreferences.partnerLocation;
         }
       }
-      
-      console.log(`🚀 [fetchGirlsFromMySQL] API URL: ${apiUrl}`);
-      
-      // キャッシュキーを生成
+
+      console.log(`🚀 [fetchGirlsFromMySQL] Effective location source: ${locationSource}`);
+
       const cacheKey = generateCacheKey(params);
-      
-      // 重複排除機能付きでフェッチ
       const data = await fetchWithDedup(apiUrl, {
         method: 'GET',
         credentials: typeof window !== 'undefined' && window.navigator.userAgent.includes('Line') ? 'omit' : 'include',
         mode: 'cors',
       }, cacheKey);
       const fetchTime = performance.now() - fetchStartTime;
-      
-      console.log(`🚀 [fetchGirlsFromMySQL] API Response:`, {
+
+      console.log('🚀 [fetchGirlsFromMySQL] API Response:', {
         fetchTime: fetchTime.toFixed(0),
-        apiResponseTime: data.performance?.responseTime || 0,
-        cacheHitRate: data.performance?.cacheHitRate || 0,
-        girls: data.girls?.length || 0,
-        total: data.total || 0
+        apiResponseTime: data?.performance?.responseTime || 0,
+        cacheHitRate: data?.performance?.cacheHitRate || 0,
+        girls: data?.girls?.length || 0,
+        total: data?.total || 0,
       });
-      
-      if (data && data.girls && Array.isArray(data.girls) && data.girls.length > 0) {
-        // データの前処理
+
+      if (data && Array.isArray(data.girls) && data.girls.length > 0) {
         const girlsWithDetails = data.girls.map((girl: any) => ({
           ...girl,
           id: parseInt(girl.id),
           shop: girl.shop || {
             id: girl.shopId,
             name: girl.shopName,
-            area_prefecture_id: girl.area_prefecture_id
-          }
+            area_prefecture_id: girl.area_prefecture_id,
+          },
         }));
-        
-        // サーバー側でソート済みのため、クライアント側ソートは不要
-        console.log(`⚡ [fetchGirlsFromMySQL] Data already sorted by server (distance-based)`);
-        
-        // 距離情報をログ出力（デバッグ用）
-        if (userLocation && girlsWithDetails.length > 0) {
-          const firstFive = girlsWithDetails.slice(0, 5);
-          console.log('📍 Top 5 girls by distance:');
-          firstFive.forEach((girl: any, idx: number) => {
-            const distance = girl.distance_km;
-            console.log(`  ${idx + 1}. ${girl.name}: ${distance ? distance.toFixed(1) + 'km' : 'N/A'}`);
-          });
-        }
-        
+
         setGirlsFromDB(girlsWithDetails);
         setSortedGirlsCache(girlsWithDetails);
         setIsSorting(false);
-        
-        const totalTime = performance.now() - fetchStartTime;
-        console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${totalTime.toFixed(0)}ms`);
-        console.log(`✅ [fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls in ${totalTime.toFixed(0)}ms (server-side sorted)`);
+
+        console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${fetchTime.toFixed(0)}ms`);
+        console.log(`✅ [fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls in ${fetchTime.toFixed(0)}ms (source: ${locationSource})`);
+
+        const firstFive = girlsWithDetails.slice(0, 5);
+        console.log(`📍 Top 5 girls by distance (source: ${locationSource}):`);
+        firstFive.forEach((girl: any, idx: number) => {
+          const distance = girl.distance_km;
+          console.log(`  ${idx + 1}. ${girl.name}: ${distance ? distance.toFixed(1) + 'km' : 'N/A'}`);
+        });
       } else {
-        console.log('[fetchGirlsFromMySQL] No data from API');
         setGirlsFromDB([]);
+        setIsSorting(false);
       }
     } catch (error) {
       console.error('Error fetching girls:', error);
-      // エラー時も既存データを保持
     }
   }, [baseUrl, userLocation, currentUser]);
 
@@ -1357,16 +1406,11 @@ export default function HomePage() {
                             <SelectValue placeholder="選択してください" />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-800 border-gray-700 max-h-60">
-                            <SelectItem value="こだわらない">こだわらない</SelectItem>
-                            <SelectItem value="東京都">東京都</SelectItem>
-                            <SelectItem value="神奈川県">神奈川県</SelectItem>
-                            <SelectItem value="大阪府">大阪府</SelectItem>
-                            <SelectItem value="愛知県">愛知県</SelectItem>
-                            <SelectItem value="埼玉県">埼玉県</SelectItem>
-                            <SelectItem value="千葉県">千葉県</SelectItem>
-                            <SelectItem value="兵庫県">兵庫県</SelectItem>
-                            <SelectItem value="北海道">北海道</SelectItem>
-                            <SelectItem value="福岡県">福岡県</SelectItem>
+                            {prefectureOptions.map((prefecture) => (
+                              <SelectItem key={prefecture} value={prefecture}>
+                                {prefecture}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

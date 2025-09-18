@@ -106,9 +106,17 @@ export async function fetchOptimizedGirls(
   const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
   const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
   const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
+  const hasLocationPreference = Boolean(partnerLocation && partnerLocation !== 'こだわらない');
+  const normalizedPartnerLocation = hasLocationPreference ? partnerLocation!.trim() : null;
+  const escapedPartnerLocation = normalizedPartnerLocation ? normalizedPartnerLocation.replace(/'/g, "''") : null;
+  const partnerLocationKey = normalizedPartnerLocation ?? (partnerLocation ?? 'n');
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
+  
+  if (hasLocationPreference && normalizedPartnerLocation) {
+    console.log('📍 [MySQL] Partner location preference prioritized:', normalizedPartnerLocation);
+  }
   
   // Build optimized WHERE clause
   let whereConditions = [
@@ -202,7 +210,8 @@ export async function fetchOptimizedGirls(
   // Build preference scoring query parts
   let preferenceScoreSelect = '';
   let preferenceJoins = '';
-  let scoreComponents = [];
+  let scoreComponents: string[] = [];
+  let locationPrioritySelect = '';
   
   // 撮影オプションのスコア
   if (recordingDuringPlay === 'はい') {
@@ -446,14 +455,20 @@ export async function fetchOptimizedGirls(
   }
   
   // 居住地スコア
-  if (partnerLocation && partnerLocation !== 'こだわらない') {
-    const escapedLocation = partnerLocation.replace(/'/g, "''");
+  if (hasLocationPreference && escapedPartnerLocation) {
     scoreComponents.push(`
       CASE 
-        WHEN p.name = '${escapedLocation}' THEN 25
-        WHEN p.name LIKE '%${escapedLocation}%' OR '${escapedLocation}' LIKE CONCAT('%', p.name, '%') THEN 15
+        WHEN p.name = '${escapedPartnerLocation}' OR m.name = '${escapedPartnerLocation}' THEN 25
+        WHEN p.name LIKE '%${escapedPartnerLocation}%' OR m.name LIKE '%${escapedPartnerLocation}%' OR '${escapedPartnerLocation}' LIKE CONCAT('%', p.name, '%') OR '${escapedPartnerLocation}' LIKE CONCAT('%', m.name, '%') THEN 15
         ELSE 0
       END`);
+    locationPrioritySelect = `,
+      CASE 
+        WHEN p.name = '${escapedPartnerLocation}' OR m.name = '${escapedPartnerLocation}' THEN 0
+        WHEN p.name LIKE '${escapedPartnerLocation}%' OR m.name LIKE '${escapedPartnerLocation}%' THEN 1
+        WHEN p.name LIKE '%${escapedPartnerLocation}%' OR m.name LIKE '%${escapedPartnerLocation}%' THEN 2
+        ELSE 3
+      END as location_priority`;
   }
   
   // スコア計算のSELECT句を構築
@@ -467,6 +482,8 @@ export async function fetchOptimizedGirls(
   let distanceSelect = '';
   let areaJoin = '';
   let orderByClause = 'ORDER BY (g.age IS NULL), g.created_at DESC';
+  const locationOrderPrefixInline = hasLocationPreference ? 'location_priority ASC, ' : '';
+  const locationOrderPrefixMultiline = hasLocationPreference ? 'location_priority ASC,\n      ' : '';
   
   if (userLat && userLng) {
     // area_smallsテーブルから位置情報を取得するJOINを追加
@@ -499,9 +516,8 @@ export async function fetchOptimizedGirls(
   
   // スコアと距離の複合ソート（近い女の子を絶対優先）
   if (scoreComponents.length > 0 && userLat) {
-    // 距離帯でグループ化し、近い女の子を必ず優先表示
     orderByClause = `ORDER BY 
-      -- 距離帯による絶対的な優先順位
+      ${locationOrderPrefixMultiline}-- 距離帯による絶対的な優先順位
       CASE 
         WHEN distance_km <= 20 THEN 1    -- 20km以内: 最優先
         WHEN distance_km <= 50 THEN 2    -- 50km以内: 次優先  
@@ -519,7 +535,11 @@ export async function fetchOptimizedGirls(
       g.created_at DESC`;
   } else if (userLat) {
     // 位置情報のみの場合は距離優先
-    orderByClause = `ORDER BY distance_km ASC, g.created_at DESC`;
+    orderByClause = `ORDER BY ${locationOrderPrefixInline}distance_km ASC, g.created_at DESC`;
+  } else if (scoreComponents.length > 0) {
+    orderByClause = `ORDER BY ${locationOrderPrefixInline}preference_score DESC, g.created_at DESC`;
+  } else if (hasLocationPreference) {
+    orderByClause = `ORDER BY location_priority ASC, g.created_at DESC`;
   }
   
   // Optimized query with distance calculation
@@ -559,6 +579,7 @@ export async function fetchOptimizedGirls(
       ) as girl_types_json
       ${distanceSelect}
       ${preferenceScoreSelect}
+      ${locationPrioritySelect}
     FROM girl_profiles g
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
