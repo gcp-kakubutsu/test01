@@ -528,6 +528,7 @@ export default function MaleOnboarding({ userId, userEmail, onComplete, onBack }
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 max-h-60">
+              <SelectItem value="こだわらない">こだわらない</SelectItem>
               <SelectItem value="東京都">東京都</SelectItem>
               <SelectItem value="神奈川県">神奈川県</SelectItem>
               <SelectItem value="大阪府">大阪府</SelectItem>
