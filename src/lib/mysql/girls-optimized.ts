@@ -2,6 +2,8 @@ import { cachedQuery, hasCacheKey } from './db-optimized';
 import { MySQLGirlProfile } from './girls';
 import { getOptionCategoryIds, getGirlTypeCategoryIds, resolveGirlTypeIdentifiers } from './metadata-cache';
 
+const GPS_AUTO_MAX_DISTANCE_KM = 80;
+
 /**
  * Optimized fetch with caching and parallel queries
  */
@@ -95,20 +97,27 @@ export async function fetchOptimizedGirls(
 
   // Generate cache key based on parameters
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
-  const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
-  const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
+  const hasValidUserCoords = typeof userLat === 'number' && !Number.isNaN(userLat) && typeof userLng === 'number' && !Number.isNaN(userLng);
+  const locationStr = hasValidUserCoords ? `${userLat!.toFixed(2)}_${userLng!.toFixed(2)}` : 'no_loc';
+  const hasLocationPreference = Boolean(partnerLocation && partnerLocation !== 'こだわらない');
+  const shouldAutoLimitToGpsRadius = !hasLocationPreference && hasValidUserCoords && (maxDistance === null || maxDistance === undefined);
+  const effectiveMaxDistance = shouldAutoLimitToGpsRadius ? GPS_AUTO_MAX_DISTANCE_KM : (maxDistance ?? null);
+  const distStr = effectiveMaxDistance ? `d${effectiveMaxDistance}` : 'no_dist';
   const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
   const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
-  const hasLocationPreference = Boolean(partnerLocation && partnerLocation !== 'こだわらない');
   const normalizedPartnerLocation = hasLocationPreference ? partnerLocation!.trim() : null;
   const escapedPartnerLocation = normalizedPartnerLocation ? normalizedPartnerLocation.replace(/'/g, "''") : null;
   const partnerLocationKey = normalizedPartnerLocation ?? (partnerLocation ?? 'n');
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
-  
+
   if (hasLocationPreference && normalizedPartnerLocation) {
     console.log('📍 [MySQL] Partner location preference prioritized:', normalizedPartnerLocation);
+  }
+
+  if (shouldAutoLimitToGpsRadius && effectiveMaxDistance) {
+    console.log(`📏 [MySQL] Auto-applying GPS radius ${effectiveMaxDistance}km for location-agnostic preference.`);
   }
   
   // Build optimized WHERE clause
@@ -190,11 +199,11 @@ export async function fetchOptimizedGirls(
   }
   
   // Add distance filtering if max distance specified
-  if (maxDistance && userLat && userLng) {
+  if (effectiveMaxDistance && hasValidUserCoords) {
     whereConditions.push(
       `(
         s.latitude IS NULL OR s.longitude IS NULL
-        OR ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${maxDistance}
+        OR ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${effectiveMaxDistance}
       )`
     );
   }
@@ -806,8 +815,11 @@ export async function prefetchNextPage(
   if (girlId) return;
   const nextOffset = currentOffset + limitCount;
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
-  const locationStr = userLat && userLng ? `${userLat.toFixed(2)}_${userLng.toFixed(2)}` : 'no_loc';
-  const distStr = maxDistance ? `d${maxDistance}` : 'no_dist';
+  const hasValidUserCoords = typeof userLat === 'number' && !Number.isNaN(userLat) && typeof userLng === 'number' && !Number.isNaN(userLng);
+  const locationStr = hasValidUserCoords ? `${userLat!.toFixed(2)}_${userLng!.toFixed(2)}` : 'no_loc';
+  const hasLocationPreference = Boolean(partnerLocation && partnerLocation !== 'こだわらない');
+  const effectiveMaxDistance = maxDistance ?? (hasLocationPreference || !hasValidUserCoords ? null : GPS_AUTO_MAX_DISTANCE_KM);
+  const distStr = effectiveMaxDistance ? `d${effectiveMaxDistance}` : 'no_dist';
   const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
   const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
@@ -816,7 +828,7 @@ export async function prefetchNextPage(
   // Check if already cached
   if (!hasCacheKey(cacheKey)) {
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes)
+      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, effectiveMaxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes)
         .catch(error => console.error('⚠️  Failed to prefetch next page:', error));
     }, 100);
   }

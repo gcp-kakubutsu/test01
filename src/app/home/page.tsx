@@ -37,6 +37,7 @@ import { fetchWithDedup, roundLocation, generateCacheKey } from '@/lib/utils/api
 const USERS_PER_PAGE = 20;
 const MIN_PARTNER_AGE = 18;
 const MAX_PARTNER_AGE = 50;
+const DEFAULT_GPS_RADIUS_KM = 80;
 const partnerAgeOptions = Array.from(
   { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
   (_, i) => MIN_PARTNER_AGE + i
@@ -716,6 +717,15 @@ export default function HomePage() {
       };
 
       let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}`;
+
+      const shouldApplyGpsRadius = (!malePreferences?.partnerLocation || malePreferences.partnerLocation === 'こだわらない')
+        && locationSource === 'user';
+
+      if (shouldApplyGpsRadius) {
+        params.maxDistance = DEFAULT_GPS_RADIUS_KM;
+        apiUrl += `&maxDistance=${DEFAULT_GPS_RADIUS_KM}`;
+        console.log(`📏 [fetchGirlsFromMySQL] Applying GPS radius ${DEFAULT_GPS_RADIUS_KM}km (partnerLocation='こだわらない')`);
+      }
 
       if (malePreferences) {
         if (malePreferences.recordingDuringPlay) {
