@@ -167,17 +167,43 @@ export async function OPTIONS(request: NextRequest) {
 
 // Prefetch popular queries on server start
 // Warm-up function for cache priming (not exported to avoid Next.js type issues)
+type WarmUpQuery = {
+  limit: number;
+  offset: number;
+  area: string | null;
+  ageMin?: number;
+  ageMax?: number;
+  girlTypes?: string[];
+  userLat?: number;
+  userLng?: number;
+  maxDistance?: number;
+};
+
 async function warmUp() {
-  const popularQueries = [
-    { limit: 200, offset: 0, area: null },
+  const popularQueries: WarmUpQuery[] = [
+    { limit: 200, offset: 0, area: null, userLat: 35.68, userLng: 139.76, maxDistance: 80 },
     { limit: 200, offset: 0, area: '東京都' },
     { limit: 200, offset: 0, area: '大阪府' },
     { limit: 200, offset: 0, area: '愛知県' },
+    { limit: 200, offset: 0, area: null, userLat: 34.69, userLng: 135.5, maxDistance: 80 },
   ];
   
   console.log('🔥 Warming up cache with popular queries...');
   
   for (const query of popularQueries) {
-    fetchOptimizedGirls(query.limit, query.offset, query.area);
+    fetchOptimizedGirls(
+      query.limit,
+      query.offset,
+      query.area,
+      query.ageMin,
+      query.ageMax,
+      query.girlTypes,
+      undefined,
+      query.userLat,
+      query.userLng,
+      query.maxDistance
+    ).catch(error => console.error('⚠️  Warm-up query failed:', error));
   }
 }
+
+warmUp().catch(error => console.error('⚠️  Failed to warm up popular search cache:', error));

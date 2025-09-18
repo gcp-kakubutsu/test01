@@ -3,6 +3,29 @@ import { MySQLGirlProfile } from './girls';
 import { getOptionCategoryIds, getGirlTypeCategoryIds, resolveGirlTypeIdentifiers } from './metadata-cache';
 
 const GPS_AUTO_MAX_DISTANCE_KM = 80;
+const EARTH_RADIUS_KM = 6371;
+
+function toFixed(value: number, digits: number = 6): number {
+  return Number.isFinite(value) ? Number(value.toFixed(digits)) : value;
+}
+
+function computeBoundingBox(lat: number, lng: number, radiusKm: number) {
+  const latRad = (lat * Math.PI) / 180;
+  const deltaLat = radiusKm / EARTH_RADIUS_KM;
+  const deltaLng = radiusKm / (EARTH_RADIUS_KM * Math.cos(latRad));
+
+  const minLat = lat - (deltaLat * 180) / Math.PI;
+  const maxLat = lat + (deltaLat * 180) / Math.PI;
+  const minLng = lng - (deltaLng * 180) / Math.PI;
+  const maxLng = lng + (deltaLng * 180) / Math.PI;
+
+  return {
+    minLat: toFixed(minLat),
+    maxLat: toFixed(maxLat),
+    minLng: toFixed(minLng),
+    maxLng: toFixed(maxLng)
+  };
+}
 
 /**
  * Optimized fetch with caching and parallel queries
@@ -199,13 +222,26 @@ export async function fetchOptimizedGirls(
   }
   
   // Add distance filtering if max distance specified
+  let boundingBoxClause = '';
   if (effectiveMaxDistance && hasValidUserCoords) {
+    const bounding = computeBoundingBox(userLat!, userLng!, effectiveMaxDistance);
+    boundingBoxClause = `s.latitude BETWEEN ${bounding.minLat} AND ${bounding.maxLat} AND s.longitude BETWEEN ${bounding.minLng} AND ${bounding.maxLng}`;
+    whereConditions.push(
+      `(
+        s.latitude IS NULL OR s.longitude IS NULL
+        OR (${boundingBoxClause})
+      )`
+    );
     whereConditions.push(
       `(
         s.latitude IS NULL OR s.longitude IS NULL
         OR ST_Distance_Sphere(POINT(s.longitude, s.latitude), POINT(${userLng}, ${userLat})) / 1000 <= ${effectiveMaxDistance}
       )`
     );
+  }
+
+  if (boundingBoxClause) {
+    console.log('🧭 [MySQL] Bounding box constraint:', boundingBoxClause);
   }
   
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`;

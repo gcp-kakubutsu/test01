@@ -57,6 +57,15 @@ const REQUIRED_INDEXES: IndexSpec[] = [
     description: '市区町村での検索最適化'
   },
   {
+    table: 'shop_profiles',
+    name: 'idx_shop_profiles_geo',
+    columns: [
+      { name: 'latitude' },
+      { name: 'longitude' }
+    ],
+    description: '位置情報検索向けの緯度経度インデックス'
+  },
+  {
     table: 'girl_status',
     name: 'idx_girl_status_girl_type',
     columns: [
@@ -202,4 +211,3 @@ export async function ensurePerformanceIndexes(pool: mysql.Pool): Promise<void> 
     ensureIndexesPromise = null;
   }
 }
-

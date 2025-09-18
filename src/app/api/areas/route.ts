@@ -8,16 +8,29 @@ const PREFECTURE_CACHE_TTL = 1000 * 60 * 10
 const MUNICIPALITY_CACHE_TTL = 1000 * 60 * 5
 
 const IN_MEMORY_CACHE_TTL = 1000 * 60 * 5
-let inMemoryCache:
-  | {
-      expires: number
-      data: {
-        prefectures: Array<any>
-        municipalities: Array<any>
-        success: true
-      }
-    }
-  | null = null
+
+interface PrefectureStat {
+  prefecture_id: number
+  prefecture_name: string
+  girl_count: number
+}
+
+interface MunicipalityStat {
+  municipality_id: number
+  municipality_name: string
+  prefecture_name: string
+  prefecture_id: number
+  full_name: string
+  girl_count: number
+}
+
+type AreaCachePayload = {
+  prefectures: PrefectureStat[]
+  municipalities: MunicipalityStat[]
+  success: true
+}
+
+let inMemoryCache: { expires: number; data: AreaCachePayload } | null = null
 
 export async function GET() {
   try {
@@ -27,11 +40,7 @@ export async function GET() {
 
     // Prefetch both datasets in parallel with caching to reduce load time
     const [prefectures, municipalities] = await Promise.all([
-      cachedQuery<{
-        prefecture_id: number
-        prefecture_name: string
-        girl_count: number
-      }>(
+      cachedQuery<PrefectureStat>(
         `SELECT 
           p.id AS prefecture_id,
           p.name AS prefecture_name,
@@ -55,14 +64,7 @@ export async function GET() {
         PREFECTURE_CACHE_KEY,
         PREFECTURE_CACHE_TTL
       ),
-      cachedQuery<{
-        municipality_id: number
-        municipality_name: string
-        prefecture_name: string
-        prefecture_id: number
-        full_name: string
-        girl_count: number
-      }>(
+      cachedQuery<MunicipalityStat>(
         `SELECT 
           m.id AS municipality_id,
           m.name AS municipality_name,
@@ -94,7 +96,7 @@ export async function GET() {
       )
     ])
 
-    const responsePayload = {
+    const responsePayload: AreaCachePayload = {
       prefectures,
       municipalities,
       success: true

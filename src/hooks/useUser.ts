@@ -55,7 +55,11 @@ export function useUser() {
       (docSnapshot) => {
         try {
           if (docSnapshot.exists()) {
-            const userData = { id: docSnapshot.id, ...docSnapshot.data() } as User;
+            const snapshotData = docSnapshot.data() as User;
+            const userData: User = {
+              ...snapshotData,
+              uid: snapshotData.uid ?? currentUser.uid
+            };
             console.log(`✅ User data loaded: ${userData.uid}`, {
               hasPaymentUid: !!userData.payment_uid,
               paymentUid: userData.payment_uid
