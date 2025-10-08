@@ -9,7 +9,7 @@ export const SNSSection: React.FC = () => {
         <h2 className={styles.title}>NUKUNE公式アカウント</h2>
         <div className={styles.iconsWrapper}>
           <a 
-            href="https://www.instagram.com/nukune_official" 
+            href="https://www.instagram.com/nukunejapan_official/" 
             target="_blank" 
             rel="noopener noreferrer"
             className={styles.iconLink}
@@ -25,7 +25,7 @@ export const SNSSection: React.FC = () => {
           </a>
           
           <a 
-            href="https://x.com/nukune_official" 
+            href="https://x.com/NukuneJ83424" 
             target="_blank" 
             rel="noopener noreferrer"
             className={styles.iconLink}
@@ -43,7 +43,7 @@ export const SNSSection: React.FC = () => {
           </a>
           
           <a 
-            href="https://www.tiktok.com/@nukune_official" 
+            href="https://www.tiktok.com/@nukune.official" 
             target="_blank" 
             rel="noopener noreferrer"
             className={styles.iconLink}
@@ -61,7 +61,7 @@ export const SNSSection: React.FC = () => {
           </a>
           
           <a 
-            href="https://www.youtube.com/channel/UCsMdYyKVDX54jvT2lWv0lCQ" 
+            href="https://www.youtube.com/@NUKUNEMAN" 
             target="_blank" 
             rel="noopener noreferrer"
             className={styles.iconLink}
