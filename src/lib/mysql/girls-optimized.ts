@@ -31,7 +31,7 @@ function computeBoundingBox(lat: number, lng: number, radiusKm: number) {
  * Optimized fetch with caching and parallel queries
  */
 export async function fetchOptimizedGirls(
-  limitCount: number = 200,
+  limitCount: number = 20,
   offset: number = 0,
   area?: string | null,
   ageMin: number = 18,
@@ -787,9 +787,12 @@ export async function fetchOptimizedGirls(
   
   // Execute both queries in parallel with caching
   // モバイルの場合はキャッシュTTLを短くする
-  const isMobileRequest = limitCount === 1000 && area && area.includes('都');
-  const girlsCacheTTL = isMobileRequest ? 30000 : 60000; // モバイルは30秒、PCは1分
-  const countCacheTTL = isMobileRequest ? 60000 : 300000; // モバイルは1分、PCは5分
+  const isHotTodayRequest =
+    limitCount <= 20 &&
+    offset === 0 &&
+    scheduleDateExpression === 'CURDATE()';
+  const girlsCacheTTL = isHotTodayRequest ? 30000 : 60000; // ホットパスは30秒、その他は1分
+  const countCacheTTL = isHotTodayRequest ? 60000 : 300000; // ホットパスは1分、その他は5分
   
   const [girlsResult, countResult] = await Promise.all([
     cachedQuery<any>(girlsQuery, [], cacheKey, girlsCacheTTL),
@@ -865,7 +868,7 @@ export async function fetchOptimizedGirls(
  */
 export async function prefetchNextPage(
   currentOffset: number,
-  limitCount: number = 200,
+  limitCount: number = 20,
   area?: string | null,
   ageMin: number = 18,
   ageMax: number = 50,

@@ -2,16 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchOptimizedGirls, prefetchNextPage } from '@/lib/mysql/girls-optimized';
 import { getPerformanceMetrics } from '@/lib/mysql/db-optimized';
 import { fetchMySQLGirls } from '@/lib/mysql/girls';
+import { LRUCache } from 'lru-cache';
 
 // Enable edge runtime for better performance
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Revalidate cache every 60 seconds
 
+const HOT_RESPONSE_TTL_MS = 1000;
+const hotResponseCache = new LRUCache<string, { body: any; headers: Record<string, string> }>({
+  max: 200,
+  ttl: HOT_RESPONSE_TTL_MS,
+});
+
 export async function GET(request: NextRequest) {
   const startTime = performance.now();
   const searchParams = request.nextUrl.searchParams;
-  const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 1000);
+  const requestedLimit = parseInt(searchParams.get('limit') || '20');
+  const limit = Number.isNaN(requestedLimit) ? 20 : Math.min(requestedLimit, 50);
   const offset = parseInt(searchParams.get('offset') || '0');
   const area = searchParams.get('area') || null;
   const ageMinParam = parseInt(searchParams.get('ageMin') || '18');
@@ -41,7 +49,7 @@ export async function GET(request: NextRequest) {
   const preferredBodyTypesParam = searchParams.get('preferredBodyTypes');
   const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
   const scheduleDateParam = searchParams.get('scheduleDate');
-  const scheduleDate = scheduleDateParam ? scheduleDateParam.trim() : null;
+  const scheduleDate = scheduleDateParam ? scheduleDateParam.trim() : 'today';
 
   if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
     console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });
@@ -49,6 +57,53 @@ export async function GET(request: NextRequest) {
       { error: 'Invalid query parameters' },
       { status: 400 }
     );
+  }
+
+  const girlTypesKey = girlTypes?.join(',') || '';
+  const preferredGirlTypesKey = preferredGirlTypeIds?.join(',') || '';
+  const preferredBodyTypesKey = preferredBodyTypes?.join(',') || '';
+  const cacheKeyBase = [
+    limit,
+    offset,
+    area || 'all',
+    ageMin,
+    ageMax,
+    girlTypesKey,
+    userLat ? userLat.toFixed(2) : 'na',
+    userLng ? userLng.toFixed(2) : 'na',
+    maxDistance ?? 'na',
+    recordingDuringPlay || 'na',
+    isSadist || 'na',
+    isMasochist || 'na',
+    partnerHeight || 'na',
+    partnerWeight || 'na',
+    partnerLocation || 'na',
+    cosplayPreference ?? 'na',
+    toyPlayPreference ?? 'na',
+    deepthroatPreference ?? 'na',
+    throatingPreference ?? 'na',
+    analPlayPreference ?? 'na',
+    groupPlayPreference ?? 'na',
+    preferredGirlTypesKey,
+    preferredBodyTypesKey,
+    scheduleDate || 'na'
+  ].join(':');
+
+  const isHotCacheable =
+    limit <= 20 &&
+    offset % limit === 0 &&
+    scheduleDate === 'today';
+
+  const responseCacheKey = isHotCacheable ? `resp:${cacheKeyBase}` : null;
+
+  if (responseCacheKey) {
+    const cached = hotResponseCache.get(responseCacheKey);
+    if (cached) {
+      const cachedResponse = NextResponse.json(cached.body);
+      Object.entries(cached.headers).forEach(([key, value]) => cachedResponse.headers.set(key, value));
+      cachedResponse.headers.set('X-Cache', 'HIT');
+      return cachedResponse;
+    }
   }
 
   try {
@@ -92,7 +147,7 @@ export async function GET(request: NextRequest) {
     const metrics = getPerformanceMetrics();
     
     // Create response with optimized headers
-    const response = NextResponse.json({
+    const responsePayload = {
       girls,
       total,
       limit,
@@ -103,7 +158,9 @@ export async function GET(request: NextRequest) {
         cacheHitRate: metrics.cacheHitRate.toFixed(2),
         averageQueryTime: Math.round(metrics.averageQueryTime)
       }
-    });
+    };
+
+    const response = NextResponse.json(responsePayload);
     
     // Add cache headers for CDN
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
@@ -118,6 +175,21 @@ export async function GET(request: NextRequest) {
     // Note: Content-Encoding is handled automatically by Next.js
     
     console.log(`✅ Fast API Response: ${responseTime.toFixed(2)}ms for ${girls.length} girls`);
+
+    if (responseCacheKey) {
+      hotResponseCache.set(responseCacheKey, {
+        body: responsePayload,
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          'CDN-Cache-Control': 'max-age=300',
+          'X-Response-Time': `${responseTime}ms`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+      response.headers.set('X-Cache', 'MISS');
+    }
     
     return response;
   } catch (error: any) {
@@ -185,11 +257,11 @@ type WarmUpQuery = {
 
 async function warmUp() {
   const popularQueries: WarmUpQuery[] = [
-    { limit: 1000, offset: 0, area: null, userLat: 35.68, userLng: 139.76, maxDistance: 80, scheduleDate: 'today' },
-    { limit: 1000, offset: 0, area: '東京都', scheduleDate: 'today' },
-    { limit: 1000, offset: 0, area: '大阪府', scheduleDate: 'today' },
-    { limit: 1000, offset: 0, area: '愛知県', scheduleDate: 'today' },
-    { limit: 1000, offset: 0, area: null, userLat: 34.69, userLng: 135.5, maxDistance: 80, scheduleDate: 'today' },
+    { limit: 20, offset: 0, area: null, userLat: 35.68, userLng: 139.76, maxDistance: 80, scheduleDate: 'today' },
+    { limit: 20, offset: 0, area: '東京都', scheduleDate: 'today' },
+    { limit: 20, offset: 0, area: '大阪府', scheduleDate: 'today' },
+    { limit: 20, offset: 0, area: '愛知県', scheduleDate: 'today' },
+    { limit: 20, offset: 0, area: null, userLat: 34.69, userLng: 135.5, maxDistance: 80, scheduleDate: 'today' },
   ];
   
   console.log('🔥 Warming up cache with popular queries...');

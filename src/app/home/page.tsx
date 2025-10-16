@@ -38,7 +38,7 @@ const USERS_PER_PAGE = 20;
 const MIN_PARTNER_AGE = 18;
 const MAX_PARTNER_AGE = 50;
 const DEFAULT_GPS_RADIUS_KM = 80;
-const GIRL_BATCH_SIZE = 1000;
+const GIRL_BATCH_SIZE = 20;
 const partnerAgeOptions = Array.from(
   { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
   (_, i) => MIN_PARTNER_AGE + i
