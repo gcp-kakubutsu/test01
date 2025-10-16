@@ -14,6 +14,12 @@ interface IndexSpec {
   description?: string;
 }
 
+interface ColumnInfo {
+  dataType: string;
+  characterMaximumLength: number | null;
+  columnType: string;
+}
+
 const REQUIRED_INDEXES: IndexSpec[] = [
   {
     table: 'girl_profiles',
@@ -147,18 +153,83 @@ const REQUIRED_INDEXES: IndexSpec[] = [
 
 let ensureIndexesPromise: Promise<void> | null = null;
 
+const columnMetadataCache = new Map<string, Map<string, ColumnInfo>>();
+
+async function getColumnInfo(
+  connection: mysql.PoolConnection,
+  table: string,
+  column: string
+): Promise<ColumnInfo | undefined> {
+  const normalizedTable = table.toLowerCase();
+  let tableCache = columnMetadataCache.get(normalizedTable);
+  if (!tableCache) {
+    const [rows] = await connection.query<mysql.RowDataPacket[]>(
+      `SELECT column_name, data_type, character_maximum_length, column_type
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = ?`,
+      [table]
+    );
+    tableCache = new Map<string, ColumnInfo>();
+    for (const row of rows) {
+      tableCache.set(String(row.COLUMN_NAME).toLowerCase(), {
+        dataType: String(row.DATA_TYPE).toLowerCase(),
+        characterMaximumLength:
+          row.CHARACTER_MAXIMUM_LENGTH === null
+            ? null
+            : Number(row.CHARACTER_MAXIMUM_LENGTH),
+        columnType: String(row.COLUMN_TYPE)
+      });
+    }
+    columnMetadataCache.set(normalizedTable, tableCache);
+  }
+  return tableCache.get(column.toLowerCase());
+}
+
 async function createIndex(connection: mysql.PoolConnection, spec: IndexSpec) {
-  const columns = spec.columns
-    .map(column => {
-      const columnName = column.name.includes('(')
-        ? column.name
-        : `\`${column.name}\``;
-      const length = column.length && !column.name.includes('(')
-        ? `(${column.length})`
-        : '';
-      return `${columnName}${length}`;
-    })
-    .join(', ');
+  const columnDefinitions: string[] = [];
+
+  for (const column of spec.columns) {
+    const columnName = column.name.includes('(')
+      ? column.name
+      : `\`${column.name}\``;
+    let lengthClause = '';
+
+    if (column.length && !column.name.includes('(')) {
+      const info = await getColumnInfo(connection, spec.table, column.name);
+      if (info) {
+        const isStringType = [
+          'char',
+          'varchar',
+          'tinytext',
+          'text',
+          'mediumtext',
+          'longtext',
+          'enum',
+          'set',
+          'nvarchar',
+          'nchar'
+        ].includes(info.dataType);
+        if (isStringType) {
+          if (info.characterMaximumLength && Number.isFinite(info.characterMaximumLength)) {
+            const safeLength = Math.min(column.length, info.characterMaximumLength);
+            lengthClause = safeLength > 0 ? `(${safeLength})` : '';
+          } else if (info.dataType.includes('text')) {
+            const safeLength = Math.min(column.length, 191);
+            lengthClause = safeLength > 0 ? `(${safeLength})` : '';
+          } else {
+            lengthClause = `(${column.length})`;
+          }
+        }
+      } else {
+        lengthClause = `(${column.length})`;
+      }
+    }
+
+    columnDefinitions.push(`${columnName}${lengthClause}`);
+  }
+
+  const columns = columnDefinitions.join(', ');
 
   const indexType = spec.type === 'FULLTEXT' ? 'FULLTEXT INDEX' : 'INDEX';
   const parserClause = spec.type === 'FULLTEXT' && spec.parser
