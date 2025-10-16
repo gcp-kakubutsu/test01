@@ -62,6 +62,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'contents.purelovers.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
     formats: ['image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -127,7 +133,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co https://nukipedia-frontend.s3.ap-northeast-1.amazonaws.com https://s3.ap-northeast-1.amazonaws.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://www.google.com https://www.recaptcha.net https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self' https://secure.telecomcredit.co.jp; upgrade-insecure-requests;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.googleapis.com https://firebasestorage.googleapis.com https://*.nukipedia.jp http://*.nukipedia.jp https://placehold.co https://nukipedia-frontend.s3.ap-northeast-1.amazonaws.com https://s3.ap-northeast-1.amazonaws.com https://contents.purelovers.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://www.google.com https://www.recaptcha.net https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self' https://secure.telecomcredit.co.jp; upgrade-insecure-requests;"
           }
         ],
       },

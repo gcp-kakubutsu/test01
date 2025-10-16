@@ -370,7 +370,8 @@ export default function HomePage() {
     // （変更の有無に関わらず、ユーザーが「非表示」を押したら保存する）
     if (tempPreferences && currentUser) {
       // 実際に変更があるかをチェック（デバッグ用）
-      const hasActualChanges = JSON.stringify(tempPreferences) !== JSON.stringify(preferences);
+      const sanitizedPreferencesToSave = sanitizePartnerAgeRange({ ...tempPreferences });
+      const hasActualChanges = JSON.stringify(sanitizedPreferencesToSave) !== JSON.stringify(preferences);
       console.log('hasActualChanges:', hasActualChanges);
 
       const previousLocationPref = preferences?.partnerLocation ?? 'こだわらない';
@@ -378,24 +379,24 @@ export default function HomePage() {
       try {
         setSavingPreferences(true);
         
-        console.log('Saving preferences to Firebase:', tempPreferences);
+        console.log('Saving preferences to Firebase:', sanitizedPreferencesToSave);
         
         // Firebaseに保存
-        await saveMalePreferences(currentUser.uid, tempPreferences);
+        await saveMalePreferences(currentUser.uid, sanitizedPreferencesToSave);
         
         console.log('Firebase save completed successfully');
         
         // ローカルステートを更新
-        setPreferences(sanitizePartnerAgeRange(tempPreferences));
+        setPreferences(sanitizedPreferencesToSave);
         
-        const nextLocationPref = tempPreferences.partnerLocation ?? 'こだわらない';
+        const nextLocationPref = sanitizedPreferencesToSave.partnerLocation ?? 'こだわらない';
         const locationPreferenceChanged = previousLocationPref !== nextLocationPref;
 
         if (hasActualChanges) {
           if (locationPreferenceChanged) {
             console.log('Location preference changed, refetching girls...');
             try {
-              await fetchGirlsFromMySQL({ offset: 0, append: false });
+              await fetchGirlsFromMySQL({ offset: 0, append: false, preferencesOverride: sanitizedPreferencesToSave });
             } catch (refetchError) {
               console.error('Failed to refetch girls after location change:', refetchError);
             }
@@ -669,8 +670,8 @@ export default function HomePage() {
   const [nextOffset, setNextOffset] = useState(0);
   const [hasMoreGirls, setHasMoreGirls] = useState(true);
   const [isFetchingMoreGirls, setIsFetchingMoreGirls] = useState(false);
-  const fetchGirlsFromMySQL = useCallback(async (options?: { offset?: number; append?: boolean }) => {
-    const { offset = 0, append = false } = options ?? {};
+  const fetchGirlsFromMySQL = useCallback(async (options?: { offset?: number; append?: boolean; preferencesOverride?: MalePreferences | null }) => {
+    const { offset = 0, append = false, preferencesOverride = null } = options ?? {};
     const scheduleDateParam = 'today';
 
     if (append && (isFetchingMoreGirls || !hasMoreGirls)) {
@@ -695,7 +696,7 @@ export default function HomePage() {
     }
 
     try {
-      let malePreferencesData = preferences;
+      let malePreferencesData = preferencesOverride ?? preferences;
       if (!malePreferencesData && currentUser?.uid) {
         try {
           const fetchedPrefs = await getMalePreferences(currentUser.uid);

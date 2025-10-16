@@ -1,4 +1,4 @@
-import { cachedQuery, hasCacheKey } from './db-optimized';
+import { cachedQuery, hasCacheKey, hasTableColumn } from './db-optimized';
 import { MySQLGirlProfile } from './girls';
 import { getOptionCategoryIds, getGirlTypeCategoryIds, resolveGirlTypeIdentifiers } from './metadata-cache';
 
@@ -269,13 +269,20 @@ export async function fetchOptimizedGirls(
   let scheduleSelect = '';
 
   if (scheduleDateExpression) {
+    const hasScheduleDeletedAt = await hasTableColumn('girl_schedules', 'deleted_at');
+    const scheduleConditions = [
+      hasScheduleDeletedAt ? 'gs.deleted_at IS NULL' : null,
+      `gs.schedule_date = ${scheduleDateExpression}`
+    ].filter((condition): condition is string => condition !== null);
+    const scheduleWhere = scheduleConditions.length
+      ? `\n        WHERE ${scheduleConditions.join('\n          AND ')}`
+      : '';
+
     scheduleJoin = `
       INNER JOIN (
         SELECT /* idx_girl_schedules_date_girl */
           gs.girl_profile_id
-        FROM girl_schedules gs FORCE INDEX (idx_girl_schedules_date_girl)
-        WHERE gs.deleted_at IS NULL
-          AND gs.schedule_date = ${scheduleDateExpression}
+        FROM girl_schedules gs FORCE INDEX (idx_girl_schedules_date_girl)${scheduleWhere}
         GROUP BY gs.girl_profile_id
       ) schedule_today ON schedule_today.girl_profile_id = g.id
     `;

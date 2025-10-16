@@ -13,6 +13,10 @@ const cache = new LRUCache<string, any>({
   updateAgeOnHas: true,
 });
 
+// Schema metadata cache to avoid repeated information_schema lookups
+const schemaColumnCache = new Map<string, boolean>();
+const schemaColumnCheckPromises = new Map<string, Promise<boolean>>();
+
 // Performance monitoring
 interface QueryMetrics {
   query: string;
@@ -71,6 +75,39 @@ async function warmUpConnections() {
   }
   await Promise.all(warmUpPromises);
   console.log('Connection pool warmed up');
+}
+
+export async function hasTableColumn(table: string, column: string): Promise<boolean> {
+  const key = `${table.toLowerCase()}:${column.toLowerCase()}`;
+  if (schemaColumnCache.has(key)) {
+    return schemaColumnCache.get(key)!;
+  }
+  if (schemaColumnCheckPromises.has(key)) {
+    return schemaColumnCheckPromises.get(key)!;
+  }
+
+  const promise = (async () => {
+    try {
+      const db = await getOptimizedDb();
+      const [rows] = await db.query<mysql.RowDataPacket[]>(
+        `SELECT 1
+           FROM information_schema.columns
+          WHERE table_schema = DATABASE()
+            AND table_name = ?
+            AND column_name = ?
+          LIMIT 1`,
+        [table, column]
+      );
+      const exists = rows.length > 0;
+      schemaColumnCache.set(key, exists);
+      return exists;
+    } finally {
+      schemaColumnCheckPromises.delete(key);
+    }
+  })();
+
+  schemaColumnCheckPromises.set(key, promise);
+  return promise;
 }
 
 // Cached query with performance monitoring
