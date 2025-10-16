@@ -38,6 +38,7 @@ const USERS_PER_PAGE = 20;
 const MIN_PARTNER_AGE = 18;
 const MAX_PARTNER_AGE = 50;
 const DEFAULT_GPS_RADIUS_KM = 80;
+const GIRL_BATCH_SIZE = 1000;
 const partnerAgeOptions = Array.from(
   { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
   (_, i) => MIN_PARTNER_AGE + i
@@ -129,7 +130,9 @@ export default function HomePage() {
   const [sortedGirlsCache, setSortedGirlsCache] = useState<GirlWithDetails[] | null>(null); // ソート済みデータのキャッシュ
   const [isSorting, setIsSorting] = useState(false); // ソート処理中フラグ
   const [hasInitialSort, setHasInitialSort] = useState(false); // 初回ソート完了フラグ
+  const [totalGirlsCount, setTotalGirlsCount] = useState<number | null>(null); // サーバーが返す総件数
   const authStateRef = useRef({ currentUser, userProfile, firebaseSynced }); // 認証状態の参照
+  const autoFetchTriggeredRef = useRef(false); // 初期オートフェッチの実行フラグ
   
   // 認証状態の参照を更新
   useEffect(() => {
@@ -141,7 +144,7 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [girlTypes, setGirlTypes] = useState<any[]>([]); // 女の子タイプのマスターデータ
-  const [selectedGirlTypes, setSelectedGirlTypes] = useState<number[]>([]); // 選択された女の子タイプID
+  const [selectedGirlTypes, setSelectedGirlTypes] = useState<number[]>([]); // 選択された女の子タイプID（UI用）
   const [showTypeFilter, setShowTypeFilter] = useState(false); // タイプフィルター表示フラグ
   const [showPreferenceSliders, setShowPreferenceSliders] = useState(false); // 嗜好スライダー表示フラグ
   const [preferences, setPreferences] = useState<MalePreferences | null>(null); // ユーザーの嗜好設定
@@ -392,7 +395,7 @@ export default function HomePage() {
           if (locationPreferenceChanged) {
             console.log('Location preference changed, refetching girls...');
             try {
-              await fetchGirlsFromMySQL();
+              await fetchGirlsFromMySQL({ offset: 0, append: false });
             } catch (refetchError) {
               console.error('Failed to refetch girls after location change:', refetchError);
             }
@@ -654,7 +657,7 @@ export default function HomePage() {
       // 位置情報が取得できたら初回のみDBから取得（位置情報付きで）
       console.log('📍 Location available, fetching with distance sorting...');
       setInitialFetchDone(true);
-      fetchGirlsFromMySQL();
+      fetchGirlsFromMySQL({ offset: 0, append: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
@@ -663,17 +666,44 @@ export default function HomePage() {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   // MySQLからの女の子データ取得（最適化版 - mysql-girls-fast + MySQL側ソート）
-  const fetchGirlsFromMySQL = useCallback(async () => {
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMoreGirls, setHasMoreGirls] = useState(true);
+  const [isFetchingMoreGirls, setIsFetchingMoreGirls] = useState(false);
+  const fetchGirlsFromMySQL = useCallback(async (options?: { offset?: number; append?: boolean }) => {
+    const { offset = 0, append = false } = options ?? {};
+    const scheduleDateParam = 'today';
+
+    if (append && (isFetchingMoreGirls || !hasMoreGirls)) {
+      console.log(`[fetchGirlsFromMySQL] Skipping append fetch (hasMore=${hasMoreGirls}, busy=${isFetchingMoreGirls})`);
+      return;
+    }
+
     const fetchStartTime = performance.now();
-    console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch with server-side sorting...');
+    console.log('🚀 [fetchGirlsFromMySQL] Starting optimized data fetch with server-side sorting...', {
+      offset,
+      append,
+      limit: GIRL_BATCH_SIZE
+    });
     console.log('[fetchGirlsFromMySQL] User location:', userLocation);
 
+    setIsFetchingMoreGirls(true);
+    if (!append) {
+      setIsSorting(true);
+      setHasMoreGirls(true);
+      setNextOffset(offset);
+      setTotalGirlsCount(null);
+    }
+
     try {
-      let malePreferences = null;
-      if (currentUser?.uid) {
+      let malePreferencesData = preferences;
+      if (!malePreferencesData && currentUser?.uid) {
         try {
-          malePreferences = await getMalePreferences(currentUser.uid);
-          console.log('[fetchGirlsFromMySQL] User preferences loaded:', malePreferences ? 'yes' : 'no');
+          const fetchedPrefs = await getMalePreferences(currentUser.uid);
+          malePreferencesData = fetchedPrefs ? sanitizePartnerAgeRange(fetchedPrefs) : null;
+          if (fetchedPrefs) {
+            setPreferences(sanitizePartnerAgeRange(fetchedPrefs));
+          }
+          console.log('[fetchGirlsFromMySQL] User preferences loaded:', fetchedPrefs ? 'yes' : 'no');
         } catch (error) {
           console.warn('[fetchGirlsFromMySQL] Could not load preferences:', error);
         }
@@ -683,14 +713,14 @@ export default function HomePage() {
       let normalizedLocation: { lat: number; lng: number } | null = null;
       let locationSource: 'preference' | 'user' | 'fallback' = 'fallback';
 
-      if (malePreferences?.partnerLocation && malePreferences.partnerLocation !== 'こだわらない') {
-        const preferredCoords = getLocationCoordinates(malePreferences.partnerLocation);
+      if (malePreferencesData?.partnerLocation && malePreferencesData.partnerLocation !== 'こだわらない') {
+        const preferredCoords = getLocationCoordinates(malePreferencesData.partnerLocation);
         if (preferredCoords) {
           normalizedLocation = roundLocation(preferredCoords.lat, preferredCoords.lng, 3);
           locationSource = 'preference';
-          console.log(`📍 [fetchGirlsFromMySQL] Using preferred location '${malePreferences.partnerLocation}' -> lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
+          console.log(`📍 [fetchGirlsFromMySQL] Using preferred location '${malePreferencesData.partnerLocation}' -> lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
         } else {
-          console.log(`⚠️ [fetchGirlsFromMySQL] Preferred location '${malePreferences.partnerLocation}' has no predefined coordinates, trying user geolocation next.`);
+          console.log(`⚠️ [fetchGirlsFromMySQL] Preferred location '${malePreferencesData.partnerLocation}' has no predefined coordinates, trying user geolocation next.`);
         }
       }
 
@@ -709,16 +739,24 @@ export default function HomePage() {
 
       const locationForQuery = normalizedLocation ?? fallbackLocation;
 
+      const combinedPreferredGirlTypeIds = Array.from(
+        new Set([
+          ...(malePreferencesData?.girlTypeIds || []),
+          ...selectedGirlTypes
+        ])
+      );
+
       const params: Record<string, any> = {
-        limit: 200,
-        offset: 0,
+        limit: GIRL_BATCH_SIZE,
+        offset,
         userLat: locationForQuery.lat,
         userLng: locationForQuery.lng,
+        scheduleDate: scheduleDateParam
       };
 
-      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}`;
+      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}&scheduleDate=${scheduleDateParam}`;
 
-      const shouldApplyGpsRadius = (!malePreferences?.partnerLocation || malePreferences.partnerLocation === 'こだわらない')
+      const shouldApplyGpsRadius = (!malePreferencesData?.partnerLocation || malePreferencesData.partnerLocation === 'こだわらない')
         && locationSource === 'user';
 
       if (shouldApplyGpsRadius) {
@@ -727,70 +765,71 @@ export default function HomePage() {
         console.log(`📏 [fetchGirlsFromMySQL] Applying GPS radius ${DEFAULT_GPS_RADIUS_KM}km (partnerLocation='こだわらない')`);
       }
 
-      if (malePreferences) {
-        if (malePreferences.recordingDuringPlay) {
-          apiUrl += `&recordingDuringPlay=${encodeURIComponent(malePreferences.recordingDuringPlay)}`;
-          params.recordingDuringPlay = malePreferences.recordingDuringPlay;
+      if (combinedPreferredGirlTypeIds.length > 0) {
+        apiUrl += `&preferredGirlTypeIds=${combinedPreferredGirlTypeIds.join(',')}`;
+        params.preferredGirlTypeIds = combinedPreferredGirlTypeIds;
+      }
+
+      if (malePreferencesData) {
+        if (malePreferencesData.recordingDuringPlay) {
+          apiUrl += `&recordingDuringPlay=${encodeURIComponent(malePreferencesData.recordingDuringPlay)}`;
+          params.recordingDuringPlay = malePreferencesData.recordingDuringPlay;
         }
-        if (malePreferences.isSadist) {
-          apiUrl += `&isSadist=${encodeURIComponent(malePreferences.isSadist)}`;
-          params.isSadist = malePreferences.isSadist;
+        if (malePreferencesData.isSadist) {
+          apiUrl += `&isSadist=${encodeURIComponent(malePreferencesData.isSadist)}`;
+          params.isSadist = malePreferencesData.isSadist;
         }
-        if (malePreferences.isMasochist) {
-          apiUrl += `&isMasochist=${encodeURIComponent(malePreferences.isMasochist)}`;
-          params.isMasochist = malePreferences.isMasochist;
+        if (malePreferencesData.isMasochist) {
+          apiUrl += `&isMasochist=${encodeURIComponent(malePreferencesData.isMasochist)}`;
+          params.isMasochist = malePreferencesData.isMasochist;
         }
-        if (malePreferences.cosplay !== undefined) {
-          apiUrl += `&cosplayPreference=${malePreferences.cosplay}`;
-          params.cosplayPreference = malePreferences.cosplay;
+        if (malePreferencesData.cosplay !== undefined) {
+          apiUrl += `&cosplayPreference=${malePreferencesData.cosplay}`;
+          params.cosplayPreference = malePreferencesData.cosplay;
         }
-        if (malePreferences.toyPlay !== undefined) {
-          apiUrl += `&toyPlayPreference=${malePreferences.toyPlay}`;
-          params.toyPlayPreference = malePreferences.toyPlay;
+        if (malePreferencesData.toyPlay !== undefined) {
+          apiUrl += `&toyPlayPreference=${malePreferencesData.toyPlay}`;
+          params.toyPlayPreference = malePreferencesData.toyPlay;
         }
-        if (malePreferences.deepthroat !== undefined) {
-          apiUrl += `&deepthroatPreference=${malePreferences.deepthroat}`;
-          params.deepthroatPreference = malePreferences.deepthroat;
+        if (malePreferencesData.deepthroat !== undefined) {
+          apiUrl += `&deepthroatPreference=${malePreferencesData.deepthroat}`;
+          params.deepthroatPreference = malePreferencesData.deepthroat;
         }
-        if (malePreferences.throating !== undefined) {
-          apiUrl += `&throatingPreference=${malePreferences.throating}`;
-          params.throatingPreference = malePreferences.throating;
+        if (malePreferencesData.throating !== undefined) {
+          apiUrl += `&throatingPreference=${malePreferencesData.throating}`;
+          params.throatingPreference = malePreferencesData.throating;
         }
-        if (malePreferences.analPlay !== undefined) {
-          apiUrl += `&analPlayPreference=${malePreferences.analPlay}`;
-          params.analPlayPreference = malePreferences.analPlay;
+        if (malePreferencesData.analPlay !== undefined) {
+          apiUrl += `&analPlayPreference=${malePreferencesData.analPlay}`;
+          params.analPlayPreference = malePreferencesData.analPlay;
         }
-        if (malePreferences.groupPlay !== undefined) {
-          apiUrl += `&groupPlayPreference=${malePreferences.groupPlay}`;
-          params.groupPlayPreference = malePreferences.groupPlay;
+        if (malePreferencesData.groupPlay !== undefined) {
+          apiUrl += `&groupPlayPreference=${malePreferencesData.groupPlay}`;
+          params.groupPlayPreference = malePreferencesData.groupPlay;
         }
-        if (malePreferences.girlTypeIds && malePreferences.girlTypeIds.length > 0) {
-          apiUrl += `&preferredGirlTypeIds=${malePreferences.girlTypeIds.join(',')}`;
-          params.preferredGirlTypeIds = malePreferences.girlTypeIds;
+        if (malePreferencesData.partnerBodyTypes && malePreferencesData.partnerBodyTypes.length > 0) {
+          apiUrl += `&preferredBodyTypes=${encodeURIComponent(malePreferencesData.partnerBodyTypes.join(','))}`;
+          params.preferredBodyTypes = malePreferencesData.partnerBodyTypes;
         }
-        if (malePreferences.partnerBodyTypes && malePreferences.partnerBodyTypes.length > 0) {
-          apiUrl += `&preferredBodyTypes=${encodeURIComponent(malePreferences.partnerBodyTypes.join(','))}`;
-          params.preferredBodyTypes = malePreferences.partnerBodyTypes;
+        if (malePreferencesData.partnerAgeMin !== undefined && malePreferencesData.partnerAgeMin !== null && !isNaN(malePreferencesData.partnerAgeMin)) {
+          apiUrl += `&ageMin=${malePreferencesData.partnerAgeMin}`;
+          params.ageMin = malePreferencesData.partnerAgeMin;
         }
-        if (malePreferences.partnerAgeMin !== undefined && malePreferences.partnerAgeMin !== null && !isNaN(malePreferences.partnerAgeMin)) {
-          apiUrl += `&ageMin=${malePreferences.partnerAgeMin}`;
-          params.ageMin = malePreferences.partnerAgeMin;
+        if (malePreferencesData.partnerAgeMax !== undefined && malePreferencesData.partnerAgeMax !== null && !isNaN(malePreferencesData.partnerAgeMax)) {
+          apiUrl += `&ageMax=${malePreferencesData.partnerAgeMax}`;
+          params.ageMax = malePreferencesData.partnerAgeMax;
         }
-        if (malePreferences.partnerAgeMax !== undefined && malePreferences.partnerAgeMax !== null && !isNaN(malePreferences.partnerAgeMax)) {
-          apiUrl += `&ageMax=${malePreferences.partnerAgeMax}`;
-          params.ageMax = malePreferences.partnerAgeMax;
+        if (malePreferencesData.partnerHeight) {
+          apiUrl += `&partnerHeight=${encodeURIComponent(malePreferencesData.partnerHeight)}`;
+          params.partnerHeight = malePreferencesData.partnerHeight;
         }
-        if (malePreferences.partnerHeight) {
-          apiUrl += `&partnerHeight=${encodeURIComponent(malePreferences.partnerHeight)}`;
-          params.partnerHeight = malePreferences.partnerHeight;
+        if (malePreferencesData.partnerWeight) {
+          apiUrl += `&partnerWeight=${encodeURIComponent(malePreferencesData.partnerWeight)}`;
+          params.partnerWeight = malePreferencesData.partnerWeight;
         }
-        if (malePreferences.partnerWeight) {
-          apiUrl += `&partnerWeight=${encodeURIComponent(malePreferences.partnerWeight)}`;
-          params.partnerWeight = malePreferences.partnerWeight;
-        }
-        if (malePreferences.partnerLocation && malePreferences.partnerLocation !== 'こだわらない') {
-          apiUrl += `&partnerLocation=${encodeURIComponent(malePreferences.partnerLocation)}`;
-          params.partnerLocation = malePreferences.partnerLocation;
+        if (malePreferencesData.partnerLocation && malePreferencesData.partnerLocation !== 'こだわらない') {
+          apiUrl += `&partnerLocation=${encodeURIComponent(malePreferencesData.partnerLocation)}`;
+          params.partnerLocation = malePreferencesData.partnerLocation;
         }
       }
 
@@ -810,12 +849,15 @@ export default function HomePage() {
         cacheHitRate: data?.performance?.cacheHitRate || 0,
         girls: data?.girls?.length || 0,
         total: data?.total || 0,
+        append,
+        offset
       });
 
       if (data && Array.isArray(data.girls) && data.girls.length > 0) {
         const girlsWithDetails = data.girls.map((girl: any) => ({
           ...girl,
           id: parseInt(girl.id),
+          isWorkingToday: girl.is_working_today !== undefined ? Boolean(girl.is_working_today) : true,
           shop: girl.shop || {
             id: girl.shopId,
             name: girl.shopName,
@@ -823,27 +865,61 @@ export default function HomePage() {
           },
         }));
 
-        setGirlsFromDB(girlsWithDetails);
-        setSortedGirlsCache(girlsWithDetails);
-        setIsSorting(false);
+        const girlsWithTypes = girlsWithDetails.filter((girl: any) => Array.isArray(girl.girlTypes) && girl.girlTypes.length > 0);
+        console.log(`🎯 [fetchGirlsFromMySQL] Girl type coverage: ${girlsWithTypes.length}/${girlsWithDetails.length}`);
+        if (girlsWithTypes.length === 0) {
+          console.warn('⚠️ [fetchGirlsFromMySQL] The API returned no girl_types data. Please verify girl_status and girl_types mappings in the database.');
+        }
+
+        setGirlsFromDB(prev => append && prev.length > 0 ? [...prev, ...girlsWithDetails] : girlsWithDetails);
+        setSortedGirlsCache(prev => append && prev ? [...prev, ...girlsWithDetails] : girlsWithDetails);
+
+        const loadedCount = offset + girlsWithDetails.length;
+        const totalFromServer = typeof data.total === 'number' ? data.total : null;
+        const reachedEnd = totalFromServer !== null
+          ? loadedCount >= totalFromServer
+          : girlsWithDetails.length < GIRL_BATCH_SIZE;
+        setTotalGirlsCount(totalFromServer ?? loadedCount);
+        setHasMoreGirls(!reachedEnd);
+        setNextOffset(loadedCount);
+
+        if (!append) {
+          setCurrentPage(1);
+        }
 
         console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${fetchTime.toFixed(0)}ms`);
-        console.log(`✅ [fetchGirlsFromMySQL] Set ${girlsWithDetails.length} girls in ${fetchTime.toFixed(0)}ms (source: ${locationSource})`);
+        console.log(
+          `✅ [fetchGirlsFromMySQL] Loaded ${girlsWithDetails.length} girls (offset=${offset}, nextOffset=${loadedCount}, total=${totalFromServer ?? 'unknown'})`
+        );
 
-        const firstFive = girlsWithDetails.slice(0, 5);
-        console.log(`📍 Top 5 girls by distance (source: ${locationSource}):`);
-        firstFive.forEach((girl: any, idx: number) => {
-          const distance = girl.distance_km;
-          console.log(`  ${idx + 1}. ${girl.name}: ${distance ? distance.toFixed(1) + 'km' : 'N/A'}`);
-        });
+        if (!append) {
+          const firstFive = girlsWithDetails.slice(0, 5);
+          console.log(`📍 Top 5 girls by distance (source: ${locationSource}):`);
+          firstFive.forEach((girl: any, idx: number) => {
+            const distance = girl.distance_km;
+            console.log(`  ${idx + 1}. ${girl.name}: ${distance ? distance.toFixed(1) + 'km' : 'N/A'}`);
+          });
+        }
       } else {
-        setGirlsFromDB([]);
-        setIsSorting(false);
+        if (!append) {
+          setGirlsFromDB([]);
+          setSortedGirlsCache([]);
+          setHasMoreGirls(false);
+          setNextOffset(offset);
+          setTotalGirlsCount(0);
+        } else {
+          setHasMoreGirls(false);
+        }
       }
     } catch (error) {
       console.error('Error fetching girls:', error);
+    } finally {
+      if (!append) {
+        setIsSorting(false);
+      }
+      setIsFetchingMoreGirls(false);
     }
-  }, [baseUrl, userLocation, currentUser]);
+  }, [baseUrl, preferences, currentUser, userLocation, isFetchingMoreGirls, hasMoreGirls, selectedGirlTypes]);
 
   const fetchUsers = useCallback(async () => {
     // LINEブラウザ対応: currentUserがなくてもデータを取得して表示
@@ -869,7 +945,7 @@ export default function HomePage() {
         setUsers(fetchedUsers);
       } else {
         // MySQLから女の子データを取得
-        await fetchGirlsFromMySQL();
+        await fetchGirlsFromMySQL({ offset: 0, append: false });
       }
       console.log('[fetchUsers] Data fetch completed successfully');
     } catch (error) {
@@ -883,6 +959,35 @@ export default function HomePage() {
     }
   }, [useFirebaseData, userLocation, userProfile, fetchGirlsFromMySQL, currentUser]);
 
+  useEffect(() => {
+    if (autoFetchTriggeredRef.current) {
+      return;
+    }
+    autoFetchTriggeredRef.current = true;
+    let isCancelled = false;
+    console.log('[HomePage] Auto fetching users on mount');
+    setLoadingUsers(true);
+    fetchUsers()
+      .catch(error => {
+        console.error('[HomePage] Auto fetch failed:', error);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoadingUsers(false);
+        }
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    if (!initialFetchDone) {
+      return;
+    }
+    fetchGirlsFromMySQL({ offset: 0, append: false });
+  }, [selectedGirlTypes, fetchGirlsFromMySQL, initialFetchDone]);
+
   // 女の子タイプのマスターデータを取得
   useEffect(() => {
     const fetchGirlTypes = async () => {
@@ -890,7 +995,28 @@ export default function HomePage() {
         const response = await fetch('/api/girl-types');
         if (response.ok) {
           const data = await response.json();
-          setGirlTypes(data.allTypes || []);
+          const normalized = (data.allTypes || [])
+            .map((type: any) => {
+              const rawId = type.id ?? type.girl_type_id ?? type.value;
+              const numericId = typeof rawId === 'string' ? parseInt(rawId, 10) : Number(rawId);
+              if (!Number.isFinite(numericId)) {
+                return null;
+              }
+              return {
+                ...type,
+                id: numericId,
+                name: type.name ?? type.label ?? ''
+              };
+            })
+            .filter((type: any) => type && type.id && type.name);
+          setGirlTypes(normalized);
+          const defaultSelectedTypeIds = (normalized as any[])
+            .filter(type => type?.is_default === true)
+            .map(type => Number(type.id))
+            .filter(id => Number.isFinite(id));
+          if (defaultSelectedTypeIds.length > 0) {
+            setSelectedGirlTypes(defaultSelectedTypeIds);
+          }
         }
       } catch (error) {
         console.error('Error fetching girl types:', error);
@@ -911,7 +1037,7 @@ export default function HomePage() {
       }
       
       // fetchGirlsFromMySQLを使用（重複排除機能付き）
-      fetchGirlsFromMySQL();
+      fetchGirlsFromMySQL({ offset: 0, append: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, initialFetchDone, fetchGirlsFromMySQL]); // 位置情報が取得されたら実行
@@ -947,8 +1073,72 @@ export default function HomePage() {
   
   // LINEブラウザ対応: データが空でもページを表示
   // loadingUsersに関係なく常にページを表示
-
+  
   // Apply type filter and sort to all data
+  const normalizeLocationName = (value: string) =>
+    value
+      .replace(/\s+/g, '')
+      .replace(/[都道府県]$/iu, '')
+      .replace(/[市区町村郡]$/iu, '');
+
+  const activePartnerLocationCandidate = tempPreferences?.partnerLocation
+    ?? preferences?.partnerLocation
+    ?? null;
+  const activePartnerLocation = activePartnerLocationCandidate && activePartnerLocationCandidate !== 'こだわらない'
+    ? activePartnerLocationCandidate
+    : null;
+  const normalizedPreferredLocation = activePartnerLocation
+    ? normalizeLocationName(activePartnerLocation)
+    : null;
+
+  const getAreaMatchScore = (item: any) => {
+    if (!normalizedPreferredLocation) {
+      return 0;
+    }
+
+    const candidates = [
+      item.prefecture,
+      item.location,
+      item.municipality,
+      item?.shop?.prefecture,
+      item?.shop?.location,
+      item?.shop?.address
+    ]
+      .filter((text): text is string => typeof text === 'string' && text.length > 0)
+      .map(normalizeLocationName);
+
+    if (candidates.some(candidate => candidate === normalizedPreferredLocation)) {
+      return 3;
+    }
+
+    if (candidates.some(candidate => candidate.startsWith(normalizedPreferredLocation))) {
+      return 2;
+    }
+
+    return 0;
+  };
+
+  const getTypeMatchScore = (item: any) => {
+    if (!item.girlTypes || !Array.isArray(item.girlTypes) || selectedGirlTypes.length === 0) {
+      return 0;
+    }
+
+    const itemGirlTypeIds = item.girlTypes
+      .map((type: any) => {
+        const raw = typeof type === 'object' && type !== null
+          ? type.id || type.girl_type_id || type.value
+          : type;
+        if (raw === null || raw === undefined) {
+          return null;
+        }
+        const numeric = typeof raw === 'string' ? parseInt(raw, 10) : Number(raw);
+        return Number.isFinite(numeric) ? numeric : null;
+      })
+      .filter((id: number | null): id is number => id !== null);
+
+    return selectedGirlTypes.filter(typeId => itemGirlTypeIds.includes(typeId)).length;
+  };
+
   const filteredAndSortedData = displayData
     .filter((item: any) => {
       // Apply keyword filter
@@ -1005,47 +1195,28 @@ export default function HomePage() {
       return true;
     })
     .sort((a: any, b: any) => {
-      // 【最優先】距離でソート（近い順）
       const distA = a.distance_km !== undefined ? a.distance_km : 999999;
       const distB = b.distance_km !== undefined ? b.distance_km : 999999;
-      
-      // 距離が大きく異なる場合（5km以上の差）は距離を優先
+
+      if (normalizedPreferredLocation) {
+        const areaScoreA = getAreaMatchScore(a);
+        const areaScoreB = getAreaMatchScore(b);
+        if (areaScoreA !== areaScoreB) {
+          return areaScoreB - areaScoreA;
+        }
+      }
+
+      if (selectedGirlTypes.length > 0) {
+        const typeScoreA = getTypeMatchScore(a);
+        const typeScoreB = getTypeMatchScore(b);
+        if (typeScoreA !== typeScoreB) {
+          return typeScoreB - typeScoreA;
+        }
+      }
+
+      // 【最優先】距離でソート（近い順）
       if (Math.abs(distA - distB) > 5) {
         return distA - distB;
-      }
-      
-      // 距離が近い場合（5km以内の差）、好みの条件でソート
-      
-      // 女の子タイプのマッチ数を計算
-      if (selectedGirlTypes.length > 0) {
-        const getTypeMatchScore = (item: any) => {
-          if (!item.girlTypes || !Array.isArray(item.girlTypes)) {
-            return 0;
-          }
-          
-          const itemGirlTypeIds = item.girlTypes.map((type: any) => {
-            if (typeof type === 'object' && type !== null) {
-              return type.id || type.girl_type_id || null;
-            } else if (typeof type === 'number') {
-              return type;
-            }
-            return null;
-          }).filter((id: any) => id !== null);
-          
-          // Count how many selected types this item has
-          const matchCount = selectedGirlTypes.filter(typeId => 
-            itemGirlTypeIds.includes(typeId)
-          ).length;
-          
-          return matchCount;
-        };
-        
-        const scoreA = getTypeMatchScore(a);
-        const scoreB = getTypeMatchScore(b);
-        
-        if (scoreA !== scoreB) {
-          return scoreB - scoreA; // More matches = higher priority
-        }
       }
       
       // 検索キーワードの関連度でソート
@@ -1080,10 +1251,20 @@ export default function HomePage() {
     });
 
   // Calculate pagination based on filtered data
-  const totalPages = Math.ceil(filteredAndSortedData.length / USERS_PER_PAGE);
+  const effectiveTotalForPagination =
+    searchKeyword || selectedGirlTypes.length > 0
+      ? filteredAndSortedData.length
+      : (totalGirlsCount ?? filteredAndSortedData.length);
+  const totalPages = Math.max(1, Math.ceil(effectiveTotalForPagination / USERS_PER_PAGE));
   const startIndex = (currentPage - 1) * USERS_PER_PAGE;
   const endIndex = startIndex + USERS_PER_PAGE;
   const currentDisplayData = filteredAndSortedData.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
@@ -1103,9 +1284,18 @@ export default function HomePage() {
     }
   };
 
-  const handleNextPage = () => {
+  const handleNextPage = async () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      const nextPage = currentPage + 1;
+      const needsMoreData = nextPage * USERS_PER_PAGE > girlsFromDB.length;
+      if (needsMoreData && hasMoreGirls && !isFetchingMoreGirls) {
+        try {
+          await fetchGirlsFromMySQL({ offset: nextOffset, append: true });
+        } catch (error) {
+          console.error('[handleNextPage] Failed to fetch next batch:', error);
+        }
+      }
+      setCurrentPage(nextPage);
       // スマホ対応のスクロール処理
       setTimeout(() => {
         // iOS Safariを含むモバイルブラウザで確実に動作
@@ -1182,26 +1372,32 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                  {girlTypes.map((type) => (
+                  {girlTypes.map((type) => {
+                    const typeId = Number(type.id);
+                    return (
                     <button
                       key={type.id}
                       onClick={() => {
+                        if (!Number.isFinite(typeId)) {
+                          return;
+                        }
                         setSelectedGirlTypes(prev => 
-                          prev.includes(type.id) 
-                            ? prev.filter(id => id !== type.id)
-                            : [...prev, type.id]
+                          prev.includes(typeId) 
+                            ? prev.filter(id => id !== typeId)
+                            : [...prev, typeId]
                         );
                         // 選択と同時に即座にフィルタリングが適用される（useEffectで自動処理）
                       }}
                       className={`px-3 py-1 rounded-full text-xs transition-all ${
-                        selectedGirlTypes.includes(type.id)
+                        selectedGirlTypes.includes(typeId)
                           ? 'bg-pink-500 text-white border border-pink-500'
                           : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
                       }`}
                     >
                       {type.name}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 {selectedGirlTypes.length > 0 && (
                   <div className="mt-2 flex justify-between items-center">
@@ -2029,13 +2225,28 @@ export default function HomePage() {
             variant="outline"
             size="default"
             onClick={handleNextPage}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || isFetchingMoreGirls}
             className="flex items-center gap-1 px-3 sm:px-4"
           >
-            <span>次へ</span>
-            <ChevronRight className="h-4 w-4" />
+            {isFetchingMoreGirls ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>読込中</span>
+              </>
+            ) : (
+              <>
+                <span>次へ</span>
+                <ChevronRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
+      )}
+
+      {typeof totalGirlsCount === 'number' && totalGirlsCount > 0 && (
+        <p className="text-center mt-2 text-sm text-white/70">
+          {girlsFromDB.length.toLocaleString()} / {totalGirlsCount.toLocaleString()}名を読み込み済み
+        </p>
       )}
       
       {/* Search results info */}

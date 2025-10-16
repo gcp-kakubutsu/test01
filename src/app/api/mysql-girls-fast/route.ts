@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
   const preferredGirlTypeIds = preferredGirlTypeIdsParam ? preferredGirlTypeIdsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : null;
   const preferredBodyTypesParam = searchParams.get('preferredBodyTypes');
   const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
+  const scheduleDateParam = searchParams.get('scheduleDate');
+  const scheduleDate = scheduleDateParam ? scheduleDateParam.trim() : null;
 
   if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
     console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });
@@ -75,12 +77,13 @@ export async function GET(request: NextRequest) {
       analPlayPreference,
       groupPlayPreference,
       preferredGirlTypeIds,
-      preferredBodyTypes
+      preferredBodyTypes,
+      scheduleDate
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes, scheduleDate);
     }
     
     const responseTime = performance.now() - startTime;
@@ -177,15 +180,16 @@ type WarmUpQuery = {
   userLat?: number;
   userLng?: number;
   maxDistance?: number;
+  scheduleDate?: string | null;
 };
 
 async function warmUp() {
   const popularQueries: WarmUpQuery[] = [
-    { limit: 200, offset: 0, area: null, userLat: 35.68, userLng: 139.76, maxDistance: 80 },
-    { limit: 200, offset: 0, area: '東京都' },
-    { limit: 200, offset: 0, area: '大阪府' },
-    { limit: 200, offset: 0, area: '愛知県' },
-    { limit: 200, offset: 0, area: null, userLat: 34.69, userLng: 135.5, maxDistance: 80 },
+    { limit: 1000, offset: 0, area: null, userLat: 35.68, userLng: 139.76, maxDistance: 80, scheduleDate: 'today' },
+    { limit: 1000, offset: 0, area: '東京都', scheduleDate: 'today' },
+    { limit: 1000, offset: 0, area: '大阪府', scheduleDate: 'today' },
+    { limit: 1000, offset: 0, area: '愛知県', scheduleDate: 'today' },
+    { limit: 1000, offset: 0, area: null, userLat: 34.69, userLng: 135.5, maxDistance: 80, scheduleDate: 'today' },
   ];
   
   console.log('🔥 Warming up cache with popular queries...');
@@ -201,7 +205,22 @@ async function warmUp() {
       undefined,
       query.userLat,
       query.userLng,
-      query.maxDistance
+      query.maxDistance,
+      undefined, // recordingDuringPlay
+      undefined, // isSadist
+      undefined, // isMasochist
+      undefined, // partnerHeight
+      undefined, // partnerWeight
+      undefined, // partnerLocation
+      undefined, // cosplayPreference
+      undefined, // toyPlayPreference
+      undefined, // deepthroatPreference
+      undefined, // throatingPreference
+      undefined, // analPlayPreference
+      undefined, // groupPlayPreference
+      undefined, // preferredGirlTypeIds
+      undefined, // preferredBodyTypes
+      query.scheduleDate
     ).catch(error => console.error('⚠️  Warm-up query failed:', error));
   }
 }

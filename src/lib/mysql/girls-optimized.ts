@@ -54,7 +54,8 @@ export async function fetchOptimizedGirls(
   analPlayPreference?: number | null,
   groupPlayPreference?: number | null,
   preferredGirlTypeIds?: number[] | null,
-  preferredBodyTypes?: string[] | null
+  preferredBodyTypes?: string[] | null,
+  scheduleDate?: string | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -131,9 +132,22 @@ export async function fetchOptimizedGirls(
   const normalizedPartnerLocation = hasLocationPreference ? partnerLocation!.trim() : null;
   const escapedPartnerLocation = normalizedPartnerLocation ? normalizedPartnerLocation.replace(/'/g, "''") : null;
   const partnerLocationKey = normalizedPartnerLocation ?? (partnerLocation ?? 'n');
+  let scheduleDateExpression: string | null = null;
+  let scheduleCacheKey = 'no_schedule';
+  if (scheduleDate) {
+    if (scheduleDate === 'today' || scheduleDate === '今日') {
+      scheduleDateExpression = 'CURDATE()';
+      scheduleCacheKey = 'today';
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(scheduleDate)) {
+      scheduleDateExpression = `DATE('${scheduleDate}')`;
+      scheduleCacheKey = scheduleDate;
+    } else {
+      console.warn('⚠️  無効なscheduleDateが指定されました:', scheduleDate);
+    }
+  }
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
-  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
-  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
+  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
+  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
 
   if (hasLocationPreference && normalizedPartnerLocation) {
     console.log('📍 [MySQL] Partner location preference prioritized:', normalizedPartnerLocation);
@@ -251,7 +265,25 @@ export async function fetchOptimizedGirls(
   let preferenceJoins = '';
   let scoreComponents: string[] = [];
   let locationPrioritySelect = '';
-  
+  let scheduleJoin = '';
+  let scheduleSelect = '';
+
+  if (scheduleDateExpression) {
+    scheduleJoin = `
+      INNER JOIN (
+        SELECT /* idx_girl_schedules_date_girl */
+          gs.girl_profile_id
+        FROM girl_schedules gs FORCE INDEX (idx_girl_schedules_date_girl)
+        WHERE gs.deleted_at IS NULL
+          AND gs.schedule_date = ${scheduleDateExpression}
+        GROUP BY gs.girl_profile_id
+      ) schedule_today ON schedule_today.girl_profile_id = g.id
+    `;
+    scheduleSelect = `,
+      TRUE AS is_working_today
+    `;
+  }
+
   // 撮影オプションのスコア
   if (recordingDuringPlay === 'はい') {
     const optionIds = optionCategoryIds.recording;
@@ -709,7 +741,9 @@ export async function fetchOptimizedGirls(
       ${distanceSelect}
       ${preferenceScoreSelect}
       ${locationPrioritySelect}
+      ${scheduleSelect}
     FROM girl_profiles g
+    ${scheduleJoin}
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     ${preferenceJoins}
@@ -725,6 +759,7 @@ export async function fetchOptimizedGirls(
   const countQuery = `
     SELECT COUNT(*) as total
     FROM girl_profiles g
+    ${scheduleJoin}
     INNER JOIN shop_profiles s ON g.shop_profile_id = s.id
     ${girlTypesJoin}
     ${area && area !== 'all' ? 'LEFT JOIN area_prefectures p ON s.area_prefecture_id = p.id' : ''}
@@ -845,7 +880,8 @@ export async function prefetchNextPage(
   analPlayPreference?: number | null,
   groupPlayPreference?: number | null,
   preferredGirlTypeIds?: number[] | null,
-  preferredBodyTypes?: string[] | null
+  preferredBodyTypes?: string[] | null,
+  scheduleDate?: string | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -858,14 +894,43 @@ export async function prefetchNextPage(
   const distStr = effectiveMaxDistance ? `d${effectiveMaxDistance}` : 'no_dist';
   const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
   const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
+  let scheduleCacheKey = 'no_schedule';
+  if (scheduleDate) {
+    scheduleCacheKey = (scheduleDate === 'today' || scheduleDate === '今日') ? 'today' : scheduleDate;
+  }
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
-  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}`;
+  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
   
   // Check if already cached
   if (!hasCacheKey(cacheKey)) {
     setTimeout(() => {
-      fetchOptimizedGirls(limitCount, nextOffset, area, ageMin, ageMax, girlTypes, null, userLat, userLng, effectiveMaxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes)
-        .catch(error => console.error('⚠️  Failed to prefetch next page:', error));
+      fetchOptimizedGirls(
+        limitCount,
+        nextOffset,
+        area,
+        ageMin,
+        ageMax,
+        girlTypes,
+        null,
+        userLat,
+        userLng,
+        effectiveMaxDistance,
+        recordingDuringPlay,
+        isSadist,
+        isMasochist,
+        partnerHeight,
+        partnerWeight,
+        partnerLocation,
+        cosplayPreference,
+        toyPlayPreference,
+        deepthroatPreference,
+        throatingPreference,
+        analPlayPreference,
+        groupPlayPreference,
+        preferredGirlTypeIds,
+        preferredBodyTypes,
+        scheduleDate
+      ).catch(error => console.error('⚠️  Failed to prefetch next page:', error));
     }, 100);
   }
 }

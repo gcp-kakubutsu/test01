@@ -148,6 +148,15 @@ const REQUIRED_INDEXES: IndexSpec[] = [
       { name: 'id' }
     ],
     description: '最初の画像取得の性能改善'
+  },
+  {
+    table: 'girl_schedules',
+    name: 'idx_girl_schedules_date_girl',
+    columns: [
+      { name: 'schedule_date' },
+      { name: 'girl_profile_id' }
+    ],
+    description: '本日出勤フィルタの高速化'
   }
 ];
 

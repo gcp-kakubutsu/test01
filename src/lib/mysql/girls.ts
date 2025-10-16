@@ -21,6 +21,8 @@ export interface MySQLGirlProfile {
   lastActive?: string;
   is_sake?: boolean;
   is_tobacco?: boolean;
+  is_working_today?: boolean;
+  isWorkingToday?: boolean;
   // Shop info
   shopName?: string;
   shopId?: number;
