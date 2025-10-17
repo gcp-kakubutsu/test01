@@ -19,7 +19,11 @@ export async function GET(request: NextRequest) {
   const startTime = performance.now();
   const searchParams = request.nextUrl.searchParams;
   const requestedLimit = parseInt(searchParams.get('limit') || '20');
-  const limit = Number.isNaN(requestedLimit) ? 20 : Math.min(requestedLimit, 50);
+  const fetchAllParam = searchParams.get('fetchAll');
+  const fetchAll = fetchAllParam === 'true' || fetchAllParam === '1';
+  const MAX_LIMIT = fetchAll ? 5000 : 50;
+  let limit = Number.isNaN(requestedLimit) ? 20 : requestedLimit;
+  limit = Math.max(1, Math.min(limit, MAX_LIMIT));
   const offset = parseInt(searchParams.get('offset') || '0');
   const area = searchParams.get('area') || null;
   const ageMinParam = parseInt(searchParams.get('ageMin') || '18');

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
+import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -160,6 +160,8 @@ function AdvancedSearchContent() {
   const [filteredTotalCount, setFilteredTotalCount] = useState(0)
   const [openAreaPopover, setOpenAreaPopover] = useState(false)
   const [locationFilteredServerSide, setLocationFilteredServerSide] = useState(false)
+  const [useClientFiltering, setUseClientFiltering] = useState(false)
+  const [pageCache, setPageCache] = useState<Record<number, UserProfile[]>>({})
 
   // 動的に計算されるページ数（フィルタリング後のカウントを使用）
   const totalPages = Math.ceil(filteredTotalCount / LIMIT)
@@ -169,6 +171,59 @@ function AdvancedSearchContent() {
   const [locationCoordinates, setLocationCoordinates] = useState<LocationCoordinates | null>(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [userSelectedArea, setUserSelectedArea] = useState(false) // ユーザーが手動でエリアを選択したか
+  const fetchSignatureRef = useRef<string>('')
+  const fetchedPagesRef = useRef<Set<number>>(new Set())
+  const pendingPagesRef = useRef<Set<number>>(new Set())
+  const tagsKey = useMemo(() => [...selectedTags].sort().join('|'), [selectedTags])
+  const stylesKey = useMemo(() => [...selectedStyles].sort().join('|'), [selectedStyles])
+  const girlTypesKey = useMemo(() => [...selectedGirlTypes].sort().join('|'), [selectedGirlTypes])
+  const ageMin = ageRange[0]
+  const ageMax = ageRange[1]
+  const userLat = userLocation?.lat ?? null
+  const userLng = userLocation?.lng ?? null
+  const majorFilterKey = useMemo(
+    () =>
+      JSON.stringify({
+        selectedArea,
+        tagsKey,
+        searchQuery,
+        stylesKey,
+        prioritizeQuickMeet,
+        ageMin,
+        ageMax,
+        girlTypesKey,
+        userSelectedArea,
+        locationFromParam,
+        userLat,
+        userLng
+      }),
+    [
+      selectedArea,
+      tagsKey,
+      searchQuery,
+      stylesKey,
+      prioritizeQuickMeet,
+      ageMin,
+      ageMax,
+      girlTypesKey,
+      userSelectedArea,
+      locationFromParam,
+      userLat,
+      userLng
+    ]
+  )
+  const prevMajorKeyRef = useRef<string | null>(null)
+
+  const displayedUsers = useMemo(() => {
+    if (useClientFiltering) {
+      return filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
+    }
+    const pageUsers = pageCache[currentPage]
+    if (pageUsers && pageUsers.length > 0) {
+      return pageUsers
+    }
+    return filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
+  }, [useClientFiltering, filteredUsers, currentPage, LIMIT, pageCache])
   
   // 初期パラメータの読み込み（初回のみ）
   useEffect(() => {
@@ -296,320 +351,240 @@ function AdvancedSearchContent() {
   // 特殊フィルタリングタグかどうかをチェック
   const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長165cm以上', 'Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ', 'Fカップ', 'Gカップ以上', 'お酒を飲む人', 'お酒を飲まない人', 'タバコを吸う人', 'タバコを吸わない人']
   const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
+  const keywordAnalysis = useMemo(() => {
+    const trimmed = searchQuery.trim()
+    if (!trimmed) {
+      return {
+        hasKeywordSearch: false,
+        searchAreaName: null as string | null,
+        hasNonLocationKeywordSearch: false,
+        normalizedKeywords: ''
+      }
+    }
+    const locationSuffixes = ['区', '市', '町', '村']
+    const isLocationName = locationSuffixes.some(suffix => trimmed.endsWith(suffix))
+    if (isLocationName) {
+      return {
+        hasKeywordSearch: true,
+        searchAreaName: trimmed,
+        hasNonLocationKeywordSearch: false,
+        normalizedKeywords: ''
+      }
+    }
+    const normalized = trimmed.toLowerCase()
+    return {
+      hasKeywordSearch: true,
+      searchAreaName: null,
+      hasNonLocationKeywordSearch: normalized.length > 0,
+      normalizedKeywords: normalized
+    }
+  }, [searchQuery])
+  const hasNonLocationKeywordSearch = keywordAnalysis.hasNonLocationKeywordSearch
+  const requiresClientFiltering = useMemo(
+    () =>
+      hasSpecialFilters ||
+      selectedTags.length > 0 ||
+      hasNonLocationKeywordSearch ||
+      selectedStyles.length > 0 ||
+      prioritizeQuickMeet ||
+      sortBy !== 'distance',
+    [
+      hasSpecialFilters,
+      selectedTags.length,
+      hasNonLocationKeywordSearch,
+      selectedStyles.length,
+      prioritizeQuickMeet,
+      sortBy
+    ]
+  )
+  useEffect(() => {
+    if (useClientFiltering !== requiresClientFiltering) {
+      setUseClientFiltering(requiresClientFiltering)
+    }
+  }, [requiresClientFiltering, useClientFiltering])
 
   // ユーザーデータ取得とフィルタリング処理
-  const fetchFilteredUsers = useCallback(async () => {
-    try {
-      // 初回データ取得時のみローディング表示、2回目以降は高速化のためスキップ
-      if (!hasInitialDataLoaded) {
-        setLoading(true)
+  const fetchFilteredUsers = useCallback(
+    async (pageOverride?: number, reset: boolean = false) => {
+      const targetPage = pageOverride ?? currentPage
+      const flattenCache = (cache: Record<number, UserProfile[]>) =>
+        Object.keys(cache)
+          .map(Number)
+          .sort((a, b) => a - b)
+          .flatMap(page => cache[page])
+
+      const clearCachedState = () => {
+        setUsers([])
+        setFilteredUsers([])
+        setSortedDataCache(null)
+        setFilteredTotalCount(0)
+        setTotalCount(0)
+        setPageCache({})
+        fetchedPagesRef.current = new Set()
+        pendingPagesRef.current = new Set()
       }
-      
-      // locationパラメータがある場合はエリアフィルターをスキップ
+
+      if (reset) {
+        setLoading(true)
+        setHasInitialDataLoaded(false)
+        setInitialFetchDone(false)
+        clearCachedState()
+      }
+
       if (!locationFromParam && selectedArea && selectedArea !== 'all') {
-        // 選択されたエリアの女の子数を確認
         const selectedAreaData = [...areas.prefectures, ...areas.municipalities].find(
           area => area.prefecture_name === selectedArea || area.full_name === selectedArea
         )
-        
+
         if (selectedAreaData && selectedAreaData.girl_count === 0) {
           setLoading(false)
+          setFilteredUsers([])
+          setFilteredTotalCount(0)
           return
         }
       }
-      
-      // キーワード検索がある場合の処理
-      const hasKeywordSearch = searchQuery.trim() !== ''
-      let searchAreaName: string | null = null
-      let nonLocationKeywords = searchQuery.trim()
-      
-      // キーワード検索で市区町村名の場合、エリアフィルターとして扱う
-      if (hasKeywordSearch) {
-        const query = searchQuery.trim()
-        // 市区町村名のパターンをチェック
-        const locationSuffixes = ['区', '市', '町', '村']
-        const isLocationName = locationSuffixes.some(suffix => query.endsWith(suffix))
-        
-        if (isLocationName) {
-          searchAreaName = query
-          nonLocationKeywords = '' // エリア検索として扱うのでキーワードをクリア
-        } else {
-          nonLocationKeywords = searchQuery.toLowerCase().trim()
-        }
-      }
-      
-      const hasNonLocationKeywordSearch = nonLocationKeywords.trim() !== ''
-      const hasAnyFilters = 
-        hasSpecialFilters || 
-        selectedTags.length > 0 || 
-        hasNonLocationKeywordSearch || 
-          selectedStyles.length > 0 ||
-        (selectedArea && selectedArea !== 'all') ||
-        searchAreaName !== null ||
-        prioritizeQuickMeet
-      
-      // フィルターがある場合は、ページングを考慮して適切な量を取得
-      // 特殊フィルターや地域・キーワード検索がある場合は、クライアントサイドでフィルタリングするため多めに取得
-      const needsClientFiltering = hasSpecialFilters || hasNonLocationKeywordSearch
-      
-      // エリアフィルター（選択されたエリアまたは検索キーワードから抽出されたエリア）を最優先
-      // ユーザーがエリアを選択した場合はそちらを優先
-      let effectiveArea = null;
-      if (userSelectedArea && selectedArea !== 'all') {
-        // ユーザーが手動で選択した場合
-        effectiveArea = selectedArea;
-      } else if (!userSelectedArea && selectedArea !== 'all' && !locationFromParam) {
-        // URLパラメータがない場合の通常のエリア選択
-        effectiveArea = selectedArea;
-      } else if (searchAreaName) {
-        // 検索キーワードから抽出されたエリア
-        effectiveArea = searchAreaName;
-      }
-      
-      // 地域フィルターがサーバーサイドで適用されているかを記録
-      setLocationFilteredServerSide(!!searchAreaName)
-      
-      // Always fetch 200 items for better filtering and sorting
-      let fetchLimit = 200
-      
-      // Always fetch from offset 0 to get all data for client-side filtering
-      const offset = 0
-      
-      // 位置情報を正規化（小数点2桁に丸める）
-      const normalizedLocation = userLocation 
-        ? roundLocation(userLocation.lat, userLocation.lng, 2)
-        : null;
-      
-      // キャッシュキー用のパラメータを準備
-      const cacheParams: Record<string, any> = {
-        limit: fetchLimit,
-        offset: offset,
-      };
-      
-      if (effectiveArea) {
-        cacheParams.area = effectiveArea;
-      }
-      
-      if (ageRange[0] !== 18 || ageRange[1] !== 50) {
-        cacheParams.ageMin = ageRange[0];
-        cacheParams.ageMax = ageRange[1];
-      }
-      
-      if (selectedGirlTypes.length > 0) {
-        cacheParams.girlTypes = selectedGirlTypes.join(',');
-      }
-      
-      cacheParams.scheduleDate = 'today';
-      cacheParams.scheduleRangeDays = 7;
-      
-      // 位置情報をキャッシュパラメータに追加（正規化済み）
-      if (normalizedLocation) {
-        cacheParams.userLat = normalizedLocation.lat;
-        cacheParams.userLng = normalizedLocation.lng;
 
-        // エリア指定がない場合は、ユーザーの現在地から一定距離内に絞り込む
+      const { searchAreaName: keywordArea } = keywordAnalysis
+      let searchAreaName: string | null = keywordArea
+      const hasNonLocationKeywordSearch = keywordAnalysis.hasNonLocationKeywordSearch
+
+      let effectiveArea: string | null = null
+      if (userSelectedArea && selectedArea !== 'all') {
+        effectiveArea = selectedArea
+      } else if (!userSelectedArea && selectedArea !== 'all' && !locationFromParam) {
+        effectiveArea = selectedArea
+      } else if (searchAreaName) {
+        effectiveArea = searchAreaName
+      }
+
+      setLocationFilteredServerSide(!!searchAreaName)
+
+      const normalizedLocation = userLocation ? roundLocation(userLocation.lat, userLocation.lng, 2) : null
+
+      const baseParams: Record<string, any> = {
+        scheduleDate: 'today',
+        scheduleRangeDays: 7
+      }
+
+      if (effectiveArea) {
+        baseParams.area = effectiveArea
+      }
+      if (ageRange[0] !== 18 || ageRange[1] !== 50) {
+        baseParams.ageMin = ageRange[0]
+        baseParams.ageMax = ageRange[1]
+      }
+      if (selectedGirlTypes.length > 0) {
+        baseParams.girlTypes = selectedGirlTypes.join(',')
+      }
+
+      if (normalizedLocation) {
+        baseParams.userLat = normalizedLocation.lat
+        baseParams.userLng = normalizedLocation.lng
         if (!effectiveArea && !hasSpecialFilters && !hasNonLocationKeywordSearch) {
-          cacheParams.maxDistance = prioritizeQuickMeet ? 50 : 80; // 近場優先で最大距離を制限
+          baseParams.maxDistance = prioritizeQuickMeet ? 50 : 80
         }
       } else if (!effectiveArea) {
-        // 位置情報がなく、エリア指定もない場合、東京駅の座標をフォールバックとして使用
-        const tokyoLocation = roundLocation(35.6812, 139.7671, 2);
-        cacheParams.userLat = tokyoLocation.lat;
-        cacheParams.userLng = tokyoLocation.lng;
-        console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示');
-        console.log(`🗺️ フォールバック座標: lat=${tokyoLocation.lat}, lng=${tokyoLocation.lng}`);
+        const tokyoLocation = roundLocation(35.6812, 139.7671, 2)
+        baseParams.userLat = tokyoLocation.lat
+        baseParams.userLng = tokyoLocation.lng
+        console.log('📍 位置情報なし - 東京駅周辺の女の子をデフォルト表示')
+        console.log(`🗺️ フォールバック座標: lat=${tokyoLocation.lat}, lng=${tokyoLocation.lng}`)
       }
-      
-      // Use optimized API endpoint with batching helpers
-      const apiParams = (limit: number, offsetValue: number) => {
+
+      const querySignature = generateCacheKey(baseParams)
+      if (reset || fetchSignatureRef.current !== querySignature) {
+        fetchSignatureRef.current = querySignature
+        if (!reset) {
+          clearCachedState()
+        }
+      }
+
+      const requestOptions: RequestInit = {
+        method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
+
+      const buildApiUrl = (pageNumber: number) => {
+        const limit = LIMIT
+        const offset = (pageNumber - 1) * LIMIT
         const params = new URLSearchParams({
           limit: String(limit),
-          offset: String(offsetValue),
-          scheduleDate: cacheParams.scheduleDate,
-          scheduleRangeDays: String(cacheParams.scheduleRangeDays),
+          offset: String(offset),
+          scheduleDate: baseParams.scheduleDate,
+          scheduleRangeDays: String(baseParams.scheduleRangeDays)
         })
 
         if (effectiveArea) params.append('area', effectiveArea)
-        if (cacheParams.ageMin !== undefined) {
-          params.append('ageMin', String(cacheParams.ageMin))
-          params.append('ageMax', String(cacheParams.ageMax))
+        if (baseParams.ageMin !== undefined) {
+          params.append('ageMin', String(baseParams.ageMin))
+          params.append('ageMax', String(baseParams.ageMax))
         }
-        if (cacheParams.girlTypes) params.append('girlTypes', cacheParams.girlTypes)
-        if (cacheParams.userLat !== undefined) {
-          params.append('userLat', String(cacheParams.userLat))
-          params.append('userLng', String(cacheParams.userLng))
+        if (baseParams.girlTypes) params.append('girlTypes', baseParams.girlTypes)
+        if (baseParams.userLat !== undefined) {
+          params.append('userLat', String(baseParams.userLat))
+          params.append('userLng', String(baseParams.userLng))
         }
-        if (cacheParams.maxDistance !== undefined) params.append('maxDistance', String(cacheParams.maxDistance))
+        if (baseParams.maxDistance !== undefined) params.append('maxDistance', String(baseParams.maxDistance))
 
         return `/api/mysql-girls-fast?${params.toString()}`
       }
 
-      const requestLimit = Math.min(fetchLimit, 50)
-      let apiUrl = apiParams(requestLimit, cacheParams.offset)
-
-      if (cacheParams.userLat !== undefined && normalizedLocation) {
-        console.log('📍 位置情報をAPIに送信（正規化済み）:', { lat: cacheParams.userLat, lng: cacheParams.userLng });
-      }
-
-      // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
-      if (effectiveArea) {
-        const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-        if (isMobile && effectiveArea.includes('東京')) {
-          apiUrl += `&_t=${Date.now()}`;
-        }
-      }
-      
-      // キャッシュキーを生成
-      const cacheKey = generateCacheKey({ ...cacheParams, limit: requestLimit, offset: cacheParams.offset });
-      console.log('🔑 Cache key generated:', cacheKey);
-      
-      // Try optimized API first, fallback to regular API if it fails
-      let data: any = null;
-      
-      try {
-        // 重複排除機能付きでフェッチ（キャッシュ機能も含む）
-        data = await fetchWithDedup(apiUrl, {
-          method: 'GET',
-          credentials: 'include',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
-        }, cacheKey);
-      } catch (error) {
-        console.error('Optimized API failed, trying fallback:', error);
-        
-        // Fallback to regular API endpoint
-        const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls');
-        
-        try {
-          // フォールバックでも重複排除機能を使用
-          data = await fetchWithDedup(fallbackUrl, {
-            method: 'GET',
-            credentials: 'include',
-            mode: 'cors',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            }
-          }, cacheKey + '_fallback');
-        } catch (fallbackError) {
-          console.error('Fallback API also failed:', fallbackError);
-          // Continue with empty data rather than throwing
-          data = { girls: [], total: 0 };
-          setFilteredUsers([]);
-          setFilteredTotalCount(0);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Data is already parsed in the try-catch block above
-      if (!data) {
-        setFilteredUsers([])
-        setFilteredTotalCount(0)
-        setLoading(false)
-        return
-      }
-
-      // Aggregate results up to fetchLimit (default 200) in batches (API caps single response at 50)
-      const aggregatedGirls: any[] = [...(data.girls || [])]
-      const totalAvailable = data.total ?? aggregatedGirls.length
-      const desiredTotal = Math.min(fetchLimit, totalAvailable)
-      let nextOffset = cacheParams.offset + aggregatedGirls.length
-
-      while (aggregatedGirls.length < desiredTotal && nextOffset < totalAvailable) {
-        const batchLimit = Math.min(requestLimit, desiredTotal - aggregatedGirls.length)
-        const batchUrl = apiParams(batchLimit, nextOffset)
-        const batchKey = generateCacheKey({ ...cacheParams, limit: batchLimit, offset: nextOffset })
-
-        try {
-          const batchData = await fetchWithDedup(batchUrl, {
-            method: 'GET',
-            credentials: 'include',
-            mode: 'cors',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            }
-          }, batchKey)
-
-          if (batchData?.girls && batchData.girls.length > 0) {
-            aggregatedGirls.push(...batchData.girls)
-            nextOffset += batchData.girls.length
-            if (batchData.girls.length < batchLimit) {
-              break
-            }
-          } else {
-            break
-          }
-        } catch (batchError) {
-          console.error(`Batch fetch failed at offset ${nextOffset}:`, batchError)
-          break
-        }
-      }
-      
-      // パフォーマンス情報のログ出力
-      if (data.performance) {
-        console.log('⚡ API Performance:', {
-          responseTime: `${data.performance.responseTime}ms`,
-          cacheHitRate: `${data.performance.cacheHitRate}%`,
-          averageQueryTime: `${data.performance.averageQueryTime}ms`,
-          totalGirls: aggregatedGirls.length,
-          area: effectiveArea || 'all',
-          withLocation: !!userLocation,
-          serverSorted: true // サーバー側で距離順ソート済み
+      const cacheKeyForPage = (pageNumber: number) =>
+        generateCacheKey({
+          ...baseParams,
+          limit: LIMIT,
+          offset: (pageNumber - 1) * LIMIT
         })
+
+      const fetchPage = async (pageNumber: number) => {
+        const apiUrl = buildApiUrl(pageNumber)
+        const cacheKey = cacheKeyForPage(pageNumber)
+        try {
+          return await fetchWithDedup(apiUrl, requestOptions, cacheKey)
+        } catch (error) {
+          console.error('Optimized API failed, trying fallback:', error)
+          const fallbackUrl = apiUrl.replace('/api/mysql-girls-fast', '/api/mysql-girls')
+          return await fetchWithDedup(fallbackUrl, requestOptions, `${cacheKey}_fallback`)
+        }
       }
-      
-      // モバイルでのデータ取得結果の確認（デバッグ用、通常はコメントアウト）
-      // if (typeof window !== 'undefined' && effectiveArea && effectiveArea.includes('東京')) {
-      //   const isMobile = window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      //   if (isMobile) {
-      //     console.log(`Mobile API response for ${effectiveArea}:`, {
-      //       totalGirls: data.girls.length,
-      //       expectedTotal: data.total,
-      //       fetchLimit: fetchLimit,
-      //       apiUrl: apiUrl
-      //     });
-      //   }
-      // }
-      
-      const mappedUsers: UserProfile[] = aggregatedGirls.map((user: any, index: number) => {
-        // サーバー側で計算済みの距離を使用（area_smallsテーブルベースの最適化済み）
-        let distance: number | undefined = user.distance_km;
-        
-        // サーバー側で距離が計算されていない場合のみクライアント側で計算（フォールバック）
+
+      const mapGirlToUser = (user: any, absoluteIndex: number): UserProfile => {
+        let distance: number | undefined = user.distance_km
+
         if (!distance && userLocation) {
-          // 店舗の座標がある場合
           if (user.shop?.latitude && user.shop?.longitude) {
-            const R = 6371; // 地球の半径（km）
-            const dLat = (user.shop.latitude - userLocation.lat) * Math.PI / 180;
-            const dLng = (user.shop.longitude - userLocation.lng) * Math.PI / 180;
-            const a = 
-              Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(user.shop.latitude * Math.PI / 180) * 
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            distance = R * c;
+            const R = 6371
+            const dLat = (user.shop.latitude - userLocation.lat) * Math.PI / 180
+            const dLng = (user.shop.longitude - userLocation.lng) * Math.PI / 180
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(userLocation.lat * Math.PI / 180) *
+                Math.cos(user.shop.latitude * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+            distance = R * c
           } else if (user.location) {
-            // 座標がない場合、地域名から概算座標を取得
-            const coords = getLocationCoordinates(user.location);
+            const coords = getLocationCoordinates(user.location)
             if (coords) {
-              const R = 6371;
-              const dLat = (coords.lat - userLocation.lat) * Math.PI / 180;
-              const dLng = (coords.lng - userLocation.lng) * Math.PI / 180;
-              const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(coords.lat * Math.PI / 180) * 
-                Math.sin(dLng/2) * Math.sin(dLng/2);
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-              distance = R * c;
+              const R = 6371
+              const dLat = (coords.lat - userLocation.lat) * Math.PI / 180
+              const dLng = (coords.lng - userLocation.lng) * Math.PI / 180
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(userLocation.lat * Math.PI / 180) *
+                  Math.cos(coords.lat * Math.PI / 180) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2)
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+              distance = R * c
             }
           }
         }
-        
+
         return {
           id: user.id,
           name: user.name,
@@ -630,92 +605,174 @@ function AdvancedSearchContent() {
           lastActive: user.lastActive,
           is_sake: user.is_sake,
           is_tobacco: user.is_tobacco,
-          distance: distance,
-          girlTypes: user.girlTypes || [], // Add girl types
-          isGirlProfile: true, // MySQLの女の子データであることを示す
-          serverOrder: index // サーバー側の元の順序を保存（距離順の最適化を維持）
-        };
-      })
-      
-      // Update total count and cache sorted data
-      setTotalCount(data.total || 0)
-      setUsers(mappedUsers)
-      setSortedDataCache(mappedUsers) // ソート済みデータをキャッシュ
-      
-      // APIから返されたデータが0件の場合は、確実に空の配列を設定
-      if (mappedUsers.length === 0 || data.total === 0) {
-        setUsers([])
-        setFilteredUsers([])
-        setFilteredTotalCount(0)
-        setSortedDataCache([])
-      } else {
-        // データがある場合
-        if (!hasSpecialFilters) {
-          // 特殊フィルターがない場合は、そのまま使用
-          setFilteredUsers(mappedUsers)
-          setFilteredTotalCount(data.total || 0)
-        }
-        // 特殊フィルターがある場合は、クライアントサイドフィルタリングで処理
-        // ただし、usersは更新されているので、後続のuseEffectで処理される
-      }
-    } catch (error) {
-      console.error('Error fetching filtered users:', error)
-      
-      // エラーの詳細をログに出力
-      if (error instanceof TypeError) {
-        console.error('Response type error:', error.message)
-      } else if (error instanceof Error) {
-        console.error('Fetch error:', error.message)
-      }
-      
-      // ユーザーに分かりやすいエラーメッセージ
-      let errorMessage = 'ユーザー情報の取得に失敗しました。'
-      if (error instanceof Error) {
-        if (error.message.includes('404')) {
-          errorMessage = 'データが見つかりませんでした。'
-        } else if (error.message.includes('500')) {
-          errorMessage = 'サーバーエラーが発生しました。'
+          distance,
+          girlTypes: user.girlTypes || [],
+          isGirlProfile: true,
+          serverOrder: absoluteIndex
         }
       }
-      
-      toast({
-        title: 'エラー',
-        description: `${errorMessage} ページを再読み込みしてください。`,
-        variant: 'destructive'
-      })
-      
-      // エラー時は空の配列を設定
-      setUsers([])
-      setFilteredUsers([])
-      setFilteredTotalCount(0)
-    } finally {
-      // 初回データ取得完了をマーク
+
+      const ensurePage = async (pageNumber: number, showLoader: boolean) => {
+        if (fetchedPagesRef.current.has(pageNumber) || pendingPagesRef.current.has(pageNumber)) {
+          return
+        }
+
+        if (showLoader) {
+          setLoading(true)
+        }
+
+        pendingPagesRef.current.add(pageNumber)
+
+        try {
+          const data = await fetchPage(pageNumber)
+          if (!data) {
+            return
+          }
+
+          if (data.performance) {
+            console.log('⚡ API Performance:', {
+              page: pageNumber,
+              responseTime: `${data.performance.responseTime}ms`,
+              cacheHitRate: `${data.performance.cacheHitRate}%`,
+              averageQueryTime: `${data.performance.averageQueryTime}ms`,
+              area: effectiveArea || 'all',
+              withLocation: !!userLocation
+            })
+          }
+
+          const serverIndexBase = (pageNumber - 1) * LIMIT
+          const mappedUsers = (data.girls || []).map((user: any, index: number) =>
+            mapGirlToUser(user, serverIndexBase + index)
+          )
+
+          let flattenedUsers: UserProfile[] = []
+          setPageCache(prev => {
+            const newCache = { ...prev, [pageNumber]: mappedUsers }
+            flattenedUsers = flattenCache(newCache)
+            return newCache
+          })
+
+          setUsers(flattenedUsers)
+          setSortedDataCache(flattenedUsers)
+          setFilteredUsers(flattenedUsers)
+
+          if (requiresClientFiltering) {
+            setFilteredTotalCount(flattenedUsers.length)
+          }
+
+          const totalFromServer =
+            typeof data.total === 'number' ? data.total : flattenedUsers.length
+          setTotalCount(totalFromServer)
+          if (!requiresClientFiltering) {
+            setFilteredTotalCount(totalFromServer)
+          }
+
+          fetchedPagesRef.current.add(pageNumber)
+        } catch (error) {
+          console.error('Error fetching page:', error)
+
+          let errorMessage = 'ユーザー情報の取得に失敗しました。'
+          if (error instanceof Error) {
+            if (error.message.includes('404')) {
+              errorMessage = 'データが見つかりませんでした。'
+            } else if (error.message.includes('500')) {
+              errorMessage = 'サーバーエラーが発生しました。'
+            }
+          }
+
+          toast({
+            title: 'エラー',
+            description: `${errorMessage} ページを再読み込みしてください。`,
+            variant: 'destructive'
+          })
+        } finally {
+          pendingPagesRef.current.delete(pageNumber)
+          if (showLoader) {
+            setHasInitialDataLoaded(true)
+            setLoading(false)
+          }
+        }
+      }
+
+      const shouldShowLoader = !hasInitialDataLoaded || targetPage === currentPage
+      await ensurePage(targetPage, shouldShowLoader)
+
       if (!hasInitialDataLoaded) {
         setHasInitialDataLoaded(true)
       }
-      setLoading(false)
-    }
-  }, [hasSpecialFilters, selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, areas, toast, userLocation, userSelectedArea, locationFromParam, selectedGirlTypes, hasInitialDataLoaded])
-
-  // データ取得のタイミングを制御
+      setInitialFetchDone(true)
+    },
+    [
+      LIMIT,
+      ageRange,
+      areas,
+      currentPage,
+      hasInitialDataLoaded,
+      hasSpecialFilters,
+      locationFromParam,
+      prioritizeQuickMeet,
+      sortBy,
+      searchQuery,
+      selectedArea,
+      selectedGirlTypes,
+      selectedStyles,
+      selectedTags,
+      toast,
+      userLocation,
+      userSelectedArea
+    ]
+  )
+  // データ取得のタイミングを制御（フィルター条件が変わった時のみ再取得）
   useEffect(() => {
-    // 初回ロードが完了していない場合はスキップ
     if (isInitialLoad) return;
 
-    // 初回は即座に実行、それ以降は短いデバウンス（100ms）
-    const isFirstFetch = !initialFetchDone;
+    const hasSameKey = prevMajorKeyRef.current === majorFilterKey
+    prevMajorKeyRef.current = majorFilterKey
+    if (hasSameKey) return
 
-    if (isFirstFetch) {
-      fetchFilteredUsers();
-      setInitialFetchDone(true);
+    fetchFilteredUsers(1, true)
+  }, [majorFilterKey, isInitialLoad, fetchFilteredUsers])
+
+  useEffect(() => {
+    if (isInitialLoad) return;
+    if (!initialFetchDone) return;
+    fetchFilteredUsers(currentPage);
+  }, [currentPage, isInitialLoad, initialFetchDone, fetchFilteredUsers])
+
+  useEffect(() => {
+    if (!initialFetchDone) return;
+    if (useClientFiltering) {
+      const needed = currentPage * LIMIT;
+      if (filteredUsers.length < needed && users.length < totalCount) {
+        const nextPage = Math.floor(users.length / LIMIT) + 1;
+        if (nextPage > 0) {
+          fetchFilteredUsers(nextPage);
+        }
+      }
     } else {
-      const timer = setTimeout(() => {
-        fetchFilteredUsers();
-      }, 100);
-
-      return () => clearTimeout(timer);
+      const pageData = pageCache[currentPage];
+      const needsFetch = !pageData || pageData.length === 0;
+      if (needsFetch && (currentPage - 1) * LIMIT < totalCount) {
+        fetchFilteredUsers(currentPage);
+      }
     }
-  }, [selectedArea, selectedTags, searchQuery, selectedStyles, prioritizeQuickMeet, ageRange, sortBy, isInitialLoad, fetchFilteredUsers, initialFetchDone])
+  }, [
+    LIMIT,
+    currentPage,
+    filteredUsers.length,
+    users.length,
+    totalCount,
+    useClientFiltering,
+    initialFetchDone,
+    fetchFilteredUsers,
+    pageCache
+  ])
+
+  useEffect(() => {
+    if (useClientFiltering) return
+    setFilteredUsers(users)
+    setFilteredTotalCount(totalCount)
+  }, [useClientFiltering, users, totalCount])
 
   // 現在の候補から利用可能な年齢範囲を計算（コメントアウト - 常に18-50を使用）
   /*
@@ -788,7 +845,10 @@ function AdvancedSearchContent() {
 
   // クライアントサイドフィルタリング
   useEffect(() => {
-    
+    if (!useClientFiltering) {
+      return
+    }
+
     // usersが空の場合は、filteredUsersも空にして早期リターン
     if (users.length === 0) {
       setFilteredUsers([])
@@ -1143,7 +1203,7 @@ function AdvancedSearchContent() {
     
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas, sortedDataCache])
+  }, [useClientFiltering, users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas, sortedDataCache])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*
@@ -1201,7 +1261,21 @@ function AdvancedSearchContent() {
   // フィルター変更時にページを1に戻す（年齢以外）
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedTags, selectedGirlTypes, selectedArea, selectedStyles, sortBy, prioritizeQuickMeet])
+  }, [
+    selectedArea,
+    tagsKey,
+    searchQuery,
+    stylesKey,
+    prioritizeQuickMeet,
+    ageMin,
+    ageMax,
+    girlTypesKey,
+    sortBy,
+    userSelectedArea,
+    locationFromParam,
+    userLat,
+    userLng
+  ])
   
   // エリア変更時の処理（削除）
   
@@ -1791,9 +1865,9 @@ function AdvancedSearchContent() {
         </div>
 
         {/* ユーザーカード */}
-        {filteredUsers.length > 0 && (
+        {displayedUsers.length > 0 && (
           <div className={viewMode === 'grid' ? styles.profilesGrid : styles.profilesList}>
-            {filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT).map(user => (
+            {displayedUsers.map(user => (
             <Card key={user.id} className={styles.profileCard}>
               <div 
                 className={styles.profileImage}
@@ -2035,7 +2109,7 @@ function AdvancedSearchContent() {
         )}
 
         {/* データがない場合の表示（ローディング完了後のみ） */}
-        {!loading && filteredUsers.length === 0 && (
+        {!loading && filteredTotalCount === 0 && (
           <div className={styles.emptyState}>
             <Search className={styles.emptyIcon} />
             <h3 className={styles.emptyTitle}>
