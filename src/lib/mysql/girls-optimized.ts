@@ -1,6 +1,7 @@
 import { cachedQuery, hasCacheKey, hasTableColumn } from './db-optimized';
 import { MySQLGirlProfile } from './girls';
 import { getOptionCategoryIds, getGirlTypeCategoryIds, resolveGirlTypeIdentifiers } from './metadata-cache';
+import { locationCache } from '@/lib/cache/locationCache';
 
 const GPS_AUTO_MAX_DISTANCE_KM = 80;
 const EARTH_RADIUS_KM = 6371;
@@ -57,7 +58,7 @@ export async function fetchOptimizedGirls(
   preferredBodyTypes?: string[] | null,
   scheduleDate?: string | null,
   scheduleRangeDays?: number | null
-): Promise<{ girls: MySQLGirlProfile[], total: number }> {
+): Promise<{ girls: MySQLGirlProfile[], total: number, prefectureFilter?: { primaryId: number | null; candidateIds: number[] } }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
     const girlQuery = `
@@ -170,41 +171,95 @@ export async function fetchOptimizedGirls(
     's.deleted_at IS NULL',
     `(g.age IS NULL OR g.age BETWEEN ${ageMin} AND ${ageMax})`
   ];
-  
+
+  let prefectureOrderExpression = '';
+  let prefectureFilterInfo: { primaryId: number | null; candidateIds: number[] } | null = null;
+
   if (area && area !== 'all') {
-    const escapedArea = area.replace(/'/g, "''");
-    console.log('🔍 Searching for area:', area);
-    console.log('🔍 Age range:', ageMin, '-', ageMax);
-    console.log('🔍 Limit:', limitCount, 'Offset:', offset);
-    
-    // エリア名の正規化（都道府県名のみの場合と市区町村を含む場合に対応）
-    const areaConditions = [];
-    
-    // 都道府県名の完全一致
-    areaConditions.push(`p.name = '${escapedArea}'`);
-    
-    // 市区町村名での検索を追加
-    areaConditions.push(`m.name = '${escapedArea}'`);
-    
-    // 都府県の接尾辞を柔軟に処理
-    const suffixPattern = /[都府県]$/;
-    if (suffixPattern.test(escapedArea)) {
-      // 接尾辞を除いた形でも検索
-      const withoutSuffix = escapedArea.replace(suffixPattern, '');
-      areaConditions.push(`p.name LIKE '${withoutSuffix}%'`);
-      // 接尾辞なしの完全一致も追加
-      areaConditions.push(`p.name = '${withoutSuffix}'`);
-    } else if (!escapedArea.match(/[区市町村]$/)) {
-      // 市区町村の接尾辞がない、かつ都道府県の接尾辞もない場合のみ
-      areaConditions.push(`p.name LIKE '${escapedArea}%'`);
-      areaConditions.push(`p.name = '${escapedArea}都'`);
-      areaConditions.push(`p.name = '${escapedArea}府'`);
-      areaConditions.push(`p.name = '${escapedArea}県'`);
+    const prefectureRecord = await locationCache.getPrefectureByName(area);
+    if (prefectureRecord) {
+      const neighborIds = await locationCache.getNearestPrefectureIds(prefectureRecord.prefecture_id, 4);
+      const candidateIds = Array.from(new Set([prefectureRecord.prefecture_id, ...neighborIds]));
+
+      const candidateRecords = await Promise.all(
+        candidateIds.map(async (id) => {
+          const loc = await locationCache.getLocation(id);
+          return loc ?? null;
+        })
+      );
+      const areaConditions: string[] = [];
+      if (candidateIds.length > 0) {
+        areaConditions.push(`s.area_prefecture_id IN (${candidateIds.join(',')})`);
+        areaConditions.push(`m.area_prefecture_id IN (${candidateIds.join(',')})`);
+      }
+
+      const escapeName = (name: string) => name.replace(/'/g, "''");
+      const addNameConditions = (name: string) => {
+        const escaped = escapeName(name);
+        areaConditions.push(`p.name = '${escaped}'`);
+        areaConditions.push(`p.name LIKE '${escaped}%'`);
+        areaConditions.push(`m.name = '${escaped}'`);
+        const base = escaped.replace(/[都道府県]$/u, '');
+        if (base && base !== escaped) {
+          areaConditions.push(`p.name LIKE '${base}%'`);
+          areaConditions.push(`m.name LIKE '${base}%'`);
+        }
+      };
+
+      addNameConditions(area);
+      candidateRecords.forEach(record => {
+        if (!record || !record.prefecture_name) return;
+        addNameConditions(record.prefecture_name);
+      });
+
+      whereConditions.push(`(${areaConditions.join(' OR ')})`);
+
+      if (candidateIds.length > 0) {
+        const orderCases: string[] = [];
+        candidateIds.forEach((id, index) => {
+          orderCases.push(`WHEN s.area_prefecture_id = ${id} THEN ${index}`);
+        });
+        candidateRecords.forEach((record, index) => {
+          if (!record || !record.prefecture_name) return;
+          const escaped = escapeName(record.prefecture_name);
+          orderCases.push(`WHEN p.name = '${escaped}' THEN ${index}`);
+          const base = escaped.replace(/[都道府県]$/u, '');
+          if (base && base !== escaped) {
+            orderCases.push(`WHEN p.name LIKE '${base}%' THEN ${index}`);
+          }
+        });
+
+        prefectureOrderExpression = orderCases.length
+          ? `CASE ${orderCases.join(' ')} ELSE ${candidateIds.length} END`
+          : '';
+
+        prefectureFilterInfo = {
+          primaryId: prefectureRecord.prefecture_id,
+          candidateIds
+        };
+      }
+    } else {
+      const escapedArea = area.replace(/'/g, "''");
+      const areaConditions = [];
+
+      areaConditions.push(`p.name = '${escapedArea}'`);
+      areaConditions.push(`m.name = '${escapedArea}'`);
+
+      const suffixPattern = /[都府県]$/;
+      if (suffixPattern.test(escapedArea)) {
+        const withoutSuffix = escapedArea.replace(suffixPattern, '');
+        areaConditions.push(`p.name LIKE '${withoutSuffix}%'`);
+        areaConditions.push(`p.name = '${withoutSuffix}'`);
+        areaConditions.push(`m.name LIKE '${withoutSuffix}%'`);
+      } else if (!escapedArea.match(/[区市町村]$/)) {
+        areaConditions.push(`p.name LIKE '${escapedArea}%'`);
+        areaConditions.push(`p.name = '${escapedArea}都'`);
+        areaConditions.push(`p.name = '${escapedArea}府'`);
+        areaConditions.push(`p.name = '${escapedArea}県'`);
+      }
+
+      whereConditions.push(`(${areaConditions.join(' OR ')})`);
     }
-    
-    whereConditions.push(
-      `(${areaConditions.join(' OR ')})`
-    );
   }
   
   // Add girl types filtering if specified
@@ -661,9 +716,6 @@ export async function fetchOptimizedGirls(
   // Distance calculation and order by clause
   let distanceSelect = '';
   let areaJoin = '';
-  let orderByClause = 'ORDER BY (g.age IS NULL), g.created_at DESC';
-  const locationOrderPrefixInline = hasLocationPreference ? 'location_priority ASC, ' : '';
-  const locationOrderPrefixMultiline = hasLocationPreference ? 'location_priority ASC,\n      ' : '';
   
   if (userLat && userLng) {
     // area_smallsテーブルから位置情報を取得するJOINを追加
@@ -694,33 +746,36 @@ export async function fetchOptimizedGirls(
       COALESCE(area_loc.min_distance_km, 999999) as area_min_distance`;
   }
   
-  // スコアと距離の複合ソート（近い女の子を絶対優先）
-  if (scoreComponents.length > 0 && userLat) {
-    orderByClause = `ORDER BY 
-      ${locationOrderPrefixMultiline}-- 距離帯による絶対的な優先順位
-      CASE 
-        WHEN distance_km <= 20 THEN 1    -- 20km以内: 最優先
-        WHEN distance_km <= 50 THEN 2    -- 50km以内: 次優先  
-        WHEN distance_km <= 100 THEN 3   -- 100km以内: 3番目
-        WHEN distance_km <= 200 THEN 4   -- 200km以内: 4番目
-        ELSE 5                            -- それ以上: 最後
-      END ASC,
-      -- 同じ距離帯内でのソート（スコアと距離のバランス）
-      CASE 
-        WHEN distance_km <= 20 THEN (distance_km * 10) - (preference_score * 2)    -- スコアの影響大
-        WHEN distance_km <= 50 THEN (distance_km * 20) - preference_score          -- スコアの影響中
-        WHEN distance_km <= 100 THEN (distance_km * 50) - (preference_score * 0.5) -- スコアの影響小
-        ELSE distance_km * 100                                                      -- スコア無視
-      END ASC,
-      g.created_at DESC`;
-  } else if (userLat) {
-    // 位置情報のみの場合は距離優先
-    orderByClause = `ORDER BY ${locationOrderPrefixInline}distance_km ASC, g.created_at DESC`;
-  } else if (scoreComponents.length > 0) {
-    orderByClause = `ORDER BY ${locationOrderPrefixInline}preference_score DESC, g.created_at DESC`;
-  } else if (hasLocationPreference) {
-    orderByClause = `ORDER BY location_priority ASC, g.created_at DESC`;
+  const orderExpressions: string[] = [];
+  if (prefectureOrderExpression) {
+    orderExpressions.push(`${prefectureOrderExpression} ASC`);
   }
+  if (hasLocationPreference) {
+    orderExpressions.push('location_priority ASC');
+  }
+  if (scoreComponents.length > 0 && userLat) {
+    orderExpressions.push(`CASE 
+        WHEN distance_km <= 20 THEN 1
+        WHEN distance_km <= 50 THEN 2
+        WHEN distance_km <= 100 THEN 3
+        WHEN distance_km <= 200 THEN 4
+        ELSE 5
+      END ASC`);
+    orderExpressions.push(`CASE 
+        WHEN distance_km <= 20 THEN (distance_km * 10) - (preference_score * 2)
+        WHEN distance_km <= 50 THEN (distance_km * 20) - preference_score
+        WHEN distance_km <= 100 THEN (distance_km * 50) - (preference_score * 0.5)
+        ELSE distance_km * 100
+      END ASC`);
+  } else if (userLat) {
+    orderExpressions.push('distance_km ASC');
+  } else if (scoreComponents.length > 0) {
+    orderExpressions.push('preference_score DESC');
+  }
+  orderExpressions.push('(g.age IS NULL)');
+  orderExpressions.push('g.created_at DESC');
+  const orderByClause = `ORDER BY 
+      ${orderExpressions.join(',\n      ')}`;
   
   // Optimized query with distance calculation
   const girlsQuery = `
@@ -874,7 +929,7 @@ export async function fetchOptimizedGirls(
   
   const total = countResult[0]?.total || 0;
   
-  return { girls, total };
+  return { girls, total, prefectureFilter: prefectureFilterInfo ?? undefined };
 }
 
 /**

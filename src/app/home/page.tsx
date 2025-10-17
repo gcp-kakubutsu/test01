@@ -59,6 +59,56 @@ const sanitizePartnerAgeRange = <T extends Partial<MalePreferences>>(prefs: T): 
   } as T;
 };
 
+type NormalizedPreferences = Partial<MalePreferences> & {
+  partnerBodyTypes?: string[];
+  girlTypeIds?: number[];
+};
+
+const normalizePreferencesForQuery = (prefs: MalePreferences | null): NormalizedPreferences | null => {
+  if (!prefs) return null;
+
+  const normalizeString = (value?: string | null) => {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    return trimmed && trimmed !== 'こだわらない' ? trimmed : undefined;
+  };
+
+  const normalizeToggle = (value?: string | null) => {
+    if (value === 'はい' || value === 'いいえ') {
+      return value;
+    }
+    return undefined;
+  };
+
+  const normalizeLevel = (value?: number | null) => {
+    if (typeof value === 'number' && value >= 4) {
+      return value;
+    }
+    return undefined;
+  };
+
+  const normalizedBodyTypes = Array.isArray(prefs.partnerBodyTypes)
+    ? prefs.partnerBodyTypes.filter(type => type && type !== 'こだわらない')
+    : [];
+
+  return {
+    ...prefs,
+    partnerLocation: normalizeString(prefs.partnerLocation),
+    partnerHeight: normalizeString(prefs.partnerHeight),
+    partnerWeight: normalizeString(prefs.partnerWeight),
+    partnerBodyTypes: normalizedBodyTypes,
+    recordingDuringPlay: normalizeToggle(prefs.recordingDuringPlay),
+    isSadist: normalizeToggle(prefs.isSadist),
+    isMasochist: normalizeToggle(prefs.isMasochist),
+    cosplay: normalizeLevel(prefs.cosplay),
+    toyPlay: normalizeLevel(prefs.toyPlay),
+    deepthroat: normalizeLevel(prefs.deepthroat),
+    throating: normalizeLevel(prefs.throating),
+    analPlay: normalizeLevel(prefs.analPlay),
+    groupPlay: normalizeLevel(prefs.groupPlay)
+  };
+};
+
 const prefectureOptions = [
   'こだわらない',
   '北海道',
@@ -486,13 +536,11 @@ export default function HomePage() {
       const hasActualChanges = JSON.stringify(sanitizedPreferencesToSave) !== JSON.stringify(preferences);
       console.log('hasActualChanges:', hasActualChanges);
 
-      const previousLocationPref = preferences?.partnerLocation ?? 'こだわらない';
-      
-      try {
-        setSavingPreferences(true);
-        
-        console.log('Saving preferences to Firebase:', sanitizedPreferencesToSave);
-        
+        try {
+          setSavingPreferences(true);
+          
+          console.log('Saving preferences to Firebase:', sanitizedPreferencesToSave);
+          
         // Firebaseに保存
         await saveMalePreferences(currentUser.uid, sanitizedPreferencesToSave);
         
@@ -500,26 +548,27 @@ export default function HomePage() {
         
         // ローカルステートを更新
         setPreferences(sanitizedPreferencesToSave);
-        
-        const nextLocationPref = sanitizedPreferencesToSave.partnerLocation ?? 'こだわらない';
-        const locationPreferenceChanged = previousLocationPref !== nextLocationPref;
 
         if (hasActualChanges) {
-          if (locationPreferenceChanged) {
-            console.log('Location preference changed, refetching girls...');
-            try {
-              await fetchGirlsFromMySQL({ offset: 0, append: false, preferencesOverride: sanitizedPreferencesToSave });
-            } catch (refetchError) {
-              console.error('Failed to refetch girls after location change:', refetchError);
+          console.log('Preferences changed, refetching girls with updated preferences...');
+          try {
+            await fetchGirlsFromMySQL({ offset: 0, append: false, preferencesOverride: sanitizedPreferencesToSave });
+          } catch (refetchError) {
+            console.error('Failed to refetch girls after preference change:', refetchError);
+            // フェッチに失敗した場合は既存データの再ソートを試みる
+            if (sortedGirlsCache && currentUser.uid) {
+              setIsSorting(true);
+              try {
+                const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
+                setSortedGirlsCache(sortedData);
+                setGirlsFromDB(sortedData);
+                console.log('Fallback re-sort completed');
+              } catch (sortError) {
+                console.error('Fallback re-sort failed:', sortError);
+              } finally {
+                setIsSorting(false);
+              }
             }
-          } else if (sortedGirlsCache && currentUser.uid) {
-            setIsSorting(true);
-            console.log('Starting data re-sort...');
-            const sortedData = await sortGirlsByPreference(sortedGirlsCache, currentUser.uid, userLocation);
-            setSortedGirlsCache(sortedData);
-            setGirlsFromDB(sortedData);
-            setIsSorting(false);
-            console.log('Data re-sort completed');
           }
         }
 
@@ -823,9 +872,11 @@ export default function HomePage() {
         }
       }
 
+      const queryPreferences = malePreferencesData ? normalizePreferencesForQuery(malePreferencesData) : null;
+
       const explicitPrefectureCandidates = [
         preferencesOverride?.partnerLocation,
-        malePreferencesData?.partnerLocation,
+        queryPreferences?.partnerLocation ?? malePreferencesData?.partnerLocation,
         userProfile?.location
       ];
       const resolvedExplicitPrefecture =
@@ -838,14 +889,14 @@ export default function HomePage() {
       let normalizedLocation: { lat: number; lng: number } | null = null;
       let locationSource: 'preference' | 'user' | 'fallback' = 'fallback';
 
-      if (malePreferencesData?.partnerLocation && malePreferencesData.partnerLocation !== 'こだわらない') {
-        const preferredCoords = getLocationCoordinates(malePreferencesData.partnerLocation);
+      if (queryPreferences?.partnerLocation) {
+        const preferredCoords = getLocationCoordinates(queryPreferences.partnerLocation);
         if (preferredCoords) {
           normalizedLocation = roundLocation(preferredCoords.lat, preferredCoords.lng, 3);
           locationSource = 'preference';
-          console.log(`📍 [fetchGirlsFromMySQL] Using preferred location '${malePreferencesData.partnerLocation}' -> lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
+          console.log(`📍 [fetchGirlsFromMySQL] Using preferred location '${queryPreferences.partnerLocation}' -> lat=${normalizedLocation.lat}, lng=${normalizedLocation.lng}`);
         } else {
-          console.log(`⚠️ [fetchGirlsFromMySQL] Preferred location '${malePreferencesData.partnerLocation}' has no predefined coordinates, trying user geolocation next.`);
+          console.log(`⚠️ [fetchGirlsFromMySQL] Preferred location '${queryPreferences?.partnerLocation}' has no predefined coordinates, trying user geolocation next.`);
         }
       }
 
@@ -874,7 +925,7 @@ export default function HomePage() {
 
       const combinedPreferredGirlTypeIds = Array.from(
         new Set([
-          ...(malePreferencesData?.girlTypeIds || []),
+          ...(queryPreferences?.girlTypeIds || malePreferencesData?.girlTypeIds || []),
           ...selectedGirlTypes
         ])
       );
@@ -899,7 +950,7 @@ export default function HomePage() {
         apiUrl += `&area=${encodeURIComponent(prefectureFilter)}`;
       }
 
-      const shouldApplyGpsRadius = (!malePreferencesData?.partnerLocation || malePreferencesData.partnerLocation === 'こだわらない')
+      const shouldApplyGpsRadius = (!queryPreferences?.partnerLocation)
         && locationSource === 'user';
 
       if (shouldApplyGpsRadius) {
@@ -913,66 +964,66 @@ export default function HomePage() {
         params.preferredGirlTypeIds = combinedPreferredGirlTypeIds;
       }
 
-      if (malePreferencesData) {
-        if (malePreferencesData.recordingDuringPlay) {
-          apiUrl += `&recordingDuringPlay=${encodeURIComponent(malePreferencesData.recordingDuringPlay)}`;
-          params.recordingDuringPlay = malePreferencesData.recordingDuringPlay;
+      if (queryPreferences) {
+        if (queryPreferences.recordingDuringPlay) {
+          apiUrl += `&recordingDuringPlay=${encodeURIComponent(queryPreferences.recordingDuringPlay)}`;
+          params.recordingDuringPlay = queryPreferences.recordingDuringPlay;
         }
-        if (malePreferencesData.isSadist) {
-          apiUrl += `&isSadist=${encodeURIComponent(malePreferencesData.isSadist)}`;
-          params.isSadist = malePreferencesData.isSadist;
+        if (queryPreferences.isSadist) {
+          apiUrl += `&isSadist=${encodeURIComponent(queryPreferences.isSadist)}`;
+          params.isSadist = queryPreferences.isSadist;
         }
-        if (malePreferencesData.isMasochist) {
-          apiUrl += `&isMasochist=${encodeURIComponent(malePreferencesData.isMasochist)}`;
-          params.isMasochist = malePreferencesData.isMasochist;
+        if (queryPreferences.isMasochist) {
+          apiUrl += `&isMasochist=${encodeURIComponent(queryPreferences.isMasochist)}`;
+          params.isMasochist = queryPreferences.isMasochist;
         }
-        if (malePreferencesData.cosplay !== undefined) {
-          apiUrl += `&cosplayPreference=${malePreferencesData.cosplay}`;
-          params.cosplayPreference = malePreferencesData.cosplay;
+        if (queryPreferences.cosplay !== undefined) {
+          apiUrl += `&cosplayPreference=${queryPreferences.cosplay}`;
+          params.cosplayPreference = queryPreferences.cosplay;
         }
-        if (malePreferencesData.toyPlay !== undefined) {
-          apiUrl += `&toyPlayPreference=${malePreferencesData.toyPlay}`;
-          params.toyPlayPreference = malePreferencesData.toyPlay;
+        if (queryPreferences.toyPlay !== undefined) {
+          apiUrl += `&toyPlayPreference=${queryPreferences.toyPlay}`;
+          params.toyPlayPreference = queryPreferences.toyPlay;
         }
-        if (malePreferencesData.deepthroat !== undefined) {
-          apiUrl += `&deepthroatPreference=${malePreferencesData.deepthroat}`;
-          params.deepthroatPreference = malePreferencesData.deepthroat;
+        if (queryPreferences.deepthroat !== undefined) {
+          apiUrl += `&deepthroatPreference=${queryPreferences.deepthroat}`;
+          params.deepthroatPreference = queryPreferences.deepthroat;
         }
-        if (malePreferencesData.throating !== undefined) {
-          apiUrl += `&throatingPreference=${malePreferencesData.throating}`;
-          params.throatingPreference = malePreferencesData.throating;
+        if (queryPreferences.throating !== undefined) {
+          apiUrl += `&throatingPreference=${queryPreferences.throating}`;
+          params.throatingPreference = queryPreferences.throating;
         }
-        if (malePreferencesData.analPlay !== undefined) {
-          apiUrl += `&analPlayPreference=${malePreferencesData.analPlay}`;
-          params.analPlayPreference = malePreferencesData.analPlay;
+        if (queryPreferences.analPlay !== undefined) {
+          apiUrl += `&analPlayPreference=${queryPreferences.analPlay}`;
+          params.analPlayPreference = queryPreferences.analPlay;
         }
-        if (malePreferencesData.groupPlay !== undefined) {
-          apiUrl += `&groupPlayPreference=${malePreferencesData.groupPlay}`;
-          params.groupPlayPreference = malePreferencesData.groupPlay;
+        if (queryPreferences.groupPlay !== undefined) {
+          apiUrl += `&groupPlayPreference=${queryPreferences.groupPlay}`;
+          params.groupPlayPreference = queryPreferences.groupPlay;
         }
-        if (malePreferencesData.partnerBodyTypes && malePreferencesData.partnerBodyTypes.length > 0) {
-          apiUrl += `&preferredBodyTypes=${encodeURIComponent(malePreferencesData.partnerBodyTypes.join(','))}`;
-          params.preferredBodyTypes = malePreferencesData.partnerBodyTypes;
+        if (queryPreferences.partnerBodyTypes && queryPreferences.partnerBodyTypes.length > 0) {
+          apiUrl += `&preferredBodyTypes=${encodeURIComponent(queryPreferences.partnerBodyTypes.join(','))}`;
+          params.preferredBodyTypes = queryPreferences.partnerBodyTypes;
         }
-        if (malePreferencesData.partnerAgeMin !== undefined && malePreferencesData.partnerAgeMin !== null && !isNaN(malePreferencesData.partnerAgeMin)) {
-          apiUrl += `&ageMin=${malePreferencesData.partnerAgeMin}`;
-          params.ageMin = malePreferencesData.partnerAgeMin;
+        if (queryPreferences.partnerAgeMin !== undefined && queryPreferences.partnerAgeMin !== null && !isNaN(queryPreferences.partnerAgeMin)) {
+          apiUrl += `&ageMin=${queryPreferences.partnerAgeMin}`;
+          params.ageMin = queryPreferences.partnerAgeMin;
         }
-        if (malePreferencesData.partnerAgeMax !== undefined && malePreferencesData.partnerAgeMax !== null && !isNaN(malePreferencesData.partnerAgeMax)) {
-          apiUrl += `&ageMax=${malePreferencesData.partnerAgeMax}`;
-          params.ageMax = malePreferencesData.partnerAgeMax;
+        if (queryPreferences.partnerAgeMax !== undefined && queryPreferences.partnerAgeMax !== null && !isNaN(queryPreferences.partnerAgeMax)) {
+          apiUrl += `&ageMax=${queryPreferences.partnerAgeMax}`;
+          params.ageMax = queryPreferences.partnerAgeMax;
         }
-        if (malePreferencesData.partnerHeight) {
-          apiUrl += `&partnerHeight=${encodeURIComponent(malePreferencesData.partnerHeight)}`;
-          params.partnerHeight = malePreferencesData.partnerHeight;
+        if (queryPreferences.partnerHeight) {
+          apiUrl += `&partnerHeight=${encodeURIComponent(queryPreferences.partnerHeight)}`;
+          params.partnerHeight = queryPreferences.partnerHeight;
         }
-        if (malePreferencesData.partnerWeight) {
-          apiUrl += `&partnerWeight=${encodeURIComponent(malePreferencesData.partnerWeight)}`;
-          params.partnerWeight = malePreferencesData.partnerWeight;
+        if (queryPreferences.partnerWeight) {
+          apiUrl += `&partnerWeight=${encodeURIComponent(queryPreferences.partnerWeight)}`;
+          params.partnerWeight = queryPreferences.partnerWeight;
         }
-        if (malePreferencesData.partnerLocation && malePreferencesData.partnerLocation !== 'こだわらない') {
-          apiUrl += `&partnerLocation=${encodeURIComponent(malePreferencesData.partnerLocation)}`;
-          params.partnerLocation = malePreferencesData.partnerLocation;
+        if (queryPreferences.partnerLocation) {
+          apiUrl += `&partnerLocation=${encodeURIComponent(queryPreferences.partnerLocation)}`;
+          params.partnerLocation = queryPreferences.partnerLocation;
         }
       }
 
@@ -997,7 +1048,7 @@ export default function HomePage() {
       });
 
       if (data && Array.isArray(data.girls) && data.girls.length > 0) {
-        const girlsWithDetails = data.girls.map((girl: any) => ({
+        const girlsWithDetails: GirlWithDetails[] = data.girls.map((girl: any) => ({
           ...girl,
           id: parseInt(girl.id),
           isWorkingToday: girl.is_working_today !== undefined ? Boolean(girl.is_working_today) : true,
@@ -1006,7 +1057,7 @@ export default function HomePage() {
             name: girl.shopName,
             area_prefecture_id: girl.area_prefecture_id,
           },
-        }));
+        } as GirlWithDetails));
 
         const girlsWithTypes = girlsWithDetails.filter((girl: any) => Array.isArray(girl.girlTypes) && girl.girlTypes.length > 0);
         console.log(`🎯 [fetchGirlsFromMySQL] Girl type coverage: ${girlsWithTypes.length}/${girlsWithDetails.length}`);
@@ -1028,6 +1079,16 @@ export default function HomePage() {
 
         if (!append) {
           setCurrentPage(1);
+          if (data?.prefectureFilter?.primaryId && data.prefectureFilter.candidateIds.length > 1) {
+            const primaryId = data.prefectureFilter.primaryId;
+            const fallbackUsed = girlsWithDetails.some(girl => girl.shop?.area_prefecture_id !== primaryId);
+            if (fallbackUsed) {
+              toast({
+                title: '近隣エリアの候補を表示中',
+                description: '指定された都道府県に該当がなかったため、距離が近い都道府県の女性を自動表示しています。'
+              });
+            }
+          }
         }
 
         console.log(`✅ [fetchGirlsFromMySQL] Total processing time: ${fetchTime.toFixed(0)}ms`);

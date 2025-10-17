@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch optimized data with location-based sorting
-    const { girls, total } = await fetchOptimizedGirls(
+    const { girls, total, prefectureFilter } = await fetchOptimizedGirls(
       limit,
       offset,
       area,
@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       success: true,
+      prefectureFilter,
       performance: {
         responseTime: Math.round(responseTime),
         cacheHitRate: metrics.cacheHitRate.toFixed(2),
