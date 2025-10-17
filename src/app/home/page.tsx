@@ -11,7 +11,7 @@ import { fetchAdminGirls, type UserProfile } from '@/lib/firebase/user-utils';
 import { GirlWithDetails } from '@/types/database';
 import { sortGirlsByPreference } from '@/lib/utils/girlSorting';
 import { recordProfileView } from '@/lib/firebase/actions';
-import { getCurrentLocation, type LocationCoordinates } from '@/lib/utils/location';
+import { getCurrentLocation, getNearestLocationName, type LocationCoordinates } from '@/lib/utils/location';
 import { getLocationCoordinates } from '@/lib/utils/japanLocations';
 import { sortUsersByPreference } from '@/lib/utils/userSorting';
 import { useUserProfile } from '@/lib/firebase/hooks';
@@ -39,6 +39,7 @@ const MIN_PARTNER_AGE = 18;
 const MAX_PARTNER_AGE = 50;
 const DEFAULT_GPS_RADIUS_KM = 80;
 const GIRL_BATCH_SIZE = 20;
+const SCHEDULE_RANGE_DAYS = 7;
 const partnerAgeOptions = Array.from(
   { length: MAX_PARTNER_AGE - MIN_PARTNER_AGE + 1 },
   (_, i) => MIN_PARTNER_AGE + i
@@ -108,6 +109,117 @@ const prefectureOptions = [
   '鹿児島県',
   '沖縄県'
 ];
+
+const CITY_TO_PREFECTURE_MAP: Record<string, string> = {
+  北海道: '北海道',
+  札幌: '北海道',
+  青森: '青森県',
+  岩手: '岩手県',
+  盛岡: '岩手県',
+  宮城: '宮城県',
+  仙台: '宮城県',
+  秋田: '秋田県',
+  山形: '山形県',
+  福島: '福島県',
+  茨城: '茨城県',
+  水戸: '茨城県',
+  栃木: '栃木県',
+  宇都宮: '栃木県',
+  群馬: '群馬県',
+  前橋: '群馬県',
+  埼玉: '埼玉県',
+  さいたま: '埼玉県',
+  千葉: '千葉県',
+  東京: '東京都',
+  神奈川: '神奈川県',
+  横浜: '神奈川県',
+  新潟: '新潟県',
+  富山: '富山県',
+  石川: '石川県',
+  金沢: '石川県',
+  福井: '福井県',
+  山梨: '山梨県',
+  甲府: '山梨県',
+  長野: '長野県',
+  岐阜: '岐阜県',
+  静岡: '静岡県',
+  愛知: '愛知県',
+  名古屋: '愛知県',
+  三重: '三重県',
+  津: '三重県',
+  滋賀: '滋賀県',
+  大津: '滋賀県',
+  京都: '京都府',
+  大阪: '大阪府',
+  兵庫: '兵庫県',
+  神戸: '兵庫県',
+  奈良: '奈良県',
+  和歌山: '和歌山県',
+  鳥取: '鳥取県',
+  島根: '島根県',
+  松江: '島根県',
+  岡山: '岡山県',
+  広島: '広島県',
+  山口: '山口県',
+  徳島: '徳島県',
+  香川: '香川県',
+  高松: '香川県',
+  愛媛: '愛媛県',
+  松山: '愛媛県',
+  高知: '高知県',
+  福岡: '福岡県',
+  佐賀: '佐賀県',
+  長崎: '長崎県',
+  熊本: '熊本県',
+  大分: '大分県',
+  宮崎: '宮崎県',
+  鹿児島: '鹿児島県',
+  沖縄: '沖縄県',
+  那覇: '沖縄県'
+};
+
+const PREFECTURE_OPTION_LOOKUP = prefectureOptions
+  .filter(option => option !== 'こだわらない')
+  .map(option => ({
+    original: option,
+    normalized: option.replace(/\s+/g, '')
+  }));
+
+const normalizePrefectureName = (raw: string | null | undefined): string | null => {
+  if (!raw) {
+    return null;
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === 'こだわらない') {
+    return null;
+  }
+
+  const compact = trimmed.replace(/\s+/g, '');
+  const directMatch = PREFECTURE_OPTION_LOOKUP.find(entry => entry.normalized === compact);
+  if (directMatch) {
+    return directMatch.original;
+  }
+
+  const base = compact.replace(/[都道府県]$/u, '');
+  const candidateKeys = [compact, base, `${base}県`, `${base}府`, `${base}都`, `${base}道`]
+    .map(value => value.replace(/\s+/g, ''))
+    .filter(Boolean);
+
+  for (const candidate of candidateKeys) {
+    const matched = PREFECTURE_OPTION_LOOKUP.find(entry => entry.normalized === candidate);
+    if (matched) {
+      return matched.original;
+    }
+  }
+
+  const mapped = CITY_TO_PREFECTURE_MAP[compact] ?? (base ? CITY_TO_PREFECTURE_MAP[base] : undefined);
+  if (mapped) {
+    return mapped;
+  }
+
+  return null;
+};
 
 export default function HomePage() {
   const { isAuthenticated, currentUser, firebaseSynced } = useAuth(); // search/advancedと同じく、isLoadingやhasInitializedを使わない
@@ -673,6 +785,7 @@ export default function HomePage() {
   const fetchGirlsFromMySQL = useCallback(async (options?: { offset?: number; append?: boolean; preferencesOverride?: MalePreferences | null }) => {
     const { offset = 0, append = false, preferencesOverride = null } = options ?? {};
     const scheduleDateParam = 'today';
+    const scheduleRangeParam = SCHEDULE_RANGE_DAYS;
 
     if (append && (isFetchingMoreGirls || !hasMoreGirls)) {
       console.log(`[fetchGirlsFromMySQL] Skipping append fetch (hasMore=${hasMoreGirls}, busy=${isFetchingMoreGirls})`);
@@ -710,6 +823,17 @@ export default function HomePage() {
         }
       }
 
+      const explicitPrefectureCandidates = [
+        preferencesOverride?.partnerLocation,
+        malePreferencesData?.partnerLocation,
+        userProfile?.location
+      ];
+      const resolvedExplicitPrefecture =
+        explicitPrefectureCandidates
+          .map(candidate => normalizePrefectureName(candidate))
+          .find((value): value is string => Boolean(value)) ?? null;
+      let prefectureFilter = resolvedExplicitPrefecture;
+
       const fallbackLocation = roundLocation(35.6812, 139.7671, 3);
       let normalizedLocation: { lat: number; lng: number } | null = null;
       let locationSource: 'preference' | 'user' | 'fallback' = 'fallback';
@@ -740,6 +864,14 @@ export default function HomePage() {
 
       const locationForQuery = normalizedLocation ?? fallbackLocation;
 
+      if (!prefectureFilter && userLocation) {
+        const nearestPrefecture = getNearestLocationName(userLocation.lat, userLocation.lng);
+        prefectureFilter = normalizePrefectureName(nearestPrefecture);
+      }
+
+      const shouldRestrictPrefecture =
+        Boolean(prefectureFilter) && (resolvedExplicitPrefecture !== null || locationSource !== 'fallback');
+
       const combinedPreferredGirlTypeIds = Array.from(
         new Set([
           ...(malePreferencesData?.girlTypeIds || []),
@@ -752,10 +884,20 @@ export default function HomePage() {
         offset,
         userLat: locationForQuery.lat,
         userLng: locationForQuery.lng,
-        scheduleDate: scheduleDateParam
+        scheduleDate: scheduleDateParam,
+        scheduleRangeDays: scheduleRangeParam
       };
 
-      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}&scheduleDate=${scheduleDateParam}`;
+      if (shouldRestrictPrefecture && prefectureFilter) {
+        params.area = prefectureFilter;
+        console.log(`[fetchGirlsFromMySQL] Prefecture filter applied: ${prefectureFilter}`);
+      }
+
+      let apiUrl = `${baseUrl}/api/mysql-girls-fast?limit=${params.limit}&offset=${params.offset}&userLat=${locationForQuery.lat}&userLng=${locationForQuery.lng}&scheduleDate=${scheduleDateParam}&scheduleRangeDays=${scheduleRangeParam}`;
+
+      if (shouldRestrictPrefecture && prefectureFilter) {
+        apiUrl += `&area=${encodeURIComponent(prefectureFilter)}`;
+      }
 
       const shouldApplyGpsRadius = (!malePreferencesData?.partnerLocation || malePreferencesData.partnerLocation === 'こだわらない')
         && locationSource === 'user';

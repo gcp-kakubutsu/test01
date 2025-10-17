@@ -55,7 +55,8 @@ export async function fetchOptimizedGirls(
   groupPlayPreference?: number | null,
   preferredGirlTypeIds?: number[] | null,
   preferredBodyTypes?: string[] | null,
-  scheduleDate?: string | null
+  scheduleDate?: string | null,
+  scheduleRangeDays?: number | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -145,9 +146,13 @@ export async function fetchOptimizedGirls(
       console.warn('⚠️  無効なscheduleDateが指定されました:', scheduleDate);
     }
   }
+  const normalizedScheduleRange = typeof scheduleRangeDays === 'number' && Number.isFinite(scheduleRangeDays) && scheduleRangeDays > 0
+    ? Math.min(Math.floor(scheduleRangeDays), 14)
+    : null;
+  const scheduleRangeKey = normalizedScheduleRange ?? 'n';
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
-  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
-  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
+  const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
+  const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
 
   if (hasLocationPreference && normalizedPartnerLocation) {
     console.log('📍 [MySQL] Partner location preference prioritized:', normalizedPartnerLocation);
@@ -268,11 +273,16 @@ export async function fetchOptimizedGirls(
   let scheduleJoin = '';
   let scheduleSelect = '';
 
-  if (scheduleDateExpression) {
+  const effectiveScheduleRange = normalizedScheduleRange ?? null;
+  const scheduleStartExpression = scheduleDateExpression || (effectiveScheduleRange ? 'CURDATE()' : null);
+
+  if (scheduleStartExpression) {
     const hasScheduleDeletedAt = await hasTableColumn('girl_schedules', 'deleted_at');
     const scheduleConditions = [
       hasScheduleDeletedAt ? 'gs.deleted_at IS NULL' : null,
-      `gs.schedule_date = ${scheduleDateExpression}`
+      effectiveScheduleRange && effectiveScheduleRange > 1
+        ? `gs.schedule_date BETWEEN ${scheduleStartExpression} AND DATE_ADD(${scheduleStartExpression}, INTERVAL ${effectiveScheduleRange - 1} DAY)`
+        : `gs.schedule_date = ${scheduleStartExpression}`
     ].filter((condition): condition is string => condition !== null);
     const scheduleWhere = scheduleConditions.length
       ? `\n        WHERE ${scheduleConditions.join('\n          AND ')}`
@@ -281,13 +291,15 @@ export async function fetchOptimizedGirls(
     scheduleJoin = `
       INNER JOIN (
         SELECT /* idx_girl_schedules_date_girl */
-          gs.girl_profile_id
+          gs.girl_profile_id,
+          MIN(gs.schedule_date) AS next_schedule_date
         FROM girl_schedules gs FORCE INDEX (idx_girl_schedules_date_girl)${scheduleWhere}
         GROUP BY gs.girl_profile_id
-      ) schedule_today ON schedule_today.girl_profile_id = g.id
+      ) schedule_window ON schedule_window.girl_profile_id = g.id
     `;
     scheduleSelect = `,
-      TRUE AS is_working_today
+      schedule_window.next_schedule_date = CURDATE() AS is_working_today,
+      schedule_window.next_schedule_date AS next_schedule_date
     `;
   }
 
@@ -790,7 +802,8 @@ export async function fetchOptimizedGirls(
   const isHotTodayRequest =
     limitCount <= 20 &&
     offset === 0 &&
-    scheduleDateExpression === 'CURDATE()';
+    scheduleDateExpression === 'CURDATE()' &&
+    (!effectiveScheduleRange || effectiveScheduleRange === 1);
   const girlsCacheTTL = isHotTodayRequest ? 30000 : 60000; // ホットパスは30秒、その他は1分
   const countCacheTTL = isHotTodayRequest ? 60000 : 300000; // ホットパスは1分、その他は5分
   
@@ -839,6 +852,7 @@ export async function fetchOptimizedGirls(
       latitude: row.latitude,
       longitude: row.longitude
     },
+    nextScheduleDate: row.next_schedule_date ?? null,
     // 計算済みの距離を追加
     distance_km: row.distance_km || undefined,
     // Girl types from girl_status table (parse JSON if string, otherwise use as-is)
@@ -891,7 +905,8 @@ export async function prefetchNextPage(
   groupPlayPreference?: number | null,
   preferredGirlTypeIds?: number[] | null,
   preferredBodyTypes?: string[] | null,
-  scheduleDate?: string | null
+  scheduleDate?: string | null,
+  scheduleRangeDays?: number | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -905,11 +920,16 @@ export async function prefetchNextPage(
   const girlTypeStr = preferredGirlTypeIds ? preferredGirlTypeIds.sort().join(',') : '';
   const bodyTypeStr = preferredBodyTypes ? preferredBodyTypes.sort().join(',') : '';
   let scheduleCacheKey = 'no_schedule';
+  const normalizedScheduleRange = typeof scheduleRangeDays === 'number' && Number.isFinite(scheduleRangeDays) && scheduleRangeDays > 0
+    ? Math.min(Math.floor(scheduleRangeDays), 14)
+    : null;
+
   if (scheduleDate) {
     scheduleCacheKey = (scheduleDate === 'today' || scheduleDate === '今日') ? 'today' : scheduleDate;
   }
+  const scheduleRangeKey = normalizedScheduleRange ?? 'n';
   const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
-  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}`;
+  const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
   
   // Check if already cached
   if (!hasCacheKey(cacheKey)) {
@@ -939,7 +959,8 @@ export async function prefetchNextPage(
         groupPlayPreference,
         preferredGirlTypeIds,
         preferredBodyTypes,
-        scheduleDate
+        scheduleDate,
+        scheduleRangeDays
       ).catch(error => console.error('⚠️  Failed to prefetch next page:', error));
     }, 100);
   }

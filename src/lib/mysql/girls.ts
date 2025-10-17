@@ -23,6 +23,7 @@ export interface MySQLGirlProfile {
   is_tobacco?: boolean;
   is_working_today?: boolean;
   isWorkingToday?: boolean;
+  nextScheduleDate?: string | null;
   // Shop info
   shopName?: string;
   shopId?: number;

@@ -50,6 +50,10 @@ export async function GET(request: NextRequest) {
   const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
   const scheduleDateParam = searchParams.get('scheduleDate');
   const scheduleDate = scheduleDateParam ? scheduleDateParam.trim() : 'today';
+  const scheduleRangeParam = parseInt(searchParams.get('scheduleRangeDays') || '0');
+  const scheduleRangeDays = !Number.isNaN(scheduleRangeParam) && scheduleRangeParam > 0
+    ? Math.min(scheduleRangeParam, 14)
+    : null;
 
   if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
     console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });
@@ -86,7 +90,8 @@ export async function GET(request: NextRequest) {
     groupPlayPreference ?? 'na',
     preferredGirlTypesKey,
     preferredBodyTypesKey,
-    scheduleDate || 'na'
+    scheduleDate || 'na',
+    scheduleRangeDays ?? 'na'
   ].join(':');
 
   const isHotCacheable =
@@ -133,12 +138,13 @@ export async function GET(request: NextRequest) {
       groupPlayPreference,
       preferredGirlTypeIds,
       preferredBodyTypes,
-      scheduleDate
+      scheduleDate,
+      scheduleRangeDays
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes, scheduleDate);
+      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes, scheduleDate, scheduleRangeDays);
     }
     
     const responseTime = performance.now() - startTime;
