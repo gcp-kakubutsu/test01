@@ -68,8 +68,486 @@ const personalityTags = [
   '身長165cm以上',
   'Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ',
   'Fカップ', 'Gカップ以上',
-  'お酒を飲む人', 'お酒を飲まない人', 'タバコを吸う人', 'タバコを吸わない人'
+  'お酒を飲む人', 'お酒を飲まない人', 'タバコを吸う人', 'タバコを吸わない人',
+  '撮影OK', 'コスプレ対応', 'おもちゃプレイ', 'イラマ・ディープスロート',
+  'ごっくんOK', 'アナル対応', '複数プレイ', 'ドS女王様', 'ドM受け身'
 ]
+
+const serverFilterTagConfig: Record<
+  string,
+  (params: Record<string, any>) => void
+> = {
+  '撮影OK': params => {
+    params.recordingDuringPlay = 'はい'
+  },
+  'コスプレ対応': params => {
+    params.cosplayPreference = Math.max(params.cosplayPreference ?? 0, 4)
+  },
+  'おもちゃプレイ': params => {
+    params.toyPlayPreference = Math.max(params.toyPlayPreference ?? 0, 4)
+  },
+  'イラマ・ディープスロート': params => {
+    params.deepthroatPreference = Math.max(params.deepthroatPreference ?? 0, 4)
+  },
+  'ごっくんOK': params => {
+    params.throatingPreference = Math.max(params.throatingPreference ?? 0, 4)
+  },
+  'アナル対応': params => {
+    params.analPlayPreference = Math.max(params.analPlayPreference ?? 0, 4)
+  },
+  '複数プレイ': params => {
+    params.groupPlayPreference = Math.max(params.groupPlayPreference ?? 0, 4)
+  },
+  'ドS女王様': params => {
+    params.isMasochist = 'はい'
+  },
+  'ドM受け身': params => {
+    params.isSadist = 'はい'
+  }
+}
+
+const serverFilterTagSet = new Set(Object.keys(serverFilterTagConfig))
+
+const clientFilterTagSet = new Set([
+  '10代', '20代', '30代', '40代', '50代',
+  '身長150cm以下', '身長155cm以下', '身長160cm以下',
+  '身長165cm以上',
+  'Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ',
+  'Fカップ', 'Gカップ以上',
+  'お酒を飲む人', 'お酒を飲まない人', 'タバコを吸う人', 'タバコを吸わない人',
+  'ドS女王様', 'ドM受け身'
+])
+
+type ClientConstraints = {
+  heightUpper?: number
+  heightLower?: number
+  ageMin?: number
+  ageMax?: number
+  cupMinIndex?: number
+  cupMaxIndex?: number
+  requireSake?: boolean | null
+  requireTobacco?: boolean | null
+  girlTypePatterns?: RegExp[]
+}
+
+interface ParsedQuery {
+  areaKeyword: string | null
+  generalKeywords: string[]
+  serverTags: Set<string>
+  clientConstraints: ClientConstraints
+  hasNonLocationKeywordSearch: boolean
+}
+
+const CUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
+
+const AGE_TAG_RANGES: Record<string, [number, number]> = {
+  '10代': [18, 19],
+  '20代': [20, 29],
+  '30代': [30, 39],
+  '40代': [40, 49],
+  '50代': [50, 59]
+}
+
+const DEFAULT_AGE_RANGE: [number, number] = [18, 50]
+const ageTagSet = new Set<string>(Object.keys(AGE_TAG_RANGES))
+
+const computeAgeRangeFromTags = (tags: Iterable<string>): [number, number] | null => {
+  let minAge: number | null = null
+  let maxAge: number | null = null
+
+  for (const tag of tags) {
+    const range = AGE_TAG_RANGES[tag]
+    if (!range) continue
+    const [candidateMin, candidateMax] = range
+    minAge = minAge === null ? candidateMin : Math.min(minAge, candidateMin)
+    maxAge = maxAge === null ? candidateMax : Math.max(maxAge, candidateMax)
+  }
+
+  if (minAge === null || maxAge === null) {
+    return null
+  }
+
+  const clampedMin = Math.max(DEFAULT_AGE_RANGE[0], minAge)
+  const clampedMax = Math.max(clampedMin, Math.min(DEFAULT_AGE_RANGE[1], maxAge))
+  return [clampedMin, clampedMax]
+}
+
+const getCupIndex = (cup?: string | null): number | null => {
+  if (!cup) return null
+  const normalized = cup.toString().trim().toUpperCase()
+  const index = CUP_ORDER.indexOf(normalized)
+  return index >= 0 ? index : null
+}
+
+const getCupLabelFromIndex = (index?: number): string | null => {
+  if (index === undefined || index === null) return null
+  if (index < 0 || index >= CUP_ORDER.length) return null
+  return CUP_ORDER[index] ?? null
+}
+
+const mergeConstraints = (base: ClientConstraints, update: ClientConstraints): ClientConstraints => {
+  const merged: ClientConstraints = { ...base }
+
+  if (update.heightUpper !== undefined) {
+    merged.heightUpper = merged.heightUpper !== undefined
+      ? Math.min(merged.heightUpper, update.heightUpper)
+      : update.heightUpper
+  }
+  if (update.heightLower !== undefined) {
+    merged.heightLower = merged.heightLower !== undefined
+      ? Math.max(merged.heightLower, update.heightLower)
+      : update.heightLower
+  }
+  if (update.ageMin !== undefined) {
+    merged.ageMin = merged.ageMin !== undefined
+      ? Math.max(merged.ageMin, update.ageMin)
+      : update.ageMin
+  }
+  if (update.ageMax !== undefined) {
+    merged.ageMax = merged.ageMax !== undefined
+      ? Math.min(merged.ageMax, update.ageMax)
+      : update.ageMax
+  }
+  if (update.cupMinIndex !== undefined) {
+    merged.cupMinIndex = merged.cupMinIndex !== undefined
+      ? Math.max(merged.cupMinIndex, update.cupMinIndex)
+      : update.cupMinIndex
+  }
+  if (update.cupMaxIndex !== undefined) {
+    merged.cupMaxIndex = merged.cupMaxIndex !== undefined
+      ? Math.min(merged.cupMaxIndex, update.cupMaxIndex)
+      : update.cupMaxIndex
+  }
+  if (update.requireSake !== undefined) {
+    merged.requireSake = update.requireSake
+  }
+  if (update.requireTobacco !== undefined) {
+    merged.requireTobacco = update.requireTobacco
+  }
+  if (update.girlTypePatterns && update.girlTypePatterns.length > 0) {
+    merged.girlTypePatterns = [
+      ...(merged.girlTypePatterns ?? []),
+      ...update.girlTypePatterns
+    ]
+  }
+
+  return merged
+}
+
+const deriveConstraintsFromTags = (tagSet: Set<string>): ClientConstraints => {
+  let constraints: ClientConstraints = {}
+
+  tagSet.forEach(tag => {
+    const ageRange = AGE_TAG_RANGES[tag]
+    if (ageRange) {
+      const [minAge, maxAge] = ageRange
+      constraints = mergeConstraints(constraints, {
+        ageMin: minAge,
+        ageMax: maxAge
+      })
+    }
+  })
+
+  if (tagSet.has('身長150cm以下')) {
+    constraints = mergeConstraints(constraints, { heightUpper: 150 })
+  }
+  if (tagSet.has('身長155cm以下')) {
+    constraints = mergeConstraints(constraints, { heightUpper: 155 })
+  }
+  if (tagSet.has('身長160cm以下')) {
+    constraints = mergeConstraints(constraints, { heightUpper: 160 })
+  }
+  if (tagSet.has('身長165cm以上')) {
+    constraints = mergeConstraints(constraints, { heightLower: 165 })
+  }
+
+  if (tagSet.has('Bカップ以下')) {
+    constraints = mergeConstraints(constraints, { cupMaxIndex: getCupIndex('B') ?? undefined })
+  }
+  if (tagSet.has('Cカップ')) {
+    const idx = getCupIndex('C')
+    constraints = mergeConstraints(constraints, {
+      cupMinIndex: idx ?? undefined,
+      cupMaxIndex: idx ?? undefined
+    })
+  }
+  if (tagSet.has('Dカップ')) {
+    const idx = getCupIndex('D')
+    constraints = mergeConstraints(constraints, {
+      cupMinIndex: idx ?? undefined,
+      cupMaxIndex: idx ?? undefined
+    })
+  }
+  if (tagSet.has('Eカップ')) {
+    const idx = getCupIndex('E')
+    constraints = mergeConstraints(constraints, {
+      cupMinIndex: idx ?? undefined,
+      cupMaxIndex: idx ?? undefined
+    })
+  }
+  if (tagSet.has('Fカップ')) {
+    const idx = getCupIndex('F')
+    constraints = mergeConstraints(constraints, {
+      cupMinIndex: idx ?? undefined,
+      cupMaxIndex: idx ?? undefined
+    })
+  }
+  if (tagSet.has('Gカップ以上')) {
+    constraints = mergeConstraints(constraints, { cupMinIndex: getCupIndex('G') ?? undefined })
+  }
+
+  if (tagSet.has('お酒を飲む人')) {
+    constraints = mergeConstraints(constraints, { requireSake: true })
+  }
+  if (tagSet.has('お酒を飲まない人')) {
+    constraints = mergeConstraints(constraints, { requireSake: false })
+  }
+  if (tagSet.has('タバコを吸う人')) {
+    constraints = mergeConstraints(constraints, { requireTobacco: true })
+  }
+  if (tagSet.has('タバコを吸わない人')) {
+    constraints = mergeConstraints(constraints, { requireTobacco: false })
+  }
+
+  const girlTypePatterns: RegExp[] = []
+  if (tagSet.has('ドS女王様')) {
+    girlTypePatterns.push(/(ドs|ドＳ|ｓ女|Ｓ女|サド|女王|クイーン|S気質)/i)
+  }
+  if (tagSet.has('ドM受け身')) {
+    girlTypePatterns.push(/(ドm|ドＭ|ｍ女|Ｍ女|マゾ|受け身|M気質)/i)
+  }
+  if (girlTypePatterns.length > 0) {
+    constraints = mergeConstraints(constraints, { girlTypePatterns })
+  }
+
+  return constraints
+}
+
+const parseSearchQuery = (raw: string): ParsedQuery => {
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    return {
+      areaKeyword: null,
+      generalKeywords: [],
+      serverTags: new Set(),
+      clientConstraints: {},
+      hasNonLocationKeywordSearch: false
+    }
+  }
+
+  const serverTags = new Set<string>()
+  let clientConstraints: ClientConstraints = {}
+  const generalKeywords: string[] = []
+  let areaKeyword: string | null = null
+  const locationSuffixRegex = /[区市町村]$/
+
+  const tokens = trimmed.split(/\s+/)
+  tokens.forEach(token => {
+    const normalizedToken = token.trim()
+    if (!normalizedToken) return
+    const lowerToken = normalizedToken.toLowerCase()
+
+    if (!areaKeyword && locationSuffixRegex.test(normalizedToken)) {
+      areaKeyword = normalizedToken
+      return
+    }
+
+    let matched = false
+
+    const heightCandidate = lowerToken.replace(/身長/g, '')
+    const heightMatch = heightCandidate.match(/(\d{2,3})\s*cm(以上|以下)?/)
+    if (heightMatch) {
+      const value = parseInt(heightMatch[1])
+      if (!Number.isNaN(value)) {
+        if (heightMatch[2] === '以上') {
+          clientConstraints = mergeConstraints(clientConstraints, { heightLower: value })
+        } else if (heightMatch[2] === '以下') {
+          clientConstraints = mergeConstraints(clientConstraints, { heightUpper: value })
+        } else {
+          clientConstraints = mergeConstraints(clientConstraints, { heightUpper: value, heightLower: value })
+        }
+        matched = true
+      }
+    }
+
+    if (!matched) {
+      const ageCandidate = lowerToken.replace(/年齢/g, '')
+      const ageMatch = ageCandidate.match(/(\d{1,2})\s*(?:歳|才)(以上|以下)?/)
+      if (ageMatch) {
+        const value = parseInt(ageMatch[1])
+        if (!Number.isNaN(value)) {
+          if (ageMatch[2] === '以上') {
+            clientConstraints = mergeConstraints(clientConstraints, { ageMin: value })
+          } else if (ageMatch[2] === '以下') {
+            clientConstraints = mergeConstraints(clientConstraints, { ageMax: value })
+          } else {
+            clientConstraints = mergeConstraints(clientConstraints, { ageMin: value, ageMax: value })
+          }
+          matched = true
+        }
+      }
+    }
+
+    if (!matched) {
+      const cupMatch = normalizedToken.toUpperCase().match(/([A-K])カップ(以上|以下)?/)
+      if (cupMatch) {
+        const index = getCupIndex(cupMatch[1])
+        if (index !== null) {
+          if (cupMatch[2] === '以上') {
+            clientConstraints = mergeConstraints(clientConstraints, { cupMinIndex: index })
+          } else if (cupMatch[2] === '以下') {
+            clientConstraints = mergeConstraints(clientConstraints, { cupMaxIndex: index })
+          } else {
+            clientConstraints = mergeConstraints(clientConstraints, { cupMinIndex: index, cupMaxIndex: index })
+          }
+          matched = true
+        }
+      }
+    }
+
+    const lower = normalizedToken.toLowerCase()
+    if (!matched) {
+      if (/(撮影|動画|写真|録画|録音)/i.test(normalizedToken)) {
+        serverTags.add('撮影OK')
+        matched = true
+      } else if (/(コスプレ|衣装|制服)/i.test(normalizedToken)) {
+        serverTags.add('コスプレ対応')
+        matched = true
+      } else if (/(電マ|ローター|バイブ|玩具|おもちゃ)/i.test(normalizedToken)) {
+        serverTags.add('おもちゃプレイ')
+        matched = true
+      } else if (/(イラマ|ディープスロート|dee?p)/i.test(lower)) {
+        serverTags.add('イラマ・ディープスロート')
+        matched = true
+      } else if (/(ごっくん|精飲|飲精)/i.test(normalizedToken)) {
+        serverTags.add('ごっくんOK')
+        matched = true
+      } else if (/(アナル|af|ＡＦ)/i.test(normalizedToken)) {
+        serverTags.add('アナル対応')
+        matched = true
+      } else if (/(3p|４p|複数|乱交)/i.test(normalizedToken)) {
+        serverTags.add('複数プレイ')
+        matched = true
+      } else if (/(ドs|ドＳ|サド|女王|クイーン)/i.test(normalizedToken)) {
+        clientConstraints = mergeConstraints(clientConstraints, {
+          girlTypePatterns: [/(ドs|ドＳ|ｓ女|Ｓ女|サド|女王|クイーン|S気質)/i]
+        })
+        matched = true
+      } else if (/(ドm|ドＭ|マゾ|受け身)/i.test(normalizedToken)) {
+        clientConstraints = mergeConstraints(clientConstraints, {
+          girlTypePatterns: [/(ドm|ドＭ|ｍ女|Ｍ女|マゾ|受け身|M気質)/i]
+        })
+        matched = true
+      } else if (/(お酒|飲酒)/i.test(normalizedToken)) {
+        if (/(飲まない|苦手|嫌)/i.test(normalizedToken)) {
+          clientConstraints = mergeConstraints(clientConstraints, { requireSake: false })
+        } else {
+          clientConstraints = mergeConstraints(clientConstraints, { requireSake: true })
+        }
+        matched = true
+      } else if (/(タバコ|喫煙|煙草)/i.test(normalizedToken)) {
+        if (/(吸わない|苦手|嫌)/i.test(normalizedToken)) {
+          clientConstraints = mergeConstraints(clientConstraints, { requireTobacco: false })
+        } else {
+          clientConstraints = mergeConstraints(clientConstraints, { requireTobacco: true })
+        }
+        matched = true
+      }
+    }
+
+    if (!matched) {
+      generalKeywords.push(lower)
+    }
+  })
+
+  const hasNonLocationKeywordSearch =
+    generalKeywords.length > 0 ||
+    Object.keys(clientConstraints).length > 0 ||
+    serverTags.size > 0
+
+  return {
+    areaKeyword,
+    generalKeywords,
+    serverTags,
+    clientConstraints,
+    hasNonLocationKeywordSearch
+  }
+}
+
+const hasGirlTypeKeyword = (user: UserProfile, patterns: RegExp[]): boolean => {
+  if (!user.girlTypes || user.girlTypes.length === 0) return false
+  return user.girlTypes.some(type => {
+    if (!type) return false
+    const name =
+      typeof type === 'string'
+        ? type
+        : (typeof type === 'object' && 'name' in type ? (type as { name?: string | null }).name ?? '' : '')
+    if (!name) return false
+    const normalized = name.toString().toLowerCase()
+    return patterns.some(pattern => pattern.test(normalized))
+  })
+}
+
+const matchesClientConstraints = (user: UserProfile, constraints: ClientConstraints): boolean => {
+  if (constraints.heightUpper !== undefined) {
+    const height = user.height ?? null
+    if (height === null || height > constraints.heightUpper) {
+      return false
+    }
+  }
+  if (constraints.heightLower !== undefined) {
+    const height = user.height ?? null
+    if (height === null || height < constraints.heightLower) {
+      return false
+    }
+  }
+  if (constraints.ageMin !== undefined) {
+    const age = user.age ?? null
+    if (age === null || age < constraints.ageMin) {
+      return false
+    }
+  }
+  if (constraints.ageMax !== undefined) {
+    const age = user.age ?? null
+    if (age === null || age > constraints.ageMax) {
+      return false
+    }
+  }
+  if (constraints.cupMinIndex !== undefined || constraints.cupMaxIndex !== undefined) {
+    const index = getCupIndex(user.cup)
+    if (index === null) {
+      return false
+    }
+    if (constraints.cupMinIndex !== undefined && index < constraints.cupMinIndex) {
+      return false
+    }
+    if (constraints.cupMaxIndex !== undefined && index > constraints.cupMaxIndex) {
+      return false
+    }
+  }
+  if (constraints.requireSake !== undefined) {
+    if (constraints.requireSake === true && user.is_sake !== true) {
+      return false
+    }
+    if (constraints.requireSake === false && user.is_sake !== false) {
+      return false
+    }
+  }
+  if (constraints.requireTobacco !== undefined) {
+    if (constraints.requireTobacco === true && user.is_tobacco !== true) {
+      return false
+    }
+    if (constraints.requireTobacco === false && user.is_tobacco !== false) {
+      return false
+    }
+  }
+  if (constraints.girlTypePatterns && constraints.girlTypePatterns.length > 0) {
+    if (!hasGirlTypeKeyword(user, constraints.girlTypePatterns)) {
+      return false
+    }
+  }
+  return true
+}
 
 
 // スタイルオプション
@@ -149,7 +627,7 @@ function AdvancedSearchContent() {
   const [girlTypeOptions, setGirlTypeOptions] = useState<Option[]>([]) // For MultiSelect component
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedTime, setSelectedTime] = useState('now')
-  const [ageRange, setAgeRange] = useState([18, 50])
+  const [ageRange, setAgeRange] = useState<[number, number]>(() => [...DEFAULT_AGE_RANGE] as [number, number])
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('distance') // デフォルトを距離順に変更
   const [filtersApplied, setFiltersApplied] = useState(false)
@@ -224,6 +702,12 @@ function AdvancedSearchContent() {
     }
     return filteredUsers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT)
   }, [useClientFiltering, filteredUsers, currentPage, LIMIT, pageCache])
+  const overallCount = useMemo(() => {
+    if (totalCount > 0) return totalCount
+    return filteredTotalCount
+  }, [totalCount, filteredTotalCount])
+  const currentPageCount = displayedUsers.length
+  const hiddenCount = Math.max(overallCount - currentPageCount, 0)
   
   // 初期パラメータの読み込み（初回のみ）
   useEffect(() => {
@@ -348,53 +832,52 @@ function AdvancedSearchContent() {
 
   // ユーザーデータ取得はcurrentPage変更時のフィルタリング処理に統合
 
-  // 特殊フィルタリングタグかどうかをチェック
-  const specialFilterTags = ['10代', '20代', '30代', '40代', '50代', '身長150cm以下', '身長155cm以下', '身長160cm以下', '身長165cm以上', 'Bカップ以下', 'Cカップ', 'Dカップ', 'Eカップ', 'Fカップ', 'Gカップ以上', 'お酒を飲む人', 'お酒を飲まない人', 'タバコを吸う人', 'タバコを吸わない人']
-  const hasSpecialFilters = selectedTags.some(tag => specialFilterTags.includes(tag))
-  const keywordAnalysis = useMemo(() => {
-    const trimmed = searchQuery.trim()
-    if (!trimmed) {
-      return {
-        hasKeywordSearch: false,
-        searchAreaName: null as string | null,
-        hasNonLocationKeywordSearch: false,
-        normalizedKeywords: ''
+  const clientSelectedTags = useMemo(
+    () => selectedTags.filter(tag => clientFilterTagSet.has(tag)),
+    [selectedTags]
+  )
+
+  const handleTagChange = useCallback((newTags: string[]) => {
+    setSelectedTags(newTags)
+
+    const derivedRange = computeAgeRangeFromTags(newTags)
+    if (derivedRange) {
+      setAgeRange(prev => {
+        if (prev[0] === derivedRange[0] && prev[1] === derivedRange[1]) {
+          return prev
+        }
+        return derivedRange
+      })
+      return
+    }
+
+    setAgeRange(prev => {
+      if (prev[0] === DEFAULT_AGE_RANGE[0] && prev[1] === DEFAULT_AGE_RANGE[1]) {
+        return prev
       }
-    }
-    const locationSuffixes = ['区', '市', '町', '村']
-    const isLocationName = locationSuffixes.some(suffix => trimmed.endsWith(suffix))
-    if (isLocationName) {
-      return {
-        hasKeywordSearch: true,
-        searchAreaName: trimmed,
-        hasNonLocationKeywordSearch: false,
-        normalizedKeywords: ''
-      }
-    }
-    const normalized = trimmed.toLowerCase()
-    return {
-      hasKeywordSearch: true,
-      searchAreaName: null,
-      hasNonLocationKeywordSearch: normalized.length > 0,
-      normalizedKeywords: normalized
-    }
-  }, [searchQuery])
-  const hasNonLocationKeywordSearch = keywordAnalysis.hasNonLocationKeywordSearch
+      return [...DEFAULT_AGE_RANGE] as [number, number]
+    })
+  }, [])
+  const parsedQuery = useMemo(() => parseSearchQuery(searchQuery), [searchQuery])
+  const hasNonLocationKeywordSearch = parsedQuery.hasNonLocationKeywordSearch
+  const tagConstraints = useMemo(() => deriveConstraintsFromTags(new Set(clientSelectedTags)), [clientSelectedTags])
+  const combinedConstraints = useMemo(() => mergeConstraints(tagConstraints, parsedQuery.clientConstraints), [tagConstraints, parsedQuery.clientConstraints])
+  const hasClientConstraintRules = Object.keys(combinedConstraints).length > 0
   const requiresClientFiltering = useMemo(
     () =>
-      hasSpecialFilters ||
-      selectedTags.length > 0 ||
+      hasClientConstraintRules ||
       hasNonLocationKeywordSearch ||
       selectedStyles.length > 0 ||
       prioritizeQuickMeet ||
-      sortBy !== 'distance',
+      sortBy !== 'distance' ||
+      selectedTags.some(tag => !serverFilterTagSet.has(tag) && !clientFilterTagSet.has(tag)),
     [
-      hasSpecialFilters,
-      selectedTags.length,
+      hasClientConstraintRules,
       hasNonLocationKeywordSearch,
       selectedStyles.length,
       prioritizeQuickMeet,
-      sortBy
+      sortBy,
+      selectedTags
     ]
   )
   useEffect(() => {
@@ -402,6 +885,21 @@ function AdvancedSearchContent() {
       setUseClientFiltering(requiresClientFiltering)
     }
   }, [requiresClientFiltering, useClientFiltering])
+
+  useEffect(() => {
+    const derivedRange = computeAgeRangeFromTags(clientSelectedTags)
+    if (!derivedRange) {
+      return
+    }
+
+    const [clampedMin, clampedMax] = derivedRange
+    setAgeRange(prev => {
+      if (prev[0] === clampedMin && prev[1] === clampedMax) {
+        return prev
+      }
+      return [clampedMin, clampedMax] as [number, number]
+    })
+  }, [clientSelectedTags])
 
   // ユーザーデータ取得とフィルタリング処理
   const fetchFilteredUsers = useCallback(
@@ -444,9 +942,8 @@ function AdvancedSearchContent() {
         }
       }
 
-      const { searchAreaName: keywordArea } = keywordAnalysis
+      const keywordArea = parsedQuery.areaKeyword
       let searchAreaName: string | null = keywordArea
-      const hasNonLocationKeywordSearch = keywordAnalysis.hasNonLocationKeywordSearch
 
       let effectiveArea: string | null = null
       if (userSelectedArea && selectedArea !== 'all') {
@@ -466,21 +963,90 @@ function AdvancedSearchContent() {
         scheduleRangeDays: 7
       }
 
+      const constraintAgeMin = combinedConstraints.ageMin
+      const constraintAgeMax = combinedConstraints.ageMax
+      const sliderAgeMin = ageRange[0]
+      const sliderAgeMax = ageRange[1]
+      let finalAgeMin = constraintAgeMin ?? sliderAgeMin
+      let finalAgeMax = constraintAgeMax ?? sliderAgeMax
+
+      if (constraintAgeMin !== undefined) {
+        finalAgeMin = Math.max(finalAgeMin, sliderAgeMin)
+      } else {
+        finalAgeMin = sliderAgeMin
+      }
+
+      if (constraintAgeMax !== undefined) {
+        finalAgeMax = Math.min(finalAgeMax, sliderAgeMax)
+      } else {
+        finalAgeMax = sliderAgeMax
+      }
+
+      if (constraintAgeMin !== undefined && constraintAgeMin > sliderAgeMax) {
+        finalAgeMin = constraintAgeMin
+      }
+
+      if (constraintAgeMax !== undefined && constraintAgeMax < sliderAgeMin) {
+        finalAgeMax = constraintAgeMax
+      }
+
+      if (finalAgeMin > finalAgeMax) {
+        const midpoint = Math.round((finalAgeMin + finalAgeMax) / 2)
+        finalAgeMin = midpoint
+        finalAgeMax = midpoint
+      }
+
       if (effectiveArea) {
         baseParams.area = effectiveArea
       }
-      if (ageRange[0] !== 18 || ageRange[1] !== 50) {
-        baseParams.ageMin = ageRange[0]
-        baseParams.ageMax = ageRange[1]
+      if (finalAgeMin !== DEFAULT_AGE_RANGE[0] || finalAgeMax !== DEFAULT_AGE_RANGE[1]) {
+        baseParams.ageMin = finalAgeMin
+        baseParams.ageMax = finalAgeMax
       }
       if (selectedGirlTypes.length > 0) {
         baseParams.girlTypes = selectedGirlTypes.join(',')
       }
 
+      if (combinedConstraints.heightLower !== undefined) {
+        baseParams.heightMin = combinedConstraints.heightLower
+      }
+      if (combinedConstraints.heightUpper !== undefined) {
+        baseParams.heightMax = combinedConstraints.heightUpper
+      }
+
+      const cupMinLabel = getCupLabelFromIndex(combinedConstraints.cupMinIndex)
+      const cupMaxLabel = getCupLabelFromIndex(combinedConstraints.cupMaxIndex)
+      if (cupMinLabel) {
+        baseParams.cupMin = cupMinLabel
+      }
+      if (cupMaxLabel) {
+        baseParams.cupMax = cupMaxLabel
+      }
+      if (combinedConstraints.requireSake !== undefined) {
+        baseParams.requireSake = combinedConstraints.requireSake ? '1' : '0'
+      }
+      if (combinedConstraints.requireTobacco !== undefined) {
+        baseParams.requireTobacco = combinedConstraints.requireTobacco ? '1' : '0'
+      }
+
+      const serverTagsToApply = new Set<string>()
+      selectedTags.forEach(tag => {
+        if (serverFilterTagSet.has(tag)) {
+          serverTagsToApply.add(tag)
+        }
+      })
+      parsedQuery.serverTags.forEach(tag => serverTagsToApply.add(tag))
+      serverTagsToApply.forEach(tag => {
+        const applyServerFilter = serverFilterTagConfig[tag]
+        if (applyServerFilter) {
+          applyServerFilter(baseParams)
+        }
+      })
+
       if (normalizedLocation) {
         baseParams.userLat = normalizedLocation.lat
         baseParams.userLng = normalizedLocation.lng
-        if (!effectiveArea && !hasSpecialFilters && !hasNonLocationKeywordSearch) {
+        if (!effectiveArea && !hasClientConstraintRules && !hasNonLocationKeywordSearch) {
           baseParams.maxDistance = prioritizeQuickMeet ? 50 : 80
         }
       } else if (!effectiveArea) {
@@ -525,6 +1091,12 @@ function AdvancedSearchContent() {
           params.append('ageMax', String(baseParams.ageMax))
         }
         if (baseParams.girlTypes) params.append('girlTypes', baseParams.girlTypes)
+        if (baseParams.heightMin !== undefined) params.append('heightMin', String(baseParams.heightMin))
+        if (baseParams.heightMax !== undefined) params.append('heightMax', String(baseParams.heightMax))
+        if (baseParams.cupMin !== undefined) params.append('cupMin', String(baseParams.cupMin))
+        if (baseParams.cupMax !== undefined) params.append('cupMax', String(baseParams.cupMax))
+        if (baseParams.requireSake !== undefined) params.append('requireSake', String(baseParams.requireSake))
+        if (baseParams.requireTobacco !== undefined) params.append('requireTobacco', String(baseParams.requireTobacco))
         if (baseParams.userLat !== undefined) {
           params.append('userLat', String(baseParams.userLat))
           params.append('userLng', String(baseParams.userLng))
@@ -708,15 +1280,16 @@ function AdvancedSearchContent() {
       areas,
       currentPage,
       hasInitialDataLoaded,
-      hasSpecialFilters,
       locationFromParam,
       prioritizeQuickMeet,
-      sortBy,
-      searchQuery,
       selectedArea,
       selectedGirlTypes,
-      selectedStyles,
       selectedTags,
+      combinedConstraints,
+      hasClientConstraintRules,
+      hasNonLocationKeywordSearch,
+      parsedQuery,
+      requiresClientFiltering,
       toast,
       userLocation,
       userSelectedArea
@@ -849,237 +1422,106 @@ function AdvancedSearchContent() {
       return
     }
 
-    // usersが空の場合は、filteredUsersも空にして早期リターン
     if (users.length === 0) {
       setFilteredUsers([])
       setFilteredTotalCount(0)
       return
     }
-    
-    // キャッシュがあれば優先使用、なければusersを使用（高速化）
-    let filtered = sortedDataCache ? [...sortedDataCache] : [...users]
 
-    // 検索クエリフィルター（拡張検索）
-    if (searchQuery && searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      console.log('🔍 キーワード検索:', query)
-      console.log('🔍 検索対象ユーザー数:', filtered.length)
-      console.log('🔍 最初のユーザーのmunicipality:', filtered[0]?.municipality)
-      
-      // スペースで分割して複数キーワード対応
-      const keywords = query.split(/\s+/).filter(k => k.length > 0)
-      
-      // 単一キーワードの場合は特殊検索も含む
-      if (keywords.length === 1) {
-        const singleQuery = keywords[0]
-        
-        // 特殊検索条件
-        if (singleQuery === '不明' || singleQuery === '年齢不明') {
-          // 年齢が不明な人のみを検索
-          filtered = filtered.filter(user => user.age === null || user.age === undefined)
-        } else if (!isNaN(parseInt(singleQuery)) && parseInt(singleQuery) >= 18 && parseInt(singleQuery) <= 99) {
-          // 数字のみの場合は年齢として検索
-          const targetAge = parseInt(singleQuery)
-          filtered = filtered.filter(user => user.age === targetAge)
-        } else if (singleQuery.includes('歳') || singleQuery.includes('才')) {
-          // 「○○歳」「○○才」の形式で年齢検索
-          const ageMatch = singleQuery.match(/(\d+)/)
-          if (ageMatch) {
-            const targetAge = parseInt(ageMatch[1])
-            filtered = filtered.filter(user => user.age === targetAge)
-          }
-        } else if (singleQuery.includes('cm')) {
-          // 身長検索（例：「160cm」「160cm以上」「160cm以下」）
-          const heightMatch = singleQuery.match(/(\d+)cm/)
-          if (heightMatch) {
-            const targetHeight = parseInt(heightMatch[1])
-            if (singleQuery.includes('以上')) {
-              filtered = filtered.filter(user => user.height && user.height >= targetHeight)
-            } else if (singleQuery.includes('以下')) {
-              filtered = filtered.filter(user => user.height && user.height <= targetHeight)
-            } else {
-              filtered = filtered.filter(user => user.height === targetHeight)
-            }
-          }
-        } else if (singleQuery.match(/[a-kA-K]カップ/)) {
-          // カップサイズ検索（例：「Dカップ」「Eカップ以上」）
-          const cupMatch = singleQuery.match(/([a-kA-K])カップ/)
-          if (cupMatch) {
-            const targetCup = cupMatch[1].toUpperCase()
-            const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
-            const targetIndex = cupOrder.indexOf(targetCup)
-            
-            if (singleQuery.includes('以上')) {
-              filtered = filtered.filter(user => {
-                if (!user.cup) return false
-                const userIndex = cupOrder.indexOf(user.cup.toUpperCase())
-                return userIndex >= targetIndex
-              })
-            } else {
-              filtered = filtered.filter(user => user.cup && user.cup.toUpperCase() === targetCup)
-            }
-          }
-        } else {
-          // 通常の検索（名前、プロフィール、興味、地域を含む）
-          // 地域検索も含めて全て同じロジックで処理
-          filtered = filtered.filter(user => 
-            (user.name && user.name.toLowerCase().includes(singleQuery)) ||
-            (user.bio && user.bio.toLowerCase().includes(singleQuery)) ||
-            (user.interests && user.interests.some(interest => interest && interest.toLowerCase().includes(singleQuery))) ||
-            (user.location && user.location.toLowerCase().includes(singleQuery)) ||
-            (user.municipality && user.municipality.toLowerCase().includes(singleQuery))
+    const baseUsers = sortedDataCache ? [...sortedDataCache] : [...users]
+    const generalKeywords = parsedQuery.generalKeywords
+    const interestTags = selectedTags.filter(tag => !clientFilterTagSet.has(tag) && !serverFilterTagSet.has(tag))
+
+    const applyFilters = (constraintOverride?: ClientConstraints): UserProfile[] => {
+      let results = [...baseUsers]
+
+      if (interestTags.length > 0) {
+        results = results.filter(user =>
+          interestTags.some(tag => user.interests.includes(tag))
+        )
+      }
+
+      const effectiveConstraints = constraintOverride ?? (hasClientConstraintRules ? combinedConstraints : {})
+
+      if (Object.keys(effectiveConstraints).length > 0) {
+        results = results.filter(user => matchesClientConstraints(user, effectiveConstraints))
+      }
+
+      if (selectedGirlTypes.length > 0) {
+        results = results.filter(user => {
+          if (!user.girlTypes || user.girlTypes.length === 0) return false
+          return selectedGirlTypes.some(selectedType =>
+            user.girlTypes!.some(userType => {
+              const userTypeName =
+                typeof userType === 'object' && userType !== null && 'name' in userType
+                  ? (userType as { name?: string | null }).name
+                  : userType
+              return userTypeName === selectedType
+            })
           )
-        }
-        console.log('🔍 単一キーワード検索後のユーザー数:', filtered.length)
-      } else {
-        // 複数キーワードの場合はAND検索
-        filtered = filtered.filter(user => {
-          return keywords.every(keyword => {
-            // 各キーワードは名前、プロフィール、興味、身体情報、地域のいずれかにマッチすればOK
-            const userStr = [
-              user.name,
-              user.bio,
-              ...user.interests,
-              user.location,
-              user.municipality || '',
-              user.age ? user.age.toString() : '不明',
-              user.height ? `${user.height}cm` : '',
-              user.cup ? `${user.cup}カップ` : ''
-            ].join(' ').toLowerCase()
-            
-            return userStr.includes(keyword)
-          })
         })
       }
+
+      if (generalKeywords.length > 0) {
+        results = results.filter(user => {
+          const userStr = [
+            user.name,
+            user.bio,
+            ...(user.interests ?? []),
+            user.location,
+            user.municipality || '',
+            user.age ? user.age.toString() : '不明',
+            user.height ? `${user.height}cm` : '',
+            user.cup ? `${user.cup}カップ` : ''
+          ]
+            .join(' ')
+            .toLowerCase()
+
+          return generalKeywords.every(keyword => userStr.includes(keyword))
+        })
+      }
+
+      return results
     }
 
-    // Girl type filter
-    if (selectedGirlTypes.length > 0) {
-      filtered = filtered.filter(user => {
-        if (!user.girlTypes || user.girlTypes.length === 0) return false
-        // Check if any selected type matches
-        return selectedGirlTypes.some(selectedType => 
-          user.girlTypes!.some(userType => {
-            // Handle both string and object formats
-            const userTypeName = typeof userType === 'object' && userType !== null && 'name' in userType ? userType.name : userType
-            return userTypeName === selectedType
-          })
-        )
-      })
-    }
-    
-    // タグフィルター（特殊タグと通常タグのOR検索）
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(user => {
-        // 通常のタグマッチング
-        const matchesNormalTags = selectedTags.some(tag => 
-          user.interests.includes(tag)
-        )
-        
-        // 特殊タグのマッチング
-        let matchesSpecialTags = false
-        
-        // 年代フィルター
-        if (selectedTags.includes('10代') && user.age >= 18 && user.age <= 19) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('20代') && user.age >= 20 && user.age <= 29) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('30代') && user.age >= 30 && user.age <= 39) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('40代') && user.age >= 40 && user.age <= 49) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('50代') && user.age >= 50 && user.age <= 59) {
-          matchesSpecialTags = true
-        }
-        
-        // 身長フィルター
-        if (selectedTags.includes('身長150cm以下') && user.height && user.height <= 150) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('身長155cm以下') && user.height && user.height <= 155) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('身長160cm以下') && user.height && user.height <= 160) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('身長165cm以上') && user.height && user.height >= 165) {
-          matchesSpecialTags = true
-        }
-        
-        // カップサイズフィルター
-        if (user.cup) {
-          const cupOrder = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
-          const userCupIndex = cupOrder.indexOf(user.cup.toUpperCase())
-          
-          if (selectedTags.includes('Bカップ以下') && userCupIndex <= cupOrder.indexOf('B')) {
-            matchesSpecialTags = true
-          }
-          if (selectedTags.includes('Cカップ') && userCupIndex === cupOrder.indexOf('C')) {
-            matchesSpecialTags = true
-          }
-          if (selectedTags.includes('Dカップ') && userCupIndex === cupOrder.indexOf('D')) {
-            matchesSpecialTags = true
-          }
-          if (selectedTags.includes('Eカップ') && userCupIndex === cupOrder.indexOf('E')) {
-            matchesSpecialTags = true
-          }
-          if (selectedTags.includes('Fカップ') && userCupIndex === cupOrder.indexOf('F')) {
-            matchesSpecialTags = true
-          }
-          if (selectedTags.includes('Gカップ以上') && userCupIndex >= cupOrder.indexOf('G')) {
-            matchesSpecialTags = true
-          }
-        }
-        
-        // お酒・タバコフィルター
-        if (selectedTags.includes('お酒を飲む人') && user.is_sake === true) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('お酒を飲まない人') && user.is_sake === false) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('タバコを吸う人') && user.is_tobacco === true) {
-          matchesSpecialTags = true
-        }
-        if (selectedTags.includes('タバコを吸わない人') && user.is_tobacco === false) {
-          matchesSpecialTags = true
-        }
-        
-        // OR条件：通常タグまたは特殊タグのいずれかにマッチ
-        return matchesNormalTags || matchesSpecialTags
+    let filtered = applyFilters()
+
+    if (filtered.length === 0 && combinedConstraints.heightUpper !== undefined) {
+      filtered = applyFilters({
+        ...combinedConstraints,
+        heightUpper: combinedConstraints.heightUpper + 5
       })
     }
 
-    // エリアフィルターはサーバーサイドで処理済み
-
-    // 年齢フィルター（特殊タグが選択されていない場合のみ適用）
-    const hasAgeSpecialTag = selectedTags.some(tag => ['10代', '20代', '30代', '40代', '50代'].includes(tag))
-    if (!hasAgeSpecialTag) {
-      // デフォルト範囲（18-50）の場合はNULL年齢も含める、それ以外は除外
-      const isDefaultRange = ageRange[0] === 18 && ageRange[1] === 50
-      filtered = filtered.filter(user => {
-        if (user.age === null || user.age === undefined) {
-          return isDefaultRange // デフォルト範囲の時のみNULL年齢を表示
-        }
-        return user.age >= ageRange[0] && user.age <= ageRange[1]
+    if (filtered.length === 0 && combinedConstraints.cupMinIndex !== undefined) {
+      filtered = applyFilters({
+        ...combinedConstraints,
+        cupMinIndex: Math.max((combinedConstraints.cupMinIndex ?? 0) - 1, 0)
       })
     }
 
+    const hasAgeSpecialTag =
+      clientSelectedTags.includes('10代') ||
+      clientSelectedTags.includes('20代') ||
+      clientSelectedTags.includes('30代') ||
+      clientSelectedTags.includes('40代') ||
+      clientSelectedTags.includes('50代') ||
+      combinedConstraints.ageMin !== undefined ||
+      combinedConstraints.ageMax !== undefined
 
-    // スタイルフィルター
+    const isDefaultRange = ageRange[0] === 18 && ageRange[1] === 50
+    filtered = filtered.filter(user => {
+      if (user.age === null || user.age === undefined) {
+        return isDefaultRange || hasAgeSpecialTag
+      }
+      return user.age >= ageRange[0] && user.age <= ageRange[1]
+    })
+
     if (selectedStyles.length > 0) {
-      filtered = filtered.filter(user => 
-        user.style && selectedStyles.includes(user.style)
-      )
+      filtered = filtered.filter(user => user.style && selectedStyles.includes(user.style))
     }
 
-    // 時間フィルター（すぐ会える相手を優先）
     if (prioritizeQuickMeet) {
-      // オンラインまたは最近アクティブなユーザーを優先
       filtered.sort((a, b) => {
         const aScore = a.isOnline ? 2 : (a.lastActive ? 1 : 0)
         const bScore = b.isOnline ? 2 : (b.lastActive ? 1 : 0)
@@ -1087,18 +1529,8 @@ function AdvancedSearchContent() {
       })
     }
 
-    // ソート処理最適化 - サーバー側で既にソート済みの場合はスキップ
-    // 距離順の場合、サーバー側の順序を信頼して維持
-    const hasClientFilters = selectedTags.length > 0 || searchQuery || selectedStyles.length > 0 || prioritizeQuickMeet
-    
-    // 距離順ソートの最適化：サーバー側の順序を維持
-    // クライアント側のフィルタリング後も、元の順序（serverOrder）を保つことで高速化
-    // ※サーバー側でarea_smallsテーブルを使った最適化済みの距離ソートが実行済み
-    
-    // 明示的なソート指定がある場合のみソート処理
     switch (sortBy) {
       case 'new':
-        // 新着順：IDが大きい（新しい）順に並べる
         filtered.sort((a, b) => {
           const aId = parseInt(a.id) || 0
           const bId = parseInt(b.id) || 0
@@ -1106,34 +1538,23 @@ function AdvancedSearchContent() {
         })
         break
       case 'distance':
-        // 距離順：サーバー側の順序を維持（高速化）
-        // serverOrderが存在する場合は、その順序を使用
         if (filtered.length > 0 && filtered[0].serverOrder !== undefined) {
-          // サーバー側の元の順序で並び替え（最適化済みの距離順を維持）
-          const startTime = performance.now()
           filtered.sort((a, b) => {
             const orderA = a.serverOrder ?? 999999
             const orderB = b.serverOrder ?? 999999
             return orderA - orderB
           })
-          const sortTime = performance.now() - startTime
-          console.log(`⚡ 距離順ソート最適化: ${sortTime.toFixed(2)}ms (サーバー順序を使用)`)
         } else if (!userLocation) {
-          // serverOrderがない場合かつ位置情報もない場合のみ地域名でソート（フォールバック）
           filtered.sort((a, b) => a.location.localeCompare(b.location))
         }
-        // 位置情報があり、serverOrderもある場合は、既にサーバー側で最適なソート済みなので何もしない
         break
       case 'recommend':
       default:
-        // おすすめ順：マッチングスコアを計算してソート
         filtered = filtered.map(user => {
           let score = 0
-          
-          // Girl types matching (highest priority)
+
           if (user.girlTypes && user.girlTypes.length > 0) {
             score += user.girlTypes.length * 15
-            // Bonus for popular types
             if (user.girlTypes.some(type => {
               const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.includes('エロ')
@@ -1147,43 +1568,36 @@ function AdvancedSearchContent() {
               return typeName.includes('癒し')
             })) score += 12
           }
-          
-          // 年齢が設定されている人を優先
+
           if (user.age !== null && user.age !== undefined) {
             score += 10
           }
-          
-          // プロフィール充実度
+
           if (user.bio && user.bio.length > 50) score += 5
           if (user.height) score += 3
           if (user.bust) score += 3
           if (user.cup) score += 3
           if (user.interests.length > 3) score += 5
-          
-          // オンライン状態
+
           if (user.isOnline) score += 20
-          
-          // 検索クエリとのマッチ度
+
           if (searchQuery) {
             const query = searchQuery.toLowerCase()
             if (user.name && user.name.toLowerCase().includes(query)) score += 15
             if (user.bio && user.bio.toLowerCase().includes(query)) score += 10
             if (user.location && user.location.toLowerCase().includes(query)) score += 8
             if (user.interests && user.interests.some(i => i && i.toLowerCase().includes(query))) score += 5
-            // Check girl types for query match
             if (user.girlTypes && user.girlTypes.some(type => {
               const typeName = typeof type === 'object' && type !== null && 'name' in type ? type.name : type
               return typeName.toLowerCase().includes(query)
             })) score += 25
           }
-          
-          // 選択されたタグとのマッチ
+
           const matchedTags = selectedTags.filter(tag => user.interests.includes(tag))
           score += matchedTags.length * 10
-          
-          // Selected girl types matching
+
           if (selectedGirlTypes.length > 0 && user.girlTypes) {
-            const matchedTypes = selectedGirlTypes.filter(selectedType => 
+            const matchedTypes = selectedGirlTypes.filter(selectedType =>
               user.girlTypes!.some(userType => {
                 const userTypeName = typeof userType === 'object' && userType !== null && 'name' in userType ? userType.name : userType
                 return userTypeName === selectedType
@@ -1191,19 +1605,33 @@ function AdvancedSearchContent() {
             )
             score += matchedTypes.length * 30
           }
-          
+
           return { ...user, matchScore: score }
         })
-        
-        // スコアで降順ソート
+
         filtered.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
         break
     }
 
-    
     setFilteredUsers(filtered)
     setFilteredTotalCount(filtered.length)
-  }, [useClientFiltering, users, searchQuery, selectedTags, selectedGirlTypes, selectedArea, ageRange, selectedStyles, sortBy, userLocation, prioritizeQuickMeet, locationFilteredServerSide, areas, sortedDataCache])
+  }, [
+    useClientFiltering,
+    users,
+    sortedDataCache,
+    combinedConstraints,
+    hasClientConstraintRules,
+    parsedQuery,
+    clientSelectedTags,
+    selectedTags,
+    selectedGirlTypes,
+    selectedStyles,
+    sortBy,
+    userLocation,
+    prioritizeQuickMeet,
+    ageRange,
+    searchQuery
+  ])
 
   // 年齢範囲が利用可能な範囲を超えた場合の調整（コメントアウト - 常に18-50を使用）
   /*
@@ -1294,7 +1722,7 @@ function AdvancedSearchContent() {
     setSelectedGirlTypes([])
     setSelectedArea('all')
     setSelectedTime('now')
-    setAgeRange([18, 50])
+    setAgeRange([...DEFAULT_AGE_RANGE] as [number, number])
     setSelectedStyles([])
     setPrioritizeQuickMeet(false)
     setSortBy('recommend')
@@ -1701,7 +2129,7 @@ function AdvancedSearchContent() {
           <MultiSelect
             options={personalityTags.map(tag => ({ value: tag, label: tag }))}
             selected={selectedTags}
-            onChange={setSelectedTags}
+            onChange={handleTagChange}
             placeholder="条件を選択（複数選択可）"
             className={styles.filterSelect}
             maxDisplay={3}
@@ -1795,10 +2223,15 @@ function AdvancedSearchContent() {
         <div className={styles.searchHeader}>
           <div>
             <div className={styles.searchResultsCount}>
-              <span>{filteredTotalCount}</span>名の候補が見つかりました
+              <span>{currentPageCount.toLocaleString('ja-JP')}</span>名を表示中
               {totalPages > 1 && (
                 <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
                   （{currentPage} / {totalPages} ページ）
+                </span>
+              )}
+              {overallCount > currentPageCount && (
+                <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                  （全{overallCount.toLocaleString('ja-JP')}名／残り{hiddenCount.toLocaleString('ja-JP')}名）
                 </span>
               )}
             </div>
@@ -1814,7 +2247,9 @@ function AdvancedSearchContent() {
                   ✨ {type}
                 </Badge>
               ))}
-              {selectedTags.map(tag => (
+              {selectedTags
+                .filter(tag => !ageTagSet.has(tag))
+                .map(tag => (
                 <Badge key={tag} variant="secondary" className="bg-gold-500/10 text-gold-500 border-gold-500/30">
                   {tag}
                 </Badge>
@@ -1824,7 +2259,7 @@ function AdvancedSearchContent() {
                   {selectedArea}
                 </Badge>
               )}
-              {(ageRange[0] !== 18 || ageRange[1] !== 50) && (
+              {(ageRange[0] !== DEFAULT_AGE_RANGE[0] || ageRange[1] !== DEFAULT_AGE_RANGE[1]) && (
                 <Badge variant="secondary" className="bg-gold-500/10 text-gold-500 border-gold-500/30">
                   {ageRange[0]}歳〜{ageRange[1]}歳
                 </Badge>

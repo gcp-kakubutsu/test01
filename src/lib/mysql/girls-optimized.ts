@@ -5,9 +5,29 @@ import { locationCache } from '@/lib/cache/locationCache';
 
 const GPS_AUTO_MAX_DISTANCE_KM = 80;
 const EARTH_RADIUS_KM = 6371;
+const CUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
 function toFixed(value: number, digits: number = 6): number {
   return Number.isFinite(value) ? Number(value.toFixed(digits)) : value;
+}
+
+function sanitizeCupCode(value?: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.toString().trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (!normalized) return null;
+  const candidate = normalized.length >= 2 && normalized.startsWith('AA') ? 'AA' : normalized[0];
+  if (!CUP_ORDER.includes(candidate)) return null;
+  return candidate;
+}
+
+function resolveCupRange(minCup: string | null, maxCup: string | null): string[] {
+  const minIndex = minCup ? CUP_ORDER.indexOf(minCup) : 0;
+  const maxIndex = maxCup ? CUP_ORDER.indexOf(maxCup) : CUP_ORDER.length - 1;
+  if (minCup && minIndex === -1) return [];
+  if (maxCup && maxIndex === -1) return [];
+  const start = Math.min(minIndex === -1 ? 0 : minIndex, maxIndex === -1 ? CUP_ORDER.length - 1 : maxIndex);
+  const end = Math.max(minIndex === -1 ? 0 : minIndex, maxIndex === -1 ? CUP_ORDER.length - 1 : maxIndex);
+  return CUP_ORDER.slice(start, end + 1);
 }
 
 function computeBoundingBox(lat: number, lng: number, radiusKm: number) {
@@ -57,7 +77,13 @@ export async function fetchOptimizedGirls(
   preferredGirlTypeIds?: number[] | null,
   preferredBodyTypes?: string[] | null,
   scheduleDate?: string | null,
-  scheduleRangeDays?: number | null
+  scheduleRangeDays?: number | null,
+  heightMin?: number | null,
+  heightMax?: number | null,
+  cupMin?: string | null,
+  cupMax?: string | null,
+  requireSake?: boolean | null,
+  requireTobacco?: boolean | null
 ): Promise<{ girls: MySQLGirlProfile[], total: number, prefectureFilter?: { primaryId: number | null; candidateIds: number[] } }> {
   // If girlId is specified, fetch only that specific girl
   if (girlId) {
@@ -121,6 +147,28 @@ export async function fetchOptimizedGirls(
     getGirlTypeCategoryIds()
   ]);
 
+  const parsedHeightMin = typeof heightMin === 'number' && Number.isFinite(heightMin) ? Math.max(0, Math.floor(heightMin)) : null;
+  const parsedHeightMax = typeof heightMax === 'number' && Number.isFinite(heightMax) ? Math.max(0, Math.floor(heightMax)) : null;
+  let heightLowerBound = parsedHeightMin;
+  let heightUpperBound = parsedHeightMax;
+  if (heightLowerBound !== null && heightUpperBound !== null && heightLowerBound > heightUpperBound) {
+    const temp = heightLowerBound;
+    heightLowerBound = heightUpperBound;
+    heightUpperBound = temp;
+  }
+  const normalizedCupMin = sanitizeCupCode(cupMin);
+  const normalizedCupMax = sanitizeCupCode(cupMax);
+  const cupFilterValues = (normalizedCupMin || normalizedCupMax)
+    ? resolveCupRange(normalizedCupMin, normalizedCupMax)
+    : [];
+  const normalizedRequireSake = typeof requireSake === 'boolean' ? requireSake : null;
+  const normalizedRequireTobacco = typeof requireTobacco === 'boolean' ? requireTobacco : null;
+  const heightLowerKey = heightLowerBound ?? 'n';
+  const heightUpperKey = heightUpperBound ?? 'n';
+  const cupFilterKey = cupFilterValues.length > 0 ? cupFilterValues.join('.') : 'n';
+  const requireSakeKey = normalizedRequireSake === null ? 'n' : normalizedRequireSake ? '1' : '0';
+  const requireTobaccoKey = normalizedRequireTobacco === null ? 'n' : normalizedRequireTobacco ? '1' : '0';
+
   // Generate cache key based on parameters
   const girlTypesStr = girlTypes ? girlTypes.sort().join(',') : '';
   const hasValidUserCoords = typeof userLat === 'number' && !Number.isNaN(userLat) && typeof userLng === 'number' && !Number.isNaN(userLng);
@@ -151,7 +199,7 @@ export async function fetchOptimizedGirls(
     ? Math.min(Math.floor(scheduleRangeDays), 14)
     : null;
   const scheduleRangeKey = normalizedScheduleRange ?? 'n';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocationKey}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}:${heightLowerKey}:${heightUpperKey}:${cupFilterKey}:${requireSakeKey}:${requireTobaccoKey}`;
   const cacheKey = `girls:${limitCount}:${offset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
   const countCacheKey = `count:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
 
@@ -171,6 +219,33 @@ export async function fetchOptimizedGirls(
     's.deleted_at IS NULL',
     `(g.age IS NULL OR g.age BETWEEN ${ageMin} AND ${ageMax})`
   ];
+
+  if (heightLowerBound !== null || heightUpperBound !== null) {
+    whereConditions.push('g.height IS NOT NULL');
+    if (heightLowerBound !== null) {
+      whereConditions.push(`g.height >= ${heightLowerBound}`);
+    }
+    if (heightUpperBound !== null) {
+      whereConditions.push(`g.height <= ${heightUpperBound}`);
+    }
+  }
+
+  if (cupFilterValues.length > 0) {
+    const cupList = cupFilterValues.map(cup => `'${cup}'`).join(',');
+    whereConditions.push(`g.cup IS NOT NULL AND UPPER(g.cup) IN (${cupList})`);
+  }
+
+  if (normalizedRequireSake === true) {
+    whereConditions.push('(g.is_sake = 1 OR g.is_sake = TRUE)');
+  } else if (normalizedRequireSake === false) {
+    whereConditions.push('(g.is_sake = 0 OR g.is_sake = FALSE)');
+  }
+
+  if (normalizedRequireTobacco === true) {
+    whereConditions.push('(g.is_tobacco = 1 OR g.is_tobacco = TRUE)');
+  } else if (normalizedRequireTobacco === false) {
+    whereConditions.push('(g.is_tobacco = 0 OR g.is_tobacco = FALSE)');
+  }
 
   let prefectureOrderExpression = '';
   let prefectureFilterInfo: { primaryId: number | null; candidateIds: number[] } | null = null;
@@ -961,7 +1036,13 @@ export async function prefetchNextPage(
   preferredGirlTypeIds?: number[] | null,
   preferredBodyTypes?: string[] | null,
   scheduleDate?: string | null,
-  scheduleRangeDays?: number | null
+  scheduleRangeDays?: number | null,
+  heightMin?: number | null,
+  heightMax?: number | null,
+  cupMin?: string | null,
+  cupMax?: string | null,
+  requireSake?: boolean | null,
+  requireTobacco?: boolean | null
 ): Promise<void> {
   // Don't prefetch if fetching specific girl
   if (girlId) return;
@@ -983,7 +1064,26 @@ export async function prefetchNextPage(
     scheduleCacheKey = (scheduleDate === 'today' || scheduleDate === '今日') ? 'today' : scheduleDate;
   }
   const scheduleRangeKey = normalizedScheduleRange ?? 'n';
-  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}`;
+  const parsedHeightMinPrefetch = typeof heightMin === 'number' && Number.isFinite(heightMin) ? Math.max(0, Math.floor(heightMin)) : null;
+  const parsedHeightMaxPrefetch = typeof heightMax === 'number' && Number.isFinite(heightMax) ? Math.max(0, Math.floor(heightMax)) : null;
+  let heightLowerPrefetch = parsedHeightMinPrefetch;
+  let heightUpperPrefetch = parsedHeightMaxPrefetch;
+  if (heightLowerPrefetch !== null && heightUpperPrefetch !== null && heightLowerPrefetch > heightUpperPrefetch) {
+    const temp = heightLowerPrefetch;
+    heightLowerPrefetch = heightUpperPrefetch;
+    heightUpperPrefetch = temp;
+  }
+  const heightLowerKeyPrefetch = heightLowerPrefetch !== null ? heightLowerPrefetch.toString() : 'n';
+  const heightUpperKeyPrefetch = heightUpperPrefetch !== null ? heightUpperPrefetch.toString() : 'n';
+  const normalizedCupMinPrefetch = sanitizeCupCode(cupMin);
+  const normalizedCupMaxPrefetch = sanitizeCupCode(cupMax);
+  const cupFilterValuesPrefetch = (normalizedCupMinPrefetch || normalizedCupMaxPrefetch)
+    ? resolveCupRange(normalizedCupMinPrefetch, normalizedCupMaxPrefetch)
+    : [];
+  const cupFilterKeyPrefetch = cupFilterValuesPrefetch.length > 0 ? cupFilterValuesPrefetch.join('.') : 'n';
+  const requireSakeKeyPrefetch = typeof requireSake === 'boolean' ? (requireSake ? '1' : '0') : 'n';
+  const requireTobaccoKeyPrefetch = typeof requireTobacco === 'boolean' ? (requireTobacco ? '1' : '0') : 'n';
+  const userPrefsStr = `${recordingDuringPlay || 'n'}:${isSadist || 'n'}:${isMasochist || 'n'}:${partnerHeight || 'n'}:${partnerWeight || 'n'}:${partnerLocation || 'n'}:${cosplayPreference || 0}:${toyPlayPreference || 0}:${deepthroatPreference || 0}:${throatingPreference || 0}:${analPlayPreference || 0}:${groupPlayPreference || 0}:${girlTypeStr}:${bodyTypeStr}:${heightLowerKeyPrefetch}:${heightUpperKeyPrefetch}:${cupFilterKeyPrefetch}:${requireSakeKeyPrefetch}:${requireTobaccoKeyPrefetch}`;
   const cacheKey = `girls:${limitCount}:${nextOffset}:${area || 'all'}:${ageMin}:${ageMax}:${girlTypesStr}:${locationStr}:${distStr}:${userPrefsStr}:${scheduleCacheKey}:r${scheduleRangeKey}`;
   
   // Check if already cached
@@ -1015,7 +1115,13 @@ export async function prefetchNextPage(
         preferredGirlTypeIds,
         preferredBodyTypes,
         scheduleDate,
-        scheduleRangeDays
+        scheduleRangeDays,
+        heightMin,
+        heightMax,
+        cupMin,
+        cupMax,
+        requireSake,
+        requireTobacco
       ).catch(error => console.error('⚠️  Failed to prefetch next page:', error));
     }, 100);
   }

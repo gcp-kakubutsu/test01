@@ -18,6 +18,24 @@ const hotResponseCache = new LRUCache<string, { body: any; headers: Record<strin
 export async function GET(request: NextRequest) {
   const startTime = performance.now();
   const searchParams = request.nextUrl.searchParams;
+  const parseOptionalInteger = (value: string | null): number | null => {
+    if (value === null) return null;
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+  const parseOptionalBoolean = (value: string | null): boolean | null => {
+    if (value === null) return null;
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'y', 'on', 'はい'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'n', 'off', 'いいえ'].includes(normalized)) return false;
+    return null;
+  };
+  const sanitizeCupParam = (value: string | null): string | null => {
+    if (!value) return null;
+    const normalized = value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (!normalized) return null;
+    return normalized.slice(0, 2);
+  };
   const requestedLimit = parseInt(searchParams.get('limit') || '20');
   const fetchAllParam = searchParams.get('fetchAll');
   const fetchAll = fetchAllParam === 'true' || fetchAllParam === '1';
@@ -64,11 +82,28 @@ export async function GET(request: NextRequest) {
       ? Math.min(scheduleRangeParam, 14)
       : 7;
   }
+  const heightMin = parseOptionalInteger(searchParams.get('heightMin'));
+  const heightMax = parseOptionalInteger(searchParams.get('heightMax'));
+  const cupMin = sanitizeCupParam(searchParams.get('cupMin'));
+  const cupMax = sanitizeCupParam(searchParams.get('cupMax'));
+  const requireSake = parseOptionalBoolean(searchParams.get('requireSake'));
+  const requireTobacco = parseOptionalBoolean(searchParams.get('requireTobacco'));
 
   if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
     console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });
     return NextResponse.json(
       { error: 'Invalid query parameters' },
+      { status: 400 }
+    );
+  }
+  if (
+    (heightMin !== null && heightMin < 0) ||
+    (heightMax !== null && heightMax < 0) ||
+    (heightMin !== null && heightMax !== null && heightMin > heightMax)
+  ) {
+    console.error('Invalid height filter:', { heightMin, heightMax });
+    return NextResponse.json(
+      { error: 'Invalid height filter parameters' },
       { status: 400 }
     );
   }
@@ -101,7 +136,13 @@ export async function GET(request: NextRequest) {
     preferredGirlTypesKey,
     preferredBodyTypesKey,
     scheduleDate || 'na',
-    scheduleRangeDays ?? 'na'
+    scheduleRangeDays ?? 'na',
+    heightMin ?? 'na',
+    heightMax ?? 'na',
+    cupMin || 'na',
+    cupMax || 'na',
+    requireSake === null ? 'na' : requireSake ? 'true' : 'false',
+    requireTobacco === null ? 'na' : requireTobacco ? 'true' : 'false'
   ].join(':');
 
   const isHotCacheable =
@@ -149,12 +190,51 @@ export async function GET(request: NextRequest) {
       preferredGirlTypeIds,
       preferredBodyTypes,
       scheduleDate,
-      scheduleRangeDays
+      scheduleRangeDays,
+      heightMin,
+      heightMax,
+      cupMin,
+      cupMax,
+      requireSake,
+      requireTobacco
     );
     
     // Prefetch next page in background
     if (offset + limit < total) {
-      prefetchNextPage(offset, limit, area, ageMin, ageMax, girlTypes, girlId, userLat, userLng, maxDistance, recordingDuringPlay, isSadist, isMasochist, partnerHeight, partnerWeight, partnerLocation, cosplayPreference, toyPlayPreference, deepthroatPreference, throatingPreference, analPlayPreference, groupPlayPreference, preferredGirlTypeIds, preferredBodyTypes, scheduleDate, scheduleRangeDays);
+      prefetchNextPage(
+        offset,
+        limit,
+        area,
+        ageMin,
+        ageMax,
+        girlTypes,
+        girlId,
+        userLat,
+        userLng,
+        maxDistance,
+        recordingDuringPlay,
+        isSadist,
+        isMasochist,
+        partnerHeight,
+        partnerWeight,
+        partnerLocation,
+        cosplayPreference,
+        toyPlayPreference,
+        deepthroatPreference,
+        throatingPreference,
+        analPlayPreference,
+        groupPlayPreference,
+        preferredGirlTypeIds,
+        preferredBodyTypes,
+        scheduleDate,
+        scheduleRangeDays,
+        heightMin,
+        heightMax,
+        cupMin,
+        cupMax,
+        requireSake,
+        requireTobacco
+      );
     }
     
     const responseTime = performance.now() - startTime;
