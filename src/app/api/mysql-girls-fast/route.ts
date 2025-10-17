@@ -50,10 +50,16 @@ export async function GET(request: NextRequest) {
   const preferredBodyTypes = preferredBodyTypesParam ? preferredBodyTypesParam.split(',') : null;
   const scheduleDateParam = searchParams.get('scheduleDate');
   const scheduleDate = scheduleDateParam ? scheduleDateParam.trim() : 'today';
-  const scheduleRangeParam = parseInt(searchParams.get('scheduleRangeDays') || '0');
-  const scheduleRangeDays = !Number.isNaN(scheduleRangeParam) && scheduleRangeParam > 0
-    ? Math.min(scheduleRangeParam, 14)
-    : null;
+  const scheduleRangeParamRaw = searchParams.get('scheduleRangeDays');
+  let scheduleRangeDays: number | null;
+  if (scheduleRangeParamRaw === null) {
+    scheduleRangeDays = 7;
+  } else {
+    const scheduleRangeParam = parseInt(scheduleRangeParamRaw);
+    scheduleRangeDays = !Number.isNaN(scheduleRangeParam) && scheduleRangeParam > 0
+      ? Math.min(scheduleRangeParam, 14)
+      : 7;
+  }
 
   if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || ageMin < 0 || ageMax < 0 || ageMin > ageMax) {
     console.error('Invalid parameters:', { limit, offset, ageMin, ageMax });

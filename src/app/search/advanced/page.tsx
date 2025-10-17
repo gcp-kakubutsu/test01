@@ -399,6 +399,9 @@ function AdvancedSearchContent() {
         cacheParams.girlTypes = selectedGirlTypes.join(',');
       }
       
+      cacheParams.scheduleDate = 'today';
+      cacheParams.scheduleRangeDays = 7;
+      
       // 位置情報をキャッシュパラメータに追加（正規化済み）
       if (normalizedLocation) {
         cacheParams.userLat = normalizedLocation.lat;
@@ -417,41 +420,47 @@ function AdvancedSearchContent() {
         console.log(`🗺️ フォールバック座標: lat=${tokyoLocation.lat}, lng=${tokyoLocation.lng}`);
       }
       
-      // Use optimized API endpoint
-      let apiUrl = `/api/mysql-girls-fast?limit=${cacheParams.limit}&offset=${cacheParams.offset}`;
-      
-      // エリアフィルターを適用（ユーザーが選択した場合はそちらを優先）
+      // Use optimized API endpoint with batching helpers
+      const apiParams = (limit: number, offsetValue: number) => {
+        const params = new URLSearchParams({
+          limit: String(limit),
+          offset: String(offsetValue),
+          scheduleDate: cacheParams.scheduleDate,
+          scheduleRangeDays: String(cacheParams.scheduleRangeDays),
+        })
+
+        if (effectiveArea) params.append('area', effectiveArea)
+        if (cacheParams.ageMin !== undefined) {
+          params.append('ageMin', String(cacheParams.ageMin))
+          params.append('ageMax', String(cacheParams.ageMax))
+        }
+        if (cacheParams.girlTypes) params.append('girlTypes', cacheParams.girlTypes)
+        if (cacheParams.userLat !== undefined) {
+          params.append('userLat', String(cacheParams.userLat))
+          params.append('userLng', String(cacheParams.userLng))
+        }
+        if (cacheParams.maxDistance !== undefined) params.append('maxDistance', String(cacheParams.maxDistance))
+
+        return `/api/mysql-girls-fast?${params.toString()}`
+      }
+
+      const requestLimit = Math.min(fetchLimit, 50)
+      let apiUrl = apiParams(requestLimit, cacheParams.offset)
+
+      if (cacheParams.userLat !== undefined && normalizedLocation) {
+        console.log('📍 位置情報をAPIに送信（正規化済み）:', { lat: cacheParams.userLat, lng: cacheParams.userLng });
+      }
+
+      // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
       if (effectiveArea) {
-        apiUrl += `&area=${encodeURIComponent(effectiveArea)}`;
-        // モバイルデバイスの場合、キャッシュをバイパスするためのタイムスタンプを追加
         const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
         if (isMobile && effectiveArea.includes('東京')) {
           apiUrl += `&_t=${Date.now()}`;
         }
       }
       
-      if (cacheParams.ageMin !== undefined) {
-        apiUrl += `&ageMin=${cacheParams.ageMin}&ageMax=${cacheParams.ageMax}`;
-      }
-      
-      if (cacheParams.girlTypes) {
-        apiUrl += `&girlTypes=${encodeURIComponent(cacheParams.girlTypes)}`;
-      }
-
-      // 位置情報をAPIに送信
-      if (cacheParams.userLat !== undefined) {
-        apiUrl += `&userLat=${cacheParams.userLat}&userLng=${cacheParams.userLng}`;
-        if (normalizedLocation) {
-          console.log('📍 位置情報をAPIに送信（正規化済み）:', { lat: cacheParams.userLat, lng: cacheParams.userLng });
-        }
-      }
-
-      if (cacheParams.maxDistance !== undefined) {
-        apiUrl += `&maxDistance=${cacheParams.maxDistance}`;
-      }
-      
       // キャッシュキーを生成
-      const cacheKey = generateCacheKey(cacheParams);
+      const cacheKey = generateCacheKey({ ...cacheParams, limit: requestLimit, offset: cacheParams.offset });
       console.log('🔑 Cache key generated:', cacheKey);
       
       // Try optimized API first, fallback to regular API if it fails
@@ -503,6 +512,43 @@ function AdvancedSearchContent() {
         setLoading(false)
         return
       }
+
+      // Aggregate results up to fetchLimit (default 200) in batches (API caps single response at 50)
+      const aggregatedGirls: any[] = [...(data.girls || [])]
+      const totalAvailable = data.total ?? aggregatedGirls.length
+      const desiredTotal = Math.min(fetchLimit, totalAvailable)
+      let nextOffset = cacheParams.offset + aggregatedGirls.length
+
+      while (aggregatedGirls.length < desiredTotal && nextOffset < totalAvailable) {
+        const batchLimit = Math.min(requestLimit, desiredTotal - aggregatedGirls.length)
+        const batchUrl = apiParams(batchLimit, nextOffset)
+        const batchKey = generateCacheKey({ ...cacheParams, limit: batchLimit, offset: nextOffset })
+
+        try {
+          const batchData = await fetchWithDedup(batchUrl, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            }
+          }, batchKey)
+
+          if (batchData?.girls && batchData.girls.length > 0) {
+            aggregatedGirls.push(...batchData.girls)
+            nextOffset += batchData.girls.length
+            if (batchData.girls.length < batchLimit) {
+              break
+            }
+          } else {
+            break
+          }
+        } catch (batchError) {
+          console.error(`Batch fetch failed at offset ${nextOffset}:`, batchError)
+          break
+        }
+      }
       
       // パフォーマンス情報のログ出力
       if (data.performance) {
@@ -510,7 +556,7 @@ function AdvancedSearchContent() {
           responseTime: `${data.performance.responseTime}ms`,
           cacheHitRate: `${data.performance.cacheHitRate}%`,
           averageQueryTime: `${data.performance.averageQueryTime}ms`,
-          totalGirls: data.girls?.length || 0,
+          totalGirls: aggregatedGirls.length,
           area: effectiveArea || 'all',
           withLocation: !!userLocation,
           serverSorted: true // サーバー側で距離順ソート済み
@@ -530,7 +576,7 @@ function AdvancedSearchContent() {
       //   }
       // }
       
-      const mappedUsers: UserProfile[] = data.girls.map((user: any, index: number) => {
+      const mappedUsers: UserProfile[] = aggregatedGirls.map((user: any, index: number) => {
         // サーバー側で計算済みの距離を使用（area_smallsテーブルベースの最適化済み）
         let distance: number | undefined = user.distance_km;
         
