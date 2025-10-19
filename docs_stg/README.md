@@ -1,202 +1,304 @@
-# ステージング環境構築ドキュメント
+# Staging Environment Setup Documentation
 
-このディレクトリには、Nukuneアプリのステージング環境を構築するためのドキュメントが含まれています。
+This directory contains documentation for setting up the Nukune application's staging environment on Firebase App Hosting from scratch.
 
-## 📋 作業方針
+## 🚀 Quick Start
 
-**重要**: このステージング環境構築は、**ネットワーク的にクローンを作成**することが目的です。
+**New to this project?** Start here:
 
-### ✅ 実施すること
-- インフラ構成の複製（Firebase、Cloud SQL、VPC、固定IP）
-- Git連携の設定（`staging`ブランチ）
-- ネットワーク構成の確認
+1. **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** ⭐ - Complete setup guide starting with a new GCP project
+2. **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** ⭐ - Automated CLI scripts for the entire setup
 
-### ❌ 実施しないこと
-- アプリケーションレベルの詳細な動作テスト
-- 機能の完全な検証
-- 本番データのコピー
+**Estimated time:** 2-3 hours
+**Estimated cost:** $50-90/month (optimized for staging)
 
 ---
 
-## 📚 ドキュメント一覧
+## 📚 Documentation Index
 
-### 1. 📄 STG_ORDER.md
-**要件定義書**
+### Core Documentation (Start Here)
 
-クライアントからの要望を記載した元ドキュメント。
-- 現在の環境のクローン
-- IP固定化
-- Git連携
+| Document | Purpose | When to Use |
+|----------|---------|-------------|
+| **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** | Step-by-step guide starting with a new GCP project | Setting up a new environment from zero |
+| **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** | Complete CLI scripts for automated setup | Quick automated setup, account switching |
 
-### 2. 🎯 STAGING_PREREQUISITES.md
-**事前準備チェックリスト**
+### Supplementary Documentation
 
-構築作業を始める前に必要なものをリストアップ。
+| Document | Purpose | When to Use |
+|----------|---------|-------------|
+| [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) | Detailed Secret Manager configuration | Troubleshooting secret issues |
+| [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) | Architecture and infrastructure details | Understanding the system architecture |
+| [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) | Common build errors and solutions | When builds fail |
 
-**内容**:
-- 必要なアカウント（GCP、Firebase、GitHub）
-- 必要なAPI・サービスの有効化
-- 必要なAPIキー（Google Genkit等）
-- パスワード生成方法
+### Legacy Documentation (For Reference Only)
 
-**読むタイミング**: 作業開始前に必ず確認
+**All legacy documents have been moved to `obsolete/` directory.**
 
-### 3. 📖 STAGING_SETUP.md ⭐
-**ステージング環境構築手順書（メイン）**
+| Document | Status | Notes |
+|----------|--------|-------|
+| [obsolete/STG_ORDER.md](./obsolete/STG_ORDER.md) | ⚠️ Legacy | Original requirements document |
+| [obsolete/STAGING_PREREQUISITES.md](./obsolete/STAGING_PREREQUISITES.md) | ⚠️ Obsolete | Replaced by FROM_SCRATCH.md |
+| [obsolete/STAGING_SETUP.md](./obsolete/STAGING_SETUP.md) | ⚠️ Obsolete | Replaced by FROM_SCRATCH.md |
+| [obsolete/MYSQL_TESTING_WITHOUT_DATA.md](./obsolete/MYSQL_TESTING_WITHOUT_DATA.md) | ⚠️ Obsolete | Testing guidance included in main docs |
 
-実際の構築手順を詳細に記載したメインドキュメント。
-
-**構築する内容**:
-1. Firebaseプロジェクトのセットアップ
-2. Cloud SQL (MySQL) のセットアップ
-3. VPCネットワークとIP固定化
-4. Firebase App Hostingのセットアップ
-5. 環境変数設定（Secret Manager + apphosting.staging.yaml）
-6. Cloud SQL接続設定
-7. Git連携の確認
-8. ネットワーク構成の確認
-
-**所要時間**: 約1.5〜2.5時間
-
-**読むタイミング**: 実際の構築作業時
-
-### 4. 🔧 MYSQL_TESTING_WITHOUT_DATA.md
-**MySQL動作確認ガイド（本番データなし）**
-
-本番データをコピーせずに、MySQLが正しく動作しているかを確認する方法。
-
-**テスト方法**:
-- 方法1: 最小限のテストテーブル作成（推奨）
-- 方法2: スキーマのみコピー
-- 方法3: コードからテーブル構造を推測
-- 方法4: 既存APIでテスト
-
-**読むタイミング**: MySQLのセットアップ後、接続確認が必要な場合
-
-### 5. 🏗️ INFRASTRUCTURE_OVERVIEW.md
-**インフラストラクチャ全体像**
-
-Nukuneアプリのインフラ全体を詳しく解説。
-
-**内容**:
-- アーキテクチャ図
-- 各コンポーネントの詳細説明
-- リクエストフロー例
-- コスト見積もり
-- セキュリティ設定
-
-**読むタイミング**: 全体像を理解したい場合（オプション）
-
-### 6. 🔐 SECRET_MANAGER_SETUP.md
-**Secret Manager + apphosting.staging.yaml セットアップガイド**
-
-環境変数を安全に管理するための詳細手順。
-
-**内容**:
-- Secret Manager APIの有効化
-- 7つのシークレット作成（コンソールのみ）
-- サービスアカウント権限設定
-- apphosting.staging.yaml の作成
-- トラブルシューティング
-
-**読むタイミング**: 環境変数設定が必要な場合（必須）
-
-### 7. 🔴 BUILD_ERROR_FIX.md
-**ビルドエラー修正ガイド**
-
-Firebase App Hostingでのビルドエラーを解決する方法。
-
-**対象エラー**:
-- Firebase Admin SDK未初期化
-- TRANSACTION_HUB_API_KEY未設定
-- MySQL接続エラー
-
-**読むタイミング**: ビルドエラーが発生した場合
+**Note:** Legacy documents contain outdated information (e.g., references to `asia-northeast1` which is not supported by Firebase App Hosting). Use the new documentation instead.
 
 ---
 
-## 🚀 クイックスタート
+## 🌍 Supported Regions
 
-ステージング環境を構築する場合、以下の順序で読んでください：
+Firebase App Hosting supports the following regions (as of October 2025):
+
+### Recommended for This Project
+
+| Region | Location | Best For | Latency to Japan |
+|--------|----------|----------|------------------|
+| **asia-east1** ⭐ | Taiwan | Asia/Japan users | ~50ms |
+| us-central1 | Iowa, USA | US users | ~150ms |
+| asia-southeast1 | Singapore | Southeast Asia | ~70ms |
+| europe-west4 | Netherlands | Europe | ~200ms |
+
+**Important:**
+- ❌ `asia-northeast1` (Tokyo) is **NOT supported** by Firebase App Hosting
+- ✅ All resources must be in the **same region** (Cloud Run, Cloud SQL, VPC)
+- ✅ **Use `asia-east1`** for best performance in Asia
+
+---
+
+## 🏗️ Architecture Overview
 
 ```
-1. STG_ORDER.md（要件確認）
-   ↓
-2. STAGING_PREREQUISITES.md（事前準備）
-   ↓
-3. STAGING_SETUP.md（実際の構築）★ メイン
-   ├→ SECRET_MANAGER_SETUP.md（環境変数設定）★ 必須
-   └→ MYSQL_TESTING_WITHOUT_DATA.md（必要に応じて）
+┌─────────────────────────────────────────────────────┐
+│ GitHub Repository (staging branch)                   │
+└────────────────┬────────────────────────────────────┘
+                 │ git push
+                 ↓
+┌─────────────────────────────────────────────────────┐
+│ Firebase App Hosting (Build)                         │
+│  - Buildpacks auto-detect Next.js                    │
+│  - Secret Manager integration                        │
+└────────────────┬────────────────────────────────────┘
+                 │ deploy
+                 ↓
+┌─────────────────────────────────────────────────────┐
+│ Cloud Run (asia-east1 or us-central1)               │
+│  - Next.js 15 App                                    │
+│  - Auto-scaling (minInstances=0 for staging)         │
+└────┬──────────────────┬─────────────────────────────┘
+     │                  │
+     │                  ↓
+     │            ┌──────────────────────────┐
+     │            │ Cloud SQL MySQL           │
+     │            │  - User data storage      │
+     │            │  - Same region            │
+     │            └──────────────────────────┘
+     ↓
+┌─────────────────────────────────────────────────────┐
+│ VPC Network + Cloud NAT                              │
+│  - Fixed outbound IP address                         │
+│  - Private Cloud SQL connection                      │
+└─────────────────────────────────────────────────────┘
+     ↓
+┌─────────────────────────────────────────────────────┐
+│ Firebase Services                                    │
+│  - Authentication (Email/Password)                   │
+│  - Firestore (User profiles, messages)               │
+│  - Storage (Images)                                  │
+└─────────────────────────────────────────────────────┘
 ```
 
-**最短ルート**: `STAGING_SETUP.md` と `SECRET_MANAGER_SETUP.md` を読んで作業開始。
+---
+
+## 📋 Setup Checklist
+
+Use this checklist to track your progress:
+
+### Prerequisites
+- [ ] Google Account with billing enabled
+- [ ] GitHub repository access
+- [ ] Firebase CLI installed (`npm install -g firebase-tools`)
+- [ ] gcloud CLI installed
+- [ ] API keys obtained (Genkit, Transaction Hub)
+
+### Infrastructure Setup
+- [ ] GCP Project created
+- [ ] Firebase Project initialized
+- [ ] Cloud SQL instance running
+- [ ] Database and user created
+- [ ] VPC Connector configured
+- [ ] Static IP reserved
+- [ ] Cloud NAT configured
+
+### Secret Manager
+- [ ] Firebase Admin credentials created
+- [ ] All 7 secrets created in Secret Manager
+- [ ] Service accounts granted access
+- [ ] Secrets tested and verified
+
+### App Hosting
+- [ ] GitHub repository connected
+- [ ] Backend created and configured
+- [ ] `apphosting.staging.yaml` created
+- [ ] Secrets granted to backend
+- [ ] Initial build succeeded
+- [ ] App deployed and accessible
+
+### Verification
+- [ ] Fixed IP verified
+- [ ] Database connection working
+- [ ] Firebase Auth working
+- [ ] Git auto-deploy working
 
 ---
 
-## ✅ 構築完了の判断基準
+## 🛠️ Common Operations
 
-以下がすべて確認できれば、ステージング環境の構築は完了です：
+### Viewing Logs
 
-### インフラ構成
-- [ ] Firebase プロジェクト `nukune-stg01-475508` が有効
-- [ ] Firestore、Storage、Authentication が作成されている
-- [ ] Cloud SQL インスタンス `nukune-stg-mysql` が起動中
-- [ ] データベース `nukune_stg` とユーザー `nukune_app` が存在
+```bash
+# Cloud Run logs
+gcloud run services logs read --platform=managed --region=asia-east1 --limit=50
 
-### ネットワーク構成（固定IP）
-- [ ] VPC Connector `nukune-stg-connector` が作成されている
-- [ ] Cloud Router `nukune-stg-router` が作成されている
-- [ ] 静的IPアドレス `nukune-stg-nat-ip` が予約されている
-- [ ] Cloud NAT `nukune-stg-nat` が設定されている
+# Build logs
+gcloud builds list --limit=10
 
-### Git連携
-- [ ] Firebase App Hosting バックエンド `nukune-staging` が作成されている
-- [ ] GitHub `staging` ブランチと連携されている
-- [ ] 初回デプロイが成功している（またはビルド実行済み）
+# Specific build
+gcloud builds log BUILD_ID
+```
 
----
+### Managing Secrets
 
-## 💰 推定コスト
+```bash
+# List all secrets
+gcloud secrets list
 
-**月額**: 約 $50-90
+# Update a secret
+echo -n "new-value" | gcloud secrets versions add SECRET_NAME --data-file=-
 
-- Cloud Run: $10-20（minInstances=0）
-- Cloud SQL: $30-50（小型インスタンス、夜間停止推奨）
-- その他（Firestore, Storage, NAT, VPC）: $10-20
+# View secret (for debugging only!)
+gcloud secrets versions access latest --secret=SECRET_NAME
+```
 
-**コスト削減のヒント**:
-- Cloud SQLを夜間・休日に停止
-- Cloud Runの`minInstances`を0に設定
-- 使用しない時はプロジェクト全体を停止
+### Database Operations
 
----
+```bash
+# Connect to Cloud SQL
+gcloud sql connect INSTANCE_NAME --user=root
 
-## 📞 トラブルシューティング
+# Create backup
+gcloud sql backups create --instance=INSTANCE_NAME
+```
 
-問題が発生した場合:
+### Switching GCP Accounts
 
-1. **エラーメッセージを記録**
-2. **どの手順で発生したか確認**
-3. `STAGING_SETUP.md` のトラブルシューティングセクションを確認
-4. それでも解決しない場合は、チームに相談
+```bash
+# List accounts
+gcloud auth list
 
----
+# Switch account
+gcloud auth login --account=EMAIL@gmail.com
 
-## 🔗 関連リンク
-
-- [Firebase Console](https://console.firebase.google.com)
-- [GCP Console](https://console.cloud.google.com)
-- [Firebase App Hosting ドキュメント](https://firebase.google.com/docs/app-hosting)
-- [Cloud NAT ドキュメント](https://cloud.google.com/nat/docs)
+# Set active project
+gcloud config set project PROJECT_ID
+```
 
 ---
 
-## 📝 更新履歴
+## 💰 Cost Optimization
 
-- 2025-10-18: 初版作成
-  - STG_ORDER.mdの要件に基づき、ネットワークレベルのクローン作成にフォーカス
-  - アプリケーションレベルのテストは不要と明記
+### For Staging Environments
+
+```yaml
+# In apphosting.staging.yaml
+runConfig:
+  minInstances: 0      # Scale to zero when idle
+  maxInstances: 5      # Limit scaling
+  cpu: 1               # Lower CPU
+  memoryMiB: 2048      # Lower memory
+```
+
+**Additional Tips:**
+- Use smaller Cloud SQL instance (`db-f1-micro` or `db-g1-small`)
+- Schedule Cloud SQL shutdown during off-hours
+- Disable automated backups (use manual backups)
+- Monitor usage in GCP Console → Billing
+
+**Estimated monthly cost with optimizations:** $20-40
 
 ---
 
-**Good luck with the staging environment setup! 🚀**
+## 🐛 Troubleshooting
+
+### Build Fails with "Permission Denied" on Secrets
+
+**Solution:** Grant Secret Manager access to Cloud Build service accounts
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format="value(projectNumber)")
+
+gcloud projects add-iam-policy-binding PROJECT_ID \
+  --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor" \
+  --condition=None
+```
+
+See [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) for more solutions.
+
+### Cloud Run Fails with Region Mismatch
+
+**Error:** "The target region X must be the same as the region Y where the subnetwork resides"
+
+**Solution:** Ensure all resources are in the **same region**:
+- Check your `apphosting.staging.yaml` VPC subnet region
+- Verify it matches your App Hosting deployment region
+- Update the subnet region if needed
+
+### Database Connection Fails
+
+**Check:**
+1. Cloud SQL instance is running: `gcloud sql instances list`
+2. Connection name is correct in `apphosting.staging.yaml`
+3. Database user and password are correct
+4. Cloud SQL connection is configured in App Hosting
+
+---
+
+## 🔗 Useful Links
+
+- [Firebase App Hosting Documentation](https://firebase.google.com/docs/app-hosting)
+- [Cloud Run VPC Access](https://cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+- [Cloud NAT Documentation](https://cloud.google.com/nat/docs)
+- [Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
+- [Cloud SQL Connection Guide](https://cloud.google.com/sql/docs/mysql/connect-run)
+
+---
+
+## 📞 Getting Help
+
+If you encounter issues:
+
+1. Check the troubleshooting section in the relevant doc
+2. Review error messages in Cloud Console
+3. Check [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) for common errors
+4. Consult Firebase App Hosting documentation
+
+---
+
+## 📝 Changelog
+
+### 2025-10-20
+- ✨ Added FROM_SCRATCH.md - Complete setup guide from new GCP project
+- ✨ Added FROM_SCRATCH_CLI.md - Automated setup scripts
+- ⚠️ Deprecated old documentation (STAGING_SETUP.md, STAGING_PREREQUISITES.md)
+- ✅ Updated region guidance (removed asia-northeast1, added asia-east1/us-central1)
+- 🔧 Added account switching guide
+- 📚 Reorganized documentation structure
+
+### 2025-10-18
+- Initial staging documentation created
+- Legacy docs: STG_ORDER.md, STAGING_SETUP.md, etc.
+
+---
+
+**Ready to get started?** → [FROM_SCRATCH.md](./FROM_SCRATCH.md) 🚀
