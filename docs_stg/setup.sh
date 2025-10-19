@@ -89,6 +89,74 @@ print_info() {
 }
 
 # =============================================================================
+# GCPアカウントの確認（最初に実行）
+# =============================================================================
+print_step "GCPアカウントの確認"
+
+# gcloud CLIの確認
+if ! command -v gcloud &> /dev/null; then
+  print_error "gcloud CLIがインストールされていません"
+  print_info "https://cloud.google.com/sdk/docs/install からインストールしてください"
+  exit 1
+fi
+
+# 認証状態の確認
+if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+  print_warning "gcloudにログインしていません"
+  echo -e "${YELLOW}ログインしますか？ (yes/no)${NC}"
+  read -r DO_LOGIN
+  if [ "$DO_LOGIN" = "yes" ]; then
+    gcloud auth login
+  else
+    print_error "gcloudへのログインが必要です"
+    exit 1
+  fi
+fi
+
+ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+print_info "現在のアカウント: $ACTIVE_ACCOUNT"
+
+# 利用可能なアカウントを表示
+echo ""
+echo -e "${BLUE}利用可能なGCPアカウント:${NC}"
+gcloud auth list
+
+echo ""
+echo -e "${YELLOW}このアカウントでセットアップを続行しますか？ (yes/no)${NC}"
+echo -e "${BLUE}別のアカウントに切り替える場合は 'no' を選択してください${NC}"
+read -r CONFIRM_ACCOUNT
+
+if [ "$CONFIRM_ACCOUNT" != "yes" ]; then
+  echo ""
+  echo -e "${YELLOW}アカウントを切り替えますか？ (yes/no)${NC}"
+  read -r SWITCH_ACCOUNT
+
+  if [ "$SWITCH_ACCOUNT" = "yes" ]; then
+    echo ""
+    echo -e "${YELLOW}使用するアカウントのメールアドレスを入力してください:${NC}"
+    read -r NEW_ACCOUNT
+
+    # アカウントが既に認証済みかチェック
+    if gcloud auth list --format="value(account)" | grep -q "^${NEW_ACCOUNT}$"; then
+      print_info "既存のアカウントに切り替え中..."
+      gcloud config set account "$NEW_ACCOUNT"
+    else
+      print_info "新しいアカウントでログイン中..."
+      gcloud auth login --account="$NEW_ACCOUNT"
+    fi
+
+    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+    print_success "アカウントを切り替えました: $ACTIVE_ACCOUNT"
+  else
+    print_error "セットアップを中止しました"
+    exit 0
+  fi
+fi
+
+print_success "使用するアカウント: $ACTIVE_ACCOUNT"
+echo ""
+
+# =============================================================================
 # 設定変数
 # =============================================================================
 print_step "設定変数の読み込み"
@@ -181,8 +249,10 @@ if [ -z "$GOOGLE_GENKIT_API_KEY" ]; then
   read -r GOOGLE_GENKIT_API_KEY
 
   if [ -z "$GOOGLE_GENKIT_API_KEY" ]; then
-    GOOGLE_GENKIT_API_KEY="PLACEHOLDER_REPLACE_LATER"
-    print_warning "Google Genkit API Keyは後で追加してください"
+    # Generate a mock API key that won't cause build failures
+    # Format similar to real Google API keys: AIza followed by random characters
+    GOOGLE_GENKIT_API_KEY="AIza_MOCK_KEY_$(openssl rand -hex 16)"
+    print_warning "Google Genkit API Keyはモックキーで設定されました（後で実際のキーに置き換えてください）"
   fi
 fi
 
@@ -192,8 +262,10 @@ if [ -z "$TRANSACTION_HUB_API_KEY" ]; then
   read -r TRANSACTION_HUB_API_KEY
 
   if [ -z "$TRANSACTION_HUB_API_KEY" ]; then
-    TRANSACTION_HUB_API_KEY="PLACEHOLDER_REPLACE_LATER"
-    print_warning "Transaction Hub API Keyは後で追加してください"
+    # Generate a mock API key that won't cause build failures
+    # Format similar to Transaction Hub keys
+    TRANSACTION_HUB_API_KEY="mock_api_key_$(openssl rand -hex 24)"
+    print_warning "Transaction Hub API Keyはモックキーで設定されました（後で実際のキーに置き換えてください）"
   fi
 fi
 
@@ -223,6 +295,7 @@ cat > "$CREDENTIALS_FILE" <<EOF
 # 生成日: $(date)
 # 🔐 重要: このファイルを安全に保管してください！
 
+GCP_ACCOUNT=$ACTIVE_ACCOUNT
 PROJECT_ID=$PROJECT_ID
 BILLING_ACCOUNT_ID=$BILLING_ACCOUNT_ID
 REGION=$REGION
@@ -239,14 +312,6 @@ print_success "設定を $CREDENTIALS_FILE に保存しました"
 # ステップ1: 前提条件の確認
 # =============================================================================
 print_step "ステップ1: 前提条件の確認"
-
-# gcloud CLIの確認
-if ! command -v gcloud &> /dev/null; then
-  print_error "gcloud CLIがインストールされていません"
-  print_info "https://cloud.google.com/sdk/docs/install からインストールしてください"
-  exit 1
-fi
-print_success "gcloud CLI: $(gcloud --version | head -1)"
 
 # Firebase CLIの確認
 if ! command -v firebase &> /dev/null; then
@@ -276,14 +341,6 @@ if [ "$NODE_VERSION" -lt 18 ]; then
 fi
 print_success "Node.js: $(node --version)"
 
-# 認証状態の確認
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
-  print_warning "gcloudにログインしていません"
-  gcloud auth login
-fi
-ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-print_success "アクティブアカウント: $ACTIVE_ACCOUNT"
-
 # =============================================================================
 # ステップ2: GCPプロジェクトの作成
 # =============================================================================
@@ -308,11 +365,35 @@ else
 fi
 
 # 課金アカウントをリンク
-print_info "課金アカウントをリンク中..."
-gcloud billing projects link "$PROJECT_ID" \
-  --billing-account="$BILLING_ACCOUNT_ID"
+print_info "課金アカウントの状態を確認中..."
+CURRENT_BILLING=$(gcloud billing projects describe "$PROJECT_ID" --format="value(billingAccountName)" 2>/dev/null || echo "")
 
-print_success "課金が有効になりました"
+if [ -n "$CURRENT_BILLING" ]; then
+  print_success "課金アカウントは既にリンクされています: $CURRENT_BILLING"
+
+  # 指定された課金アカウントと異なる場合は警告
+  if [[ "$CURRENT_BILLING" != *"$BILLING_ACCOUNT_ID"* ]]; then
+    print_warning "異なる課金アカウントがリンクされています"
+    echo -e "${YELLOW}現在: $CURRENT_BILLING${NC}"
+    echo -e "${YELLOW}指定: $BILLING_ACCOUNT_ID${NC}"
+    echo -e "${YELLOW}課金アカウントを変更しますか？ (yes/no)${NC}"
+    read -r CHANGE_BILLING
+    if [ "$CHANGE_BILLING" = "yes" ]; then
+      print_info "課金アカウントを変更中..."
+      gcloud billing projects link "$PROJECT_ID" \
+        --billing-account="$BILLING_ACCOUNT_ID"
+      print_success "課金アカウントが変更されました"
+    else
+      print_info "既存の課金アカウントを使用します"
+      BILLING_ACCOUNT_ID="$CURRENT_BILLING"
+    fi
+  fi
+else
+  print_info "課金アカウントをリンク中..."
+  gcloud billing projects link "$PROJECT_ID" \
+    --billing-account="$BILLING_ACCOUNT_ID"
+  print_success "課金が有効になりました"
+fi
 
 # アクティブプロジェクトとして設定
 gcloud config set project "$PROJECT_ID"
@@ -407,7 +488,7 @@ else
   print_info "VPCコネクタを作成中..."
   gcloud compute networks vpc-access connectors create "$VPC_CONNECTOR_NAME" \
     --region="$REGION" \
-    --subnet-range=10.8.0.0/28 \
+    --range=10.8.0.0/28 \
     --network=default \
     --min-instances=2 \
     --max-instances=10 \
@@ -778,6 +859,25 @@ fi
 if ! firebase projects:list &> /dev/null; then
   print_info "Firebaseにログイン中..."
   firebase login
+fi
+
+# 環境名の設定
+print_info "バックエンドの環境名を設定中..."
+echo ""
+echo -e "${YELLOW}次の手順を実行してください:${NC}"
+echo "1. https://console.firebase.google.com/project/$PROJECT_ID/apphosting にアクセス"
+echo "2. バックエンド '$BACKEND_ID' の [ダッシュボードを表示] をクリック"
+echo "3. [設定] タブ → [環境] を選択"
+echo "4. [環境名] に 'staging' と入力"
+echo "5. [保存] をクリック"
+echo ""
+echo -e "${BLUE}これにより、App Hostingは apphosting.staging.yaml を使用します${NC}"
+echo ""
+echo -e "${YELLOW}完了したら 'yes' と入力してください:${NC}"
+read -r ENV_NAME_DONE
+
+if [ "$ENV_NAME_DONE" != "yes" ]; then
+  print_warning "環境名の設定をスキップしました（後で設定してください）"
 fi
 
 # App Hostingバックエンドにシークレットアクセスを付与
