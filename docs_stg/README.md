@@ -1,239 +1,239 @@
-# Staging Environment Setup Documentation
+# ステージング環境セットアップドキュメント
 
-This directory contains documentation for setting up the Nukune application's staging environment on Firebase App Hosting from scratch.
+このディレクトリには、Nukuneアプリケーションのステージング環境をFirebase App Hostingにゼロから構築するためのドキュメントが含まれています。
 
-## 🚀 Quick Start
+## 🚀 クイックスタート
 
-**New to this project?** Start here:
+**このプロジェクトは初めてですか？** ここから始めてください：
 
-1. **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** ⭐ - Complete setup guide starting with a new GCP project
-2. **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** ⭐ - Automated CLI scripts for the entire setup
+1. **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** ⭐ - 新規GCPプロジェクトから始める完全セットアップガイド
+2. **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** ⭐ - 全セットアップを自動化するCLIスクリプト
 
-**Estimated time:** 2-3 hours
-**Estimated cost:** $50-90/month (optimized for staging)
+**推定時間:** 2-3時間
+**推定コスト:** $50-90/月（ステージング環境向けに最適化）
 
 ---
 
-## 📚 Documentation Index
+## 📚 ドキュメント索引
 
-### Core Documentation (Start Here)
+### コアドキュメント（ここから始める）
 
-| Document | Purpose | When to Use |
+| ドキュメント | 目的 | 使用するとき |
 |----------|---------|-------------|
-| **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** | Step-by-step guide starting with a new GCP project | Setting up a new environment from zero |
-| **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** | Complete CLI scripts for automated setup | Quick automated setup, account switching |
+| **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** | 新規GCPプロジェクトから始めるステップバイステップガイド | ゼロから新しい環境を構築する場合 |
+| **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** | 自動セットアップ用の完全なCLIスクリプト | 迅速な自動セットアップ、アカウント切り替え |
 
-### Supplementary Documentation
+### 補足ドキュメント
 
-| Document | Purpose | When to Use |
+| ドキュメント | 目的 | 使用するとき |
 |----------|---------|-------------|
-| [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) | Detailed Secret Manager configuration | Troubleshooting secret issues |
-| [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) | Architecture and infrastructure details | Understanding the system architecture |
-| [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) | Common build errors and solutions | When builds fail |
-| [TEARDOWN.md](./TEARDOWN.md) | Infrastructure teardown and cleanup | Deleting resources to stop costs |
+| [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) | Secret Managerの詳細な設定手順 | シークレットの問題をトラブルシューティングする場合 |
+| [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) | アーキテクチャとインフラストラクチャの詳細 | システムアーキテクチャを理解する場合 |
+| [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) | よくあるビルドエラーと解決方法 | ビルドが失敗した場合 |
+| [TEARDOWN.md](./TEARDOWN.md) | インフラストラクチャの削除とクリーンアップ | コストを停止するためにリソースを削除する場合 |
 
-### Legacy Documentation (For Reference Only)
+### レガシードキュメント（参照のみ）
 
-**All legacy documents have been moved to `obsolete/` directory.**
+**すべてのレガシードキュメントは `obsolete/` ディレクトリに移動されました。**
 
-| Document | Status | Notes |
+| ドキュメント | ステータス | 備考 |
 |----------|--------|-------|
-| [obsolete/STG_ORDER.md](./obsolete/STG_ORDER.md) | ⚠️ Legacy | Original requirements document |
-| [obsolete/STAGING_PREREQUISITES.md](./obsolete/STAGING_PREREQUISITES.md) | ⚠️ Obsolete | Replaced by FROM_SCRATCH.md |
-| [obsolete/STAGING_SETUP.md](./obsolete/STAGING_SETUP.md) | ⚠️ Obsolete | Replaced by FROM_SCRATCH.md |
-| [obsolete/MYSQL_TESTING_WITHOUT_DATA.md](./obsolete/MYSQL_TESTING_WITHOUT_DATA.md) | ⚠️ Obsolete | Testing guidance included in main docs |
+| [obsolete/STG_ORDER.md](./obsolete/STG_ORDER.md) | ⚠️ レガシー | 元の要件ドキュメント |
+| [obsolete/STAGING_PREREQUISITES.md](./obsolete/STAGING_PREREQUISITES.md) | ⚠️ 廃止 | FROM_SCRATCH.mdに置き換えられました |
+| [obsolete/STAGING_SETUP.md](./obsolete/STAGING_SETUP.md) | ⚠️ 廃止 | FROM_SCRATCH.mdに置き換えられました |
+| [obsolete/MYSQL_TESTING_WITHOUT_DATA.md](./obsolete/MYSQL_TESTING_WITHOUT_DATA.md) | ⚠️ 廃止 | テストガイダンスはメインドキュメントに統合されました |
 
-**Note:** Legacy documents contain outdated information (e.g., references to `asia-northeast1` which is not supported by Firebase App Hosting). Use the new documentation instead.
+**注意:** レガシードキュメントには古い情報（例：Firebase App Hostingでサポートされていない `asia-northeast1` への参照）が含まれています。新しいドキュメントを使用してください。
 
 ---
 
-## 🌍 Supported Regions
+## 🌍 サポートされているリージョン
 
-Firebase App Hosting supports the following regions (as of October 2025):
+Firebase App Hostingは以下のリージョンをサポートしています（2025年10月時点）：
 
-### Recommended for This Project
+### このプロジェクトの推奨リージョン
 
-| Region | Location | Best For | Latency to Japan |
+| リージョン | ロケーション | 最適な用途 | 日本へのレイテンシ |
 |--------|----------|----------|------------------|
-| **asia-east1** ⭐ | Taiwan | Asia/Japan users | ~50ms |
-| us-central1 | Iowa, USA | US users | ~150ms |
-| asia-southeast1 | Singapore | Southeast Asia | ~70ms |
-| europe-west4 | Netherlands | Europe | ~200ms |
+| **asia-east1** ⭐ | 台湾 | アジア/日本のユーザー | ~50ms |
+| us-central1 | アイオワ、米国 | 米国のユーザー | ~150ms |
+| asia-southeast1 | シンガポール | 東南アジア | ~70ms |
+| europe-west4 | オランダ | ヨーロッパ | ~200ms |
 
-**Important:**
-- ❌ `asia-northeast1` (Tokyo) is **NOT supported** by Firebase App Hosting
-- ✅ All resources must be in the **same region** (Cloud Run, Cloud SQL, VPC)
-- ✅ **Use `asia-east1`** for best performance in Asia
+**重要:**
+- ❌ `asia-northeast1`（東京）はFirebase App Hostingで**サポートされていません**
+- ✅ すべてのリソースは**同じリージョン**に配置する必要があります（Cloud Run、Cloud SQL、VPC）
+- ✅ アジアで最高のパフォーマンスを得るには**`asia-east1`を使用**してください
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ アーキテクチャ概要
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ GitHub Repository (staging branch)                   │
+│ GitHubリポジトリ（stagingブランチ）                    │
 └────────────────┬────────────────────────────────────┘
                  │ git push
                  ↓
 ┌─────────────────────────────────────────────────────┐
-│ Firebase App Hosting (Build)                         │
-│  - Buildpacks auto-detect Next.js                    │
-│  - Secret Manager integration                        │
+│ Firebase App Hosting（ビルド）                        │
+│  - Buildpacksが自動でNext.jsを検出                    │
+│  - Secret Managerとの統合                            │
 └────────────────┬────────────────────────────────────┘
-                 │ deploy
+                 │ デプロイ
                  ↓
 ┌─────────────────────────────────────────────────────┐
-│ Cloud Run (asia-east1 or us-central1)               │
-│  - Next.js 15 App                                    │
-│  - Auto-scaling (minInstances=0 for staging)         │
+│ Cloud Run（asia-east1またはus-central1）             │
+│  - Next.js 15アプリ                                  │
+│  - オートスケーリング（ステージング環境ではminInstances=0）│
 └────┬──────────────────┬─────────────────────────────┘
      │                  │
      │                  ↓
      │            ┌──────────────────────────┐
      │            │ Cloud SQL MySQL           │
-     │            │  - User data storage      │
-     │            │  - Same region            │
+     │            │  - ユーザーデータストレージ │
+     │            │  - 同じリージョン           │
      │            └──────────────────────────┘
      ↓
 ┌─────────────────────────────────────────────────────┐
-│ VPC Network + Cloud NAT                              │
-│  - Fixed outbound IP address                         │
-│  - Private Cloud SQL connection                      │
+│ VPCネットワーク + Cloud NAT                           │
+│  - 固定アウトバウンドIPアドレス                         │
+│  - プライベートCloud SQL接続                           │
 └─────────────────────────────────────────────────────┘
      ↓
 ┌─────────────────────────────────────────────────────┐
-│ Firebase Services                                    │
-│  - Authentication (Email/Password)                   │
-│  - Firestore (User profiles, messages)               │
-│  - Storage (Images)                                  │
+│ Firebaseサービス                                     │
+│  - Authentication（メール/パスワード）                 │
+│  - Firestore（ユーザープロフィール、メッセージ）        │
+│  - Storage（画像）                                   │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📋 Setup Checklist
+## 📋 セットアップチェックリスト
 
-Use this checklist to track your progress:
+進捗を追跡するためにこのチェックリストを使用してください：
 
-### Prerequisites
-- [ ] Google Account with billing enabled
-- [ ] GitHub repository access
-- [ ] Firebase CLI installed (`npm install -g firebase-tools`)
-- [ ] gcloud CLI installed
-- [ ] API keys obtained (Genkit, Transaction Hub)
+### 前提条件
+- [ ] 請求が有効なGoogleアカウント
+- [ ] GitHubリポジトリへのアクセス
+- [ ] Firebase CLIのインストール（`npm install -g firebase-tools`）
+- [ ] gcloud CLIのインストール
+- [ ] APIキーの取得（Genkit、Transaction Hub）
 
-### Infrastructure Setup
-- [ ] GCP Project created
-- [ ] Firebase Project initialized
-- [ ] Cloud SQL instance running
-- [ ] Database and user created
-- [ ] VPC Connector configured
-- [ ] Static IP reserved
-- [ ] Cloud NAT configured
+### インフラストラクチャのセットアップ
+- [ ] GCPプロジェクトの作成
+- [ ] Firebaseプロジェクトの初期化
+- [ ] Cloud SQLインスタンスの起動
+- [ ] データベースとユーザーの作成
+- [ ] VPC Connectorの設定
+- [ ] 静的IPの予約
+- [ ] Cloud NATの設定
 
 ### Secret Manager
-- [ ] Firebase Admin credentials created
-- [ ] All 7 secrets created in Secret Manager
-- [ ] Service accounts granted access
-- [ ] Secrets tested and verified
+- [ ] Firebase Admin認証情報の作成
+- [ ] Secret Managerに7つのシークレットを作成
+- [ ] サービスアカウントにアクセス権限を付与
+- [ ] シークレットのテストと検証
 
 ### App Hosting
-- [ ] GitHub repository connected
-- [ ] Backend created and configured
-- [ ] `apphosting.staging.yaml` created
-- [ ] Secrets granted to backend
-- [ ] Initial build succeeded
-- [ ] App deployed and accessible
+- [ ] GitHubリポジトリの接続
+- [ ] バックエンドの作成と設定
+- [ ] `apphosting.staging.yaml`の作成
+- [ ] バックエンドへのシークレット権限付与
+- [ ] 初期ビルドの成功
+- [ ] アプリのデプロイとアクセス可能性の確認
 
-### Verification
-- [ ] Fixed IP verified
-- [ ] Database connection working
-- [ ] Firebase Auth working
-- [ ] Git auto-deploy working
+### 検証
+- [ ] 固定IPの確認
+- [ ] データベース接続の動作確認
+- [ ] Firebase Authの動作確認
+- [ ] Git自動デプロイの動作確認
 
 ---
 
-## 🛠️ Common Operations
+## 🛠️ よくある操作
 
-### Viewing Logs
+### ログの表示
 
 ```bash
-# Cloud Run logs
+# Cloud Runのログ
 gcloud run services logs read --platform=managed --region=asia-east1 --limit=50
 
-# Build logs
+# ビルドログ
 gcloud builds list --limit=10
 
-# Specific build
+# 特定のビルド
 gcloud builds log BUILD_ID
 ```
 
-### Managing Secrets
+### シークレットの管理
 
 ```bash
-# List all secrets
+# すべてのシークレットをリスト表示
 gcloud secrets list
 
-# Update a secret
+# シークレットの更新
 echo -n "new-value" | gcloud secrets versions add SECRET_NAME --data-file=-
 
-# View secret (for debugging only!)
+# シークレットの表示（デバッグ目的のみ！）
 gcloud secrets versions access latest --secret=SECRET_NAME
 ```
 
-### Database Operations
+### データベース操作
 
 ```bash
-# Connect to Cloud SQL
+# Cloud SQLに接続
 gcloud sql connect INSTANCE_NAME --user=root
 
-# Create backup
+# バックアップの作成
 gcloud sql backups create --instance=INSTANCE_NAME
 ```
 
-### Switching GCP Accounts
+### GCPアカウントの切り替え
 
 ```bash
-# List accounts
+# アカウントのリスト表示
 gcloud auth list
 
-# Switch account
+# アカウントの切り替え
 gcloud auth login --account=EMAIL@gmail.com
 
-# Set active project
+# アクティブなプロジェクトの設定
 gcloud config set project PROJECT_ID
 ```
 
 ---
 
-## 💰 Cost Optimization
+## 💰 コスト最適化
 
-### For Staging Environments
+### ステージング環境向け
 
 ```yaml
-# In apphosting.staging.yaml
+# apphosting.staging.yamlに記述
 runConfig:
-  minInstances: 0      # Scale to zero when idle
-  maxInstances: 5      # Limit scaling
-  cpu: 1               # Lower CPU
-  memoryMiB: 2048      # Lower memory
+  minInstances: 0      # アイドル時にゼロにスケール
+  maxInstances: 5      # スケーリングを制限
+  cpu: 1               # 低いCPU
+  memoryMiB: 2048      # 低いメモリ
 ```
 
-**Additional Tips:**
-- Use smaller Cloud SQL instance (`db-f1-micro` or `db-g1-small`)
-- Schedule Cloud SQL shutdown during off-hours
-- Disable automated backups (use manual backups)
-- Monitor usage in GCP Console → Billing
+**追加のヒント:**
+- より小さいCloud SQLインスタンスを使用（`db-f1-micro`または`db-g1-small`）
+- オフ時間中のCloud SQLのシャットダウンをスケジュール
+- 自動バックアップを無効化（手動バックアップを使用）
+- GCPコンソール → 請求で使用状況を監視
 
-**Estimated monthly cost with optimizations:** $20-40
+**最適化後の月額推定コスト:** $20-40
 
 ---
 
-## 🐛 Troubleshooting
+## 🐛 トラブルシューティング
 
-### Build Fails with "Permission Denied" on Secrets
+### シークレットで「Permission Denied」エラーが発生してビルドが失敗する
 
-**Solution:** Grant Secret Manager access to Cloud Build service accounts
+**解決方法:** Cloud BuildサービスアカウントにSecret Managerアクセス権限を付与
 
 ```bash
 PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format="value(projectNumber)")
@@ -244,64 +244,64 @@ gcloud projects add-iam-policy-binding PROJECT_ID \
   --condition=None
 ```
 
-See [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) for more solutions.
+詳細な解決方法については[BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md)を参照してください。
 
-### Cloud Run Fails with Region Mismatch
+### リージョンの不一致でCloud Runが失敗する
 
-**Error:** "The target region X must be the same as the region Y where the subnetwork resides"
+**エラー:** "The target region X must be the same as the region Y where the subnetwork resides"
 
-**Solution:** Ensure all resources are in the **same region**:
-- Check your `apphosting.staging.yaml` VPC subnet region
-- Verify it matches your App Hosting deployment region
-- Update the subnet region if needed
+**解決方法:** すべてのリソースが**同じリージョン**にあることを確認：
+- `apphosting.staging.yaml`のVPCサブネットリージョンを確認
+- App Hostingデプロイメントのリージョンと一致することを確認
+- 必要に応じてサブネットリージョンを更新
 
-### Database Connection Fails
+### データベース接続が失敗する
 
-**Check:**
-1. Cloud SQL instance is running: `gcloud sql instances list`
-2. Connection name is correct in `apphosting.staging.yaml`
-3. Database user and password are correct
-4. Cloud SQL connection is configured in App Hosting
-
----
-
-## 🔗 Useful Links
-
-- [Firebase App Hosting Documentation](https://firebase.google.com/docs/app-hosting)
-- [Cloud Run VPC Access](https://cloud.google.com/run/docs/configuring/vpc-direct-vpc)
-- [Cloud NAT Documentation](https://cloud.google.com/nat/docs)
-- [Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
-- [Cloud SQL Connection Guide](https://cloud.google.com/sql/docs/mysql/connect-run)
+**確認事項:**
+1. Cloud SQLインスタンスが起動しているか: `gcloud sql instances list`
+2. `apphosting.staging.yaml`の接続名が正しいか
+3. データベースユーザーとパスワードが正しいか
+4. App HostingでCloud SQL接続が設定されているか
 
 ---
 
-## 📞 Getting Help
+## 🔗 便利なリンク
 
-If you encounter issues:
-
-1. Check the troubleshooting section in the relevant doc
-2. Review error messages in Cloud Console
-3. Check [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) for common errors
-4. Consult Firebase App Hosting documentation
+- [Firebase App Hostingドキュメント](https://firebase.google.com/docs/app-hosting)
+- [Cloud Run VPCアクセス](https://cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+- [Cloud NATドキュメント](https://cloud.google.com/nat/docs)
+- [Secret Managerドキュメント](https://cloud.google.com/secret-manager/docs)
+- [Cloud SQL接続ガイド](https://cloud.google.com/sql/docs/mysql/connect-run)
 
 ---
 
-## 📝 Changelog
+## 📞 サポート
+
+問題が発生した場合：
+
+1. 関連ドキュメントのトラブルシューティングセクションを確認
+2. Cloud Consoleでエラーメッセージを確認
+3. よくあるエラーについては[BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md)を確認
+4. Firebase App Hostingドキュメントを参照
+
+---
+
+## 📝 変更履歴
 
 ### 2025-10-20
-- ✨ Added FROM_SCRATCH.md - Complete setup guide from new GCP project
-- ✨ Added FROM_SCRATCH_CLI.md - Automated setup scripts
-- ✨ Added TEARDOWN.md - Infrastructure teardown and cleanup guide
-- ⚠️ Deprecated old documentation (STAGING_SETUP.md, STAGING_PREREQUISITES.md)
-- ✅ Updated region guidance (removed asia-northeast1, added asia-east1/us-central1)
-- 🔧 Added account switching guide
-- 📚 Reorganized documentation structure
-- 📁 Moved obsolete docs to obsolete/ directory
+- ✨ FROM_SCRATCH.md追加 - 新規GCPプロジェクトからの完全セットアップガイド
+- ✨ FROM_SCRATCH_CLI.md追加 - 自動セットアップスクリプト
+- ✨ TEARDOWN.md追加 - インフラストラクチャ削除とクリーンアップガイド
+- ⚠️ 古いドキュメントを廃止（STAGING_SETUP.md、STAGING_PREREQUISITES.md）
+- ✅ リージョンガイダンスを更新（asia-northeast1を削除、asia-east1/us-central1を追加）
+- 🔧 アカウント切り替えガイドを追加
+- 📚 ドキュメント構造を再編成
+- 📁 廃止されたドキュメントをobsolete/ディレクトリに移動
 
 ### 2025-10-18
-- Initial staging documentation created
-- Legacy docs: STG_ORDER.md, STAGING_SETUP.md, etc.
+- 初期ステージングドキュメント作成
+- レガシードキュメント: STG_ORDER.md、STAGING_SETUP.mdなど
 
 ---
 
-**Ready to get started?** → [FROM_SCRATCH.md](./FROM_SCRATCH.md) 🚀
+**始める準備はできましたか？** → [FROM_SCRATCH.md](./FROM_SCRATCH.md) 🚀

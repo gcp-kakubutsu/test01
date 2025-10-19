@@ -1,88 +1,89 @@
-# Infrastructure Teardown Guide
+# インフラストラクチャ削除ガイド
 
-This guide provides instructions for safely tearing down your Nukune staging environment to avoid ongoing costs.
+このガイドでは、継続的なコストを回避するために、Nukuneステージング環境を安全に削除する手順を説明します。
 
-## ⚠️ WARNING
+## ⚠️ 警告
 
-**This process is IRREVERSIBLE.** Once you delete resources, all data will be permanently lost.
+**このプロセスは不可逆です。** リソースを削除すると、すべてのデータが永久に失われます。
 
-**Before proceeding:**
-- [ ] Export any data you need to keep
-- [ ] Create backups of your databases
-- [ ] Download any important files from Storage
-- [ ] Verify you're deleting the correct project
-- [ ] Inform your team about the teardown
+**続行する前に:**
 
----
-
-## Table of Contents
-
-1. [Quick Teardown (Delete Entire Project)](#quick-teardown-delete-entire-project)
-2. [Selective Teardown (Keep Project)](#selective-teardown-keep-project)
-3. [Teardown Order (Manual)](#teardown-order-manual)
-4. [Automated Teardown Scripts](#automated-teardown-scripts)
-5. [Verification](#verification)
-6. [Cost After Teardown](#cost-after-teardown)
+- [ ] 保持する必要のあるデータをエクスポート
+- [ ] データベースのバックアップを作成
+- [ ] Storageから重要なファイルをダウンロード
+- [ ] 正しいプロジェクトを削除しようとしていることを確認
+- [ ] チームに削除について通知
 
 ---
 
-## Quick Teardown (Delete Entire Project)
+## 目次
 
-**Fastest method**: Delete the entire GCP project. This removes everything.
+1. [クイック削除（プロジェクト全体を削除）](#クイック削除プロジェクト全体を削除)
+2. [選択的削除（プロジェクトを保持）](#選択的削除プロジェクトを保持)
+3. [削除順序（手動）](#削除順序手動)
+4. [自動削除スクリプト](#自動削除スクリプト)
+5. [検証](#検証)
+6. [削除後のコスト](#削除後のコスト)
 
-### Via Console
+---
 
-1. Go to [GCP Console](https://console.cloud.google.com)
-2. Select your project (e.g., `nukune-staging`)
-3. Go to IAM & Admin → Settings
-4. Click "SHUT DOWN" at the top
-5. Type the Project ID to confirm
-6. Click "SHUT DOWN" again
+## クイック削除（プロジェクト全体を削除）
 
-**Timeline:**
-- Scheduled for deletion immediately
-- Actually deleted after 30 days (recoverable during this period)
-- Billing stops immediately
+**最速の方法**: GCPプロジェクト全体を削除します。これですべてが削除されます。
 
-### Via CLI
+### コンソール経由
+
+1. [GCP Console](https://console.cloud.google.com) にアクセス
+2. プロジェクトを選択（例: `nukune-staging`）
+3. IAMと管理 → 設定 に移動
+4. 上部の「シャットダウン」をクリック
+5. プロジェクトIDを入力して確認
+6. 「シャットダウン」を再度クリック
+
+**タイムライン:**
+- 即座に削除がスケジュールされます
+- 30日後に実際に削除されます（この期間は回復可能）
+- 課金は即座に停止します
+
+### CLI経由
 
 ```bash
-# Set the project to delete
+# 削除するプロジェクトを設定
 PROJECT_ID="your-project-id"
 
-# Verify you have the correct project
+# 正しいプロジェクトであることを確認
 gcloud config get-value project
-echo "About to delete project: $PROJECT_ID"
-echo "Type 'DELETE' to confirm:"
+echo "削除しようとしているプロジェクト: $PROJECT_ID"
+echo "確認するには 'DELETE' と入力してください:"
 read CONFIRM
 
 if [ "$CONFIRM" = "DELETE" ]; then
   gcloud projects delete $PROJECT_ID
-  echo "✅ Project scheduled for deletion"
+  echo "✅ プロジェクトの削除がスケジュールされました"
 else
-  echo "❌ Aborted"
+  echo "❌ 中止しました"
 fi
 ```
 
 ---
 
-## Selective Teardown (Keep Project)
+## 選択的削除（プロジェクトを保持）
 
-If you want to keep the GCP project but remove expensive resources:
+GCPプロジェクトは保持したいが、高額なリソースを削除したい場合:
 
-### Option 1: Stop Expensive Services Only
+### オプション1: 高額なサービスのみを停止
 
 ```bash
 PROJECT_ID="your-project-id"
-REGION="asia-east1"  # or us-central1
+REGION="asia-east1"  # または us-central1
 
-# Stop Cloud SQL (biggest cost saver)
+# Cloud SQLを停止（最大のコスト削減）
 CLOUD_SQL_INSTANCE="nukune-mysql"
 gcloud sql instances patch $CLOUD_SQL_INSTANCE \
   --activation-policy=NEVER \
   --project=$PROJECT_ID
 
-# Scale Cloud Run to zero
+# Cloud Runをゼロにスケール
 gcloud run services update SERVICE_NAME \
   --min-instances=0 \
   --max-instances=0 \
@@ -90,39 +91,39 @@ gcloud run services update SERVICE_NAME \
   --project=$PROJECT_ID
 ```
 
-**Estimated cost after stopping:** $5-10/month (storage only)
+**停止後の推定コスト:** 月額 $5〜10（ストレージのみ）
 
-### Option 2: Delete All Resources
+### オプション2: すべてのリソースを削除
 
-See [Teardown Order](#teardown-order-manual) or [Automated Scripts](#automated-teardown-scripts)
+[削除順序](#削除順序手動) または [自動スクリプト](#自動削除スクリプト) を参照してください。
 
 ---
 
-## Teardown Order (Manual)
+## 削除順序（手動）
 
-**Delete resources in this order to avoid dependency errors:**
+**依存関係エラーを回避するために、この順序でリソースを削除してください:**
 
-### 1. Stop Auto-Deployment
+### 1. 自動デプロイを停止
 
-**Disconnect GitHub to prevent accidental deployments:**
+**誤ったデプロイを防ぐためにGitHubを切断:**
 
 ```bash
-# Via Firebase Console
-# 1. Go to: https://console.firebase.google.com/project/YOUR_PROJECT/apphosting
-# 2. Select your backend
-# 3. Click "Backend settings" → "Disconnect repository"
+# Firebase Console経由
+# 1. https://console.firebase.google.com/project/YOUR_PROJECT/apphosting にアクセス
+# 2. バックエンドを選択
+# 3. バックエンド設定 → リポジトリを切断 をクリック
 ```
 
-### 2. Delete Cloud Run Services
+### 2. Cloud Runサービスを削除
 
 ```bash
 PROJECT_ID="your-project-id"
 REGION="asia-east1"
 
-# List all Cloud Run services
+# すべてのCloud Runサービスをリスト表示
 gcloud run services list --platform=managed --region=$REGION --project=$PROJECT_ID
 
-# Delete each service
+# 各サービスを削除
 gcloud run services delete SERVICE_NAME \
   --platform=managed \
   --region=$REGION \
@@ -130,20 +131,20 @@ gcloud run services delete SERVICE_NAME \
   --quiet
 ```
 
-### 3. Delete Firebase App Hosting Backend
+### 3. Firebase App Hostingバックエンドを削除
 
 ```bash
 BACKEND_ID="nukune-staging"
 
-# Via Firebase Console:
+# Firebase Console経由:
 # 1. https://console.firebase.google.com/project/YOUR_PROJECT/apphosting
-# 2. Select backend → Settings → Delete backend
+# 2. バックエンドを選択 → 設定 → バックエンドを削除
 
-# Or via CLI (if available):
+# またはCLI経由（利用可能な場合）:
 # firebase apphosting:backends:delete $BACKEND_ID --project=$PROJECT_ID
 ```
 
-### 4. Delete Cloud NAT and Networking
+### 4. Cloud NATとネットワーキングを削除
 
 ```bash
 NAT_GATEWAY_NAME="nukune-nat"
@@ -151,121 +152,121 @@ CLOUD_ROUTER_NAME="nukune-router"
 NAT_IP_NAME="nukune-nat-ip"
 VPC_CONNECTOR_NAME="nukune-connector"
 
-# Delete Cloud NAT
+# Cloud NATを削除
 gcloud compute routers nats delete $NAT_GATEWAY_NAME \
   --router=$CLOUD_ROUTER_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
   --quiet
 
-# Delete Cloud Router
+# Cloud Routerを削除
 gcloud compute routers delete $CLOUD_ROUTER_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
   --quiet
 
-# Release Static IP
+# 静的IPを解放
 gcloud compute addresses delete $NAT_IP_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
   --quiet
 
-# Delete VPC Connector
+# VPCコネクタを削除
 gcloud compute networks vpc-access connectors delete $VPC_CONNECTOR_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
   --quiet
 ```
 
-### 5. Delete Cloud SQL Instance
+### 5. Cloud SQLインスタンスを削除
 
 ```bash
 CLOUD_SQL_INSTANCE="nukune-mysql"
 
-# Create final backup (optional but recommended)
+# 最終バックアップを作成（オプションですが推奨）
 gcloud sql backups create \
   --instance=$CLOUD_SQL_INSTANCE \
-  --description="Final backup before deletion" \
+  --description="削除前の最終バックアップ" \
   --project=$PROJECT_ID
 
-# Delete Cloud SQL instance
+# Cloud SQLインスタンスを削除
 gcloud sql instances delete $CLOUD_SQL_INSTANCE \
   --project=$PROJECT_ID \
   --quiet
 ```
 
-### 6. Delete Secret Manager Secrets
+### 6. Secret Managerのシークレットを削除
 
 ```bash
-# List all secrets
+# すべてのシークレットをリスト表示
 gcloud secrets list --project=$PROJECT_ID
 
-# Delete all secrets
+# すべてのシークレットを削除
 for secret in firebase-admin-client-email firebase-admin-private-key db-password transaction-hub-api-key google-genkit-api-key api-register-password jwt-secret; do
-  echo "Deleting secret: $secret"
+  echo "シークレットを削除中: $secret"
   gcloud secrets delete $secret --project=$PROJECT_ID --quiet
 done
 ```
 
-### 7. Delete Firebase Data
+### 7. Firebaseデータを削除
 
 **Firestore:**
 
 ```bash
-# Via Firebase Console:
-# 1. Go to: https://console.firebase.google.com/project/YOUR_PROJECT/firestore
-# 2. Delete collections manually (no bulk delete available)
+# Firebase Console経由:
+# 1. https://console.firebase.google.com/project/YOUR_PROJECT/firestore にアクセス
+# 2. コレクションを手動で削除（一括削除は利用不可）
 
-# Or use Firebase CLI with a script (see automated section below)
+# またはFirebase CLIとスクリプトを使用（自動セクション参照）
 ```
 
 **Storage:**
 
 ```bash
-# Via Firebase Console:
-# 1. Go to: https://console.firebase.google.com/project/YOUR_PROJECT/storage
-# 2. Delete all files/folders
+# Firebase Console経由:
+# 1. https://console.firebase.google.com/project/YOUR_PROJECT/storage にアクセス
+# 2. すべてのファイル/フォルダを削除
 
-# Or via gsutil:
+# またはgsutil経由:
 gsutil -m rm -r gs://YOUR_PROJECT.appspot.com/**
 ```
 
 **Authentication:**
 
 ```bash
-# Delete all users via Firebase Console:
+# Firebase Consoleですべてのユーザーを削除:
 # https://console.firebase.google.com/project/YOUR_PROJECT/authentication/users
 
-# Note: There's no bulk delete in console, must delete individually
-# For many users, use Firebase Admin SDK script
+# 注意: コンソールには一括削除がないため、個別に削除する必要があります
+# 多数のユーザーがいる場合は、Firebase Admin SDKスクリプトを使用
 ```
 
-### 8. Delete Build Artifacts
+### 8. ビルド成果物を削除
 
 ```bash
-# Delete Cloud Build history and artifacts
+# Cloud Buildの履歴と成果物を削除
 gcloud builds list --project=$PROJECT_ID --limit=100 --format="value(id)" | \
   xargs -I {} gcloud builds cancel {} --project=$PROJECT_ID --quiet
 
-# Delete container images
+# コンテナイメージを削除
 gcloud container images list --project=$PROJECT_ID
-# Manually delete from: https://console.cloud.google.com/gcr
+# https://console.cloud.google.com/gcr から手動で削除
 ```
 
 ---
 
-## Automated Teardown Scripts
+## 自動削除スクリプト
 
-### Complete Teardown Script
+### 完全削除スクリプト
 
-**Save this as `teardown.sh`:**
+**これを `teardown.sh` として保存:**
 
 ```bash
 #!/bin/bash
 set -e
 
 # ===========================================
-# CONFIGURATION
+# 設定
 # ===========================================
 PROJECT_ID="your-project-id"
 REGION="asia-east1"
@@ -277,37 +278,37 @@ NAT_IP_NAME="nukune-nat-ip"
 BACKEND_ID="nukune-staging"
 
 # ===========================================
-# CONFIRMATION
+# 確認
 # ===========================================
 echo "=========================================="
-echo "⚠️  WARNING: INFRASTRUCTURE TEARDOWN"
+echo "⚠️  警告: インフラストラクチャ削除"
 echo "=========================================="
-echo "Project: $PROJECT_ID"
-echo "Region: $REGION"
+echo "プロジェクト: $PROJECT_ID"
+echo "リージョン: $REGION"
 echo ""
-echo "This will DELETE:"
-echo "  - All Cloud Run services"
-echo "  - Cloud SQL instance: $CLOUD_SQL_INSTANCE"
-echo "  - All VPC resources"
-echo "  - All Secret Manager secrets"
-echo "  - Fixed IP: $NAT_IP_NAME"
+echo "これは以下を削除します:"
+echo "  - すべてのCloud Runサービス"
+echo "  - Cloud SQLインスタンス: $CLOUD_SQL_INSTANCE"
+echo "  - すべてのVPCリソース"
+echo "  - すべてのSecret Managerシークレット"
+echo "  - 固定IP: $NAT_IP_NAME"
 echo ""
-echo "Type 'DELETE EVERYTHING' to confirm:"
+echo "確認するには 'DELETE EVERYTHING' と入力してください:"
 read CONFIRM
 
 if [ "$CONFIRM" != "DELETE EVERYTHING" ]; then
-  echo "❌ Aborted"
+  echo "❌ 中止しました"
   exit 1
 fi
 
 echo ""
-echo "Starting teardown..."
+echo "削除を開始します..."
 echo ""
 
 # ===========================================
-# STEP 1: Cloud Run Services
+# ステップ1: Cloud Runサービス
 # ===========================================
-echo "🗑️  Step 1: Deleting Cloud Run services..."
+echo "🗑️  ステップ1: Cloud Runサービスを削除中..."
 
 gcloud run services list \
   --platform=managed \
@@ -315,7 +316,7 @@ gcloud run services list \
   --project=$PROJECT_ID \
   --format="value(metadata.name)" | \
 while read service; do
-  echo "  Deleting Cloud Run service: $service"
+  echo "  Cloud Runサービスを削除中: $service"
   gcloud run services delete $service \
     --platform=managed \
     --region=$REGION \
@@ -323,136 +324,136 @@ while read service; do
     --quiet
 done
 
-echo "✅ Cloud Run services deleted"
+echo "✅ Cloud Runサービスが削除されました"
 echo ""
 
 # ===========================================
-# STEP 2: Cloud NAT
+# ステップ2: Cloud NAT
 # ===========================================
-echo "🗑️  Step 2: Deleting Cloud NAT..."
+echo "🗑️  ステップ2: Cloud NATを削除中..."
 
 gcloud compute routers nats delete $NAT_GATEWAY_NAME \
   --router=$CLOUD_ROUTER_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
-  --quiet 2>/dev/null || echo "  NAT not found, skipping"
+  --quiet 2>/dev/null || echo "  NATが見つかりません、スキップします"
 
-echo "✅ Cloud NAT deleted"
+echo "✅ Cloud NATが削除されました"
 echo ""
 
 # ===========================================
-# STEP 3: Cloud Router
+# ステップ3: Cloud Router
 # ===========================================
-echo "🗑️  Step 3: Deleting Cloud Router..."
+echo "🗑️  ステップ3: Cloud Routerを削除中..."
 
 gcloud compute routers delete $CLOUD_ROUTER_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
-  --quiet 2>/dev/null || echo "  Router not found, skipping"
+  --quiet 2>/dev/null || echo "  Routerが見つかりません、スキップします"
 
-echo "✅ Cloud Router deleted"
+echo "✅ Cloud Routerが削除されました"
 echo ""
 
 # ===========================================
-# STEP 4: Static IP
+# ステップ4: 静的IP
 # ===========================================
-echo "🗑️  Step 4: Releasing Static IP..."
+echo "🗑️  ステップ4: 静的IPを解放中..."
 
 gcloud compute addresses delete $NAT_IP_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
-  --quiet 2>/dev/null || echo "  IP not found, skipping"
+  --quiet 2>/dev/null || echo "  IPが見つかりません、スキップします"
 
-echo "✅ Static IP released"
+echo "✅ 静的IPが解放されました"
 echo ""
 
 # ===========================================
-# STEP 5: VPC Connector
+# ステップ5: VPCコネクタ
 # ===========================================
-echo "🗑️  Step 5: Deleting VPC Connector..."
+echo "🗑️  ステップ5: VPCコネクタを削除中..."
 
 gcloud compute networks vpc-access connectors delete $VPC_CONNECTOR_NAME \
   --region=$REGION \
   --project=$PROJECT_ID \
-  --quiet 2>/dev/null || echo "  VPC Connector not found, skipping"
+  --quiet 2>/dev/null || echo "  VPCコネクタが見つかりません、スキップします"
 
-echo "✅ VPC Connector deleted"
+echo "✅ VPCコネクタが削除されました"
 echo ""
 
 # ===========================================
-# STEP 6: Cloud SQL (with backup)
+# ステップ6: Cloud SQL（バックアップ付き）
 # ===========================================
-echo "🗑️  Step 6: Deleting Cloud SQL..."
+echo "🗑️  ステップ6: Cloud SQLを削除中..."
 
-echo "  Creating final backup..."
+echo "  最終バックアップを作成中..."
 gcloud sql backups create \
   --instance=$CLOUD_SQL_INSTANCE \
-  --description="Final backup before deletion $(date +%Y-%m-%d)" \
-  --project=$PROJECT_ID 2>/dev/null || echo "  Backup failed, continuing..."
+  --description="削除前の最終バックアップ $(date +%Y-%m-%d)" \
+  --project=$PROJECT_ID 2>/dev/null || echo "  バックアップ失敗、続行します..."
 
-echo "  Deleting Cloud SQL instance..."
+echo "  Cloud SQLインスタンスを削除中..."
 gcloud sql instances delete $CLOUD_SQL_INSTANCE \
   --project=$PROJECT_ID \
-  --quiet 2>/dev/null || echo "  SQL instance not found, skipping"
+  --quiet 2>/dev/null || echo "  SQLインスタンスが見つかりません、スキップします"
 
-echo "✅ Cloud SQL deleted"
+echo "✅ Cloud SQLが削除されました"
 echo ""
 
 # ===========================================
-# STEP 7: Secret Manager
+# ステップ7: Secret Manager
 # ===========================================
-echo "🗑️  Step 7: Deleting Secret Manager secrets..."
+echo "🗑️  ステップ7: Secret Managerシークレットを削除中..."
 
 SECRETS="firebase-admin-client-email firebase-admin-private-key db-password transaction-hub-api-key google-genkit-api-key api-register-password jwt-secret"
 
 for secret in $SECRETS; do
-  echo "  Deleting secret: $secret"
+  echo "  シークレットを削除中: $secret"
   gcloud secrets delete $secret \
     --project=$PROJECT_ID \
-    --quiet 2>/dev/null || echo "  Secret not found, skipping"
+    --quiet 2>/dev/null || echo "  シークレットが見つかりません、スキップします"
 done
 
-echo "✅ Secrets deleted"
+echo "✅ シークレットが削除されました"
 echo ""
 
 # ===========================================
-# STEP 8: Storage Buckets (optional)
+# ステップ8: ストレージバケット（オプション）
 # ===========================================
-echo "🗑️  Step 8: Cleaning up storage buckets..."
+echo "🗑️  ステップ8: ストレージバケットをクリーンアップ中..."
 
-# List storage buckets
-echo "  Storage buckets in project:"
+# ストレージバケットをリスト表示
+echo "  プロジェクト内のストレージバケット:"
 gsutil ls -p $PROJECT_ID
 
 echo ""
-echo "  ⚠️  Manual action required:"
-echo "  Delete storage buckets manually if needed:"
+echo "  ⚠️  手動アクションが必要です:"
+echo "  必要に応じてストレージバケットを手動で削除してください:"
 echo "  https://console.cloud.google.com/storage/browser?project=$PROJECT_ID"
 echo ""
 
 # ===========================================
-# TEARDOWN COMPLETE
+# 削除完了
 # ===========================================
 echo "=========================================="
-echo "✅ Teardown Complete!"
+echo "✅ 削除完了！"
 echo "=========================================="
 echo ""
-echo "Remaining cleanup (manual):"
-echo "  1. Delete Firebase App Hosting backend in console"
-echo "  2. Delete Firestore collections in console"
-echo "  3. Delete Storage buckets/files in console"
-echo "  4. Delete Auth users in console"
-echo "  5. (Optional) Delete the entire project"
+echo "残りのクリーンアップ（手動）:"
+echo "  1. Consoleでfirebase App Hostingバックエンドを削除"
+echo "  2. ConsoleでFirestoreコレクションを削除"
+echo "  3. ConsoleでStorageバケット/ファイルを削除"
+echo "  4. ConsoleでAuthユーザーを削除"
+echo "  5. （オプション）プロジェクト全体を削除"
 echo ""
 echo "Firebase Console: https://console.firebase.google.com/project/$PROJECT_ID"
 echo "GCP Console: https://console.cloud.google.com/home/dashboard?project=$PROJECT_ID"
 echo ""
-echo "To delete the entire project:"
+echo "プロジェクト全体を削除するには:"
 echo "  gcloud projects delete $PROJECT_ID"
 echo "=========================================="
 ```
 
-### Make it Executable
+### 実行可能にする
 
 ```bash
 chmod +x teardown.sh
@@ -461,174 +462,176 @@ chmod +x teardown.sh
 
 ---
 
-## Verification
+## 検証
 
-### Verify Resources Are Deleted
+### リソースが削除されたことを確認
 
 ```bash
 PROJECT_ID="your-project-id"
 REGION="asia-east1"
 
-# Check Cloud Run
+# Cloud Runを確認
 gcloud run services list --platform=managed --region=$REGION --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 
-# Check Cloud SQL
+# Cloud SQLを確認
 gcloud sql instances list --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 
-# Check VPC Connectors
+# VPCコネクタを確認
 gcloud compute networks vpc-access connectors list --region=$REGION --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 
-# Check Static IPs
+# 静的IPを確認
 gcloud compute addresses list --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 
-# Check Secrets
+# シークレットを確認
 gcloud secrets list --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 
-# Check Cloud Routers
+# Cloud Routerを確認
 gcloud compute routers list --project=$PROJECT_ID
-# Expected: Empty list
+# 期待される結果: 空のリスト
 ```
 
-### Verify Billing
+### 課金を確認
 
-1. Go to [Billing Console](https://console.cloud.google.com/billing)
-2. Select your billing account
-3. View "Reports" for the project
-4. Verify charges drop to $0 (or near $0)
+1. [課金コンソール](https://console.cloud.google.com/billing) にアクセス
+2. 請求先アカウントを選択
+3. プロジェクトの「レポート」を表示
+4. 料金が$0（またはほぼ$0）に減少していることを確認
 
-**Note:** Some charges may take 24-48 hours to reflect in billing reports.
-
----
-
-## Cost After Teardown
-
-### Complete Teardown (All Resources Deleted)
-
-**Expected cost:** $0-2/month
-
-Remaining charges:
-- Cloud Build history storage: ~$0.50/month
-- Container Registry images: ~$0.50/month
-- Firestore/Storage if not deleted: varies
-
-### Partial Teardown (Project Kept, Major Services Stopped)
-
-**Expected cost:** $5-10/month
-
-Remaining charges:
-- Storage (Firestore, Cloud Storage, backups): $2-5/month
-- Networking (if VPC not fully deleted): $1-3/month
-- Small Cloud SQL backups: $1-2/month
-- Logging/Monitoring data: $1-2/month
+**注意:** 一部の料金は課金レポートに反映されるまで24〜48時間かかる場合があります。
 
 ---
 
-## Recovery Options
+## 削除後のコスト
 
-### Within 30 Days (Project Deletion)
+### 完全削除（すべてのリソースを削除）
+
+**推定コスト:** 月額 $0〜2
+
+残りの料金:
+- Cloud Buildの履歴ストレージ: 月額 〜$0.50
+- Container Registryイメージ: 月額 〜$0.50
+- Firestore/Storage（削除しなかった場合）: 変動
+
+### 部分削除（プロジェクト保持、主要サービス停止）
+
+**推定コスト:** 月額 $5〜10
+
+残りの料金:
+- ストレージ（Firestore、Cloud Storage、バックアップ）: 月額 $2〜5
+- ネットワーキング（VPCが完全に削除されていない場合）: 月額 $1〜3
+- 小規模なCloud SQLバックアップ: 月額 $1〜2
+- ログ/モニタリングデータ: 月額 $1〜2
+
+---
+
+## 回復オプション
+
+### 30日以内（プロジェクト削除）
 
 ```bash
-# List deleted projects
+# 削除されたプロジェクトをリスト表示
 gcloud projects list --filter="lifecycleState:DELETE_REQUESTED"
 
-# Restore a project
+# プロジェクトを復元
 gcloud projects undelete PROJECT_ID
 ```
 
-### After Resource Deletion
+### リソース削除後
 
-- **Cloud SQL:** Restore from automated backups (7-365 days retention)
-- **Firestore:** Restore from exports (if created beforehand)
-- **Storage:** No recovery unless versioning was enabled
-- **Secrets:** No recovery, must recreate
+- **Cloud SQL:** 自動バックアップから復元（7〜365日の保持期間）
+- **Firestore:** エクスポートから復元（事前に作成した場合）
+- **Storage:** バージョニングが有効でない限り回復不可
+- **シークレット:** 回復不可、再作成が必要
 
 ---
 
-## Preventing Accidental Deletion
+## 誤削除の防止
 
-### Set Up Deletion Protection
+### 削除保護を設定
 
 **Cloud SQL:**
+
 ```bash
 gcloud sql instances patch INSTANCE_NAME \
   --deletion-protection \
   --project=$PROJECT_ID
 ```
 
-**Project-level:**
+**プロジェクトレベル:**
+
 ```bash
-# Add a lien to prevent deletion
+# プロジェクトの削除を防ぐためにlienを追加
 gcloud resource-manager liens create \
   --restrictions=resourcemanager.projects.delete \
-  --reason="Prevent accidental deletion" \
+  --reason="誤削除を防止" \
   --project=$PROJECT_ID
 ```
 
-### Budget Alerts
+### 予算アラート
 
-Set up billing alerts to notify before costs get too high:
+コストが高額になる前に通知する課金アラートを設定:
 
-1. [Billing Console](https://console.cloud.google.com/billing) → Budgets & alerts
-2. Create budget alert at $50, $100, etc.
-3. Get email notifications
-
----
-
-## Related Documentation
-
-- [FROM_SCRATCH.md](./FROM_SCRATCH.md) - Setup guide (reverse of this doc)
-- [FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md) - Automated setup scripts
-- [README.md](./README.md) - Documentation index
+1. [課金コンソール](https://console.cloud.google.com/billing) → 予算とアラート
+2. $50、$100などで予算アラートを作成
+3. メール通知を受信
 
 ---
 
-## Quick Reference
+## 関連ドキュメント
 
-### Stop Services (Pause, Don't Delete)
+- [FROM_SCRATCH.md](./FROM_SCRATCH.md) - セットアップガイド（このドキュメントの逆）
+- [FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md) - 自動セットアップスクリプト
+- [README.md](./README.md) - ドキュメントインデックス
+
+---
+
+## クイックリファレンス
+
+### サービスを停止（一時停止、削除しない）
 
 ```bash
-# Stop Cloud SQL
+# Cloud SQLを停止
 gcloud sql instances patch INSTANCE_NAME --activation-policy=NEVER
 
-# Scale Cloud Run to zero
+# Cloud Runをゼロにスケール
 gcloud run services update SERVICE_NAME --max-instances=0
 
-# Disable APIs (stops billing for those services)
+# APIを無効化（それらのサービスの課金を停止）
 gcloud services disable run.googleapis.com sqladmin.googleapis.com
 ```
 
-### Delete Entire Project
+### プロジェクト全体を削除
 
 ```bash
 gcloud projects delete PROJECT_ID
 ```
 
-### Check What's Running (Audit)
+### 実行中のものを確認（監査）
 
 ```bash
-# All Cloud Run services
+# すべてのCloud Runサービス
 gcloud run services list --platform=managed
 
-# All Cloud SQL instances
+# すべてのCloud SQLインスタンス
 gcloud sql instances list
 
-# All Compute Engine resources
+# すべてのCompute Engineリソース
 gcloud compute instances list
 gcloud compute addresses list
 gcloud compute disks list
 
-# All storage buckets
+# すべてのストレージバケット
 gsutil ls
 
-# All secrets
+# すべてのシークレット
 gcloud secrets list
 ```
 
 ---
 
-**Last Updated:** 2025-10-20
+**最終更新日:** 2025-10-20
