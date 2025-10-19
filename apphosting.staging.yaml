@@ -5,12 +5,12 @@ runConfig:
   concurrency: 100
   cpu: 1
   memoryMiB: 4096
-  # VPC設定 - Cloud SQL接続用
+  # VPC設定 - Cloud SQL接続用（Cloud Runはasia-east1、Cloud SQLはasia-northeast1）
   vpcAccess:
     egress: ALL_TRAFFIC
     networkInterfaces:
       - network: projects/nukune-stg01-475508/global/networks/default
-        subnetwork: projects/nukune-stg01-475508/regions/asia-northeast1/subnetworks/default
+        subnetwork: projects/nukune-stg01-475508/regions/asia-east1/subnetworks/default
 
 env:
   # ========================================
