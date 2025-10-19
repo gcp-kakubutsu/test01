@@ -1,54 +1,55 @@
 # apphosting.staging.yaml
+# 生成日: Mon Oct 20 03:58:49 JST 2025
+# プロジェクト: nukune-staging-1760897113
+# リージョン: asia-east1
+
 runConfig:
   minInstances: 0
   maxInstances: 10
   concurrency: 100
   cpu: 1
   memoryMiB: 4096
-  # VPC設定 - Cloud SQL接続用（Cloud Runはasia-east1、Cloud SQLはasia-northeast1）
+
+  # 固定IP用のVPC設定
   vpcAccess:
     egress: ALL_TRAFFIC
     networkInterfaces:
-      - network: projects/nukune-stg01-475508/global/networks/default
-        subnetwork: projects/nukune-stg01-475508/regions/asia-east1/subnetworks/default
+      - network: projects/nukune-staging-1760897113/global/networks/default
+        subnetwork: projects/nukune-staging-1760897113/regions/asia-east1/subnetworks/default
 
 env:
-  # ========================================
-  # 🔑 公開情報（Firebase Client SDK）
-  # ========================================
+  # Firebase Client SDK（公開）
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyAlz4JUgJS26U_vn5nj764FAmfs0QkonVM
+    value: AIzaSyAJl-DfA5oYxyHYfQyVgZbqPxDUdMjvx-E
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: nukune-stg01-475508.firebaseapp.com
+    value: nukune-staging-1760897113.firebaseapp.com
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: nukune-stg01-475508
+    value: nukune-staging-1760897113
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: nukune-stg01-475508.firebasestorage.app
+    value: nukune-staging-1760897113.firebasestorage.app
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "687518426651"
+    value: "590783252717"
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:687518426651:web:42713210ded2edcc927abe
+    value: 1:590783252717:web:6a4e036872934a3021e4e4
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-    value: G-83ETQR1EWM
+    value: G-C8BK04P2TT
     availability: [BUILD, RUNTIME]
 
-  # ========================================
-  # 🔐 シークレット（Secret Manager参照）
-  # ========================================
+  # Firebase Admin SDK（シークレット）
   - variable: FIREBASE_ADMIN_PROJECT_ID
-    value: nukune-stg01-475508
+    value: nukune-staging-1760897113
     availability: [BUILD, RUNTIME]
 
   - variable: FIREBASE_ADMIN_CLIENT_EMAIL
@@ -59,11 +60,9 @@ env:
     secret: firebase-admin-private-key
     availability: [BUILD, RUNTIME]
 
-  # ========================================
-  # 🗄️ MySQL / Cloud SQL
-  # ========================================
+  # MySQL設定
   - variable: DB_HOST
-    value: /cloudsql/nukune-stg01-475508:asia-northeast1:nukune-stg01-mysql2
+    value: /cloudsql/nukune-staging-1760897113:asia-east1:nukune-mysql
     availability: [RUNTIME]
 
   - variable: DB_USER
@@ -75,16 +74,14 @@ env:
     availability: [RUNTIME]
 
   - variable: DB_NAME
-    value: nukune_stg
+    value: nukune_db
     availability: [RUNTIME]
 
   - variable: DB_PORT
     value: "3306"
     availability: [RUNTIME]
 
-  # ========================================
-  # 💳 Transaction Hub API
-  # ========================================
+  # APIキー
   - variable: TRANSACTION_HUB_API_KEY
     secret: transaction-hub-api-key
     availability: [BUILD, RUNTIME]
@@ -93,16 +90,11 @@ env:
     secret: transaction-hub-api-key
     availability: [BUILD, RUNTIME]
 
-  # ========================================
-  # 🤖 Google Genkit
-  # ========================================
   - variable: GOOGLE_GENKIT_API_KEY
     secret: google-genkit-api-key
     availability: [BUILD, RUNTIME]
 
-  # ========================================
-  # 🔒 セキュリティ
-  # ========================================
+  # セキュリティ
   - variable: API_REGISTER_PASSWORD
     secret: api-register-password
     availability: [RUNTIME]
@@ -111,28 +103,15 @@ env:
     secret: jwt-secret
     availability: [RUNTIME]
 
-  - variable: ADMIN_EMAILS
-    value: admin@example.com
-    availability: [RUNTIME]
-
-  - variable: NEXT_PUBLIC_ADMIN_EMAILS
-    value: admin@example.com
-    availability: [BUILD, RUNTIME]
-
-  # ========================================
-  # 🌐 外部サービス
-  # ========================================
-  - variable: NEXT_PUBLIC_RESERVATION_SITE_URL
-    value: https://stg.nukipedia.jp
-    availability: [BUILD, RUNTIME]
-
-  # ========================================
-  # ⚙️ その他
-  # ========================================
+  # その他
   - variable: NODE_ENV
     value: production
     availability: [BUILD, RUNTIME]
 
-# Cloud SQL接続設定
+  - variable: NEXT_PUBLIC_RESERVATION_SITE_URL
+    value: https://stg.nukipedia.jp
+    availability: [BUILD, RUNTIME]
+
+# Cloud SQL接続
 cloudSqlInstances:
-  - connectionName: nukune-stg01-475508:asia-northeast1:nukune-stg01-mysql2
+  - connectionName: nukune-staging-1760897113:asia-east1:nukune-mysql
