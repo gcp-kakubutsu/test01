@@ -30,6 +30,7 @@ This directory contains documentation for setting up the Nukune application's st
 | [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) | Detailed Secret Manager configuration | Troubleshooting secret issues |
 | [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) | Architecture and infrastructure details | Understanding the system architecture |
 | [BUILD_ERROR_FIX.md](./BUILD_ERROR_FIX.md) | Common build errors and solutions | When builds fail |
+| [TEARDOWN.md](./TEARDOWN.md) | Infrastructure teardown and cleanup | Deleting resources to stop costs |
 
 ### Legacy Documentation (For Reference Only)
 
@@ -290,10 +291,12 @@ If you encounter issues:
 ### 2025-10-20
 - ✨ Added FROM_SCRATCH.md - Complete setup guide from new GCP project
 - ✨ Added FROM_SCRATCH_CLI.md - Automated setup scripts
+- ✨ Added TEARDOWN.md - Infrastructure teardown and cleanup guide
 - ⚠️ Deprecated old documentation (STAGING_SETUP.md, STAGING_PREREQUISITES.md)
 - ✅ Updated region guidance (removed asia-northeast1, added asia-east1/us-central1)
 - 🔧 Added account switching guide
 - 📚 Reorganized documentation structure
+- 📁 Moved obsolete docs to obsolete/ directory
 
 ### 2025-10-18
 - Initial staging documentation created

@@ -548,6 +548,7 @@ gcloud sql instances describe nukune-mysql --format="value(connectionName)"
 - [FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md) - Complete CLI setup script
 - [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) - Detailed secret setup
 - [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) - Architecture details
+- [TEARDOWN.md](./TEARDOWN.md) - How to delete everything and stop costs
 
 ---
 
