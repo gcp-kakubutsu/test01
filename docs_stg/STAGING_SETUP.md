@@ -127,30 +127,6 @@ service firebase.storage {
 4. Firebase Hosting は**チェックしない**
 5. 表示された `firebaseConfig` をメモ（後で環境変数として使用）
 
-```
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAlz4JUgJS26U_vn5nj764FAmfs0QkonVM",
-  authDomain: "nukune-stg01-475508.firebaseapp.com",
-  projectId: "nukune-stg01-475508",
-  storageBucket: "nukune-stg01-475508.firebasestorage.app",
-  messagingSenderId: "687518426651",
-  appId: "1:687518426651:web:42713210ded2edcc927abe",
-  measurementId: "G-83ETQR1EWM"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-```
-
 ---
 
 ## 手順2: MySQLデータベースのセットアップ
