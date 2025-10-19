@@ -1,0 +1,132 @@
+# apphosting.staging.yaml
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 100
+  cpu: 1
+  memoryMiB: 4096
+
+env:
+  # ========================================
+  # 🔑 公開情報（Firebase Client SDK）
+  # ========================================
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyAlz4JUgJS26U_vn5nj764FAmfs0QkonVM
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: nukune-stg01-475508.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: nukune-stg01-475508
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: nukune-stg01-475508.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "687518426651"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:687518426651:web:42713210ded2edcc927abe
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-83ETQR1EWM
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # 🔐 シークレット（Secret Manager参照）
+  # ========================================
+  - variable: FIREBASE_ADMIN_PROJECT_ID
+    value: nukune-stg01-475508
+    availability: [BUILD, RUNTIME]
+
+  - variable: FIREBASE_ADMIN_CLIENT_EMAIL
+    secret: firebase-admin-client-email
+    availability: [BUILD, RUNTIME]
+
+  - variable: FIREBASE_ADMIN_PRIVATE_KEY
+    secret: firebase-admin-private-key
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # 🗄️ MySQL / Cloud SQL
+  # ========================================
+  - variable: DB_HOST
+    value: /cloudsql/nukune-stg01-475508:asia-northeast1:nukune-stg01-mysql2
+    availability: RUNTIME
+
+  - variable: DB_USER
+    value: nukune_app
+    availability: RUNTIME
+
+  - variable: DB_PASSWORD
+    secret: db-password
+    availability: RUNTIME
+
+  - variable: DB_NAME
+    value: nukune_stg
+    availability: RUNTIME
+
+  - variable: DB_PORT
+    value: "3306"
+    availability: RUNTIME
+
+  # ========================================
+  # 💳 Transaction Hub API
+  # ========================================
+  - variable: TRANSACTION_HUB_API_KEY
+    secret: transaction-hub-api-key
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_TRANSACTION_HUB_API_KEY
+    secret: transaction-hub-api-key
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # 🤖 Google Genkit
+  # ========================================
+  - variable: GOOGLE_GENKIT_API_KEY
+    secret: google-genkit-api-key
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # 🔒 セキュリティ
+  # ========================================
+  - variable: API_REGISTER_PASSWORD
+    secret: api-register-password
+    availability: RUNTIME
+
+  - variable: JWT_SECRET
+    secret: jwt-secret
+    availability: RUNTIME
+
+  - variable: ADMIN_EMAILS
+    value: admin@example.com
+    availability: RUNTIME
+
+  - variable: NEXT_PUBLIC_ADMIN_EMAILS
+    value: admin@example.com
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # 🌐 外部サービス
+  # ========================================
+  - variable: NEXT_PUBLIC_RESERVATION_SITE_URL
+    value: https://stg.nukipedia.jp
+    availability: [BUILD, RUNTIME]
+
+  # ========================================
+  # ⚙️ その他
+  # ========================================
+  - variable: NODE_ENV
+    value: production
+    availability: [BUILD, RUNTIME]
+
+# Cloud SQL接続設定
+cloudSqlInstances:
+  - connectionName: nukune-stg01-475508:asia-northeast1:nukune-stg01-mysql2
