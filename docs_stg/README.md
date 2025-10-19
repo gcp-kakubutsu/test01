@@ -51,9 +51,10 @@
 2. Cloud SQL (MySQL) のセットアップ
 3. VPCネットワークとIP固定化
 4. Firebase App Hostingのセットアップ
-5. Cloud SQL接続設定
-6. Git連携の確認
-7. ネットワーク構成の確認
+5. 環境変数設定（Secret Manager + apphosting.staging.yaml）
+6. Cloud SQL接続設定
+7. Git連携の確認
+8. ネットワーク構成の確認
 
 **所要時間**: 約1.5〜2.5時間
 
@@ -86,6 +87,32 @@ Nukuneアプリのインフラ全体を詳しく解説。
 
 **読むタイミング**: 全体像を理解したい場合（オプション）
 
+### 6. 🔐 SECRET_MANAGER_SETUP.md
+**Secret Manager + apphosting.staging.yaml セットアップガイド**
+
+環境変数を安全に管理するための詳細手順。
+
+**内容**:
+- Secret Manager APIの有効化
+- 7つのシークレット作成（コンソールのみ）
+- サービスアカウント権限設定
+- apphosting.staging.yaml の作成
+- トラブルシューティング
+
+**読むタイミング**: 環境変数設定が必要な場合（必須）
+
+### 7. 🔴 BUILD_ERROR_FIX.md
+**ビルドエラー修正ガイド**
+
+Firebase App Hostingでのビルドエラーを解決する方法。
+
+**対象エラー**:
+- Firebase Admin SDK未初期化
+- TRANSACTION_HUB_API_KEY未設定
+- MySQL接続エラー
+
+**読むタイミング**: ビルドエラーが発生した場合
+
 ---
 
 ## 🚀 クイックスタート
@@ -98,11 +125,11 @@ Nukuneアプリのインフラ全体を詳しく解説。
 2. STAGING_PREREQUISITES.md（事前準備）
    ↓
 3. STAGING_SETUP.md（実際の構築）★ メイン
-   ↓
-4. MYSQL_TESTING_WITHOUT_DATA.md（必要に応じて）
+   ├→ SECRET_MANAGER_SETUP.md（環境変数設定）★ 必須
+   └→ MYSQL_TESTING_WITHOUT_DATA.md（必要に応じて）
 ```
 
-**最短ルート**: `STAGING_SETUP.md` のみ読んで作業開始でもOKです。
+**最短ルート**: `STAGING_SETUP.md` と `SECRET_MANAGER_SETUP.md` を読んで作業開始。
 
 ---
 

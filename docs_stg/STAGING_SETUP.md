@@ -292,53 +292,54 @@ SELECT * FROM test_connection;
 
 ### 4.4 環境変数の設定
 
-「環境変数を追加」セクションで以下を設定:
+**重要**: Firebase App Hostingでは環境変数UIが利用できません。
 
-#### Firebase設定（手順1.4で取得した値）
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=nukune-stg.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=nukune-stg
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=nukune-stg.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
-```
+環境変数は**Secret Manager + apphosting.staging.yaml**で設定します。
 
-#### MySQL接続設定（手順2で作成した値）
-```
-MYSQL_HOST=your-cloud-sql-connection-name
-MYSQL_USER=nukune_app
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=nukune_stg
-```
+詳細な手順は `SECRET_MANAGER_SETUP.md` を参照してください：
+1. Google Cloud Secret Managerにシークレットを作成
+2. リポジトリに `apphosting.staging.yaml` を作成
+3. `staging`ブランチにプッシュ
 
-#### その他の環境変数
-```
-GOOGLE_GENKIT_API_KEY=your_genkit_api_key
-API_REGISTER_PASSWORD=your_admin_password
-NODE_ENV=staging
-```
+**設定が必要な環境変数**:
+- Firebase Client SDK（公開情報）
+- Firebase Admin SDK（シークレット）
+- MySQL接続情報（シークレット）
+- Transaction Hub APIキー（シークレット）
+- その他（Genkit、セキュリティ設定等）
 
-### 4.5 apphosting.yamlの調整
+### 4.5 apphosting.staging.yamlの作成
 
-現在のプロジェクトには既に `apphosting.yaml` が存在します。ステージング環境用に調整が必要か確認:
+リポジトリのルートに `apphosting.staging.yaml` を作成します。
 
+**詳細な内容とテンプレートは `SECRET_MANAGER_SETUP.md` を参照してください。**
+
+基本構成例:
 ```yaml
 runConfig:
-  minInstances: 1      # ステージングでは0でも可（コスト削減）
-  maxInstances: 10     # ステージングでは10程度で十分
+  minInstances: 0      # ステージングではコスト削減のため0
+  maxInstances: 10
   concurrency: 100
-  cpu: 2               # ステージングでは2コアでも可
-  memoryMiB: 4096      # ステージングでは4GBでも可
-  vpcAccess:
-    egress: ALL_TRAFFIC
-    networkInterfaces:
-      - network: projects/nukune-stg/global/networks/default
-        subnetwork: projects/nukune-stg/regions/asia-northeast1/subnetworks/default
+  cpu: 2
+  memoryMiB: 4096
+
+env:
+  # 公開情報（Firebase Client SDK）
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSy...
+    availability: [BUILD, RUNTIME]
+
+  # シークレット（Secret Manager参照）
+  - variable: FIREBASE_ADMIN_PRIVATE_KEY
+    secret: firebase-admin-private-key
+    availability: [BUILD, RUNTIME]
+
+# Cloud SQL接続
+cloudSqlInstances:
+  - connectionName: nukune-stg:asia-northeast1:nukune-stg-mysql
 ```
 
-**注意**: `staging`ブランチで作業する場合、ブランチ固有の設定ファイルを作成するか、環境変数でプロジェクトIDを切り替える必要があります。
+**注意**: ステージング環境では `apphosting.staging.yaml` という名前でファイルを作成してください。本番環境の `apphosting.yaml` と分離することをお勧めします。
 
 ### 4.6 デプロイの実行
 
@@ -468,10 +469,10 @@ nukune-stg-nat-ip  xx.xx.xx.xx    EXTERNAL                    asia-northeast1   
 
 ### ✅ 環境変数・設定
 
-- [ ] Firebase設定（`NEXT_PUBLIC_FIREBASE_*`）が設定されている
-- [ ] MySQL接続情報（`DB_HOST`, `DB_USER`, `DB_PASSWORD`）が設定されている
-- [ ] Cloud Run サービスに Cloud SQL 接続が追加されている
-- [ ] `apphosting.yaml` の VPC 設定が正しい
+- [ ] Secret Manager にすべてのシークレットが作成されている（`SECRET_MANAGER_SETUP.md`参照）
+- [ ] `apphosting.staging.yaml` が作成され、`staging`ブランチにプッシュ済み
+- [ ] Cloud SQL 接続設定が `apphosting.staging.yaml` に含まれている
+- [ ] サービスアカウントに Secret Manager アクセス権限が付与されている
 
 ---
 
@@ -484,8 +485,9 @@ nukune-stg-nat-ip  xx.xx.xx.xx    EXTERNAL                    asia-northeast1   
 ### ビルドエラーが発生する場合
 
 1. Firebase Console > App Hosting > ビルドログ を確認
-2. 環境変数が正しく設定されているか確認
-3. `package.json` の依存関係が最新か確認
+2. Secret Manager とシークレット参照が正しく設定されているか確認（`BUILD_ERROR_FIX.md`参照）
+3. `apphosting.staging.yaml` の内容を確認
+4. `package.json` の依存関係が最新か確認
 
 ### データベース接続エラー
 

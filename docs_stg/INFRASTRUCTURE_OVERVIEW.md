@@ -801,26 +801,37 @@ if (providedPassword !== adminPassword) {
 
 ### 7. 環境変数管理
 
-**機密情報**:
+**ローカル開発**:
 - `.env.local` ファイル（gitignore済み）
-- Firebase App Hostingの環境変数設定
-- 本番とステージングで別々の値を使用
+
+**本番・ステージング環境**:
+- **Google Cloud Secret Manager** でシークレットを管理
+- **apphosting.yaml / apphosting.staging.yaml** でシークレット参照
+- 公開情報とシークレットを分離して管理
+- 本番とステージングで別々のSecret Managerプロジェクトを使用
 
 **重要な環境変数**:
 ```bash
-# Firebase
+# Firebase Client SDK（公開情報）
 NEXT_PUBLIC_FIREBASE_API_KEY
 NEXT_PUBLIC_FIREBASE_PROJECT_ID
 
-# MySQL
-MYSQL_HOST
-MYSQL_USER
-MYSQL_PASSWORD
+# Firebase Admin SDK（シークレット）
+FIREBASE_ADMIN_PRIVATE_KEY
+FIREBASE_ADMIN_CLIENT_EMAIL
 
-# API Keys
+# MySQL（シークレット）
+DB_HOST
+DB_USER
+DB_PASSWORD
+
+# API Keys（シークレット）
 GOOGLE_GENKIT_API_KEY
 API_REGISTER_PASSWORD
+TRANSACTION_HUB_API_KEY
 ```
+
+**詳細**: `docs_stg/SECRET_MANAGER_SETUP.md` を参照
 
 ---
 
