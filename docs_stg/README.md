@@ -8,7 +8,7 @@
 
 ### ✅ 実施すること
 - インフラ構成の複製（Firebase、Cloud SQL、VPC、固定IP）
-- Git連携の設定（`ktaka`ブランチ）
+- Git連携の設定（`staging`ブランチ）
 - ネットワーク構成の確認
 
 ### ❌ 実施しないこと
@@ -124,7 +124,7 @@ Nukuneアプリのインフラ全体を詳しく解説。
 
 ### Git連携
 - [ ] Firebase App Hosting バックエンド `nukune-staging` が作成されている
-- [ ] GitHub `ktaka` ブランチと連携されている
+- [ ] GitHub `staging` ブランチと連携されている
 - [ ] 初回デプロイが成功している（またはビルド実行済み）
 
 ---

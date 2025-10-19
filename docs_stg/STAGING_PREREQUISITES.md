@@ -41,13 +41,13 @@ https://console.firebase.google.com にアクセスできるか確認
 #### GitHub
 - [ ] GitHubアカウント
 - [ ] `Nukune` リポジトリへの**Admin**または**Write**権限
-- [ ] リポジトリの `ktaka` ブランチが存在
+- [ ] リポジトリの `staging` ブランチが存在
 
 **確認方法**:
 ```bash
-git branch -a | grep ktaka
+git branch -a | grep staging
 # または
-https://github.com/your-org/Nukune/tree/ktaka にアクセス
+https://github.com/your-org/Nukune/tree/staging にアクセス
 ```
 
 ---
@@ -226,7 +226,7 @@ openssl rand -base64 64
 
 #### Cloud Run / App Hosting
 - [ ] Firebase App Hosting バックエンド: `nukune-staging`
-- [ ] GitHub連携（`ktaka`ブランチ）
+- [ ] GitHub連携（`staging`ブランチ）
 
 ---
 
@@ -366,7 +366,7 @@ Firebase App Hostingを使うことで、Cloud Runの複雑な設定を自動化
 **A**: 以下を確認:
 1. リポジトリの権限（Admin以上が必要）
 2. Firebaseアプリの認証（GitHubアカウントで）
-3. `ktaka` ブランチの存在
+3. `staging` ブランチの存在
 
 ### Q7: ビルドエラーが出たら？
 

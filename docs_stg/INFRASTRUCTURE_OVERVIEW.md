@@ -334,7 +334,7 @@ npm run genkit:watch    # ファイル監視モード
 ```
 開発者
   ↓ (コード修正)
-GitHub リポジトリ (ktaka ブランチ)
+GitHub リポジトリ (staging ブランチ)
   ↓ (git push)
 Firebase App Hosting (ビルドトリガー)
   ↓ (自動検知)
@@ -357,7 +357,7 @@ Cloud Run デプロイ
    ```bash
    git add .
    git commit -m "feat: 新機能追加"
-   git push origin ktaka
+   git push origin staging
    ```
 
 2. **Firebase App Hostingが変更を検知**
@@ -527,7 +527,7 @@ Cloud Run デプロイ
 |------|--------|
 | GCPプロジェクト | `nukune-stg` ✅ 作成済み |
 | Firebase プロジェクト | `nukune-stg01-475508` ✅ 作成済み |
-| 対象ブランチ | `ktaka` |
+| 対象ブランチ | `staging` |
 | Cloud Run リージョン | `asia-northeast1` (東京) |
 | URL | 構築後に発行される |
 | リソース | CPU: 2コア, メモリ: 4GB（コスト削減） |

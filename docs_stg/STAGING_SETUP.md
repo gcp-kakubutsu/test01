@@ -18,11 +18,11 @@
 - **本番プロジェクト**: `nukune` (既存)
 - **ステージングプロジェクト**: `nukune-stg` (既存・作成済み)
 - **Firebaseプロジェクト**: `nukune-stg01-475508` (既存・作成済み)
-- **対象ブランチ**: `ktaka`
+- **対象ブランチ**: `staging`
 - **作業内容**:
   1. ✅ 現在の本番環境のネットワーク構成をクローン
   2. ✅ ステージング環境のグローバルIP固定化
-  3. ✅ ステージング環境とGit (`ktaka`ブランチ) の連携
+  3. ✅ ステージング環境とGit (`staging`ブランチ) の連携
 
 ---
 
@@ -285,7 +285,7 @@ SELECT * FROM test_connection;
 1. 「バックエンドを作成」をクリック
 2. 以下を設定:
    - **バックエンド名**: `nukune-staging`
-   - **ブランチ**: `ktaka`
+   - **ブランチ**: `staging`
    - **ルートディレクトリ**: `/` (リポジトリルート)
    - **ビルド設定**: 自動検出される（Next.js）
 3. 「次へ」をクリック
@@ -338,7 +338,7 @@ runConfig:
         subnetwork: projects/nukune-stg/regions/asia-northeast1/subnetworks/default
 ```
 
-**注意**: `ktaka`ブランチで作業する場合、ブランチ固有の設定ファイルを作成するか、環境変数でプロジェクトIDを切り替える必要があります。
+**注意**: `staging`ブランチで作業する場合、ブランチ固有の設定ファイルを作成するか、環境変数でプロジェクトIDを切り替える必要があります。
 
 ### 4.6 デプロイの実行
 
@@ -389,12 +389,12 @@ MYSQL_PORT=3306
 
 ### 6.1 自動デプロイの動作確認
 
-1. `ktaka` ブランチに変更をプッシュ
+1. `staging` ブランチに変更をプッシュ
 ```bash
-git checkout ktaka
+git checkout staging
 git add .
 git commit -m "test: ステージング環境デプロイテスト"
-git push origin ktaka
+git push origin staging
 ```
 
 2. Firebase Console > App Hosting で自動ビルドが開始されることを確認
@@ -462,7 +462,7 @@ nukune-stg-nat-ip  xx.xx.xx.xx    EXTERNAL                    asia-northeast1   
 ### ✅ Git連携
 
 - [ ] **Firebase App Hosting** バックエンド `nukune-staging` が作成されている
-- [ ] **GitHub連携** で `ktaka` ブランチが接続されている
+- [ ] **GitHub連携** で `staging` ブランチが接続されている
 - [ ] **初回デプロイ** が成功している（またはビルド実行済み）
 - [ ] デプロイされたURLにアクセスできる
 
@@ -541,6 +541,6 @@ nukune-stg-nat-ip  xx.xx.xx.xx    EXTERNAL                    asia-northeast1   
 
 1. ✅ **環境のクローン**: Firebase + MySQL + Cloud Runの構成
 2. ✅ **IP固定化**: Cloud NATによる送信元IPの固定
-3. ✅ **Git連携**: `ktaka`ブランチへのpushで自動デプロイ
+3. ✅ **Git連携**: `staging`ブランチへのpushで自動デプロイ
 
 何か問題が発生した場合は、トラブルシューティングセクションを参照してください。
