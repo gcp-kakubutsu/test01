@@ -6,11 +6,22 @@
 
 **このプロジェクトは初めてですか？** ここから始めてください：
 
-1. **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** ⭐ - 新規GCPプロジェクトから始める完全セットアップガイド
-2. **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** ⭐ - 全セットアップを自動化するCLIスクリプト
+### 🎯 推奨フロー
+
+1. **[PREREQUISITES.md](./PREREQUISITES.md)** - 必要なツールとAPIキー情報を確認
+2. **`./setup.sh`** を実行 - 対話式で質問に答えるだけ
+3. APIキーは後から **`./update-api-keys.sh`** で追加可能
+
+**💡 ポイント:** APIキーがなくても構築開始できます！
+
+### 📚 その他のドキュメント
+
+- **[SETUP_SCRIPT_USAGE.md](./SETUP_SCRIPT_USAGE.md)** - setup.shの詳細な使い方
+- **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** - 手動セットアップガイド（理解を深めたい場合）
+- **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** - CLIコマンドリファレンス
 
 **推定時間:** 2-3時間
-**推定コスト:** $50-90/月（ステージング環境向けに最適化）
+**推定コスト:** $40-60/月（ステージング環境向けに最適化）
 
 ---
 
@@ -20,8 +31,10 @@
 
 | ドキュメント | 目的 | 使用するとき |
 |----------|---------|-------------|
-| **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** | 新規GCPプロジェクトから始めるステップバイステップガイド | ゼロから新しい環境を構築する場合 |
-| **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** | 自動セットアップ用の完全なCLIスクリプト | 迅速な自動セットアップ、アカウント切り替え |
+| **[PREREQUISITES.md](./PREREQUISITES.md)** | 事前準備チェックリスト（APIキー取得方法など） | セットアップを始める前に必ず読む |
+| **[setup.sh](./setup.sh)** + **[使い方](./SETUP_SCRIPT_USAGE.md)** | ワンコマンド自動セットアップスクリプト | 最速でセットアップしたい場合（推奨） |
+| **[FROM_SCRATCH.md](./FROM_SCRATCH.md)** | 新規GCPプロジェクトから始める手動セットアップガイド | 手動で一つ一つ確認しながら構築したい場合 |
+| **[FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md)** | CLIコマンドリファレンス | コマンドを個別に実行したい場合 |
 
 ### 補足ドキュメント
 
