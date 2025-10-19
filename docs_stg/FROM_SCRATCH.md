@@ -1,62 +1,67 @@
-# Nukune App Hosting Setup Guide - From Scratch
+# Nukune App Hosting セットアップガイド - ゼロから構築
 
-This guide will help you set up the Nukune dating/matching application on Firebase App Hosting from scratch, starting with a new GCP project.
+このガイドでは、新しいGCPプロジェクトから始めて、Firebase App Hosting上でNukune（出会い系/マッチングアプリケーション）をゼロからセットアップする方法を説明します。
 
-## Table of Contents
+## 目次
 
-1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Region Selection](#region-selection)
-4. [Step-by-Step Setup](#step-by-step-setup)
-5. [Verification](#verification)
-6. [Troubleshooting](#troubleshooting)
-
----
-
-## Overview
-
-**What you'll build:**
-- New GCP Project with Firebase
-- Firebase App Hosting (Cloud Run based)
-- Cloud SQL (MySQL) for database
-- VPC network with fixed IP (Cloud NAT)
-- Automatic deployment from Git
-
-**Architecture:**
-```
-GitHub (staging branch)
-    ↓
-Firebase App Hosting (Build)
-    ↓
-Cloud Run (asia-east1 or us-central1)
-    ↓
-VPC Network → Cloud NAT → Fixed IP
-    ↓
-Cloud SQL MySQL (same region)
-```
-
-**Estimated Time:** 2-3 hours
-
-**Estimated Cost:** $50-90/month (staging with minInstances=0)
+1. [概要](#概要)
+2. [前提条件](#前提条件)
+3. [リージョン選択](#リージョン選択)
+4. [ステップバイステップセットアップ](#ステップバイステップセットアップ)
+5. [検証](#検証)
+6. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## Prerequisites
+## 概要
 
-### Required Accounts
-- [ ] Google Account with billing enabled
-- [ ] GitHub account with repository access
-- [ ] Firebase CLI installed (`npm install -g firebase-tools`)
-- [ ] gcloud CLI installed ([Install Guide](https://cloud.google.com/sdk/docs/install))
+**構築する内容:**
 
-### Required API Keys
-- [ ] Google Genkit API Key (for AI features)
-- [ ] Transaction Hub API Key (for payment processing)
+- 新しいGCPプロジェクト + Firebase
+- Firebase App Hosting (Cloud Runベース)
+- Cloud SQL (MySQL) データベース
+- 固定IPを持つVPCネットワーク (Cloud NAT)
+- Gitからの自動デプロイ
 
-### Local Tools
+**アーキテクチャ:**
+
+```
+GitHub (stagingブランチ)
+    ↓
+Firebase App Hosting (ビルド)
+    ↓
+Cloud Run (asia-east1 または us-central1)
+    ↓
+VPCネットワーク → Cloud NAT → 固定IP
+    ↓
+Cloud SQL MySQL (同じリージョン)
+```
+
+**推定時間:** 2〜3時間
+
+**推定コスト:** 月額 $50〜90 (ステージング環境、minInstances=0)
+
+---
+
+## 前提条件
+
+### 必要なアカウント
+
+- [ ] 課金が有効なGoogleアカウント
+- [ ] リポジトリアクセス権を持つGitHubアカウント
+- [ ] Firebase CLIのインストール (`npm install -g firebase-tools`)
+- [ ] gcloud CLIのインストール ([インストールガイド](https://cloud.google.com/sdk/docs/install))
+
+### 必要なAPIキー
+
+- [ ] Google Genkit APIキー (AI機能用)
+- [ ] Transaction Hub APIキー (決済処理用)
+
+### ローカルツール
+
 ```bash
-# Check if tools are installed
-node --version  # v18.0.0 or higher
+# ツールがインストールされているか確認
+node --version  # v18.0.0以上
 npm --version
 firebase --version
 gcloud --version
@@ -65,88 +70,93 @@ git --version
 
 ---
 
-## Region Selection
+## リージョン選択
 
-Firebase App Hosting supports the following regions (as of October 2025):
+Firebase App Hostingは以下のリージョンをサポートしています（2025年10月時点）:
 
-### Recommended Regions for This Project:
+### このプロジェクトで推奨されるリージョン
 
-| Region | Location | Latency to Japan | Best For |
-|--------|----------|------------------|----------|
-| **asia-east1** | Taiwan | ~50ms | **Asia users (Recommended)** |
-| us-central1 | Iowa, USA | ~150ms | US users |
-| asia-southeast1 | Singapore | ~70ms | Southeast Asia |
-| europe-west4 | Netherlands | ~200ms | Europe users |
+| リージョン | 場所 | 日本からのレイテンシ | 最適な用途 |
+|--------|------|------------------|----------|
+| **asia-east1** | 台湾 | 〜50ms | **アジアユーザー向け（推奨）** |
+| us-central1 | アメリカ・アイオワ | 〜150ms | アメリカユーザー向け |
+| asia-southeast1 | シンガポール | 〜70ms | 東南アジア向け |
+| europe-west4 | オランダ | 〜200ms | ヨーロッパ向け |
 
-**Important:**
-- `asia-northeast1` (Tokyo) is **NOT supported** by Firebase App Hosting
-- All resources (Cloud Run, Cloud SQL, VPC) must be in the **same region**
-- Once deployed, changing regions requires rebuilding everything
+**重要:**
 
-**For this guide, we'll use `asia-east1` (Taiwan) as the default** for optimal performance in Asia.
+- `asia-northeast1` (東京) は Firebase App Hostingで**サポートされていません**
+- すべてのリソース (Cloud Run、Cloud SQL、VPC) は**同じリージョン**に配置する必要があります
+- デプロイ後のリージョン変更は、すべて再構築が必要です
 
----
-
-## Step-by-Step Setup
-
-### Step 1: Create New GCP Project
-
-#### 1.1 Create Project via Console
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Click "Select a project" → "New Project"
-3. Enter details:
-   - **Project name:** `nukune-staging` (or your choice)
-   - **Project ID:** Will be auto-generated (e.g., `nukune-staging-123456`)
-   - **Billing account:** Select your billing account
-4. Click "CREATE"
-5. **Save your Project ID** - you'll need it throughout this guide
-
-#### 1.2 Enable Billing
-
-1. Go to [Billing](https://console.cloud.google.com/billing)
-2. Link the project to your billing account
-3. Verify billing is enabled
+**このガイドでは、アジアでの最適なパフォーマンスのため、デフォルトで `asia-east1` (台湾) を使用します。**
 
 ---
 
-### Step 2: Initialize Firebase Project
+## ステップバイステップセットアップ
 
-#### 2.1 Create Firebase Project
+### ステップ1: 新しいGCPプロジェクトを作成
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Click "Add project"
-3. Select your existing GCP project (`nukune-staging`)
-4. Enable Google Analytics (optional but recommended)
-5. Click "Continue"
+#### 1.1 コンソールでプロジェクトを作成
 
-#### 2.2 Enable Firebase Services
+1. [Google Cloud Console](https://console.cloud.google.com) にアクセス
+2. 「プロジェクトを選択」→「新しいプロジェクト」をクリック
+3. 詳細を入力:
+   - **プロジェクト名:** `nukune-staging` (または任意の名前)
+   - **プロジェクトID:** 自動生成されます (例: `nukune-staging-123456`)
+   - **請求先アカウント:** 請求先アカウントを選択
+4. 「作成」をクリック
+5. **プロジェクトIDを保存** - このガイド全体で必要になります
+
+#### 1.2 課金を有効化
+
+1. [課金](https://console.cloud.google.com/billing) にアクセス
+2. プロジェクトを請求先アカウントにリンク
+3. 課金が有効になっていることを確認
+
+---
+
+### ステップ2: Firebaseプロジェクトの初期化
+
+#### 2.1 Firebaseプロジェクトを作成
+
+1. [Firebase Console](https://console.firebase.google.com) にアクセス
+2. 「プロジェクトを追加」をクリック
+3. 既存のGCPプロジェクト (`nukune-staging`) を選択
+4. Google アナリティクスを有効化 (オプション、推奨)
+5. 「続行」をクリック
+
+#### 2.2 Firebaseサービスを有効化
 
 **Authentication:**
-1. Firebase Console → Authentication → "Get started"
-2. Sign-in method → Enable "Email/Password"
-3. Click "Save"
+
+1. Firebase Console → Authentication → 「始める」
+2. ログイン方法 → 「メール/パスワード」を有効化
+3. 「保存」をクリック
 
 **Firestore:**
-1. Firebase Console → Firestore Database → "Create database"
-2. Start in **production mode**
-3. Location: **asia-east1** (or your chosen region)
-4. Click "Enable"
+
+1. Firebase Console → Firestore Database → 「データベースを作成」
+2. **本番モード**で開始
+3. ロケーション: **asia-east1** (または選択したリージョン)
+4. 「有効にする」をクリック
 
 **Storage:**
-1. Firebase Console → Storage → "Get started"
-2. Start in **production mode** (rules will be configured later)
-3. Location: **asia-east1** (same as Firestore)
-4. Click "Done"
 
-#### 2.3 Register Web App
+1. Firebase Console → Storage → 「始める」
+2. **本番モード**で開始 (ルールは後で設定)
+3. ロケーション: **asia-east1** (Firestoreと同じ)
+4. 「完了」をクリック
 
-1. Firebase Console → Project settings → Your apps
-2. Click the web icon (`</>`)
-3. App nickname: `Nukune Staging`
-4. Don't check "Firebase Hosting"
-5. Click "Register app"
-6. **Copy the Firebase config** - you'll need these values:
+#### 2.3 Webアプリを登録
+
+1. Firebase Console → プロジェクトの設定 → マイアプリ
+2. Webアイコン (`</>`) をクリック
+3. アプリのニックネーム: `Nukune Staging`
+4. 「Firebase Hosting」はチェックしない
+5. 「アプリを登録」をクリック
+6. **Firebase configをコピー** - 後で環境変数として使用します:
+
    ```javascript
    const firebaseConfig = {
      apiKey: "AIzaSy...",
@@ -161,65 +171,66 @@ Firebase App Hosting supports the following regions (as of October 2025):
 
 ---
 
-### Step 3: Create Cloud SQL Instance
+### ステップ3: Cloud SQLインスタンスを作成
 
-#### 3.1 Enable Cloud SQL API
+#### 3.1 Cloud SQL APIを有効化
 
 ```bash
-# Set your project
+# プロジェクトを設定
 gcloud config set project YOUR_PROJECT_ID
 
-# Enable required APIs
+# 必要なAPIを有効化
 gcloud services enable sqladmin.googleapis.com
 gcloud services enable servicenetworking.googleapis.com
 ```
 
-#### 3.2 Create MySQL Instance
+#### 3.2 MySQLインスタンスを作成
 
-**Via Console:**
-1. GCP Console → SQL → "Create Instance"
-2. Choose "MySQL"
-3. Instance ID: `nukune-mysql`
-4. Password: Generate a strong password (save it!)
-5. Version: MySQL 8.0
-6. Region: **asia-east1** (or your chosen region)
-7. Zone: Single zone (for staging)
-8. Machine type: `db-n1-standard-2` (or smaller for staging)
-9. Storage: 10 GB SSD, enable auto-resize
-10. Click "CREATE INSTANCE"
+**コンソール経由:**
 
-**Wait 5-10 minutes** for the instance to be created.
+1. GCP Console → SQL → 「インスタンスを作成」
+2. 「MySQL」を選択
+3. インスタンスID: `nukune-mysql`
+4. パスワード: 強力なパスワードを生成 (保存してください!)
+5. バージョン: MySQL 8.0
+6. リージョン: **asia-east1** (または選択したリージョン)
+7. ゾーン: シングルゾーン (ステージング用)
+8. マシンタイプ: `db-n1-standard-2` (またはステージング用に小さいもの)
+9. ストレージ: 10 GB SSD、自動サイズ変更を有効化
+10. 「作成」をクリック
 
-#### 3.3 Create Database and User
+**5〜10分待ちます** - インスタンスが作成されるまで。
+
+#### 3.3 データベースとユーザーを作成
 
 ```bash
-# Set your instance name
+# インスタンス名を設定
 INSTANCE_NAME=nukune-mysql
 PROJECT_ID=YOUR_PROJECT_ID
 
-# Create database
+# データベースを作成
 gcloud sql databases create nukune_db \
   --instance=$INSTANCE_NAME
 
-# Create user
+# ユーザーを作成
 gcloud sql users create nukune_app \
   --instance=$INSTANCE_NAME \
   --password=YOUR_SECURE_PASSWORD
 
-# Note the connection name (you'll need this later)
+# 接続名をメモ (後で必要になります)
 gcloud sql instances describe $INSTANCE_NAME \
   --format="value(connectionName)"
-# Output: your-project-id:asia-east1:nukune-mysql
+# 出力: your-project-id:asia-east1:nukune-mysql
 ```
 
 ---
 
-### Step 4: Set Up VPC and Fixed IP
+### ステップ4: VPCと固定IPのセットアップ
 
-#### 4.1 Create VPC Connector
+#### 4.1 VPCコネクタを作成
 
 ```bash
-# Replace REGION with your chosen region (asia-east1 or us-central1)
+# REGIONを選択したリージョンに置き換え (asia-east1 または us-central1)
 REGION=asia-east1
 PROJECT_ID=YOUR_PROJECT_ID
 
@@ -232,20 +243,20 @@ gcloud compute networks vpc-access connectors create nukune-connector \
   --project=$PROJECT_ID
 ```
 
-#### 4.2 Reserve Static IP
+#### 4.2 静的IPを予約
 
 ```bash
 gcloud compute addresses create nukune-nat-ip \
   --region=$REGION \
   --project=$PROJECT_ID
 
-# Get the reserved IP (save this!)
+# 予約されたIPを取得 (保存してください!)
 gcloud compute addresses describe nukune-nat-ip \
   --region=$REGION \
   --format="value(address)"
 ```
 
-#### 4.3 Create Cloud Router
+#### 4.3 Cloud Routerを作成
 
 ```bash
 gcloud compute routers create nukune-router \
@@ -254,7 +265,7 @@ gcloud compute routers create nukune-router \
   --project=$PROJECT_ID
 ```
 
-#### 4.4 Create Cloud NAT
+#### 4.4 Cloud NATを作成
 
 ```bash
 gcloud compute routers nats create nukune-nat \
@@ -267,57 +278,59 @@ gcloud compute routers nats create nukune-nat \
 
 ---
 
-### Step 5: Configure Secret Manager
+### ステップ5: Secret Managerの設定
 
-#### 5.1 Enable Secret Manager API
+#### 5.1 Secret Manager APIを有効化
 
 ```bash
 gcloud services enable secretmanager.googleapis.com --project=$PROJECT_ID
 ```
 
-#### 5.2 Create Secrets
+#### 5.2 シークレットを作成
 
-You'll need to create the following secrets. See `CLI_ALL_IN_ONE.md` for the complete script.
+以下のシークレットを作成する必要があります。完全なスクリプトは `FROM_SCRATCH_CLI.md` を参照してください。
 
-**Required Secrets:**
-1. `firebase-admin-client-email` - From Firebase service account
-2. `firebase-admin-private-key` - From Firebase service account
-3. `db-password` - MySQL password
-4. `transaction-hub-api-key` - Payment API key
-5. `google-genkit-api-key` - AI API key
-6. `api-register-password` - Registration API password
-7. `jwt-secret` - JWT signing secret
+**必要なシークレット:**
 
-**Get Firebase Admin credentials:**
-1. Firebase Console → Project settings → Service accounts
-2. Click "Generate new private key"
-3. Save the JSON file
-4. Extract `client_email` and `private_key` from the JSON
+1. `firebase-admin-client-email` - Firebaseサービスアカウントから
+2. `firebase-admin-private-key` - Firebaseサービスアカウントから
+3. `db-password` - MySQLパスワード
+4. `transaction-hub-api-key` - 決済APIキー
+5. `google-genkit-api-key` - AI APIキー
+6. `api-register-password` - 登録APIパスワード
+7. `jwt-secret` - JWT署名シークレット
+
+**Firebase Admin認証情報を取得:**
+
+1. Firebase Console → プロジェクトの設定 → サービスアカウント
+2. 「新しい秘密鍵を生成」をクリック
+3. JSONファイルを保存
+4. JSONから `client_email` と `private_key` を抽出
 
 ---
 
-### Step 6: Configure App Hosting
+### ステップ6: App Hostingの設定
 
-#### 6.1 Connect GitHub Repository
+#### 6.1 GitHubリポジトリに接続
 
-1. Firebase Console → App Hosting → "Get started"
-2. "Connect to GitHub"
-3. Authorize Firebase
-4. Select your repository
-5. Grant access
+1. Firebase Console → App Hosting → 「始める」
+2. 「GitHubに接続」
+3. Firebaseを承認
+4. リポジトリを選択
+5. アクセスを許可
 
-#### 6.2 Create Backend
+#### 6.2 バックエンドを作成
 
-1. Click "Create backend"
-2. Settings:
-   - **Backend ID:** `nukune-staging` (or your choice)
-   - **Branch:** `staging`
-   - **Root directory:** `/`
-3. Click "Next"
+1. 「バックエンドを作成」をクリック
+2. 設定:
+   - **バックエンドID:** `nukune-staging` (または任意の名前)
+   - **ブランチ:** `staging`
+   - **ルートディレクトリ:** `/`
+3. 「次へ」をクリック
 
-#### 6.3 Create apphosting.staging.yaml
+#### 6.3 apphosting.staging.yamlを作成
 
-Create `apphosting.staging.yaml` in your repository root:
+リポジトリのルートに `apphosting.staging.yaml` を作成:
 
 ```yaml
 # apphosting.staging.yaml
@@ -327,7 +340,7 @@ runConfig:
   concurrency: 100
   cpu: 1
   memoryMiB: 4096
-  # VPC configuration for fixed IP
+  # 固定IP用のVPC設定
   vpcAccess:
     egress: ALL_TRAFFIC
     networkInterfaces:
@@ -335,7 +348,7 @@ runConfig:
         subnetwork: projects/YOUR_PROJECT_ID/regions/asia-east1/subnetworks/default
 
 env:
-  # Firebase Client SDK (Public)
+  # Firebase Client SDK (公開)
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: YOUR_API_KEY
     availability: [BUILD, RUNTIME]
@@ -364,7 +377,7 @@ env:
     value: YOUR_MEASUREMENT_ID
     availability: [BUILD, RUNTIME]
 
-  # Firebase Admin SDK (Secrets)
+  # Firebase Admin SDK (シークレット)
   - variable: FIREBASE_ADMIN_PROJECT_ID
     value: YOUR_PROJECT_ID
     availability: [BUILD, RUNTIME]
@@ -377,7 +390,7 @@ env:
     secret: firebase-admin-private-key
     availability: [BUILD, RUNTIME]
 
-  # MySQL Configuration
+  # MySQL設定
   - variable: DB_HOST
     value: /cloudsql/YOUR_PROJECT_ID:asia-east1:nukune-mysql
     availability: [RUNTIME]
@@ -398,7 +411,7 @@ env:
     value: "3306"
     availability: [RUNTIME]
 
-  # API Keys
+  # APIキー
   - variable: TRANSACTION_HUB_API_KEY
     secret: transaction-hub-api-key
     availability: [BUILD, RUNTIME]
@@ -411,7 +424,7 @@ env:
     secret: google-genkit-api-key
     availability: [BUILD, RUNTIME]
 
-  # Security
+  # セキュリティ
   - variable: API_REGISTER_PASSWORD
     secret: api-register-password
     availability: [RUNTIME]
@@ -420,23 +433,23 @@ env:
     secret: jwt-secret
     availability: [RUNTIME]
 
-  # Other
+  # その他
   - variable: NODE_ENV
     value: production
     availability: [BUILD, RUNTIME]
 
-# Cloud SQL Connection
+# Cloud SQL接続
 cloudSqlInstances:
   - connectionName: YOUR_PROJECT_ID:asia-east1:nukune-mysql
 ```
 
-#### 6.4 Grant Secret Access
+#### 6.4 シークレットアクセスを付与
 
 ```bash
-# Get your backend ID
-BACKEND_ID=nukune-staging  # Or whatever you named it
+# バックエンドIDを取得
+BACKEND_ID=nukune-staging  # または設定した名前
 
-# Grant access to all secrets
+# すべてのシークレットへのアクセスを付与
 firebase apphosting:secrets:grantaccess firebase-admin-client-email --backend $BACKEND_ID --project $PROJECT_ID
 firebase apphosting:secrets:grantaccess firebase-admin-private-key --backend $BACKEND_ID --project $PROJECT_ID
 firebase apphosting:secrets:grantaccess db-password --backend $BACKEND_ID --project $PROJECT_ID
@@ -446,132 +459,136 @@ firebase apphosting:secrets:grantaccess api-register-password --backend $BACKEND
 firebase apphosting:secrets:grantaccess jwt-secret --backend $BACKEND_ID --project $PROJECT_ID
 ```
 
-#### 6.5 Deploy
+#### 6.5 デプロイ
 
 ```bash
-# Commit and push
+# コミットしてプッシュ
 git checkout staging
 git add apphosting.staging.yaml
 git commit -m "feat: add App Hosting configuration"
 git push origin staging
 ```
 
-Firebase App Hosting will automatically detect the push and start building.
+Firebase App Hostingがプッシュを自動的に検出してビルドを開始します。
 
 ---
 
-## Verification
+## 検証
 
-### Check Build Status
+### ビルドステータスを確認
 
-1. Firebase Console → App Hosting → Rollouts
-2. Watch the build progress
-3. Build should complete in 10-15 minutes
+1. Firebase Console → App Hosting → ロールアウト
+2. ビルドの進行状況を確認
+3. ビルドは10〜15分で完了するはずです
 
-### Verify Deployment
+### デプロイを確認
 
 ```bash
-# Check Cloud Run service
+# Cloud Runサービスを確認
 gcloud run services list --platform managed --region=$REGION
 
-# Check logs
+# ログを確認
 gcloud logging read "resource.type=cloud_run_revision" --limit 50 --format=json
 ```
 
-### Test Fixed IP
+### 固定IPをテスト
 
 ```bash
-# The outbound IP should match your reserved NAT IP
+# アウトバウンドIPは予約したNAT IPと一致するはずです
 gcloud compute addresses list --filter="name=nukune-nat-ip"
 ```
 
 ---
 
-## Troubleshooting
+## トラブルシューティング
 
-### Build Fails with "Permission Denied" on Secrets
+### シークレットで「Permission Denied」が発生してビルドが失敗する
 
-**Cause:** Service accounts don't have Secret Manager access
+**原因:** サービスアカウントがSecret Managerアクセス権を持っていない
 
-**Solution:**
+**解決策:**
+
 ```bash
-# Grant project-level access to Cloud Build service account
+# Cloud Buildサービスアカウントにプロジェクトレベルのアクセスを付与
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:YOUR_PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor" \
   --condition=None
 
-# Also grant to the service agent
+# サービスエージェントにも付与
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:service-YOUR_PROJECT_NUMBER@gcp-sa-cloudbuild.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor" \
   --condition=None
 ```
 
-### Cloud Run Fails with Region Mismatch
+### リージョン不一致でCloud Runが失敗する
 
-**Cause:** VPC subnet region doesn't match deployment region
+**原因:** VPCサブネットのリージョンがデプロイリージョンと一致しない
 
-**Solution:** Ensure all resources are in the same region:
-- Cloud Run deployment region (determined by App Hosting backend location)
-- VPC subnet region
-- Cloud SQL region
+**解決策:** すべてのリソースが同じリージョンにあることを確認:
 
-### Database Connection Fails
+- Cloud Runデプロイリージョン (App Hostingバックエンドの場所で決定)
+- VPCサブネットリージョン
+- Cloud SQLリージョン
 
-**Cause:** Cloud SQL instance not accessible or wrong connection string
+### データベース接続が失敗する
 
-**Solution:**
+**原因:** Cloud SQLインスタンスにアクセスできないか、接続文字列が間違っている
+
+**解決策:**
+
 ```bash
-# Verify Cloud SQL instance is running
+# Cloud SQLインスタンスが実行中か確認
 gcloud sql instances list
 
-# Check connection name format
-# Should be: PROJECT_ID:REGION:INSTANCE_NAME
+# 接続名の形式を確認
+# 形式: PROJECT_ID:REGION:INSTANCE_NAME
 gcloud sql instances describe nukune-mysql --format="value(connectionName)"
 ```
 
 ---
 
-## Next Steps
+## 次のステップ
 
-1. Configure Firebase Security Rules (Firestore, Storage)
-2. Set up monitoring and alerts
-3. Configure custom domain (optional)
-4. Set up automated backups
-5. Test your application functionality
-
----
-
-## Related Documentation
-
-- [FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md) - Complete CLI setup script
-- [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) - Detailed secret setup
-- [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) - Architecture details
-- [TEARDOWN.md](./TEARDOWN.md) - How to delete everything and stop costs
+1. Firebaseセキュリティルールを設定 (Firestore、Storage)
+2. モニタリングとアラートを設定
+3. カスタムドメインを設定 (オプション)
+4. 自動バックアップを設定
+5. アプリケーション機能をテスト
 
 ---
 
-## Cost Optimization
+## 関連ドキュメント
 
-For staging environments:
+- [FROM_SCRATCH_CLI.md](./FROM_SCRATCH_CLI.md) - 完全なCLIセットアップスクリプト
+- [SECRET_MANAGER_SETUP.md](./SECRET_MANAGER_SETUP.md) - 詳細なシークレット設定
+- [INFRASTRUCTURE_OVERVIEW.md](./INFRASTRUCTURE_OVERVIEW.md) - アーキテクチャの詳細
+- [TEARDOWN.md](./TEARDOWN.md) - すべてを削除してコストを停止する方法
+
+---
+
+## コスト最適化
+
+ステージング環境用:
 
 ```yaml
-# In apphosting.staging.yaml
+# apphosting.staging.yamlで
 runConfig:
-  minInstances: 0      # Scale to zero when not in use
-  maxInstances: 5      # Limit max scale
-  cpu: 1               # Lower CPU
-  memoryMiB: 2048      # Lower memory
+  minInstances: 0      # 未使用時にゼロにスケール
+  maxInstances: 5      # 最大スケールを制限
+  cpu: 1               # 低CPU
+  memoryMiB: 2048      # 低メモリ
 ```
 
 **Cloud SQL:**
-- Use smaller machine type (`db-f1-micro` or `db-g1-small`)
-- Schedule automatic shutdown during off-hours
-- Disable automated backups (use manual backups instead)
 
-**Estimated monthly cost with optimizations:** $20-40
+- 小さいマシンタイプを使用 (`db-f1-micro` または `db-g1-small`)
+- オフピーク時の自動シャットダウンをスケジュール
+- 自動バックアップを無効化 (手動バックアップを使用)
+
+**最適化による推定月額コスト:** $20〜40
 
 ---
 
-**Last Updated:** 2025-10-20
+**最終更新日:** 2025-10-20
