@@ -1,6 +1,6 @@
 # apphosting.staging.yaml
-# 生成日: Mon Oct 20 09:47:42 JST 2025
-# プロジェクト: nukune-staging-1760909410
+# 生成日: Mon Oct 20 16:50:41 JST 2025
+# プロジェクト: nukune-staging-20251020
 # リージョン: asia-east1
 
 runConfig:
@@ -14,42 +14,42 @@ runConfig:
   vpcAccess:
     egress: ALL_TRAFFIC
     networkInterfaces:
-      - network: projects/nukune-staging-1760909410/global/networks/default
-        subnetwork: projects/nukune-staging-1760909410/regions/asia-east1/subnetworks/default
+      - network: projects/nukune-staging-20251020/global/networks/default
+        subnetwork: projects/nukune-staging-20251020/regions/asia-east1/subnetworks/default
 
 env:
   # Firebase Client SDK（公開）
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyDWNVOB0BC4hCxuYqql3Rch1AftQ3yHIgE
+    value: AIzaSyDCf-raBYfnCIByJDRfboUS9xItzCSqZn8
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: nukune-staging-1760909410.firebaseapp.com
+    value: nukune-staging-20251020.firebaseapp.com
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: nukune-staging-1760909410
+    value: nukune-staging-20251020
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: nukune-staging-1760909410.firebasestorage.app
+    value: nukune-staging-20251020.firebasestorage.app
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "683694012363"
+    value: "192911651901"
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:683694012363:web:b3035ab2e27dca7ea2284e
+    value: 1:192911651901:web:348e76da49949a9c42a654
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-    value: G-RZB50LSRQS
+    value: G-1L4VNR35H7
     availability: [BUILD, RUNTIME]
 
   # Firebase Admin SDK（シークレット）
   - variable: FIREBASE_ADMIN_PROJECT_ID
-    value: nukune-staging-1760909410
+    value: nukune-staging-20251020
     availability: [BUILD, RUNTIME]
 
   - variable: FIREBASE_ADMIN_CLIENT_EMAIL
@@ -62,7 +62,7 @@ env:
 
   # MySQL設定
   - variable: DB_HOST
-    value: /cloudsql/nukune-staging-1760909410:asia-east1:nukune-mysql
+    value: /cloudsql/nukune-staging-20251020:asia-east1:nukune-mysql
     availability: [RUNTIME]
 
   - variable: DB_USER
@@ -114,4 +114,4 @@ env:
 
 # Cloud SQL接続
 cloudSqlInstances:
-  - connectionName: nukune-staging-1760909410:asia-east1:nukune-mysql
+  - connectionName: nukune-staging-20251020:asia-east1:nukune-mysql
