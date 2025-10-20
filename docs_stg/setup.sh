@@ -602,16 +602,29 @@ create_secret() {
   local SECRET_VALUE=$2
 
   if gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" &> /dev/null; then
-    print_info "シークレット $SECRET_NAME を更新中..."
-    echo -n "$SECRET_VALUE" | gcloud secrets versions add "$SECRET_NAME" \
-      --data-file=- \
-      --project="$PROJECT_ID"
+    # シークレットが既に存在する - 値が同じかチェック
+    print_info "シークレット $SECRET_NAME の値を確認中..."
+
+    # 既存の値を取得（エラーを抑制）
+    EXISTING_VALUE=$(gcloud secrets versions access latest --secret="$SECRET_NAME" --project="$PROJECT_ID" 2>/dev/null || echo "")
+
+    # 値を比較
+    if [ "$EXISTING_VALUE" = "$SECRET_VALUE" ]; then
+      print_success "シークレット $SECRET_NAME は既に同じ値で存在します（スキップ）"
+    else
+      print_info "シークレット $SECRET_NAME を更新中..."
+      echo -n "$SECRET_VALUE" | gcloud secrets versions add "$SECRET_NAME" \
+        --data-file=- \
+        --project="$PROJECT_ID"
+      print_success "シークレット $SECRET_NAME を更新しました"
+    fi
   else
     print_info "シークレット $SECRET_NAME を作成中..."
     echo -n "$SECRET_VALUE" | gcloud secrets create "$SECRET_NAME" \
       --data-file=- \
       --replication-policy=automatic \
       --project="$PROJECT_ID"
+    print_success "シークレット $SECRET_NAME を作成しました"
   fi
 }
 
@@ -656,43 +669,156 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 print_success "サービスアカウントに権限が付与されました"
 
 # =============================================================================
-# ステップ10: Firebase Configの取得
+# ステップ10: Firebase Web Appの作成と設定取得
 # =============================================================================
-print_step "ステップ10: Firebase Configの取得"
+print_step "ステップ10: Firebase Web Appの作成と設定取得"
 
-print_warning "手動ステップが必要です！"
-echo ""
-echo "以下の手順を実行してください："
-echo "1. https://console.firebase.google.com/project/$PROJECT_ID/settings/general にアクセス"
-echo "2. 'マイアプリ' セクションで '</>' (Web) アイコンをクリック"
-echo "3. アプリのニックネームを入力（例: Nukune Web）"
-echo "4. 'アプリを登録' をクリック"
-echo "5. firebaseConfig オブジェクトをコピー"
-echo "6. 以下のような形式で 'firebase-config.json' に保存:"
-echo ""
-echo '{'
-echo '  "apiKey": ".....",'
-echo '  "authDomain": ".....",'
-echo '  "projectId": ".....",'
-echo '  "storageBucket": ".....",'
-echo '  "messagingSenderId": ".....",'
-echo '  "appId": ".....",'
-echo '  "measurementId": "....."'
-echo '}'
-echo ""
-echo -e "${YELLOW}完了したら 'yes' と入力してください:${NC}"
-read -r CONFIG_DONE
-
-if [ "$CONFIG_DONE" != "yes" ]; then
-  print_error "Firebase Config取得がキャンセルされました"
-  exit 1
+# Firebaseにログイン（まだの場合）
+if ! firebase projects:list &> /dev/null; then
+  print_info "Firebaseにログイン中..."
+  firebase login
 fi
 
-if [ ! -f "firebase-config.json" ]; then
-  print_error "firebase-config.json が見つかりません"
-  exit 1
+# 既存のWebアプリがあるかチェック
+print_info "既存のWebアプリを確認中..."
+WEB_APP_LIST=$(firebase apps:list WEB --project="$PROJECT_ID" --json 2>/dev/null || echo "[]")
+WEB_APP_COUNT=$(echo "$WEB_APP_LIST" | jq 'length' 2>/dev/null || echo "0")
+
+if [ "$WEB_APP_COUNT" -gt 0 ]; then
+  print_info "既存のWebアプリが見つかりました:"
+  firebase apps:list WEB --project="$PROJECT_ID"
+  echo ""
+  echo -e "${YELLOW}既存のWebアプリを使用しますか？ (yes/no)${NC}"
+  echo -e "${BLUE}'no' を選択すると新しいWebアプリを作成します${NC}"
+  read -r USE_EXISTING_APP
+
+  if [ "$USE_EXISTING_APP" = "yes" ]; then
+    # テーブル形式から直接抽出（JSON形式は信頼性が低いためスキップ）
+    print_info "WebアプリIDを取得中..."
+
+    # テーブル出力から抽出（ANSI色コードを除去）
+    WEB_APP_ID=$(firebase apps:list WEB --project="$PROJECT_ID" 2>/dev/null | \
+      sed 's/\x1b\[[0-9;]*m//g' | \
+      grep "│" | \
+      grep -v "App Display Name" | \
+      grep -v "^┌" | \
+      grep -v "^├" | \
+      grep -v "^└" | \
+      grep -v "app(s) total" | \
+      grep "WEB" | \
+      head -1 | \
+      awk -F'│' '{print $3}' | \
+      tr -d '[:space:]')
+
+    if [ -n "$WEB_APP_ID" ] && [ "$WEB_APP_ID" != "null" ]; then
+      print_success "既存のWebアプリを使用します: $WEB_APP_ID"
+    else
+      print_error "WebアプリIDを取得できませんでした"
+      echo ""
+      echo -e "${YELLOW}デバッグ情報:${NC}"
+      echo "--- テーブル出力 ---"
+      firebase apps:list WEB --project="$PROJECT_ID" 2>/dev/null
+      echo ""
+      echo "--- grep結果 ---"
+      firebase apps:list WEB --project="$PROJECT_ID" 2>/dev/null | grep "│" | grep -v "App Display Name" | grep -v "^┌" | grep -v "^├" | grep -v "^└" | grep -v "app(s) total" | grep "WEB"
+      echo ""
+      exit 1
+    fi
+  else
+    # 新しいWebアプリを作成
+    print_info "新しいWebアプリを作成中..."
+    firebase apps:create WEB "Nukune Staging" --project="$PROJECT_ID"
+
+    # 作成後、リストを再取得してIDを取得
+    print_info "作成されたWebアプリのIDを取得中..."
+    sleep 2
+
+    WEB_APP_ID=$(firebase apps:list WEB --project="$PROJECT_ID" 2>/dev/null | \
+      sed 's/\x1b\[[0-9;]*m//g' | \
+      grep "│" | \
+      grep -v "App Display Name" | \
+      grep -v "^┌" | \
+      grep -v "^├" | \
+      grep -v "^└" | \
+      grep -v "app(s) total" | \
+      grep "WEB" | \
+      head -1 | \
+      awk -F'│' '{print $3}' | \
+      tr -d '[:space:]')
+
+    if [ -z "$WEB_APP_ID" ] || [ "$WEB_APP_ID" = "null" ]; then
+      print_error "WebアプリIDを取得できませんでした"
+      print_info "手動でWebアプリを確認してください: https://console.firebase.google.com/project/$PROJECT_ID/settings/general"
+      exit 1
+    fi
+    print_success "Webアプリが作成されました: $WEB_APP_ID"
+  fi
+else
+  # Webアプリが存在しないので作成
+  print_info "Webアプリを作成中..."
+  firebase apps:create WEB "Nukune Staging" --project="$PROJECT_ID"
+
+  # 作成後、リストを再取得してIDを取得
+  print_info "作成されたWebアプリのIDを取得中..."
+  sleep 2
+
+  WEB_APP_ID=$(firebase apps:list WEB --project="$PROJECT_ID" 2>/dev/null | \
+    sed 's/\x1b\[[0-9;]*m//g' | \
+    grep "│" | \
+    grep -v "App Display Name" | \
+    grep -v "^┌" | \
+    grep -v "^├" | \
+    grep -v "^└" | \
+    grep -v "app(s) total" | \
+    grep "WEB" | \
+    head -1 | \
+    awk -F'│' '{print $3}' | \
+    tr -d '[:space:]')
+
+  if [ -z "$WEB_APP_ID" ] || [ "$WEB_APP_ID" = "null" ]; then
+    print_error "WebアプリIDを取得できませんでした"
+    print_info "手動でWebアプリを確認してください: https://console.firebase.google.com/project/$PROJECT_ID/settings/general"
+    exit 1
+  fi
+  print_success "Webアプリが作成されました: $WEB_APP_ID"
 fi
 
+# Firebase Configを取得
+print_info "Firebase設定を取得中..."
+
+# 最終的にトリミングを確実に実行
+WEB_APP_ID="${WEB_APP_ID// /}"  # すべてのスペースを削除
+
+print_info "デバッグ: WebアプリID='${WEB_APP_ID}' (長さ: ${#WEB_APP_ID})"
+
+firebase apps:sdkconfig WEB "$WEB_APP_ID" --project="$PROJECT_ID" --out firebase-config.json
+
+# JSONフォーマットを修正（Firebase CLIが出力するフォーマットが不正な場合がある）
+if [ -f "firebase-config.json" ]; then
+  # JavaScriptオブジェクトからJSONに変換
+  print_info "Firebase設定を整形中..."
+
+  # 一時ファイルに整形されたJSONを作成
+  cat firebase-config.json | \
+    sed 's/^export const firebaseConfig = //' | \
+    sed 's/;$//' | \
+    jq '.' > firebase-config.tmp.json 2>/dev/null || {
+      # jqでパースできない場合は手動で修正
+      cat firebase-config.json | \
+        sed 's/apiKey:/\"apiKey\":/' | \
+        sed 's/authDomain:/\"authDomain\":/' | \
+        sed 's/projectId:/\"projectId\":/' | \
+        sed 's/storageBucket:/\"storageBucket\":/' | \
+        sed 's/messagingSenderId:/\"messagingSenderId\":/' | \
+        sed 's/appId:/\"appId\":/' | \
+        sed 's/measurementId:/\"measurementId\":/' | \
+        jq '.' > firebase-config.tmp.json
+    }
+
+  mv firebase-config.tmp.json firebase-config.json
+fi
+
+# 設定値を読み込む
 FIREBASE_API_KEY=$(jq -r '.apiKey' firebase-config.json)
 FIREBASE_AUTH_DOMAIN=$(jq -r '.authDomain' firebase-config.json)
 FIREBASE_PROJECT_ID=$(jq -r '.projectId' firebase-config.json)
@@ -701,7 +827,7 @@ FIREBASE_MESSAGING_SENDER_ID=$(jq -r '.messagingSenderId' firebase-config.json)
 FIREBASE_APP_ID=$(jq -r '.appId' firebase-config.json)
 FIREBASE_MEASUREMENT_ID=$(jq -r '.measurementId // "not-set"' firebase-config.json)
 
-print_success "Firebase Configを取得しました"
+print_success "Firebase設定を取得しました"
 
 # =============================================================================
 # ステップ11: apphosting.staging.yamlの生成
@@ -847,37 +973,16 @@ echo "   - ブランチ: $GIT_BRANCH"
 echo "   - ルートディレクトリ: /"
 echo "   - リージョン: $REGION"
 echo ""
+echo -e "${BLUE}※ 環境名の設定（オプション）:${NC}"
+echo "   バックエンド作成後、[設定] → [環境] で環境名を 'staging' に設定すると"
+echo "   apphosting.staging.yaml が自動的に使用されます"
+echo ""
 echo -e "${YELLOW}完了したら 'yes' と入力してください:${NC}"
 read -r APPHOSTING_DONE
 
 if [ "$APPHOSTING_DONE" != "yes" ]; then
   print_error "App Hosting設定がキャンセルされました"
   exit 1
-fi
-
-# Firebaseにログイン（まだの場合）
-if ! firebase projects:list &> /dev/null; then
-  print_info "Firebaseにログイン中..."
-  firebase login
-fi
-
-# 環境名の設定
-print_info "バックエンドの環境名を設定中..."
-echo ""
-echo -e "${YELLOW}次の手順を実行してください:${NC}"
-echo "1. https://console.firebase.google.com/project/$PROJECT_ID/apphosting にアクセス"
-echo "2. バックエンド '$BACKEND_ID' の [ダッシュボードを表示] をクリック"
-echo "3. [設定] タブ → [環境] を選択"
-echo "4. [環境名] に 'staging' と入力"
-echo "5. [保存] をクリック"
-echo ""
-echo -e "${BLUE}これにより、App Hostingは apphosting.staging.yaml を使用します${NC}"
-echo ""
-echo -e "${YELLOW}完了したら 'yes' と入力してください:${NC}"
-read -r ENV_NAME_DONE
-
-if [ "$ENV_NAME_DONE" != "yes" ]; then
-  print_warning "環境名の設定をスキップしました（後で設定してください）"
 fi
 
 # App Hostingバックエンドにシークレットアクセスを付与
